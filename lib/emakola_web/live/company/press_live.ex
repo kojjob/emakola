@@ -20,26 +20,28 @@ defmodule EmakolaWeb.Company.PressLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="press-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="Press & media"
-          title="Press"
-          highlight="resources"
-          subtitle="Everything you need to write about Makola. For interviews or anything else, reach out below."
-        />
-        <.about />
-        <.facts />
-        <.assets />
-        <.media_enquiries press_email={@press_email} />
-      </main>
-      <.landing_footer />
-    </div>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="press-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="Press & media"
+            title="Press"
+            highlight="resources"
+            subtitle="Everything you need to write about Makola. For interviews or anything else, reach out below."
+          />
+          <.about />
+          <.facts />
+          <.assets />
+          <.media_enquiries press_email={@press_email} />
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 

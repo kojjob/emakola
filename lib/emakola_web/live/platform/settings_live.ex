@@ -17,6 +17,13 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   alias Emakola.FeatureFlags
 
   @plans ~w(free starter pro enterprise)
+  @flag_form_fields [
+    key: "key",
+    name: "name",
+    description: "description",
+    enabled: "enabled",
+    required_plan: "required_plan"
+  ]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,6 +32,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       |> assign(:page_title, "Settings")
       |> assign(:active_nav, :settings)
       |> assign(:search, "")
+      |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
       |> assign(:plans, @plans)
       |> assign(:edit_flag_id, nil)
@@ -63,8 +71,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   # ── Events ─────────────────────────────────────────────
 
   @impl true
-  def handle_event("search", %{"search" => q}, socket) do
-    {:noreply, socket |> assign(:search, q) |> put_flags()}
+  def handle_event("search", %{"search" => q} = params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search, q)
+     |> assign(:search_form, to_form(params))
+     |> put_flags()}
   end
 
   def handle_event("filter", %{"filter" => f}, socket) do
@@ -84,11 +96,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         {:noreply,
          socket
          |> assign(:edit_flag_id, id)
-         |> assign(:form_key, flag.key)
-         |> assign(:form_name, flag.name)
-         |> assign(:form_description, flag.description || "")
-         |> assign(:form_enabled, flag.enabled)
-         |> assign(:form_plan, flag.required_plan)
+         |> assign(:flag_form, edit_flag_form(flag))
          |> assign(:form_errors, %{})}
     end
   end
@@ -98,10 +106,15 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   end
 
   def handle_event("validate", params, socket) do
-    {:noreply, assign(socket, :form_errors, validate_params(params))}
+    {:noreply,
+     socket
+     |> put_flag_form(params)
+     |> assign(:form_errors, validate_params(params))}
   end
 
   def handle_event("save", params, socket) do
+    socket = put_flag_form(socket, params)
+
     authorized(socket, fn socket ->
       errors = validate_params(params)
 
@@ -291,12 +304,38 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
   defp reset_form(socket) do
     socket
-    |> assign(:form_key, "")
-    |> assign(:form_name, "")
-    |> assign(:form_description, "")
-    |> assign(:form_enabled, true)
-    |> assign(:form_plan, nil)
+    |> assign(:flag_form, new_flag_form())
     |> assign(:form_errors, %{})
+  end
+
+  defp new_flag_form do
+    to_form(%{
+      "key" => "",
+      "name" => "",
+      "description" => "",
+      "enabled" => true,
+      "required_plan" => ""
+    })
+  end
+
+  defp edit_flag_form(flag) do
+    to_form(%{
+      "key" => flag.key,
+      "name" => flag.name,
+      "description" => flag.description || "",
+      "enabled" => flag.enabled,
+      "required_plan" => flag.required_plan || ""
+    })
+  end
+
+  defp put_flag_form(socket, params) do
+    current_values =
+      Map.new(@flag_form_fields, fn {field, key} ->
+        {key, socket.assigns.flag_form[field].value}
+      end)
+
+    values = Map.merge(current_values, Map.take(params, Keyword.values(@flag_form_fields)))
+    assign(socket, :flag_form, to_form(values))
   end
 
   defp validate_params(params) do
@@ -378,7 +417,8 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
         <%!-- Toolbar --%>
         <div class="mb-5 flex items-center gap-3 flex-wrap">
-          <form
+          <.form
+            for={@search_form}
             id="flag-search-form"
             phx-change="search"
             class="relative flex-1 min-w-[200px] max-w-sm"
@@ -386,15 +426,15 @@ defmodule EmakolaWeb.Platform.SettingsLive do
             <span class="material-symbols-outlined text-base text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               search
             </span>
-            <input
+            <.input
+              field={@search_form[:search]}
               type="search"
-              name="search"
-              value={@search}
+              id="flag-search"
               placeholder="Search by name or key..."
               phx-debounce="300"
               class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
             />
-          </form>
+          </.form>
           <div class="flex items-center gap-1.5">
             <.chip filter="all" active={@filter} label="All" />
             <.chip filter="enabled" active={@filter} label="Enabled" />
@@ -518,16 +558,21 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         title={if @edit_flag_id, do: "Edit feature flag", else: "New feature flag"}
         size={:md}
       >
-        <form id="flag-form" phx-submit="save" phx-change="validate" class="space-y-4">
+        <.form
+          for={@flag_form}
+          id="flag-form"
+          phx-submit="save"
+          phx-change="validate"
+          class="space-y-4"
+        >
           <div>
             <label for="flag-key" class="block text-sm font-medium text-slate-700 mb-1.5">
               Key <span class="text-red-500">*</span>
             </label>
-            <input
+            <.input
+              field={@flag_form[:key]}
               type="text"
               id="flag-key"
-              name="key"
-              value={@form_key}
               disabled={@edit_flag_id != nil}
               placeholder="new_checkout"
               autocomplete="off"
@@ -546,11 +591,10 @@ defmodule EmakolaWeb.Platform.SettingsLive do
             <label for="flag-name" class="block text-sm font-medium text-slate-700 mb-1.5">
               Name <span class="text-red-500">*</span>
             </label>
-            <input
+            <.input
+              field={@flag_form[:name]}
               type="text"
               id="flag-name"
-              name="name"
-              value={@form_name}
               placeholder="New checkout"
               autocomplete="off"
               class={[
@@ -565,42 +609,38 @@ defmodule EmakolaWeb.Platform.SettingsLive do
             <label for="flag-description" class="block text-sm font-medium text-slate-700 mb-1.5">
               Description
             </label>
-            <textarea
+            <.input
+              field={@flag_form[:description]}
+              type="textarea"
               id="flag-description"
-              name="description"
               rows="3"
               placeholder="Optional description"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            >{@form_description}</textarea>
+            />
           </div>
 
           <div>
             <label for="flag-plan" class="block text-sm font-medium text-slate-700 mb-1.5">
               Required plan
             </label>
-            <select
+            <.input
+              field={@flag_form[:required_plan]}
+              type="select"
               id="flag-plan"
-              name="required_plan"
+              options={[{"All plans (no gate)", ""} | Enum.map(@plans, &{String.capitalize(&1), &1})]}
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="" selected={is_nil(@form_plan)}>All plans (no gate)</option>
-              <option :for={p <- @plans} value={p} selected={@form_plan == p}>
-                {String.capitalize(p)}
-              </option>
-            </select>
+            />
           </div>
 
-          <label class="flex items-center gap-2">
-            <input type="hidden" name="enabled" value="false" />
-            <input
+          <div class="flex items-center gap-2">
+            <.input
+              field={@flag_form[:enabled]}
               type="checkbox"
-              name="enabled"
-              value="true"
-              checked={@form_enabled}
+              id="flag-enabled"
+              label="Enabled"
               class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <span class="text-sm text-slate-700">Enabled</span>
-          </label>
+          </div>
 
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
@@ -617,7 +657,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
               {if @edit_flag_id, do: "Update", else: "Create"}
             </button>
           </div>
-        </form>
+        </.form>
       </.modal>
 
       <%!-- Delete confirmation --%>

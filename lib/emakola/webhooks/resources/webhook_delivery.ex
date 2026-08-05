@@ -18,10 +18,15 @@ defmodule Emakola.Webhooks.WebhookDelivery do
       constraints: [max_length: 255]
     )
 
-    attribute(:payload, :map, default: %{}, public?: true)
+    attribute(:payload, :map, default: %{}, sensitive?: true)
     attribute(:response_status, :integer, public?: true)
-    attribute(:response_body, :string, public?: true, constraints: [max_length: 50_000])
-    attribute(:error, :string, public?: true, constraints: [max_length: 5_000])
+
+    attribute(:response_body, :string,
+      sensitive?: true,
+      constraints: [max_length: 50_000]
+    )
+
+    attribute(:error, :string, sensitive?: true, constraints: [max_length: 5_000])
     attribute(:attempts, :integer, default: 0, public?: true)
 
     attribute :status, :atom do

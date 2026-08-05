@@ -85,6 +85,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:review_form_rating, 0)
          |> assign(:review_form_title, "")
          |> assign(:review_form_body, "")
+         |> assign(:review_form, review_form())
          |> assign(:review_submitting, false)
          |> assign_review_eligibility(store, product)
          |> allow_upload(:review_photos,
@@ -281,6 +282,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:review_form_rating, 0)
              |> assign(:review_form_title, "")
              |> assign(:review_form_body, "")
+             |> assign(:review_form, review_form())
              |> put_flash(:info, "Review submitted!")}
 
           {:error, _} ->
@@ -308,7 +310,13 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
-  def handle_event("validate_review", _params, socket), do: {:noreply, socket}
+  def handle_event("validate_review", params, socket) do
+    {:noreply,
+     socket
+     |> assign(:review_form, review_form(params))
+     |> assign(:review_form_title, Map.get(params, "title", ""))
+     |> assign(:review_form_body, Map.get(params, "body", ""))}
+  end
 
   @impl true
   def handle_event("cancel_review_photo", %{"ref" => ref}, socket) do
@@ -388,6 +396,11 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     </section>
     {@theme_content}
     """
+  end
+
+  defp review_form(params \\ %{}) do
+    defaults = %{"title" => "", "body" => ""}
+    to_form(Map.merge(defaults, params))
   end
 
   # -- Helpers --

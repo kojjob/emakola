@@ -6,6 +6,8 @@ defmodule EmakolaWeb.ReviewComponents do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.CoreComponents, only: [input: 1]
+
   @star_path "M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
 
   # ── Star Display ───────────────────────────────────────────────────
@@ -88,6 +90,7 @@ defmodule EmakolaWeb.ReviewComponents do
   attr :reviews, :list, default: []
   attr :can_review, :boolean, default: false
   attr :already_reviewed, :boolean, default: false
+  attr :review_form, :any, default: nil
   attr :review_form_rating, :integer, default: 0
   attr :review_form_title, :string, default: ""
   attr :review_form_body, :string, default: ""
@@ -97,6 +100,14 @@ defmodule EmakolaWeb.ReviewComponents do
   attr :uploads, :map, default: nil
 
   def review_section(assigns) do
+    # Theme component tests can render this component in isolation. Production
+    # ProductDetailLive always provides the to_form/2-backed assign.
+    assigns =
+      assign_new(assigns, :resolved_review_form, fn ->
+        assigns.review_form ||
+          to_form(%{"title" => assigns.review_form_title, "body" => assigns.review_form_body})
+      end)
+
     ~H"""
     <section class="py-10 lg:py-16 bg-white" id="reviews">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -117,7 +128,13 @@ defmodule EmakolaWeb.ReviewComponents do
         <%!-- Review Form (eligible customers only) --%>
         <div :if={@can_review} class="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Write a Review</h3>
-          <form phx-submit="submit_review" phx-change="validate_review" class="space-y-4">
+          <.form
+            for={@resolved_review_form}
+            id="product-review-form"
+            phx-submit="submit_review"
+            phx-change="validate_review"
+            class="space-y-4"
+          >
             <%!-- Star Selector --%>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
@@ -152,14 +169,10 @@ defmodule EmakolaWeb.ReviewComponents do
 
             <%!-- Title (optional) --%>
             <div>
-              <label for="review-title" class="block text-sm font-medium text-gray-700 mb-1">
-                Title (optional)
-              </label>
-              <input
+              <.input
+                field={@resolved_review_form[:title]}
                 type="text"
-                id="review-title"
-                name="title"
-                value={@review_form_title}
+                label="Title (optional)"
                 maxlength="100"
                 placeholder="Summarize your experience"
                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
@@ -168,18 +181,16 @@ defmodule EmakolaWeb.ReviewComponents do
 
             <%!-- Body (required) --%>
             <div>
-              <label for="review-body" class="block text-sm font-medium text-gray-700 mb-1">
-                Your Review
-              </label>
-              <textarea
-                id="review-body"
-                name="body"
+              <.input
+                field={@resolved_review_form[:body]}
+                type="textarea"
+                label="Your Review"
                 rows="4"
                 required
                 maxlength="2000"
                 placeholder="Tell others what you think about this product..."
                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-              >{@review_form_body}</textarea>
+              />
             </div>
 
             <%!-- Photo Upload (up to 4) --%>
@@ -235,7 +246,7 @@ defmodule EmakolaWeb.ReviewComponents do
             >
               {if @review_submitting, do: "Submitting...", else: "Submit Review"}
             </button>
-          </form>
+          </.form>
         </div>
 
         <%!-- Already Reviewed Message --%>

@@ -59,6 +59,9 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
            created_link: nil,
            created_susu_plan: nil,
            extending_plan_id: nil,
+           extend_deadline_form: to_form(%{"plan_id" => "", "deadline" => ""}),
+           pay_link_form: pay_link_form("custom"),
+           susu_plan_form: susu_plan_form(),
            form_errors: %{}
          )}
     end
@@ -73,6 +76,8 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
        susu_item_type: "custom",
        created_link: nil,
        created_susu_plan: nil,
+       pay_link_form: pay_link_form("custom"),
+       susu_plan_form: susu_plan_form(),
        form_errors: %{},
        catalog_variants:
          load_catalog_variants(socket.assigns.store, socket.assigns.current_merchant)
@@ -93,7 +98,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
   @impl true
   def handle_event("set_create_type", %{"type" => type}, socket) do
     create_type = if type in ["custom", "catalog", "susu"], do: type, else: "custom"
-    {:noreply, assign(socket, create_type: create_type, form_errors: %{})}
+
+    {:noreply,
+     assign(socket,
+       create_type: create_type,
+       pay_link_form: pay_link_form(create_type),
+       form_errors: %{}
+     )}
   end
 
   # Inner toggle, only rendered/relevant while @create_type == "susu" — mirrors
@@ -102,13 +113,20 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
   @impl true
   def handle_event("set_susu_item_type", %{"type" => type}, socket) do
     susu_item_type = if type in ["custom", "catalog"], do: type, else: "custom"
-    {:noreply, assign(socket, susu_item_type: susu_item_type, form_errors: %{})}
+
+    {:noreply,
+     assign(socket,
+       susu_item_type: susu_item_type,
+       susu_plan_form: susu_plan_form(),
+       form_errors: %{}
+     )}
   end
 
   @impl true
   def handle_event("create", %{"pay_link" => params}, socket) do
     store = socket.assigns.store
     merchant = socket.assigns.current_merchant
+    socket = assign(socket, pay_link_form: to_form(params, as: :pay_link))
 
     case build_create_attrs(params, store, merchant) do
       {:ok, attrs} ->
@@ -137,6 +155,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
   def handle_event("create", %{"susu_plan" => params}, socket) do
     store = socket.assigns.store
     merchant = socket.assigns.current_merchant
+    socket = assign(socket, susu_plan_form: to_form(params, as: :susu_plan))
 
     case build_susu_create_attrs(socket.assigns.susu_item_type, params, store, merchant) do
       {:ok, attrs} ->
@@ -215,7 +234,11 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
   @impl true
   def handle_event("open_extend_deadline", %{"id" => id}, socket) do
-    {:noreply, assign(socket, extending_plan_id: id)}
+    {:noreply,
+     assign(socket,
+       extending_plan_id: id,
+       extend_deadline_form: to_form(%{"plan_id" => id, "deadline" => ""})
+     )}
   end
 
   @impl true
@@ -227,6 +250,11 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
   def handle_event("extend_deadline", %{"plan_id" => id, "deadline" => deadline_str}, socket) do
     store = socket.assigns.store
     merchant = socket.assigns.current_merchant
+
+    socket =
+      assign(socket,
+        extend_deadline_form: to_form(%{"plan_id" => id, "deadline" => deadline_str})
+      )
 
     with {:ok, deadline} <- parse_deadline(deadline_str),
          {:ok, plan} <- Ash.get(SusuPlan, id, actor: merchant, tenant: store.id),
@@ -487,16 +515,17 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                         Cancel
                       </button>
                     </div>
-                    <form
+                    <.form
                       :if={@extending_plan_id == plan.id}
+                      for={@extend_deadline_form}
                       id={"extend-deadline-form-#{plan.id}"}
                       phx-submit="extend_deadline"
                       class="mt-2 flex items-center justify-end gap-2"
                     >
-                      <input type="hidden" name="plan_id" value={plan.id} />
-                      <input
+                      <.input field={@extend_deadline_form[:plan_id]} type="hidden" />
+                      <.input
+                        field={@extend_deadline_form[:deadline]}
                         type="date"
-                        name="deadline"
                         required
                         class="px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       />
@@ -513,7 +542,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                       >
                         Cancel
                       </button>
-                    </form>
+                    </.form>
                   </td>
                 </tr>
               </tbody>
@@ -662,8 +691,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
             </div>
 
             <%= if @create_type in ["custom", "catalog"] do %>
-              <form id="pay-link-create-form" phx-submit="create" class="space-y-4">
-                <input type="hidden" name="pay_link[type]" value={@create_type} />
+              <.form
+                for={@pay_link_form}
+                id="pay-link-create-form"
+                phx-submit="create"
+                class="space-y-4"
+              >
+                <.input field={@pay_link_form[:type]} type="hidden" />
 
                 <%= if @create_type == "custom" do %>
                   <div>
@@ -673,10 +707,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Title
                     </label>
-                    <input
+                    <.input
+                      field={@pay_link_form[:title]}
                       type="text"
                       id="pay-link-title"
-                      name="pay_link[title]"
                       placeholder="e.g. Kente wrap dress"
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                     />
@@ -688,10 +722,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Amount (GH₵)
                     </label>
-                    <input
+                    <.input
+                      field={@pay_link_form[:amount_ghs]}
                       type="text"
                       id="pay-link-amount"
-                      name="pay_link[amount_ghs]"
                       placeholder="250.00"
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                     />
@@ -704,16 +738,16 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Product
                     </label>
-                    <select
+                    <.input
+                      field={@pay_link_form[:variant_id]}
+                      type="select"
                       id="pay-link-variant"
-                      name="pay_link[variant_id]"
+                      prompt="Select a product…"
+                      options={
+                        Enum.map(@catalog_variants, &{variant_label(&1, @store.currency), &1.id})
+                      }
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                    >
-                      <option value="">Select a product…</option>
-                      <option :for={variant <- @catalog_variants} value={variant.id}>
-                        {variant_label(variant, @store.currency)}
-                      </option>
-                    </select>
+                    />
                   </div>
                   <div>
                     <label
@@ -722,11 +756,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Quantity
                     </label>
-                    <input
+                    <.input
+                      field={@pay_link_form[:quantity]}
                       type="number"
                       id="pay-link-quantity"
-                      name="pay_link[quantity]"
-                      value="1"
                       min="1"
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                     />
@@ -740,10 +773,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Expires on <span class="text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <input
+                  <.input
+                    field={@pay_link_form[:expires_at]}
                     type="date"
                     id="pay-link-expires-at"
-                    name="pay_link[expires_at]"
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                   />
                   <p class="text-xs text-slate-400 mt-1">
@@ -758,44 +791,31 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Note <span class="text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <textarea
+                  <.input
+                    field={@pay_link_form[:note]}
+                    type="textarea"
                     id="pay-link-note"
-                    name="pay_link[note]"
                     rows="2"
                     maxlength="500"
                     placeholder="Internal note about this link..."
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                  ></textarea>
+                  />
                 </div>
 
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="hidden" name="pay_link[collect_delivery]" value="false" />
-                  <input
-                    type="checkbox"
-                    name="pay_link[collect_delivery]"
-                    value="true"
-                    checked
-                    class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                  />
-                  <span class="text-sm text-slate-600">Collect a delivery address at checkout</span>
-                </label>
+                <.input
+                  field={@pay_link_form[:collect_delivery]}
+                  type="checkbox"
+                  label="Collect a delivery address at checkout"
+                  class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                />
 
-                <label
+                <.input
                   :if={@store.buyer_protection_enabled}
-                  class="flex items-center gap-2 cursor-pointer"
-                >
-                  <input type="hidden" name="pay_link[protected]" value="false" />
-                  <input
-                    type="checkbox"
-                    name="pay_link[protected]"
-                    value="true"
-                    checked
-                    class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                  />
-                  <span class="text-sm text-slate-600">
-                    Buyer Protection — hold payment until delivery is confirmed
-                  </span>
-                </label>
+                  field={@pay_link_form[:protected]}
+                  type="checkbox"
+                  label="Buyer Protection — hold payment until delivery is confirmed"
+                  class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                />
 
                 <p :if={@form_errors[:base]} class="text-sm text-red-600">{@form_errors.base}</p>
 
@@ -814,9 +834,14 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     Create pay link
                   </button>
                 </div>
-              </form>
+              </.form>
             <% else %>
-              <form id="susu-plan-create-form" phx-submit="create" class="space-y-4">
+              <.form
+                for={@susu_plan_form}
+                id="susu-plan-create-form"
+                phx-submit="create"
+                class="space-y-4"
+              >
                 <div class="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -856,10 +881,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Title
                     </label>
-                    <input
+                    <.input
+                      field={@susu_plan_form[:title]}
                       type="text"
                       id="susu-plan-title"
-                      name="susu_plan[title]"
                       placeholder="e.g. Fridge"
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                     />
@@ -872,16 +897,16 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Product
                     </label>
-                    <select
+                    <.input
+                      field={@susu_plan_form[:variant_id]}
+                      type="select"
                       id="susu-plan-variant"
-                      name="susu_plan[variant_id]"
+                      prompt="Select a product…"
+                      options={
+                        Enum.map(@catalog_variants, &{variant_label(&1, @store.currency), &1.id})
+                      }
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                    >
-                      <option value="">Select a product…</option>
-                      <option :for={variant <- @catalog_variants} value={variant.id}>
-                        {variant_label(variant, @store.currency)}
-                      </option>
-                    </select>
+                    />
                   </div>
                   <div>
                     <label
@@ -890,11 +915,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     >
                       Quantity
                     </label>
-                    <input
+                    <.input
+                      field={@susu_plan_form[:quantity]}
                       type="number"
                       id="susu-plan-quantity"
-                      name="susu_plan[quantity]"
-                      value="1"
                       min="1"
                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                     />
@@ -908,10 +932,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Total amount (GH₵)
                   </label>
-                  <input
+                  <.input
+                    field={@susu_plan_form[:total_amount_ghs]}
                     type="text"
                     id="susu-plan-total"
-                    name="susu_plan[total_amount_ghs]"
                     placeholder="600.00"
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                   />
@@ -924,10 +948,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Deadline
                   </label>
-                  <input
+                  <.input
+                    field={@susu_plan_form[:deadline]}
                     type="date"
                     id="susu-plan-deadline"
-                    name="susu_plan[deadline]"
                     required
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                   />
@@ -943,10 +967,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Minimum chunk (GH₵) <span class="text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <input
+                  <.input
+                    field={@susu_plan_form[:min_chunk_ghs]}
                     type="text"
                     id="susu-plan-min-chunk"
-                    name="susu_plan[min_chunk_ghs]"
                     placeholder="10.00"
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
                   />
@@ -960,27 +984,23 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                   >
                     Note <span class="text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <textarea
+                  <.input
+                    field={@susu_plan_form[:note]}
+                    type="textarea"
                     id="susu-plan-note"
-                    name="susu_plan[note]"
                     rows="2"
                     maxlength="500"
                     placeholder="Internal note about this plan..."
                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                  ></textarea>
+                  />
                 </div>
 
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="hidden" name="susu_plan[collect_delivery]" value="false" />
-                  <input
-                    type="checkbox"
-                    name="susu_plan[collect_delivery]"
-                    value="true"
-                    checked
-                    class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                  />
-                  <span class="text-sm text-slate-600">Collect a delivery address at checkout</span>
-                </label>
+                <.input
+                  field={@susu_plan_form[:collect_delivery]}
+                  type="checkbox"
+                  label="Collect a delivery address at checkout"
+                  class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                />
 
                 <p :if={@form_errors[:base]} class="text-sm text-red-600">{@form_errors.base}</p>
 
@@ -999,7 +1019,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     Create susu plan
                   </button>
                 </div>
-              </form>
+              </.form>
             <% end %>
           </div>
         </div>
@@ -1009,6 +1029,39 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
   end
 
   # -- Components ---------------------------------------------------------
+
+  defp pay_link_form(type) do
+    to_form(
+      %{
+        "type" => if(type in ["custom", "catalog"], do: type, else: "custom"),
+        "title" => "",
+        "amount_ghs" => "",
+        "variant_id" => "",
+        "quantity" => "1",
+        "expires_at" => "",
+        "note" => "",
+        "collect_delivery" => true,
+        "protected" => true
+      },
+      as: :pay_link
+    )
+  end
+
+  defp susu_plan_form do
+    to_form(
+      %{
+        "title" => "",
+        "variant_id" => "",
+        "quantity" => "1",
+        "total_amount_ghs" => "",
+        "deadline" => "",
+        "min_chunk_ghs" => "",
+        "note" => "",
+        "collect_delivery" => true
+      },
+      as: :susu_plan
+    )
+  end
 
   attr :status, :atom, required: true
 

@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   import EmakolaWeb.Platform.LoginComponents, only: [code_input: 1]
 
+  alias Emakola.Security.SecretStorage
   alias EmakolaWeb.Layouts
 
   attr :current_user, :map, required: true
@@ -16,7 +17,11 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   attr :rotation_error, :string, required: true
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
-  attr :sessions, :list, required: true
+  attr :rotation_verify_form, :any, required: true
+  attr :rotation_confirm_form, :any, required: true
+  attr :sessions, :any, required: true
+  attr :sessions_count, :integer, required: true
+  attr :sessions_loaded?, :boolean, required: true
   attr :current_session_id, :string, required: true
 
   def security_page(assigns) do
@@ -33,8 +38,15 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
         rotation_error={@rotation_error}
         qr_svg={@qr_svg}
         otpauth_secret_base32={@otpauth_secret_base32}
+        rotation_verify_form={@rotation_verify_form}
+        rotation_confirm_form={@rotation_confirm_form}
       />
-      <.sessions_card sessions={@sessions} current_session_id={@current_session_id} />
+      <.sessions_card
+        sessions={@sessions}
+        sessions_count={@sessions_count}
+        sessions_loaded?={@sessions_loaded?}
+        current_session_id={@current_session_id}
+      />
     </div>
     """
   end
@@ -46,6 +58,8 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   attr :rotation_error, :string, required: true
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
+  attr :rotation_verify_form, :any, required: true
+  attr :rotation_confirm_form, :any, required: true
 
   defp totp_card(assigns) do
     ~H"""
@@ -64,9 +78,10 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
         </div>
 
         <.totp_status :if={@rotation_step == :status} current_user={@current_user} />
-        <.totp_verify :if={@rotation_step == :verify} />
+        <.totp_verify :if={@rotation_step == :verify} form={@rotation_verify_form} />
         <.totp_confirm
           :if={@rotation_step == :confirm}
+          form={@rotation_confirm_form}
           qr_svg={@qr_svg}
           otpauth_secret_base32={@otpauth_secret_base32}
         />
@@ -80,7 +95,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   defp totp_status(assigns) do
     ~H"""
     <div class="flex items-center justify-between gap-4 flex-wrap">
-      <%= if @current_user.totp_secret do %>
+      <%= if SecretStorage.totp_configured?(@current_user) do %>
         <div>
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
             Two-factor authentication is enabled
@@ -108,21 +123,28 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
     """
   end
 
+  attr :form, :any, required: true
+
   defp totp_verify(assigns) do
     ~H"""
     <div class="space-y-4 max-w-sm">
       <p class="text-sm text-gray-500">
         Enter your <strong>current</strong> authenticator code to rotate your 2FA secret.
       </p>
-      <form id="totp-rotate-verify-form" phx-submit="verify_rotation_code" class="space-y-4">
-        <.code_input id="rotate-verify-code" />
+      <.form
+        for={@form}
+        id="totp-rotate-verify-form"
+        phx-submit="verify_rotation_code"
+        class="space-y-4"
+      >
+        <.code_input id="rotate-verify-code" field={@form[:code]} />
         <button
           type="submit"
           class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Continue
         </button>
-      </form>
+      </.form>
       <.cancel_button />
     </div>
     """
@@ -130,6 +152,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
+  attr :form, :any, required: true
 
   defp totp_confirm(assigns) do
     ~H"""
@@ -151,15 +174,20 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
           {@otpauth_secret_base32}
         </code>
       </p>
-      <form id="totp-rotate-confirm-form" phx-submit="confirm_rotation_code" class="space-y-4">
-        <.code_input id="rotate-confirm-code" />
+      <.form
+        for={@form}
+        id="totp-rotate-confirm-form"
+        phx-submit="confirm_rotation_code"
+        class="space-y-4"
+      >
+        <.code_input id="rotate-confirm-code" field={@form[:code]} />
         <button
           type="submit"
           class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Confirm new code
         </button>
-      </form>
+      </.form>
       <.cancel_button />
     </div>
     """
@@ -180,7 +208,9 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   # ── Active sessions card ─────────────────────────────────────────
 
-  attr :sessions, :list, required: true
+  attr :sessions, :any, required: true
+  attr :sessions_count, :integer, required: true
+  attr :sessions_loaded?, :boolean, required: true
   attr :current_session_id, :string, required: true
 
   defp sessions_card(assigns) do
@@ -189,7 +219,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Active sessions</h2>
       </div>
-      <%= if is_nil(@sessions) do %>
+      <%= if !@sessions_loaded? do %>
         <div class="px-6 py-12 text-center text-sm text-gray-400">Loading sessions…</div>
       <% else %>
         <div class="overflow-x-auto">
@@ -202,10 +232,20 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody
+              id="platform-security-sessions"
+              phx-update="stream"
+              data-count={@sessions_count}
+              class="divide-y divide-gray-100"
+            >
+              <tr :if={@sessions_count == 0} id="platform-security-sessions-empty">
+                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  No active sessions
+                </td>
+              </tr>
               <tr
-                :for={session <- @sessions}
-                id={"session-#{session.id}"}
+                :for={{id, session} <- @sessions}
+                id={id}
                 class="hover:bg-gray-50 transition-colors"
               >
                 <td class="px-6 py-4">

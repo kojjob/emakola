@@ -27,7 +27,7 @@ defmodule EmakolaWeb.Admin.VerificationLive do
          socket
          |> assign(:page_title, "Verification")
          |> assign(:active_nav, :verification)
-         |> assign(:verification, load_verification(store))
+         |> assign_verification(load_verification(store))
          |> allow_upload(:id_document,
            accept: ~w(.jpg .jpeg .png .pdf),
            max_entries: 1,
@@ -45,6 +45,10 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   end
 
   @impl true
+  def handle_event("validate", %{"verification" => params}, socket) do
+    {:noreply, assign(socket, :verification_form, to_form(params, as: :verification))}
+  end
+
   def handle_event("validate", _params, socket), do: {:noreply, socket}
 
   def handle_event("cancel_upload", %{"ref" => ref, "slot" => slot}, socket) do
@@ -57,7 +61,10 @@ defmodule EmakolaWeb.Admin.VerificationLive do
 
     cond do
       blank?(params["business_name"]) or blank?(params["id_number"]) or blank?(params["id_type"]) ->
-        {:noreply, put_flash(socket, :error, "Please fill in every field.")}
+        {:noreply,
+         socket
+         |> assign(:verification_form, to_form(params, as: :verification))
+         |> put_flash(:error, "Please fill in every field.")}
 
       socket.assigns.uploads.id_document.entries == [] ->
         {:noreply, put_flash(socket, :error, "Please attach a photo or PDF of your ID.")}
@@ -183,54 +190,44 @@ defmodule EmakolaWeb.Admin.VerificationLive do
         <p class="mt-1 text-sm">Please correct the details below and resubmit.</p>
       </div>
 
-      <form
+      <.form
         :if={@status in [nil, :rejected]}
+        for={@verification_form}
         id="verification-form"
         phx-submit="submit"
         phx-change="validate"
         class="space-y-5 rounded-lg border border-slate-200 bg-white p-6"
       >
         <div>
-          <label class="block text-sm font-medium text-slate-700">Registered business name</label>
-          <input
+          <.input
+            field={@verification_form[:business_name]}
             type="text"
-            name="verification[business_name]"
-            value={@verification && @verification.business_name}
+            label="Registered business name"
             class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="block text-sm font-medium text-slate-700">ID type</label>
-            <select
-              name="verification[id_type]"
+            <.input
+              field={@verification_form[:id_type]}
+              type="select"
+              label="ID type"
+              options={[
+                {"Ghana Card", "ghana_card"},
+                {"Passport", "passport"},
+                {"Driver's License", "drivers_license"},
+                {"Voter ID", "voter_id"}
+              ]}
               class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="ghana_card" selected={id_type_value(@verification) == :ghana_card}>
-                Ghana Card
-              </option>
-              <option value="passport" selected={id_type_value(@verification) == :passport}>
-                Passport
-              </option>
-              <option
-                value="drivers_license"
-                selected={id_type_value(@verification) == :drivers_license}
-              >
-                Driver's License
-              </option>
-              <option value="voter_id" selected={id_type_value(@verification) == :voter_id}>
-                Voter ID
-              </option>
-            </select>
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700">ID number</label>
-            <input
+            <.input
+              field={@verification_form[:id_number]}
               type="text"
-              name="verification[id_number]"
-              value={@verification && @verification.id_number}
+              label="ID number"
               class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
@@ -255,9 +252,22 @@ defmodule EmakolaWeb.Admin.VerificationLive do
         >
           {if @status == :rejected, do: "Resubmit for review", else: "Submit for review"}
         </button>
-      </form>
+      </.form>
     </section>
     """
+  end
+
+  defp assign_verification(socket, verification) do
+    params = %{
+      "business_name" => verification && verification.business_name,
+      "id_type" => verification |> id_type_value() |> to_string(),
+      "id_number" => verification && verification.id_number
+    }
+
+    assign(socket,
+      verification: verification,
+      verification_form: to_form(params, as: :verification)
+    )
   end
 
   attr :label, :string, required: true

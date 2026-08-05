@@ -279,6 +279,7 @@ defmodule Emakola.Themes.Dede.ProductDetail do
           reviews={@reviews}
           can_review={@can_review}
           already_reviewed={@already_reviewed}
+          review_form={assigns[:review_form]}
           review_form_rating={@review_form_rating}
           review_form_title={@review_form_title}
           review_form_body={@review_form_body}

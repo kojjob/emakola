@@ -22,6 +22,10 @@ defmodule Emakola.WebhooksTest do
       assert wh.url == "https://example.com/webhook"
       assert wh.active == true
       assert length(wh.events) == 2
+      assert Emakola.Security.FieldEncryption.encrypted?(wh.secret_encrypted)
+
+      assert {:ok, "whsec_test_secret_123"} =
+               Emakola.Security.SecretStorage.outbound_webhook_secret(wh)
     end
 
     test "requires url and secret" do
@@ -52,6 +56,8 @@ defmodule Emakola.WebhooksTest do
         |> Ash.update(authorize?: false)
 
       assert rotated.secret == "new_secret"
+      assert Emakola.Security.FieldEncryption.encrypted?(rotated.secret_encrypted)
+      assert {:ok, "new_secret"} = Emakola.Security.SecretStorage.outbound_webhook_secret(rotated)
     end
   end
 

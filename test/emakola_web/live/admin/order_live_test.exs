@@ -65,7 +65,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       html =
         view
-        |> element("form[phx-change='search']")
+        |> element("#order-search-form")
         |> render_change(%{"search" => order.order_number})
 
       assert html =~ order.order_number

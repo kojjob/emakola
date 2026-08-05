@@ -26,6 +26,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
 
   alias Emakola.Notifications.DeviceToken
   alias Emakola.Notifications.Templates
+  alias Emakola.Security.SecretStorage
 
   @events ~w(requested approved rejected)
 
@@ -152,7 +153,26 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
       |> Templates.connection_push(counterparty, direction)
       |> Map.put(:data, %{"connection_id" => connection.id, "event" => to_string(event)})
 
-    case push_provider().send_push(device_token.token, notification) do
+    case SecretStorage.device_token(device_token) do
+      {:ok, token} when is_binary(token) ->
+        deliver_push_to_provider(token, notification, device_token, connection)
+
+      {:error, _reason} ->
+        Logger.error("[ConnectionNotificationWorker] encrypted device token is unavailable",
+          connection_id: connection.id,
+          store_id: device_token.store_id,
+          device_token_id: device_token.id
+        )
+
+        :ok
+
+      _other ->
+        :ok
+    end
+  end
+
+  defp deliver_push_to_provider(token, notification, device_token, connection) do
+    case push_provider().send_push(token, notification) do
       {:ok, _} ->
         :ok
 

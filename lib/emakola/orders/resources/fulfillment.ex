@@ -149,6 +149,8 @@ defmodule Emakola.Orders.Fulfillment do
          from: [:pending], message: "can only notify a pending fulfillment"}
       )
 
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending]})
+
       change(set_attribute(:status, :notified))
       change(set_attribute(:notified_at, &DateTime.utc_now/0))
     end
@@ -162,6 +164,8 @@ defmodule Emakola.Orders.Fulfillment do
          from: [:pending, :notified], message: "can only ship a pending or notified fulfillment"}
       )
 
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified]})
+
       change(set_attribute(:status, :shipped))
     end
 
@@ -173,6 +177,8 @@ defmodule Emakola.Orders.Fulfillment do
         {Emakola.Validations.StatusGuard,
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
+
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
 
       change(set_attribute(:status, :delivered))
       change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
@@ -209,6 +215,8 @@ defmodule Emakola.Orders.Fulfillment do
          from: [:pending, :notified, :shipped],
          message: "can only cancel an active fulfillment (not delivered or already cancelled)"}
       )
+
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified, :shipped]})
 
       change(set_attribute(:status, :cancelled))
     end

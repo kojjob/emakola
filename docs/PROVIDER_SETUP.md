@@ -584,6 +584,7 @@ So you don't chase credentials nothing consumes:
 - [ ] Arkesel: Sender ID approved ▸ API key ▸ credits topped up ▸ contract test-send
 - [ ] WhatsApp: permanent System-User token ▸ phone number ID
 - [ ] `SECRET_KEY_BASE` / `TOKEN_SIGNING_SECRET` generated & stored
+- [ ] Independent field-encryption and blind-index keyrings stored; encryption expand/backfill/reconcile runbook completed
 - [ ] Storage: Tigris `fly storage create` (6a) — or AWS bucket + IAM user + key (6b)
 - [ ] Infra: `fly launch` ▸ postgres (+`DATABASE_SSL=false`) (DEPLOYMENT.md)
 - [ ] Section 7 `fly secrets set`

@@ -27,7 +27,9 @@ defmodule EmakolaWeb.Platform.TeamLive do
       |> assign(:active_nav, :team)
       |> assign(:all_permissions, PlatformPermissions.all())
       |> assign(:invite_modal_open, false)
+      |> assign(:invite_form, invite_form())
       |> assign(:edit_user, nil)
+      |> assign(:edit_permissions_form, edit_permissions_form())
 
     # No DB queries in disconnected mount — render a loading shell first.
     socket =
@@ -42,13 +44,17 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   @impl true
   def handle_event("open_invite_modal", _params, socket) do
-    authorized(socket, fn socket -> {:noreply, assign(socket, :invite_modal_open, true)} end)
+    authorized(socket, fn socket ->
+      {:noreply, assign(socket, invite_modal_open: true, invite_form: invite_form())}
+    end)
   end
 
   def handle_event("close_invite_modal", _params, socket),
-    do: {:noreply, assign(socket, :invite_modal_open, false)}
+    do: {:noreply, assign(socket, invite_modal_open: false, invite_form: invite_form())}
 
   def handle_event("send_invite", %{"email" => email} = params, socket) do
+    socket = assign(socket, :invite_form, to_form(params))
+
     authorized(socket, fn socket ->
       permissions = PlatformPermissions.cast_list(Map.get(params, "permissions", []))
 
@@ -57,6 +63,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
           {:noreply,
            socket
            |> assign(:invite_modal_open, false)
+           |> assign(:invite_form, invite_form())
            |> load_team()
            |> put_flash(:info, "Invite sent to #{email}.")}
 
@@ -68,14 +75,22 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   def handle_event("open_edit_modal", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
-      {:noreply, assign(socket, :edit_user, find_staff(socket, id))}
+      user = find_staff(socket, id)
+
+      {:noreply,
+       assign(socket,
+         edit_user: user,
+         edit_permissions_form: edit_permissions_form(user)
+       )}
     end)
   end
 
   def handle_event("close_edit_modal", _params, socket),
-    do: {:noreply, assign(socket, :edit_user, nil)}
+    do: {:noreply, assign(socket, edit_user: nil, edit_permissions_form: edit_permissions_form())}
 
   def handle_event("save_permissions", params, socket) do
+    socket = assign(socket, :edit_permissions_form, to_form(params))
+
     authorized(socket, fn socket ->
       case socket.assigns.edit_user do
         nil ->
@@ -93,6 +108,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
               {:noreply,
                socket
                |> assign(:edit_user, nil)
+               |> assign(:edit_permissions_form, edit_permissions_form())
                |> load_team()
                |> put_flash(:info, "Permissions updated.")}
 
@@ -178,6 +194,20 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   defp find_staff(socket, id), do: Enum.find(socket.assigns.staff || [], &(&1.id == id))
 
+  defp invite_form, do: to_form(%{"email" => "", "permissions" => []})
+
+  defp edit_permissions_form(nil),
+    do: to_form(%{"permissions" => [], "is_owner" => false})
+
+  defp edit_permissions_form(user) do
+    to_form(%{
+      "permissions" => user.platform_permissions,
+      "is_owner" => user.is_owner
+    })
+  end
+
+  defp edit_permissions_form, do: edit_permissions_form(nil)
+
   # The is_owner field is only rendered for owner actors (with a hidden
   # "false" fallback, so the param is always present for them). An absent
   # param keeps ownership unchanged; crafted changes hit the service check.
@@ -224,7 +254,9 @@ defmodule EmakolaWeb.Platform.TeamLive do
       session_counts={@session_counts}
       owner_actor={@current_user.is_owner}
       invite_modal_open={@invite_modal_open}
+      invite_form={@invite_form}
       edit_user={@edit_user}
+      edit_permissions_form={@edit_permissions_form}
       all_permissions={@all_permissions}
     />
     """

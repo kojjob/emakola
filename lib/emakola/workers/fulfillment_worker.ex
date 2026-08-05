@@ -32,13 +32,35 @@ defmodule Emakola.Workers.FulfillmentWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id}}) do
-    case Ash.get(Emakola.Orders.Order, order_id, authorize?: false) do
-      {:ok, order} ->
-        fulfill_order(order)
+    result =
+      Emakola.Repo.transaction(fn ->
+        order =
+          Emakola.Orders.Order
+          |> Ash.Query.filter(id == ^order_id)
+          |> Ash.Query.lock("FOR UPDATE")
+          |> Ash.read_one!(authorize?: false)
 
-      {:error, _} ->
+        case order do
+          nil -> :order_not_found
+          %{status: :cancelled} -> :cancelled
+          order -> fulfill_order(order)
+        end
+      end)
+
+    case result do
+      {:ok, :order_not_found} ->
         Logger.warning("[fulfillment_worker] order #{order_id} not found")
         {:error, :order_not_found}
+
+      {:ok, :cancelled} ->
+        Logger.info("[fulfillment_worker] skipped cancelled order #{order_id}")
+        :ok
+
+      {:ok, :ok} ->
+        :ok
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

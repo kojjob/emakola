@@ -709,18 +709,17 @@ defmodule Emakola.Themes.DepotTest do
     defp render_list(overrides) do
       render_component(
         &Depot.render_product_list/1,
-        Map.merge(
-          %{
-            store: @component_store,
-            products: [],
-            categories: [],
-            selected_category: nil,
-            search_query: "",
-            has_more: false,
-            cart_count: 0
-          },
-          overrides
-        )
+        %{
+          store: @component_store,
+          products: [],
+          categories: [],
+          selected_category: nil,
+          search_query: "",
+          has_more: false,
+          cart_count: 0
+        }
+        |> Map.merge(overrides)
+        |> Emakola.LiveViewHelpers.with_product_stream()
       )
     end
 

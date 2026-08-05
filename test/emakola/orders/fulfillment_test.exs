@@ -193,6 +193,25 @@ defmodule Emakola.Orders.FulfillmentTest do
                |> Ash.Changeset.for_update(:mark_notified, %{notified_via: :sms})
                |> Ash.update(authorize?: false)
     end
+
+    test "a stale pending struct cannot resurrect a cancelled fulfillment", %{
+      store: store,
+      order: order
+    } do
+      stale = create_fulfillment!(order, store)
+
+      stale
+      |> Ash.Changeset.for_update(:cancel, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               stale
+               |> Ash.Changeset.for_update(:mark_shipped, %{tracking_number: "STALE-1"})
+               |> Ash.update(authorize?: false)
+
+      assert Ash.get!(Emakola.Orders.Fulfillment, stale.id, authorize?: false).status ==
+               :cancelled
+    end
   end
 
   describe "list_by_order" do

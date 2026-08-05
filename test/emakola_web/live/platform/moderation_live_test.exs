@@ -30,9 +30,45 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
   end
 
   test "lists products across stores", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/platform/moderation")
-    assert html =~ "Fake Bag"
-    assert html =~ "Kente Co"
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+    assert has_element?(view, "#moderation-search-form")
+    assert has_element?(view, "#moderation-products[phx-update='stream'][data-count='1']")
+    assert has_element?(view, "[id^='moderation-product-']", "Fake Bag")
+    assert has_element?(view, "[id^='moderation-product-']", "Kente Co")
+  end
+
+  test "search resets the product stream", %{conn: conn, product: product} do
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+    assert has_element?(view, "#moderation-product-#{product.id}")
+
+    view
+    |> form("#moderation-search-form", %{"search" => "does-not-exist"})
+    |> render_change()
+
+    assert has_element?(view, "#moderation-products[data-count='0']")
+    assert has_element?(view, "#moderation-products-empty")
+    refute has_element?(view, "#moderation-product-#{product.id}")
+  end
+
+  test "forged events cannot mutate a product outside the current filtered queue", %{
+    conn: conn,
+    store: store
+  } do
+    outside = Factory.create_product!(store, %{status: :active, title: "Outside Product"})
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    view
+    |> form("#moderation-search-form", %{"search" => "Fake Bag"})
+    |> render_change()
+
+    refute has_element?(view, "#moderation-product-#{outside.id}")
+    render_click(view, "open_takedown_modal", %{"id" => outside.id})
+
+    view
+    |> form("#moderation-takedown-form", %{"reason" => "forged"})
+    |> render_submit()
+
+    assert {:ok, %{moderation_status: :ok}} = Catalog.get_product(outside.id, authorize?: false)
   end
 
   test "staff without :manage_stores is redirected to /platform", %{conn: conn} do
@@ -51,13 +87,17 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     |> element("button[phx-click='open_takedown_modal'][phx-value-id='#{product.id}']")
     |> render_click()
 
-    assert view
-           |> form("form[phx-submit='confirm_takedown']", reason: "")
-           |> render_submit() =~ "A reason is required"
+    assert has_element?(view, "#moderation-takedown-form")
 
-    assert view
-           |> form("form[phx-submit='confirm_takedown']", reason: "Counterfeit")
-           |> render_submit() =~ "Taken down"
+    view |> form("#moderation-takedown-form", reason: "") |> render_submit()
+    assert has_element?(view, "#flash-error", "A reason is required")
+
+    view |> form("#moderation-takedown-form", reason: "Counterfeit") |> render_submit()
+
+    assert has_element?(
+             view,
+             "#moderation-product-#{product.id} button[phx-click='reinstate']"
+           )
 
     assert {:ok, %{moderation_status: :taken_down}} =
              Catalog.get_product(product.id, authorize?: false)
@@ -80,6 +120,11 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     view
     |> element("button[phx-click='reinstate'][phx-value-id='#{product.id}']")
     |> render_click()
+
+    assert has_element?(
+             view,
+             "#moderation-product-#{product.id} button[phx-click='open_takedown_modal']"
+           )
 
     assert {:ok, %{moderation_status: :ok}} = Catalog.get_product(product.id, authorize?: false)
   end

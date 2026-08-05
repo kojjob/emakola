@@ -51,26 +51,40 @@ defmodule Emakola.Themes.Akwaaba.ProductList do
         </h1>
 
         <p class="mt-3 text-sm text-zinc-500">
-          {length(@products)} {if length(@products) == 1, do: "piece", else: "pieces"}
+          {@products_count} {if @products_count == 1, do: "piece", else: "pieces"}
         </p>
 
-        <div :if={@products != []} class="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
-          <Shared.product_card
-            :for={product <- @products}
-            product={product}
-            store={@store}
-            show_add={false}
-          />
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4"
+        >
+          <div
+            id="product-list-empty"
+            class="col-span-full hidden rounded-3xl border border-dashed border-zinc-200 bg-[#F6F4F1] px-6 py-16 text-center only:block"
+          >
+            <p class="text-2xl text-[color:var(--akwaaba-ink)] [font-family:var(--akwaaba-display)]">
+              Nothing here yet
+            </p>
+            <p class="mt-2 text-sm text-zinc-500">Try another category, or come back shortly.</p>
+          </div>
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.product_card product={product} store={@store} show_add={false} />
+          </div>
         </div>
 
-        <div
-          :if={@products == []}
-          class="mt-10 rounded-3xl border border-dashed border-zinc-200 bg-[#F6F4F1] px-6 py-16 text-center"
-        >
-          <p class="text-2xl text-[color:var(--akwaaba-ink)] [font-family:var(--akwaaba-display)]">
-            Nothing here yet
-          </p>
-          <p class="mt-2 text-sm text-zinc-500">Try another category, or come back shortly.</p>
+        <div :if={assigns[:has_more]} class="mt-12 text-center">
+          <button
+            type="button"
+            phx-click="load_more"
+            class="inline-flex min-h-12 items-center rounded-full bg-[color:var(--akwaaba-ink)] px-8 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--akwaaba-sun)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--akwaaba-sun)] focus-visible:ring-offset-2"
+          >
+            Load more
+          </button>
         </div>
       </main>
     </div>

@@ -57,6 +57,7 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
          |> assign(:page_title, "Digital files — #{product.title}")
          |> assign(:files, list_files(product.id, store_id))
          |> assign(:upload_error, nil)
+         |> assign(:digital_files_form, to_form(%{}))
          |> allow_upload(:digital_files,
            accept: :any,
            max_entries: 5,
@@ -149,7 +150,8 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
         </.link>
       </header>
 
-      <form
+      <.form
+        for={@digital_files_form}
         id="digital-files-upload"
         phx-submit="save_files"
         phx-change="validate"
@@ -194,7 +196,7 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
         >
           Upload
         </button>
-      </form>
+      </.form>
 
       <h2 class="mb-3 text-sm font-medium text-slate-900">Files</h2>
 

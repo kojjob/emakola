@@ -125,6 +125,7 @@ defmodule EmakolaWeb.Platform.LoginComponents do
   # ── Shared primitives ────────────────────────────────────────────
 
   attr :id, :string, required: true
+  attr :field, Phoenix.HTML.FormField, default: nil
 
   def code_input(assigns) do
     ~H"""
@@ -133,7 +134,8 @@ defmodule EmakolaWeb.Platform.LoginComponents do
       <input
         type="text"
         id={@id}
-        name="totp[code]"
+        name={if @field, do: @field.name, else: "totp[code]"}
+        value={@field && @field.value}
         inputmode="numeric"
         autocomplete="one-time-code"
         pattern="[0-9]{6}"

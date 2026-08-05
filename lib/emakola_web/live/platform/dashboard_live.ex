@@ -10,6 +10,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       socket
       |> assign(:page_title, "Platform Dashboard")
       |> assign(:active_nav, :dashboard)
+      |> stream(:recent_stores, [])
 
     # No DB queries in disconnected mount — render a loading shell first.
     socket =
@@ -24,7 +25,8 @@ defmodule EmakolaWeb.Platform.DashboardLive do
           total_gmv: 0,
           total_products: 0,
           total_customers: 0,
-          recent_stores: nil
+          recent_stores_loaded?: false,
+          recent_stores_count: 0
         )
       end
 
@@ -32,6 +34,8 @@ defmodule EmakolaWeb.Platform.DashboardLive do
   end
 
   defp load_stats(socket) do
+    recent_stores = Stats.recent_stores(8)
+
     socket
     |> assign(:total_stores, Stats.total_stores())
     |> assign(:active_stores, Stats.active_stores())
@@ -40,7 +44,9 @@ defmodule EmakolaWeb.Platform.DashboardLive do
     |> assign(:total_gmv, Stats.total_gmv())
     |> assign(:total_products, Stats.total_products())
     |> assign(:total_customers, Stats.total_customers())
-    |> assign(:recent_stores, Stats.recent_stores(8))
+    |> assign(:recent_stores_loaded?, true)
+    |> assign(:recent_stores_count, length(recent_stores))
+    |> stream(:recent_stores, recent_stores, reset: true)
   end
 
   @impl true
@@ -100,13 +106,25 @@ defmodule EmakolaWeb.Platform.DashboardLive do
                 <th class="px-6 py-3">Created</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr :if={is_nil(@recent_stores)}>
+            <tbody id="platform-recent-stores" phx-update="stream" class="divide-y divide-gray-100">
+              <tr :if={!@recent_stores_loaded?} id="platform-recent-stores-loading">
                 <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
                   Loading stores…
                 </td>
               </tr>
-              <tr :for={store <- @recent_stores || []} class="hover:bg-gray-50 transition-colors">
+              <tr
+                :if={@recent_stores_loaded? and @recent_stores_count == 0}
+                id="platform-recent-stores-empty"
+              >
+                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  No stores yet.
+                </td>
+              </tr>
+              <tr
+                :for={{id, store} <- @streams.recent_stores}
+                id={id}
+                class="hover:bg-gray-50 transition-colors"
+              >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">

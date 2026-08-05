@@ -19,6 +19,9 @@ defmodule Emakola.Notifications.DeviceTokenTest do
     assert dt.merchant_id == merchant.id
     assert dt.store_id == store.id
     assert dt.platform == :android
+    assert Emakola.Security.FieldEncryption.encrypted?(dt.token_encrypted)
+    assert String.starts_with?(dt.token_blind_index, "emkidx.v1.test-lookup-v1.")
+    assert {:ok, "fcm-token-1"} = Emakola.Security.SecretStorage.device_token(dt)
     assert %DateTime{} = dt.last_seen_at
   end
 
@@ -27,10 +30,14 @@ defmodule Emakola.Notifications.DeviceTokenTest do
     merchant_b = create_merchant!()
     create_store_membership!(merchant_b, store, :staff)
 
-    register!(merchant_a, store, %{platform: :android, token: "shared-device"})
+    dt1 = register!(merchant_a, store, %{platform: :android, token: "shared-device"})
     dt2 = register!(merchant_b, store, %{platform: :android, token: "shared-device"})
 
+    assert dt2.id == dt1.id
     assert dt2.merchant_id == merchant_b.id
+    assert dt2.token_encrypted == dt1.token_encrypted
+    assert dt2.token_blind_index == dt1.token_blind_index
+    assert {:ok, "shared-device"} = Emakola.Security.SecretStorage.device_token(dt2)
 
     all = Ash.read!(DeviceToken, authorize?: false, tenant: store.id)
     assert length(all) == 1

@@ -20,7 +20,8 @@ defmodule Emakola.Themes.Atelier.ProductList do
   Required assigns:
   - `@store` - Store struct
   - `@theme` - Theme config map
-  - `@products` - List of products to display
+  - `@streams.products` - Streamed product entries
+  - `@products_count` - Number of displayed products
   - `@categories` - List of categories for filtering
   - `@cart_count` - Integer cart count
   - `@active_category` - Currently selected category slug (or nil)
@@ -28,9 +29,11 @@ defmodule Emakola.Themes.Atelier.ProductList do
   """
   attr :store, :map, required: true
   attr :theme, :map, required: true
-  attr :products, :list, default: []
+  attr :streams, :map, required: true
+  attr :products_count, :integer, required: true
   attr :categories, :list, default: []
   attr :cart_count, :integer, default: 0
+  attr :has_more, :boolean, default: false
   attr :active_category, :string, default: nil
   attr :search_query, :string, default: nil
 
@@ -95,37 +98,50 @@ defmodule Emakola.Themes.Atelier.ProductList do
                 class="text-xs uppercase tracking-widest"
                 style="color: var(--theme-accent-secondary, #44403C);"
               >
-                {length(@products)} {if length(@products) == 1, do: "product", else: "products"}
+                {@products_count} {if @products_count == 1, do: "product", else: "products"}
               </p>
             </div>
 
             <%!-- Product Grid --%>
             <div
-              :if={@products != []}
+              id="product-list"
+              phx-update="stream"
               class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6"
             >
-              <Shared.product_card
-                :for={product <- @products}
-                product={product}
-                store={@store}
-              />
+              <%!-- Empty State --%>
+              <div id="product-list-empty" class="col-span-full hidden text-center py-20 only:block">
+                <p class="atelier-serif text-2xl font-semibold mb-2" style="color: var(--theme-ink);">
+                  No products found
+                </p>
+                <p class="text-sm" style="color: var(--theme-accent-secondary, #44403C);">
+                  Try adjusting your search or browse all categories.
+                </p>
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="inline-block mt-6 text-xs font-semibold uppercase tracking-widest border-b-2 pb-1 transition-colors duration-300"
+                  style="color: var(--theme-ink); border-color: var(--theme-ink);"
+                >
+                  View All
+                </a>
+              </div>
+              <div
+                :for={{dom_id, %{product: product}} <- @streams.products}
+                id={dom_id}
+                class="contents"
+              >
+                <Shared.product_card product={product} store={@store} />
+              </div>
             </div>
 
-            <%!-- Empty State --%>
-            <div :if={@products == []} class="text-center py-20">
-              <p class="atelier-serif text-2xl font-semibold mb-2" style="color: var(--theme-ink);">
-                No products found
-              </p>
-              <p class="text-sm" style="color: var(--theme-accent-secondary, #44403C);">
-                Try adjusting your search or browse all categories.
-              </p>
-              <a
-                href={store_path(@store.slug, "/products")}
-                class="inline-block mt-6 text-xs font-semibold uppercase tracking-widest border-b-2 pb-1 transition-colors duration-300"
+            <div :if={@has_more} class="mt-12 text-center">
+              <button
+                type="button"
+                phx-click="load_more"
+                class="border-b-2 pb-1 text-xs font-semibold uppercase tracking-widest transition-colors duration-300"
                 style="color: var(--theme-ink); border-color: var(--theme-ink);"
               >
-                View All
-              </a>
+                Load more
+              </button>
             </div>
           </div>
         </div>

@@ -20,25 +20,26 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
     store_id = input.arguments.store_id
     name = input.arguments[:name]
     phone = input.arguments[:phone]
+    resource = input.resource
 
-    case find_existing(email, store_id) do
+    case find_existing(resource, email, store_id) do
       nil ->
-        create_or_find_on_conflict(email, store_id, name, phone)
+        create_or_find_on_conflict(resource, email, store_id, name, phone)
 
       customer ->
         {:ok, customer}
     end
   end
 
-  defp find_existing(email, store_id) do
-    Emakola.Customers.Customer
+  defp find_existing(resource, email, store_id) do
+    resource
     |> Ash.Query.filter(email == ^email and store_id == ^store_id)
     |> Ash.read!(authorize?: false)
     |> List.first()
   end
 
-  defp create_or_find_on_conflict(email, store_id, name, phone) do
-    case Emakola.Customers.Customer
+  defp create_or_find_on_conflict(resource, email, store_id, name, phone) do
+    case resource
          |> Ash.Changeset.for_create(:create, %{
            email: email,
            store_id: store_id,
@@ -52,7 +53,7 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
       {:error, %Ash.Error.Invalid{errors: errors}} ->
         if uniqueness_error?(errors) do
           # Another process created this customer concurrently — find it
-          case find_existing(email, store_id) do
+          case find_existing(resource, email, store_id) do
             nil -> {:error, :customer_creation_failed}
             customer -> {:ok, customer}
           end

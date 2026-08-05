@@ -57,16 +57,16 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
       {:ok, view, _html} = live(conn, "/onboarding")
 
-      html = render_click(view, "next_step")
-      assert html =~ "enter a store name"
+      render_click(view, "next_step")
+      assert has_element?(view, "#onboarding-error")
     end
 
     test "generates slug from store name", %{conn: conn} do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
       {:ok, view, _html} = live(conn, "/onboarding")
 
-      html = render_change(view, "update_store_name", %{"store_name" => "Kojo's Fashion"})
-      assert html =~ "kojos-fashion"
+      render_change(view, "update_store_name", %{"store_name" => "Kojo's Fashion"})
+      assert has_element?(view, "#store-slug-preview[data-slug='kojos-fashion']")
     end
 
     test "advances from step 1 with valid store name", %{conn: conn} do
@@ -89,29 +89,27 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     # real browser needs is what gets verified.
     test "typing a store name through its form enables Continue", %{conn: conn} do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
-      {:ok, view, html} = live(conn, "/onboarding")
+      {:ok, view, _html} = live(conn, "/onboarding")
 
-      assert html =~ "cursor-not-allowed"
+      assert has_element?(view, "#onboarding-next-button[disabled]")
 
-      html =
-        view
-        |> element("#store-name-form")
-        |> render_change(%{"store_name" => "Kojo Fashion"})
+      view
+      |> element("#store-name-form")
+      |> render_change(%{"store_name" => "Kojo Fashion"})
 
-      refute html =~ "cursor-not-allowed"
-      assert html =~ "kojo-fashion"
+      refute has_element?(view, "#onboarding-next-button[disabled]")
+      assert has_element?(view, "#store-slug-preview[data-slug='kojo-fashion']")
     end
 
     test "currency select is inside a change form", %{conn: conn} do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
       {:ok, view, _html} = live(conn, "/onboarding")
 
-      html =
-        view
-        |> element("#currency-form")
-        |> render_change(%{"currency" => "NGN"})
+      view
+      |> element("#currency-form")
+      |> render_change(%{"currency" => "NGN"})
 
-      assert html =~ ~s(value="NGN" selected)
+      assert has_element?(view, "#currency option[value='NGN'][selected]")
     end
 
     test "product name and price inputs are inside change forms", %{conn: conn} do
@@ -124,13 +122,12 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       view |> element("#product-name-form") |> render_change(%{"product_name" => "Ankara Dress"})
 
-      html =
-        view
-        |> element("#product-price-form")
-        |> render_change(%{"product_price" => "150"})
+      view
+      |> element("#product-price-form")
+      |> render_change(%{"product_price" => "150"})
 
-      assert html =~ "Ankara Dress"
-      assert html =~ "150"
+      assert has_element?(view, "#product_name[value='Ankara Dress']")
+      assert has_element?(view, "#product_price[value='150']")
     end
   end
 

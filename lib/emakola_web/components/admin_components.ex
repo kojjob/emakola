@@ -11,7 +11,7 @@ defmodule EmakolaWeb.AdminComponents do
 
   use Phoenix.Component
 
-  import EmakolaWeb.CoreComponents, only: [icon: 1]
+  import EmakolaWeb.CoreComponents, only: [icon: 1, input: 1]
 
   # ─────────────────────────────────────────────────────────────────────
   # admin_page_header/1
@@ -220,13 +220,20 @@ defmodule EmakolaWeb.AdminComponents do
 
   ## Examples
 
-      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+      <.table_toolbar
+        id="product-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search products..."
+      >
         <:filters>
           <.status_tab status={:all} current={@status_filter} label="All" />
         </:filters>
       </.table_toolbar>
   """
   attr :search_query, :string, required: true
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :id, :string, required: true
   attr :search_event, :string, default: "search"
   attr :placeholder, :string, default: "Search..."
 
@@ -236,15 +243,21 @@ defmodule EmakolaWeb.AdminComponents do
   def table_toolbar(assigns) do
     ~H"""
     <div class="flex flex-col sm:flex-row gap-3">
-      <form phx-change={@search_event} phx-debounce="300" class="flex-1">
+      <.form
+        for={@form}
+        id={@id}
+        phx-change={@search_event}
+        phx-debounce="300"
+        class="flex-1"
+      >
         <div class="relative">
           <.icon
             name="hero-magnifying-glass"
             class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
           />
-          <input
+          <.input
+            field={@form[:search]}
             type="search"
-            name="search"
             value={@search_query}
             placeholder={@placeholder}
             class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-700
@@ -253,7 +266,7 @@ defmodule EmakolaWeb.AdminComponents do
             autocomplete="off"
           />
         </div>
-      </form>
+      </.form>
       {render_slot(@filters)}
       <div :if={@actions != []} class="flex items-center gap-3">
         {render_slot(@actions)}

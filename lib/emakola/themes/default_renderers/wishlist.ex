@@ -32,13 +32,16 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
         <%!-- Header --%>
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10">
           <div>
-            <h1 class="text-3xl sm:text-4xl font-semibold text-cta-dark mb-2">My Wishlist</h1>
-            <p class="text-sm text-[#44403C]">
-              {wishlist_count_text(length(@wishlist))}
+            <h1 id="wishlist-title" class="text-3xl sm:text-4xl font-semibold text-cta-dark mb-2">
+              My Wishlist
+            </h1>
+            <p id="wishlist-count" data-count={@wishlist_count} class="text-sm text-[#44403C]">
+              {wishlist_count_text(@wishlist_count)}
             </p>
           </div>
           <div class="mt-4 sm:mt-0">
             <a
+              id="wishlist-continue-shopping"
               href={store_path(@store.slug, "/products")}
               class="text-sm font-medium text-store-accent hover:underline transition-colors flex items-center gap-1"
             >
@@ -85,8 +88,17 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
         </div>
 
         <%!-- Wishlist Grid --%>
-        <div :if={@wishlist != []} class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div :for={item <- @wishlist} class="group">
+        <div
+          id="wishlist-items"
+          phx-update="stream"
+          data-count={@wishlist_count}
+          class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+        >
+          <div
+            :for={{id, item} <- @streams.wishlist}
+            id={id}
+            class="group"
+          >
             <div class="relative overflow-hidden rounded-lg bg-stone-100 aspect-[3/4] mb-3">
               <img
                 :if={item_image(item)}
@@ -138,31 +150,32 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
               </div>
             </div>
           </div>
-        </div>
 
-        <%!-- Empty State --%>
-        <div :if={@wishlist == []} class="text-center py-24">
-          <svg
-            class="w-20 h-20 mx-auto text-stone-300 mb-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1"
-              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-            />
-          </svg>
-          <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your wishlist is empty</h2>
-          <p class="text-[#44403C] text-sm mb-8">Save items you love to find them later</p>
-          <a
-            href={store_path(@store.slug, "/products")}
-            class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:opacity-90 transition-opacity"
-          >
-            Browse Products
-          </a>
+          <%!-- Empty State --%>
+          <div id="wishlist-empty" class="hidden only:block col-span-full text-center py-24">
+            <svg
+              class="w-20 h-20 mx-auto text-stone-300 mb-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1"
+                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+              />
+            </svg>
+            <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your wishlist is empty</h2>
+            <p class="text-[#44403C] text-sm mb-8">Save items you love to find them later</p>
+            <a
+              id="wishlist-browse-products"
+              href={store_path(@store.slug, "/products")}
+              class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:opacity-90 transition-opacity"
+            >
+              Browse Products
+            </a>
+          </div>
         </div>
       </div>
     </div>

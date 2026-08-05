@@ -6,7 +6,7 @@ const ThemeToggle = {
 
       // Toggle dark class for TailwindCSS
       document.documentElement.classList.toggle("dark", newTheme === "dark");
-      // Sync daisyUI data-theme attribute
+      // Keep the document theme attribute in sync for CSS selectors.
       document.documentElement.setAttribute("data-theme", newTheme);
       // Persist preference
       localStorage.setItem("theme", newTheme);

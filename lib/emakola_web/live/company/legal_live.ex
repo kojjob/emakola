@@ -18,52 +18,54 @@ defmodule EmakolaWeb.Company.LegalLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="legal-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="Legal"
-          title="Legal &"
-          highlight="policies"
-          subtitle="The agreements and policies that govern how Makola works."
-        />
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="legal-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="Legal"
+            title="Legal &"
+            highlight="policies"
+            subtitle="The agreements and policies that govern how Makola works."
+          />
 
-        <section class="px-4 sm:px-6 py-16 lg:py-24">
-          <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5 lg:gap-6">
-            <.policy_card
-              href="/privacy"
-              icon="shield_person"
-              title="Privacy Policy"
-              delay="0.0s"
+          <section class="px-4 sm:px-6 py-16 lg:py-24">
+            <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5 lg:gap-6">
+              <.policy_card
+                href="/privacy"
+                icon="shield_person"
+                title="Privacy Policy"
+                delay="0.0s"
+              >
+                How we collect, use, and protect data.
+              </.policy_card>
+              <.policy_card href="/terms" icon="gavel" title="Terms of Service" delay="0.08s">
+                The rules for using Makola.
+              </.policy_card>
+              <.policy_card href="/cookies" icon="cookie" title="Cookie Policy" delay="0.16s">
+                How and why we use cookies.
+              </.policy_card>
+            </div>
+
+            <p
+              data-reveal
+              style="transition-delay: 0.24s"
+              class="mt-12 text-center text-sm text-[#5f6b7a]"
             >
-              How we collect, use, and protect data.
-            </.policy_card>
-            <.policy_card href="/terms" icon="gavel" title="Terms of Service" delay="0.08s">
-              The rules for using Makola.
-            </.policy_card>
-            <.policy_card href="/cookies" icon="cookie" title="Cookie Policy" delay="0.16s">
-              How and why we use cookies.
-            </.policy_card>
-          </div>
-
-          <p
-            data-reveal
-            style="transition-delay: 0.24s"
-            class="mt-12 text-center text-sm text-[#5f6b7a]"
-          >
-            Questions about our policies? <a
-              href="/contact"
-              class="font-semibold text-[#c49a3a] hover:underline"
-            >Get in touch</a>.
-          </p>
-        </section>
-      </main>
-      <.landing_footer />
-    </div>
+              Questions about our policies? <a
+                href="/contact"
+                class="font-semibold text-[#c49a3a] hover:underline"
+              >Get in touch</a>.
+            </p>
+          </section>
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 

@@ -17,7 +17,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
       assign(socket,
         page_title: "Browse Suppliers",
         active_nav: :supply_catalog,
-        search: ""
+        search: "",
+        search_form: to_form(%{"search" => ""})
       )
 
     socket =
@@ -33,7 +34,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
 
   @impl true
   def handle_event("search", %{"search" => query}, socket) when is_binary(query) do
-    {:noreply, assign(socket, search: query)}
+    {:noreply, assign(socket, search: query, search_form: to_form(%{"search" => query}))}
   end
 
   def handle_event("search", _params, socket), do: {:noreply, socket}
@@ -101,16 +102,21 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
             Products you can stock from suppliers across the network
           </p>
         </div>
-        <form phx-change="search" class="w-full sm:w-72">
-          <input
+        <.form
+          for={@search_form}
+          id="supply-catalog-search-form"
+          phx-change="search"
+          class="w-full sm:w-72"
+        >
+          <.input
+            field={@search_form[:search]}
             type="text"
-            name="search"
             value={@search}
             placeholder="Search products or suppliers…"
             phx-debounce="200"
             class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
           />
-        </form>
+        </.form>
       </div>
 
       <div :if={@loading} class="py-16 text-center text-sm text-slate-400">
