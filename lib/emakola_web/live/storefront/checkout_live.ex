@@ -76,6 +76,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart_total, cart_total)
      |> assign(:cart_weight_grams, cart_weight_grams)
      |> assign(:dispatch_variants, dispatch_variants)
+     # Mirrors the server-side gate in CheckoutService.run_checkout/4 so what
+     # the shopper is shown matches what they are charged. Computed once: this
+     # LiveView has no add/remove events, so the cart is fixed for its lifetime.
+     # An empty cart (disconnected mount) resolves to true and keeps rendering
+     # the address form, as before.
+     |> assign(:requires_shipping, CheckoutService.requires_shipping?(dispatch_variants))
      |> assign(:utm_attribution, utm_attribution)
      |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
@@ -250,6 +256,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
          socket
          |> assign(:processing, false)
          |> put_flash(:error, "Your cart is empty -- please add items before checking out")}
+
+      # A guest's grant is created with customer_id: nil and can never be
+      # redeemed — the emailed-token flow does not exist. Taking the money
+      # would be taking it for nothing, so refuse before creating anything.
+      # Physical guest checkout, the dominant Ghana flow, is untouched.
+      not socket.assigns.requires_shipping and is_nil(socket.assigns[:current_customer]) ->
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> put_flash(:error, "Please sign in — downloads are saved to your account.")
+         |> redirect(to: store_path(socket.assigns.store.slug, "/login"))}
 
       true ->
         socket = assign(socket, processing: true, form_errors: %{})
@@ -456,6 +473,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         opts
       end
 
+    # Every storefront order was created with customer_id: nil, so every
+    # DownloadGrant was a guest grant and Storefront.DownloadController 404s
+    # those forever. CheckoutService.resolve_customer/2 has always handled
+    # :customer_id — the branch was simply dead on this path. Signed-in buyers
+    # of physical goods gain a correct account Orders tab as a side effect.
+    opts =
+      case socket.assigns[:current_customer] do
+        %{id: customer_id} -> Keyword.put(opts, :customer_id, customer_id)
+        _ -> opts
+      end
+
     CheckoutService.checkout!(store.id, items, opts)
   end
 
@@ -479,8 +507,18 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
+  # "Pay on Delivery" is meaningless for a download — there is no delivery for
+  # the buyer to hand cash at, and accepting it would mark an order paid that
+  # nobody ever collects money for. The button is hidden for these carts, so a
+  # "cod" here means a crafted select_payment event; fall back to MoMo rather
+  # than trusting it.
+  defp payment_method_for(%{assigns: %{requires_shipping: false, payment_method: "cod"}}),
+    do: "momo"
+
+  defp payment_method_for(socket), do: socket.assigns.payment_method
+
   defp handle_payment(socket, order) do
-    case socket.assigns.payment_method do
+    case payment_method_for(socket) do
       "cod" ->
         if socket.assigns[:cart_session_id],
           do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
@@ -694,6 +732,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   }
   @default_region_fee 3500
 
+  defp update_delivery_fee(%{assigns: %{requires_shipping: false}} = socket) do
+    socket
+    |> assign(:delivery_fee, 0)
+    |> assign(:delivery_estimate, nil)
+  end
+
   defp update_delivery_fee(socket) do
     region = socket.assigns.region
     store_id = socket.assigns.store.id
@@ -723,6 +767,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   # (the map is stale, or was never populated for it) are dropped before
   # calling dispatch_fees_for/3, which otherwise assumes every item has a
   # matching variant.
+  defp update_dispatch_fees(%{assigns: %{requires_shipping: false}} = socket) do
+    assign(socket, :dispatch_fee_total, 0)
+  end
+
   defp update_dispatch_fees(socket) do
     variants = socket.assigns.dispatch_variants
 
@@ -747,6 +795,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     Emakola.Catalog.Variant
     |> Ash.Query.filter(id in ^variant_ids and store_id == ^store_id)
+    |> Ash.Query.load(:product)
     |> Ash.read!(authorize?: false)
     |> Map.new(&{&1.id, &1})
   end
@@ -808,20 +857,29 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         do: Map.put(errors, :fullname, "Full name is required"),
         else: errors
 
+    # Phone and full name stay required even for downloads — the storefront is
+    # phone-first and the merchant still has to be able to reach the buyer.
+    ships? = Map.get(assigns, :requires_shipping, true)
+
     errors =
-      if assigns.address == "",
+      if ships? and assigns.address == "",
         do: Map.put(errors, :address, "Delivery address is required"),
         else: errors
 
     errors =
-      if Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) do
-        errors
-      else
-        Map.put(
-          errors,
-          :digital_address,
-          "Check the digital address — it looks like GA-183-8164"
-        )
+      cond do
+        not ships? ->
+          errors
+
+        Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) ->
+          errors
+
+        true ->
+          Map.put(
+            errors,
+            :digital_address,
+            "Check the digital address — it looks like GA-183-8164"
+          )
       end
 
     # Email is optional, but if provided must look like an email address.

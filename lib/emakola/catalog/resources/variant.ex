@@ -191,6 +191,9 @@ defmodule Emakola.Catalog.Variant do
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
+      # After the dropship change on purpose: that one re-tracks a variant when
+      # its supplier is de-linked, which must not resurrect tracking on a file.
+      change(Emakola.Catalog.Changes.UntrackDigitalInventory)
 
       validate(fn changeset, _context ->
         price = Ash.Changeset.get_attribute(changeset, :price)
@@ -226,6 +229,7 @@ defmodule Emakola.Catalog.Variant do
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
+      change(Emakola.Catalog.Changes.UntrackDigitalInventory)
       change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
       change(Emakola.Catalog.Changes.ClearSupplierSyncPause)
 

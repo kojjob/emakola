@@ -24,7 +24,14 @@ defmodule Emakola.Storage do
   @doc "Delete a file at the given path."
   @callback delete(path :: String.t()) :: :ok | {:error, term()}
 
-  @doc "Generate a presigned URL for temporary access."
+  @doc """
+  Generate a presigned URL for temporary access.
+
+  The lifetime option is `:expires_in`, in seconds (default 3600). The name
+  matters: `opts` is an untyped keyword list, so an unrecognised key is
+  silently ignored and the URL quietly gets the default lifetime instead of
+  the one the caller asked for.
+  """
   @callback presigned_url(path :: String.t(), opts :: keyword()) ::
               {:ok, String.t()} | {:error, term()}
 

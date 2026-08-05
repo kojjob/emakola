@@ -113,6 +113,18 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               >
                 {tab.label}
               </button>
+              <%!-- A cross-route destination, so it cannot join tabs/0 (those
+                   are phx-click="switch_tab" buttons within this LiveView).
+                   Unconditional: AccountDownloadsLive has a clean empty state,
+                   and gating on "has grants" would cost a count query on every
+                   account page load. --%>
+              <.link
+                navigate={store_path(@store.slug, "/account/downloads")}
+                class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border bg-white border-stone-200 hover:border-stone-400 transition-colors"
+                style="color: #44403C"
+              >
+                Downloads
+              </.link>
             </div>
 
             <%!-- Desktop: vertical nav --%>
@@ -139,6 +151,13 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               >
                 {tab.label}
               </button>
+              <.link
+                navigate={store_path(@store.slug, "/account/downloads")}
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-r-lg transition-colors text-left border-l-2 border-transparent hover:bg-stone-50"
+                style="color: #44403C"
+              >
+                Downloads
+              </.link>
             </nav>
           </aside>
 
@@ -454,7 +473,12 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             </div>
             <div>
               <p class="text-sm font-semibold text-cta-dark">
-                Order #{order.order_number}
+                <.link
+                  navigate={store_path(@store.slug, "/track/#{order.order_number}")}
+                  class="hover:underline"
+                >
+                  Order #{order.order_number}
+                </.link>
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
                 {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(

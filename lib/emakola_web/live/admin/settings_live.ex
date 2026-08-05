@@ -308,6 +308,34 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               </span>
             </label>
           </div>
+          
+    <!-- What this shop is allowed to sell. The hidden input is load-bearing:
+               an all-unticked checkbox group submits no key at all, and a store
+               without :physical cannot edit its own existing catalogue, because
+               ProductTypeAcceptedByStore runs on Product :update too. -->
+          <div class="pt-2">
+            <span class="block text-sm font-medium text-slate-700 mb-1.5">What you sell</span>
+            <input type="hidden" name="store[enabled_product_types][]" value="physical" />
+            <div
+              :for={type <- Emakola.Catalog.Product.sellable_types() -- [:physical]}
+              class="flex items-start gap-3"
+            >
+              <input
+                type="checkbox"
+                id={"store-product-type-#{type}"}
+                name="store[enabled_product_types][]"
+                value={to_string(type)}
+                checked={@store && Emakola.Stores.Store.accepts?(@store, type)}
+                class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+              />
+              <label for={"store-product-type-#{type}"} class="cursor-pointer">
+                <span class="block text-sm font-medium text-slate-700">Digital downloads</span>
+                <span class="block text-xs text-slate-500 mt-0.5">
+                  Sell files — ebooks, beats, presets, courses. No address, no delivery fee.
+                </span>
+              </label>
+            </div>
+          </div>
 
           <div class="flex justify-end pt-2">
             <.admin_button type="submit">

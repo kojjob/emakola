@@ -935,4 +935,121 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     [variant | _] = listing.reseller_product.variants
     %{variant: variant, supplier_id: listing.supplier_id, offer: priced}
   end
+
+  describe "customer attribution and digital carts" do
+    defp digital_store_fixture! do
+      create_store!()
+      |> Ash.Changeset.for_update(:update_settings, %{
+        enabled_product_types: [:physical, :digital_download]
+      })
+      |> Ash.update!(authorize?: false)
+    end
+
+    defp digital_cart(conn, store) do
+      product = create_product!(store, product_type: :digital_download)
+
+      variant =
+        create_variant!(product, store,
+          price: 5000,
+          sku: "DIG-#{System.unique_integer([:positive])}"
+        )
+
+      session_id = Ecto.UUID.generate()
+
+      CartStore.add_item(session_id, store.id, %{
+        variant_id: variant.id,
+        product_title: "Sample Pack",
+        variant_info: "DIG",
+        unit_price: 5000,
+        quantity: 1,
+        sku: "DIG"
+      })
+
+      {init_test_session(conn, %{"cart_session_id" => session_id}), variant}
+    end
+
+    defp sign_in_customer(conn, store) do
+      customer =
+        Emakola.Customers.Customer
+        |> Ash.Changeset.for_create(:register_with_password, %{
+          email: "buyer-#{System.unique_integer([:positive])}@example.com",
+          name: "Ama Buyer",
+          phone: "+23324#{System.unique_integer([:positive])}",
+          store_id: store.id,
+          password: "password123",
+          password_confirmation: "password123"
+        })
+        |> Ash.create!(authorize?: false)
+
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
+      {init_test_session(conn, %{"customer_token" => token}), customer}
+    end
+
+    # Every storefront order was created with customer_id: nil, so every
+    # DownloadGrant was a guest grant and the download controller 404s those
+    # forever. Nothing else in the chain matters until this is fixed.
+    test "a signed-in customer's order carries their customer_id", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, customer} = sign_in_customer(conn, store)
+      {conn, _variant} = digital_cart(conn, store)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Ama Buyer"
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert order.customer_id == customer.id
+    end
+
+    # A guest grant can never be redeemed — the emailed-token flow does not
+    # exist. Taking the money would be taking it for nothing.
+    test "a guest is refused a digital cart and no order is created", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _variant} = digital_cart(conn, store)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer"
+      })
+
+      assert Emakola.Orders.Order
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.read!(authorize?: false) == []
+    end
+
+    # Regression: phone-first guest checkout for physical goods is the dominant
+    # Ghana flow and must stay untouched.
+    test "a guest can still check out a physical cart", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _sid} = setup_cart_session(conn, variant)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^variant.store_id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(orders) == 1
+    end
+  end
 end

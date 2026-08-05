@@ -488,6 +488,18 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             </div>
           </div>
 
+          <%!-- The slide-over is the quick-edit path and deliberately has no
+               product-type field. Without this link the Products list is a dead
+               end to the full form, where type and digital files live. --%>
+          <div :if={@editing_product} class="border-t border-slate-200 pt-5">
+            <.link
+              navigate={"/admin/products/#{@editing_product.id}/edit"}
+              class="text-sm text-primary font-medium underline"
+            >
+              Edit full details
+            </.link>
+          </div>
+
           <%!-- Pricing (edit mode — prices live on variants) --%>
           <div :if={@editing_product} class="space-y-4 border-t border-slate-200 pt-5">
             <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">

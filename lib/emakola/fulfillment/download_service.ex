@@ -80,7 +80,7 @@ defmodule Emakola.Fulfillment.DownloadService do
   defp check_limit(_), do: :ok
 
   defp call_storage(%DownloadGrant{digital_file: file}) do
-    case Emakola.Storage.presigned_url(file.storage_key, ttl: @url_ttl_seconds) do
+    case Emakola.Storage.presigned_url(file.storage_key, expires_in: @url_ttl_seconds) do
       {:ok, url} -> {:ok, url}
       {:error, reason} -> {:error, {:storage, reason}}
     end
