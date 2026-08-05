@@ -369,6 +369,19 @@ reuses protection's held-funds ledger, addressing is independent.
       already generated. No interest/late fees (trade credit, not lending).
       Spec: `docs/superpowers/specs/2026-07-30-pay-later-book-design.md` ✅ specced
 
+## PLANNED — AI features (key LIVE in prod since 2026-08-05)
+
+- [ ] **Snap-to-Shop** — merchant photographs goods → vision AI builds the whole
+      listing (title/description/category/tags/alt) from that exact photo; photo
+      auto-attached as the listing image; fake-photo detector; "Real photo" PDP
+      badge with domain-level revocation on image swap. Price is merchant-typed,
+      never guessed.
+      Spec: `docs/superpowers/specs/2026-08-05-snap-to-shop-design.md` ✅ specced
+- [ ] Brainstorm shortlist (not specced): WhatsApp AI shop assistant (chat →
+      pay-link checkout; gated on Meta approval), Instagram shop importer
+      (IG screenshots → products), one-tap AI shop designer (rides section
+      editor), platform risk copilot (feeds TC-5 credit data engine).
+
 ---
 
 ## BACKLOG (not re-verified — aspirational / future)
