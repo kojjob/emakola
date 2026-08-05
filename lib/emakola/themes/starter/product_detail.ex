@@ -170,6 +170,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
             >
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <p
               class="text-2xl font-semibold text-[var(--theme-primary,#6366F1)] mb-3"
               style="font-family: 'Inter', sans-serif;"

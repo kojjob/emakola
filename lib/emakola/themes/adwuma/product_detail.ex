@@ -94,6 +94,8 @@ defmodule Emakola.Themes.Adwuma.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <p class="mt-3 text-2xl font-semibold tabular-nums text-[color:var(--adw-ink)]">
               {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
             </p>
