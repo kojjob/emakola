@@ -145,6 +145,12 @@ defmodule Emakola.Catalog.Product do
       constraints(min: 0)
     end
 
+    attribute :snap_verified, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -332,6 +338,11 @@ defmodule Emakola.Catalog.Product do
       require_atomic?(true)
       accept([])
       change(atomic_update(:share_count, expr(share_count + 1)))
+    end
+
+    update :set_snap_verified do
+      require_atomic?(false)
+      accept([:snap_verified])
     end
 
     read :search do
