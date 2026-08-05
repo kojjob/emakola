@@ -513,7 +513,12 @@ defmodule Emakola.Catalog.Product do
   good with no delivery fee, which is not.
   """
   @spec requires_shipping?(t() | atom()) :: boolean()
-  def requires_shipping?(%__MODULE__{product_type: type}), do: requires_shipping?(type)
+  # Plain-map pattern, NOT %__MODULE__{}. The Dockerfile pins Elixir 1.18.3
+  # while CI and local run 1.20.x, and on 1.18.3 a %__MODULE__{} pattern inside
+  # an Ash resource expands before Spark has defined the struct — so it
+  # compiles everywhere except the release image. Matching the shape avoids the
+  # struct expansion entirely and behaves identically.
+  def requires_shipping?(%{product_type: type}), do: requires_shipping?(type)
   def requires_shipping?(:digital_download), do: false
   def requires_shipping?(type) when is_atom(type), do: true
 
