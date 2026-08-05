@@ -488,6 +488,7 @@ defmodule Emakola.Security.SecretBackfill do
 
   defp encrypted_context(target, record_id), do: "#{target.context}:#{record_id}"
 
+  @spec raise_backfill_error!(map(), term()) :: no_return()
   defp raise_backfill_error!(target, reason) do
     raise "failed to protect #{target.table}.#{target.plaintext} during backfill: #{reason}"
   end

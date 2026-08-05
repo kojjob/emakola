@@ -59,7 +59,11 @@ test.describe("User-facing error messages", () => {
     await page.getByRole("button", { name: /Place Order/i }).click();
 
     const alert = page.locator("[role=alert]").first();
-    await expect(alert).toContainText("couldn't start your payment", { timeout: 20_000 });
+    // This path really calls api.paystack.co (placeholder key → 401). When a
+    // runner's egress is tarpitted, the flash only lands after the client's
+    // failure envelope: ~30s connect timeout + 10s receive_timeout
+    // (paystack_client.ex). 45s sits above that worst case.
+    await expect(alert).toContainText("couldn't start your payment", { timeout: 45_000 });
     // The order still exists, so the message must tell the shopper which one.
     await expect(alert).toContainText(/ORD-\d{8}-[A-Z0-9]+/);
 
