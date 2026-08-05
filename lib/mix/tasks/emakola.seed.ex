@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Emakola.Seed do
       description: "A helpful research assistant powered by Claude.",
       system_prompt:
         "You are a knowledgeable research assistant. Help users find information, summarize documents, and answer questions accurately.",
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-5",
       provider: :anthropic,
       organisation_id: org.id
     })

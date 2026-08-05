@@ -173,6 +173,10 @@ config :emakola,
   ai_provider: Emakola.AI.Providers.Anthropic,
   ai_model_pricing: %{
     "claude-haiku-4-5" => %{input: 1, output: 5},
+    # Sticker rate; Sonnet 5's intro pricing ($2/$10 through 2026-08-31) is
+    # deliberately ignored — a brief conservative overestimate beats a rate
+    # that silently becomes wrong in September.
+    "claude-sonnet-5" => %{input: 3, output: 15},
     "claude-sonnet-4-6" => %{input: 3, output: 15},
     "claude-opus-4-8" => %{input: 5, output: 25}
   }
