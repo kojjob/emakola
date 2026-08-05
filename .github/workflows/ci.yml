@@ -287,3 +287,18 @@ jobs:
             /tmp/emakola-e2e-server.log
           if-no-files-found: ignore
           retention-days: 7
+
+  # Branch protection requires a status check literally named "Test" (the
+  # pre-rewrite job name). This umbrella reports that name once every real
+  # gate is green, so protection now covers all of them — no settings change.
+  test:
+    name: Test
+    needs: [quality-and-test, pdf, e2e]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All gates green
+        run: |
+          test "${{ contains(needs.*.result, 'failure') }}" = "false"
+          test "${{ contains(needs.*.result, 'cancelled') }}" = "false"
+          test "${{ contains(needs.*.result, 'skipped') }}" = "false"
