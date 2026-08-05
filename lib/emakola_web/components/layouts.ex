@@ -82,8 +82,8 @@ defmodule EmakolaWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+    <div class="relative flex flex-row items-center rounded-full border-2 border-slate-300 bg-slate-200 dark:border-slate-700 dark:bg-slate-800">
+      <div class="absolute left-0 h-full w-1/3 rounded-full border border-slate-200 bg-white shadow-sm transition-[left] [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 dark:border-slate-600 dark:bg-slate-600" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"

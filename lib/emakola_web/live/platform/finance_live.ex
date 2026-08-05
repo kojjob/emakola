@@ -37,21 +37,22 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       |> assign(:page_title, "Finance")
       |> assign(:active_nav, :finance)
       |> assign(:expanded_store_id, nil)
+      |> assign(:loaded, false)
+      |> assign(:stats, nil)
+      |> assign(:take_rate, nil)
+      |> assign(:finance_store_ids, MapSet.new())
+      |> assign(:finance_store_count, 0)
+      |> assign(:payout_group_count, 0)
+      |> assign(:remediation_count, 0)
+      |> stream(:store_rows, [], dom_id: &"finance-store-#{&1.store.id}")
+      |> stream(:payout_groups, [], dom_id: &"payout-group-#{&1.id}")
+      |> stream(:remediation_rows, [], dom_id: &remediation_dom_id/1)
 
     socket =
       if connected?(socket) do
         load(socket)
       else
         socket
-        |> assign(
-          loaded: false,
-          stats: nil,
-          take_rate: nil,
-          stores: [],
-          payouts: [],
-          remediation_count: 0
-        )
-        |> stream(:remediation_rows, [])
       end
 
     {:ok, socket}
@@ -69,14 +70,22 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     # process memory. length/1 here is a single pass over the already-loaded
     # list, not a second query.
     remediation_rows = FinanceStats.remediation_splits()
+    store_rows = FinanceStats.per_store_finance()
+
+    payout_groups =
+      Emakola.Payments.list_recent_payouts!(load: [:store], authorize?: false)
+      |> payout_groups()
 
     socket
     |> assign(:loaded, true)
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
-    |> assign(:stores, FinanceStats.per_store_finance())
-    |> assign(:payouts, Emakola.Payments.list_recent_payouts!(load: [:store], authorize?: false))
+    |> assign(:finance_store_ids, MapSet.new(store_rows, & &1.store.id))
+    |> assign(:finance_store_count, length(store_rows))
+    |> assign(:payout_group_count, length(payout_groups))
     |> assign(:remediation_count, length(remediation_rows))
+    |> stream(:store_rows, store_rows, reset: true)
+    |> stream(:payout_groups, payout_groups, reset: true)
     |> stream(:remediation_rows, remediation_rows, reset: true, dom_id: &remediation_dom_id/1)
   end
 
@@ -115,14 +124,32 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   end
 
   # Assigns-toggled, JS-free expand/collapse for a per-store row's dual-basis
-  # breakdown. No new data is fetched — legacy_owed/internal_owed are already
-  # on every @stores row, so this purely flips visibility.
+  # breakdown. The rows are re-fetched and re-streamed so the expanded assign
+  # is reflected inside streamed children (streams do not re-render from an
+  # unrelated assign change on their own).
   def handle_event("toggle_store_breakdown", %{"store_id" => store_id}, socket) do
     authorized(socket, fn socket ->
-      current = socket.assigns.expanded_store_id
-      next = if current == store_id, do: nil, else: store_id
-      {:noreply, assign(socket, :expanded_store_id, next)}
+      if MapSet.member?(socket.assigns.finance_store_ids, store_id) do
+        current = socket.assigns.expanded_store_id
+        next = if current == store_id, do: nil, else: store_id
+
+        {:noreply,
+         socket
+         |> assign(:expanded_store_id, next)
+         |> reload_store_rows()}
+      else
+        {:noreply, socket}
+      end
     end)
+  end
+
+  defp reload_store_rows(socket) do
+    rows = FinanceStats.per_store_finance()
+
+    socket
+    |> assign(:finance_store_ids, MapSet.new(rows, & &1.store.id))
+    |> assign(:finance_store_count, length(rows))
+    |> stream(:store_rows, rows, reset: true)
   end
 
   # Prepares BOTH payout bases and, for each one that succeeds, enqueues +
@@ -316,14 +343,19 @@ defmodule EmakolaWeb.Platform.FinanceLive do
             </p>
           </div>
           <.platform_empty_state
-            :if={@stores == []}
+            :if={@finance_store_count == 0}
             title="No finance activity yet"
             description="Once a store collects fees or accrues an outstanding balance, it'll show up here."
             icon="hero-banknotes"
           />
-          <div :if={@stores != []} class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
+          <div class={["overflow-x-auto", @finance_store_count == 0 && "hidden"]}>
+            <table
+              id="finance-store-rows"
+              phx-update="stream"
+              data-count={@finance_store_count}
+              class="w-full"
+            >
+              <thead id="finance-store-rows-head">
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Store</th>
                   <th class="px-6 py-3">Fees collected</th>
@@ -332,7 +364,11 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody :for={row <- @stores} class="divide-y divide-gray-100">
+              <tbody
+                :for={{dom_id, row} <- @streams.store_rows}
+                id={dom_id}
+                class="divide-y divide-gray-100"
+              >
                 <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
                     <button
@@ -427,14 +463,19 @@ defmodule EmakolaWeb.Platform.FinanceLive do
             </p>
           </div>
           <.platform_empty_state
-            :if={@payouts == []}
+            :if={@payout_group_count == 0}
             title="No payouts yet"
             description="Approved payouts will show up here."
             icon="hero-arrow-path"
           />
-          <div :if={@payouts != []} class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
+          <div class={["overflow-x-auto", @payout_group_count == 0 && "hidden"]}>
+            <table
+              id="finance-payout-groups"
+              phx-update="stream"
+              data-count={@payout_group_count}
+              class="w-full"
+            >
+              <thead id="finance-payout-groups-head">
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Store</th>
                   <th class="px-6 py-3">Amount</th>
@@ -444,7 +485,11 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody :for={group <- payout_groups(@payouts)} class="divide-y divide-gray-100">
+              <tbody
+                :for={{dom_id, group} <- @streams.payout_groups}
+                id={dom_id}
+                class="divide-y divide-gray-100"
+              >
                 <tr :if={group.ref} class="bg-indigo-50/60">
                   <td colspan="6" class="px-6 py-2 text-xs font-medium text-indigo-700">
                     <span class="material-symbols-outlined text-sm align-middle mr-1">link</span>
@@ -610,7 +655,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     |> Enum.map(fn key ->
       group = Enum.reverse(by_key[key])
       ref = if is_binary(key) and length(group) > 1, do: key, else: nil
-      %{ref: ref, payouts: group}
+      id = "payout-#{List.first(group).id}"
+      %{id: id, ref: ref, payouts: group}
     end)
   end
 

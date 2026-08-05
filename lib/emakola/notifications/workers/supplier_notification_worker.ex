@@ -27,14 +27,23 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"fulfillment_id" => fulfillment_id}}) do
     with {:ok, fulfillment} <- load_fulfillment(fulfillment_id) do
-      if is_nil(fulfillment.supplier_id) do
-        Logger.info(
-          "[SupplierNotificationWorker] Fulfillment #{fulfillment_id} is a merchant group, nothing to send"
-        )
+      cond do
+        fulfillment.status == :cancelled ->
+          Logger.info(
+            "[SupplierNotificationWorker] Fulfillment #{fulfillment_id} was cancelled, skipping notification"
+          )
 
-        :ok
-      else
-        notify_supplier(fulfillment)
+          :ok
+
+        is_nil(fulfillment.supplier_id) ->
+          Logger.info(
+            "[SupplierNotificationWorker] Fulfillment #{fulfillment_id} is a merchant group, nothing to send"
+          )
+
+          :ok
+
+        true ->
+          notify_supplier(fulfillment)
       end
     else
       {:error, reason} ->

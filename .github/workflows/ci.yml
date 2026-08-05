@@ -6,14 +6,16 @@ on:
   pull_request:
 
 env:
-  MIX_ENV: test
   ELIXIR_VERSION: "1.20.1"
   OTP_VERSION: "29"
 
 jobs:
-  test:
-    name: Test
+  quality-and-test:
+    name: Quality, assets, tests, and coverage
     runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      DATABASE_URL: ecto://postgres:postgres@localhost:5432/emakola_test
 
     services:
       postgres:
@@ -30,9 +32,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      DATABASE_URL: ecto://postgres:postgres@localhost:5432/emakola_test
-
     steps:
       - uses: actions/checkout@v5
 
@@ -42,6 +41,13 @@ jobs:
         with:
           elixir-version: ${{ env.ELIXIR_VERSION }}
           otp-version: ${{ env.OTP_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
 
       - name: Cache dependencies
         uses: actions/cache@v5
@@ -54,22 +60,21 @@ jobs:
         uses: actions/cache@v5
         with:
           path: _build
-          key: build-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
-          restore-keys: build-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
+          key: build-test-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: build-test-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
 
       - name: Cache Dialyzer PLT
         uses: actions/cache@v5
         with:
           path: priv/plts
-          # Keyed on the RESOLVED versions from setup-beam, not the requested
-          # ones: "otp-29" resolves to the latest 29.x patch, and a PLT built
-          # on 29.0.3 hard-fails ("Old PLT file") when the runner moves to
-          # 29.0.4 while the requested-version key stays identical.
           key: plt-${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-mix-${{ hashFiles('mix.lock') }}
           restore-keys: plt-${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-
 
       - name: Install dependencies
         run: mix deps.get
+
+      - name: Install asset dependencies
+        run: npm ci --prefix assets --no-audit --no-fund
 
       - name: Compile (warnings as errors)
         run: mix compile --warnings-as-errors
@@ -89,8 +94,211 @@ jobs:
       - name: CVE audit
         run: mix deps.audit
 
+      - name: Build production assets
+        run: mix assets.deploy
+
       - name: Setup database
         run: mix ecto.create && mix ecto.migrate
 
-      - name: Run tests
-        run: mix test --warnings-as-errors
+      - name: Run tests with coverage floor
+        run: mix test --warnings-as-errors --cover
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: cover/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pdf:
+    name: Browser-backed PDF render
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      DATABASE_URL: ecto://postgres:postgres@localhost:5432/emakola_test
+      CHROME_NO_SANDBOX: "true"
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: emakola_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: deps-${{ runner.os }}-mix-
+
+      - name: Cache PDF build
+        uses: actions/cache@v5
+        with:
+          path: _build
+          key: build-pdf-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: build-pdf-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Install Chromium
+        working-directory: e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node -e "console.log('CHROME_EXECUTABLE=' + require('playwright').chromium.executablePath())" >> "$GITHUB_ENV"
+
+      - name: Setup database
+        run: mix ecto.create && mix ecto.migrate
+
+      - name: Render and validate PDF
+        run: mix test test/emakola/analytics/pdf_report_test.exs --only pdf --warnings-as-errors
+
+  e2e:
+    name: Playwright (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chrome, mobile-safari]
+    env:
+      MIX_ENV: dev
+      DISABLE_RATE_LIMIT: "1"
+      BASE_URL: http://localhost:4000
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: emakola_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            assets/package-lock.json
+            e2e/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: deps-${{ runner.os }}-mix-
+
+      - name: Cache development build
+        uses: actions/cache@v5
+        with:
+          path: _build
+          key: build-e2e-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: build-e2e-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
+
+      - name: Install application dependencies
+        run: |
+          mix deps.get
+          npm ci --prefix assets --no-audit --no-fund
+          npm ci --prefix e2e --no-audit --no-fund
+
+      - name: Install Playwright browser
+        working-directory: e2e
+        # The setup project uses Chromium; install WebKit as well for the
+        # mobile-safari matrix entry.
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build assets and seed database
+        run: |
+          mix assets.build
+          mix ecto.create
+          mix ecto.migrate
+          mix run priv/repo/seeds.exs
+
+      - name: Start Phoenix server
+        run: |
+          mix phx.server > /tmp/emakola-e2e-server.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:4000/api/health > /dev/null; then
+              exit 0
+            fi
+            echo "Waiting for Phoenix (${attempt}/60)..."
+            sleep 2
+          done
+          cat /tmp/emakola-e2e-server.log
+          exit 1
+
+      - name: Run Playwright
+        working-directory: e2e
+        run: npx playwright test --project=${{ matrix.project }}
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.project }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+            /tmp/emakola-e2e-server.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Branch protection requires a status check literally named "Test" (the
+  # pre-rewrite job name). This umbrella reports that name once every real
+  # gate is green, so protection now covers all of them — no settings change.
+  test:
+    name: Test
+    needs: [quality-and-test, pdf, e2e]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All gates green
+        run: |
+          test "${{ contains(needs.*.result, 'failure') }}" = "false"
+          test "${{ contains(needs.*.result, 'cancelled') }}" = "false"
+          test "${{ contains(needs.*.result, 'skipped') }}" = "false"

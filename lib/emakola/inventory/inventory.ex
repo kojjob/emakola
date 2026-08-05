@@ -303,6 +303,46 @@ defmodule Emakola.Inventory do
     result
   end
 
+  @doc """
+  Restores stock previously decremented for a fully refunded order.
+
+  Both merchant-owned `:sale` movements and supplier-source `:network_sale`
+  movements are reversed at their original locations. Positive `:refund`
+  movements form the idempotency ledger: reprocessing the webhook restores
+  only any still-missing delta, never the same units twice.
+
+  This function is designed to run inside the refund reconciliation
+  transaction. Its own transaction is intentionally safe to nest; Ecto uses
+  the caller's checked-out connection and the outer rollback remains
+  authoritative.
+  """
+  @spec restore_refunded_order(binary()) :: {:ok, non_neg_integer()} | {:error, term()}
+  def restore_refunded_order(order_id) when is_binary(order_id) do
+    Emakola.Repo.transaction(fn ->
+      debits = movement_totals(order_id, [:sale, :network_sale], :negative)
+      credits = movement_totals(order_id, [:refund], :positive)
+
+      debits
+      |> Enum.sort_by(fn {{variant_id, location_id}, _quantity} -> {variant_id, location_id} end)
+      |> Enum.reduce(0, fn {{variant_id, location_id}, debited}, total ->
+        already_restored = Map.get(credits, {variant_id, location_id}, 0)
+        to_restore = Kernel.max(debited - already_restored, 0)
+
+        if to_restore > 0 do
+          {:ok, :adjusted} =
+            adjust(variant_id, location_id, to_restore, :refund, order_id: order_id)
+
+          total + to_restore
+        else
+          total
+        end
+      end)
+    end)
+    |> normalize_transaction()
+  end
+
+  def restore_refunded_order(_order_id), do: {:error, :invalid_order_id}
+
   # Shared by decrement_for_sale!/4 and decrement_clamped/5: allocates
   # `quantity` (assumed already valid — raised on or clamped to by the
   # caller) across the variant's stock levels, default location first, then
@@ -464,6 +504,22 @@ defmodule Emakola.Inventory do
     |> Enum.filter(& &1.location.active)
     |> Enum.sort_by(fn level ->
       {if(level.location_id == default_location_id, do: 0, else: 1), -level.quantity}
+    end)
+  end
+
+  defp movement_totals(order_id, reasons, direction) do
+    StockMovement
+    |> Ash.Query.filter(order_id == ^order_id and reason in ^reasons)
+    |> Ash.read!(authorize?: false)
+    |> Enum.filter(fn movement ->
+      case direction do
+        :negative -> movement.delta < 0
+        :positive -> movement.delta > 0
+      end
+    end)
+    |> Enum.reduce(%{}, fn movement, totals ->
+      quantity = abs(movement.delta)
+      Map.update(totals, {movement.variant_id, movement.location_id}, quantity, &(&1 + quantity))
     end)
   end
 

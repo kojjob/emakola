@@ -73,8 +73,9 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
     end
 
     test "shows the empty state when there is no finance activity", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
       assert html =~ "No finance activity"
+      assert has_element?(view, "#finance-store-rows[phx-update='stream'][data-count='0']")
     end
 
     test "renders the revenue stat strip", %{conn: conn} do
@@ -99,10 +100,11 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       |> Ash.Changeset.for_update(:mark_settled, %{})
       |> Ash.update!(authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
 
       assert html =~ "Owed Kingdom"
       assert html =~ "Fee Palace"
+      assert has_element?(view, "#finance-store-rows[phx-update='stream'][data-count='2']")
       # owed store has no payout set up; fee store is ready
       assert html =~ "No payout set up"
 
@@ -172,11 +174,12 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
         authorize?: false
       )
 
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
 
       assert html =~ "Recent payouts"
       assert html =~ "Payout Co"
       assert html =~ "Pending"
+      assert has_element?(view, "#finance-payout-groups[phx-update='stream'][data-count='1']")
     end
 
     test "retrying a failed payout prepares a FRESH payout (not the dead one) and audits",

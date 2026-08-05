@@ -32,6 +32,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
       |> assign(:active_nav, :stores)
       |> assign(:store_id, id)
       |> assign(:action_modal, nil)
+      |> assign(:action_form, to_form(%{"reason" => ""}))
       |> assign(:store, nil)
       |> assign(:owner, nil)
       |> assign(:history, [])
@@ -43,14 +44,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
 
   @impl true
   def handle_event("open_action_modal", %{"action" => action}, socket) when action in @actions do
-    {:noreply, assign(socket, :action_modal, action)}
+    {:noreply, assign(socket, action_modal: action, action_form: to_form(%{"reason" => ""}))}
   end
 
   def handle_event("cancel_modal", _params, socket) do
-    {:noreply, assign(socket, :action_modal, nil)}
+    {:noreply, assign(socket, action_modal: nil, action_form: to_form(%{"reason" => ""}))}
   end
 
-  def handle_event("confirm_action", %{"reason" => reason}, socket) do
+  def handle_event("confirm_action", %{"reason" => reason} = params, socket) do
+    socket = assign(socket, :action_form, to_form(params))
+
     authorized(socket, fn socket ->
       action = socket.assigns.action_modal
       reason = String.trim(reason || "")
@@ -118,6 +121,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
      socket
      |> assign(:store, updated)
      |> assign(:action_modal, nil)
+     |> assign(:action_form, to_form(%{"reason" => ""}))
      |> load_history(updated.id)
      |> put_flash(:info, Keyword.fetch!(opts, :flash))}
   end
@@ -239,10 +243,13 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-bold text-gray-900">{@store.name}</h1>
-              <span class={[
-                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                status_badge_class(@store.status)
-              ]}>
+              <span
+                id="store-status"
+                class={[
+                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                  status_badge_class(@store.status)
+                ]}
+              >
                 {status_label(@store.status)}
               </span>
             </div>
@@ -369,16 +376,23 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
         <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" phx-click-away="cancel_modal">
           <h3 class="text-lg font-semibold text-gray-900">{modal_title(@action_modal)}</h3>
           <p class="mt-1 text-sm text-gray-500">{modal_help(@action_modal)}</p>
-          <form phx-submit="confirm_action" class="mt-4">
+          <.form
+            for={@action_form}
+            id="store-lifecycle-form"
+            phx-submit="confirm_action"
+            class="mt-4"
+          >
             <label class="block text-sm font-medium text-gray-700">
               Reason {if reason_required?(@action_modal), do: "(required)", else: "(optional)"}
             </label>
-            <textarea
-              name="reason"
+            <.input
+              field={@action_form[:reason]}
+              type="textarea"
+              id="store-lifecycle-reason"
               rows="3"
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
               placeholder="Visible to the merchant"
-            ></textarea>
+            />
             <div class="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -394,7 +408,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
                 Confirm
               </button>
             </div>
-          </form>
+          </.form>
         </div>
       </div>
     </div>

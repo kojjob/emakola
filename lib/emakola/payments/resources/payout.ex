@@ -60,17 +60,17 @@ defmodule Emakola.Payments.Payout do
 
     # Paystack transfer recipient code, set when the transfer is initiated.
     attribute :recipient_code, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     # Paystack transfer code, set when the transfer is initiated.
     attribute :transfer_code, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     # Our unique idempotency key for the gateway transfer + webhook reconciliation.
     attribute :transfer_reference, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :failure_reason, :string do

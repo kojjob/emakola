@@ -355,9 +355,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
   attr :editing_product, :any, required: true
   attr :form_data, :map, required: true
+  attr :product_form, Phoenix.HTML.Form, required: true
   attr :form_errors, :map, required: true
   attr :categories_list, :list, required: true
   attr :uploads, :any, required: true
+  attr :bulk_upload_form, :any, required: true
   attr :csv_preview, :any, required: true
   attr :csv_errors, :list, required: true
   attr :bulk_importing, :boolean, required: true
@@ -372,7 +374,8 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
         kind={:slide_over}
         on_cancel={JS.push("cancel_product_form")}
       >
-        <form
+        <.form
+          for={@product_form}
           phx-change="validate_product"
           phx-submit="save_product"
           id="product-slide-over-form"
@@ -388,11 +391,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               <label for="pf_title" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Title <span class="text-red-500">*</span>
               </label>
-              <input
+              <.input
+                field={@product_form[:title]}
                 type="text"
                 id="pf_title"
-                name="product[title]"
-                value={@form_data["title"]}
                 placeholder="e.g., Ankara Print Fabric"
                 class={[
                   "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -414,14 +416,15 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 Description
               </label>
-              <textarea
+              <.input
+                field={@product_form[:description]}
+                type="textarea"
                 id="pf_description"
-                name="product[description]"
                 rows="4"
                 placeholder="Describe your product..."
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >{@form_data["description"]}</textarea>
+              />
             </div>
 
             <div>
@@ -431,32 +434,25 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 Category
               </label>
-              <select
+              <.input
+                field={@product_form[:category_id]}
+                type="select"
                 id="pf_category_id"
-                name="product[category_id]"
+                prompt="No category"
+                options={Enum.map(@categories_list, &{&1.name, &1.id})}
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="">No category</option>
-                <option
-                  :for={cat <- @categories_list}
-                  value={cat.id}
-                  selected={@form_data["category_id"] == to_string(cat.id)}
-                >
-                  {cat.name}
-                </option>
-              </select>
+              />
             </div>
 
             <div>
               <label for="pf_tags" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Tags
               </label>
-              <input
+              <.input
+                field={@product_form[:tags]}
                 type="text"
                 id="pf_tags"
-                name="product[tags]"
-                value={@form_data["tags"]}
                 placeholder="e.g., ankara, fabric, fashion (comma-separated)"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -469,12 +465,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               <label for="pf_price" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Price (GHS)
               </label>
-              <input
+              <.input
+                field={@product_form[:price]}
                 type="text"
                 inputmode="decimal"
                 id="pf_price"
-                name="product[price]"
-                value={@form_data["price"]}
                 placeholder="e.g. 25.00"
                 class={[
                   "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -491,6 +486,18 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 Required to publish. You can add more pricing options later.
               </p>
             </div>
+          </div>
+
+          <%!-- The slide-over is the quick-edit path and deliberately has no
+               product-type field. Without this link the Products list is a dead
+               end to the full form, where type and digital files live. --%>
+          <div :if={@editing_product} class="border-t border-slate-200 pt-5">
+            <.link
+              navigate={"/admin/products/#{@editing_product.id}/edit"}
+              class="text-sm text-primary font-medium underline"
+            >
+              Edit full details
+            </.link>
           </div>
 
           <%!-- Pricing (edit mode — prices live on variants) --%>
@@ -512,11 +519,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 >
                   {variant.sku || "Variant #{idx + 1}"}
                 </label>
-                <input
+                <.input
                   type="text"
                   inputmode="decimal"
                   id={"pf_price_#{variant.id}"}
-                  name={"product[variant_prices][#{variant.id}]"}
+                  name={"#{@product_form.name}[variant_prices][#{variant.id}]"}
                   value={
                     get_in(@form_data, ["variant_prices", variant.id]) ||
                       Shared.format_pesewas(variant.price)
@@ -562,11 +569,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 SEO Title
               </label>
-              <input
+              <.input
+                field={@product_form[:seo_title]}
                 type="text"
                 id="pf_seo_title"
-                name="product[seo_title]"
-                value={@form_data["seo_title"]}
                 placeholder="Custom title for search engines"
                 maxlength="70"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
@@ -584,15 +590,16 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 SEO Description
               </label>
-              <textarea
+              <.input
+                field={@product_form[:seo_description]}
+                type="textarea"
                 id="pf_seo_description"
-                name="product[seo_description]"
                 rows="2"
                 maxlength="160"
                 placeholder="Brief description for search results"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >{@form_data["seo_description"]}</textarea>
+              />
               <p class="mt-1 text-xs text-slate-500">
                 {String.length(@form_data["seo_description"] || "")}/160 characters
               </p>
@@ -600,8 +607,8 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           </div>
 
           <%!-- Hidden action field for button differentiation --%>
-          <input type="hidden" name="product[_action]" id="pf_action_field" value="draft" />
-        </form>
+          <.input field={@product_form[:_action]} type="hidden" id="pf_action_field" value="draft" />
+        </.form>
         <:footer>
           <div class="flex flex-col sm:flex-row gap-3">
             <button
@@ -626,6 +633,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       </.modal>
 
       <.bulk_upload_modal
+        form={@bulk_upload_form}
         uploads={@uploads}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}

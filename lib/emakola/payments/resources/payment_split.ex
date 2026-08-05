@@ -59,7 +59,7 @@ defmodule Emakola.Payments.PaymentSplit do
 
     # Gateway subaccount the money settles to. Nil for the platform main account.
     attribute :subaccount_code, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :amount, :integer do

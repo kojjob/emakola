@@ -16,79 +16,81 @@ defmodule EmakolaWeb.Auth.ResetPasswordLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
-      <div class="w-full max-w-md">
-        <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
-          <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
-        </div>
-
-        <div :if={@invalid_link} class="text-center">
-          <div class="mb-4 inline-flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-            <span class="material-symbols-outlined text-lg text-amber-600">link_off</span>
-            <span>This reset link is invalid or has expired.</span>
-          </div>
-          <p class="text-sm text-[#5f6b7a]">
-            <a href="/auth/forgot-password" class="font-medium text-[#2563eb] hover:underline">
-              Request a new reset link
-            </a>
-          </p>
-        </div>
-
-        <div :if={!@invalid_link}>
-          <div class="mb-8 text-center">
-            <h1 class="text-2xl font-bold text-[#0c1526]">Set a new password</h1>
-            <p class="text-[#5f6b7a] mt-1 text-sm">Minimum 8 characters.</p>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
+        <div class="w-full max-w-md">
+          <div class="flex items-center justify-center gap-2 mb-8">
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
           </div>
 
-          <div
-            :if={@flash["error"]}
-            class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-            role="alert"
-          >
-            <span class="material-symbols-outlined text-lg text-red-500">error</span>
-            <span>{@flash["error"]}</span>
-          </div>
-
-          <.form for={@form} id="reset-password-form" phx-submit="reset_password" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-[#0c1526] mb-1.5">New password</label>
-              <input
-                type="password"
-                name="reset[password]"
-                placeholder="Min. 8 characters"
-                required
-                class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-              />
+          <div :if={@invalid_link} class="text-center">
+            <div class="mb-4 inline-flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+              <span class="material-symbols-outlined text-lg text-amber-600">link_off</span>
+              <span>This reset link is invalid or has expired.</span>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-[#0c1526] mb-1.5">
-                Confirm new password
-              </label>
-              <input
-                type="password"
-                name="reset[password_confirmation]"
-                placeholder="Repeat the password"
-                required
-                class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-              />
+            <p class="text-sm text-[#5f6b7a]">
+              <a href="/auth/forgot-password" class="font-medium text-[#2563eb] hover:underline">
+                Request a new reset link
+              </a>
+            </p>
+          </div>
+
+          <div :if={!@invalid_link}>
+            <div class="mb-8 text-center">
+              <h1 class="text-2xl font-bold text-[#0c1526]">Set a new password</h1>
+              <p class="text-[#5f6b7a] mt-1 text-sm">Minimum 8 characters.</p>
             </div>
-            <button
-              type="submit"
-              class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
+
+            <div
+              :if={@flash["error"]}
+              class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+              role="alert"
             >
-              Update Password
-            </button>
-          </.form>
+              <span class="material-symbols-outlined text-lg text-red-500">error</span>
+              <span>{@flash["error"]}</span>
+            </div>
 
-          <p class="mt-6 text-center text-sm text-[#5f6b7a]">
-            <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">
-              Back to login
-            </a>
-          </p>
+            <.form for={@form} id="reset-password-form" phx-submit="reset_password" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[#0c1526] mb-1.5">New password</label>
+                <input
+                  type="password"
+                  name="reset[password]"
+                  placeholder="Min. 8 characters"
+                  required
+                  class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[#0c1526] mb-1.5">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  name="reset[password_confirmation]"
+                  placeholder="Repeat the password"
+                  required
+                  class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
+              >
+                Update Password
+              </button>
+            </.form>
+
+            <p class="mt-6 text-center text-sm text-[#5f6b7a]">
+              <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">
+                Back to login
+              </a>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

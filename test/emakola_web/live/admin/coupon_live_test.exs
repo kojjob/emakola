@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "SAVE10",
             "discount_type" => "percentage",
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "FIVEOFF",
             "discount_type" => "fixed_amount",
@@ -141,7 +141,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "FREESHIP",
             "discount_type" => "free_shipping",

@@ -107,25 +107,18 @@ defmodule Emakola.Analytics.PdfReportTest do
   @moduletag :pdf
   describe "generate/2" do
     @tag :pdf
-    test "returns {:ok, binary} when Chrome is available", %{store: store} do
+    test "renders a valid PDF with the configured Chrome executable", %{store: store} do
       Factory.create_order!(store, %{total: 10_000})
 
       date_range = Date.range(Date.add(Date.utc_today(), -30), Date.utc_today())
+      assert {:ok, pdf_binary} = PdfReport.generate(store, date_range)
 
-      case PdfReport.generate(store, date_range) do
-        {:ok, pdf_binary} ->
-          # ChromicPDF returns base64-encoded PDF by default
-          assert is_binary(pdf_binary)
-          assert byte_size(pdf_binary) > 0
+      # ChromicPDF returns base64-encoded PDF by default.
+      assert is_binary(pdf_binary)
+      assert byte_size(pdf_binary) > 0
 
-          # Decode and verify it's a valid PDF
-          decoded = Base.decode64!(pdf_binary)
-          assert String.starts_with?(decoded, "%PDF")
-
-        {:error, _reason} ->
-          # Chrome not available in this environment -- acceptable
-          :ok
-      end
+      decoded = Base.decode64!(pdf_binary)
+      assert String.starts_with?(decoded, "%PDF")
     end
   end
 end

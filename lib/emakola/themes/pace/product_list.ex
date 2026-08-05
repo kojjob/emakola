@@ -48,7 +48,7 @@ defmodule Emakola.Themes.Pace.ProductList do
                 Shop all
               </h1>
               <p class="mt-3 text-sm text-slate-600 sm:text-base">
-                {length(@products)} {if length(@products) == 1, do: "item", else: "items"} in the lineup
+                {@products_count} {if @products_count == 1, do: "item", else: "items"} in the lineup
               </p>
             </div>
 
@@ -115,8 +115,15 @@ defmodule Emakola.Themes.Pace.ProductList do
               </form>
             </div>
 
-            <%= if @products == [] do %>
-              <div class="rounded-[24px] border-2 border-dashed border-slate-200 bg-[#F1F6FA] px-6 py-20 text-center">
+            <div
+              id="product-list"
+              phx-update="stream"
+              class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-5"
+            >
+              <div
+                id="product-list-empty"
+                class="col-span-full hidden rounded-[24px] border-2 border-dashed border-slate-200 bg-[#F1F6FA] px-6 py-20 text-center only:block"
+              >
                 <h2 class="pace-display mb-1.5 text-xl font-bold uppercase italic tracking-tight text-slate-950">
                   No gear found
                 </h2>
@@ -132,20 +139,23 @@ defmodule Emakola.Themes.Pace.ProductList do
                   Clear all filters
                 </button>
               </div>
-            <% else %>
-              <div class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-5">
-                <Components.product_card :for={product <- @products} product={product} store={@store} />
+              <div
+                :for={{dom_id, %{product: product}} <- @streams.products}
+                id={dom_id}
+                class="contents"
+              >
+                <Components.product_card product={product} store={@store} />
               </div>
+            </div>
 
-              <div :if={@has_more} class="mt-10 text-center">
-                <button
-                  phx-click="load_more"
-                  class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-8 text-sm font-semibold text-slate-950 hover:border-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
-                >
-                  Load more <span class="pace-display text-xs italic" aria-hidden="true">///</span>
-                </button>
-              </div>
-            <% end %>
+            <div :if={@has_more} class="mt-10 text-center">
+              <button
+                phx-click="load_more"
+                class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-8 text-sm font-semibold text-slate-950 hover:border-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+              >
+                Load more <span class="pace-display text-xs italic" aria-hidden="true">///</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

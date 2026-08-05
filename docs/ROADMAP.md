@@ -223,9 +223,9 @@
 - [ ] Image processing with libvips (currently stubbed)
 - [ ] Structured logging with request metadata
 - [ ] Error tracking (Sentry)
-- [ ] Prometheus metrics exporter
+- [x] Prometheus metrics exporter on Fly's private metrics listener
 - [ ] Database connection pooling tuning
-- [ ] CI coverage threshold (currently disabled)
+- [x] CI coverage threshold enforced by `mix test --cover`
 
 ---
 

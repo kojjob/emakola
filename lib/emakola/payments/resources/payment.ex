@@ -70,7 +70,7 @@ defmodule Emakola.Payments.Payment do
     end
 
     attribute :gateway_response, :map do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :customer_email, :string do
@@ -269,7 +269,11 @@ defmodule Emakola.Payments.Payment do
 
     update :mark_refunded do
       require_atomic?(false)
-      accept([:refunded_amount])
+      # `metadata` is accepted so RefundReconciliation can record a stable
+      # gateway refund identifier in the SAME write as the cumulative amount.
+      # That makes partial-refund replay handling atomic under its payment-row
+      # lock; direct callers that only pass `refunded_amount` are unchanged.
+      accept([:refunded_amount, :metadata])
 
       validate attribute_equals(:status, :success) do
         message("can only refund a successful payment")

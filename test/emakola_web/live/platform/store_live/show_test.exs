@@ -67,9 +67,10 @@ defmodule EmakolaWeb.Platform.StoreLive.ShowTest do
       {:ok, view, _html} = live(conn, ~p"/platform/stores/#{store.id}")
 
       view |> element("button", "Suspend") |> render_click()
-      html = view |> form("form", reason: "Chargebacks") |> render_submit()
+      assert has_element?(view, "#store-lifecycle-form")
 
-      assert html =~ "Suspended"
+      view |> form("#store-lifecycle-form", reason: "Chargebacks") |> render_submit()
+      assert has_element?(view, "#store-status", "Suspended")
 
       assert [entry] = audit_entries(store.id)
       assert entry.action == :store_suspended
@@ -87,9 +88,9 @@ defmodule EmakolaWeb.Platform.StoreLive.ShowTest do
       {:ok, view, _html} = live(conn, ~p"/platform/stores/#{store.id}")
 
       view |> element("button", "Suspend") |> render_click()
-      html = view |> form("form", reason: "") |> render_submit()
+      view |> form("#store-lifecycle-form", reason: "") |> render_submit()
 
-      assert html =~ "A reason is required"
+      assert has_element?(view, "#flash-error", "A reason is required")
       assert audit_entries(store.id) == []
     end
   end
@@ -102,9 +103,11 @@ defmodule EmakolaWeb.Platform.StoreLive.ShowTest do
       {:ok, view, _html} = live(conn, ~p"/platform/stores/#{store.id}")
 
       view |> element("button", "Archive") |> render_click()
-      assert view |> form("form", reason: "Owner request") |> render_submit() =~ "Archived"
+      view |> form("#store-lifecycle-form", reason: "Owner request") |> render_submit()
+      assert has_element?(view, "#store-status", "Archived")
 
-      assert view |> element("button", "Reactivate") |> render_click() =~ "Active"
+      view |> element("button", "Reactivate") |> render_click()
+      assert has_element?(view, "#store-status", "Active")
 
       actions = store.id |> audit_entries() |> Enum.map(& &1.action)
       assert :store_archived in actions

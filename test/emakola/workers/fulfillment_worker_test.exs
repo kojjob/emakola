@@ -104,6 +104,23 @@ defmodule Emakola.Workers.FulfillmentWorkerTest do
       assert :ok = perform_job(FulfillmentWorker, %{"order_id" => order.id})
     end
 
+    test "does not fulfill an order cancelled after its job was enqueued" do
+      ctx = setup_order(:digital_download)
+      _ = attach_file!(ctx.store, ctx.product)
+
+      {:ok, cancelled} = Emakola.Orders.cancel_order(ctx.order, authorize?: false)
+      assert cancelled.status == :cancelled
+
+      assert :ok = perform_job(FulfillmentWorker, %{"order_id" => ctx.order.id})
+
+      grants =
+        DownloadGrant
+        |> Ash.Query.filter(order_id == ^ctx.order.id)
+        |> Ash.read!(authorize?: false)
+
+      assert grants == []
+    end
+
     test "skips variant-less custom line items without raising" do
       store = digital_store!()
       order = create_order!(store)

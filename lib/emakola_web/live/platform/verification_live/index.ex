@@ -3,7 +3,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
   Platform admin queue of store KYC submissions, filterable by status.
 
   Gated by RequirePermission (:manage_merchants). No DB queries during the
-  disconnected render — a nil state renders a loading shell.
+  disconnected render — an empty stream and loading state render the shell.
   """
   use EmakolaWeb, :live_view
   require Logger
@@ -19,7 +19,9 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
       |> assign(:page_title, "Verifications")
       |> assign(:active_nav, :verifications)
       |> assign(:filter, :pending)
-      |> assign(:verifications, nil)
+      |> assign(:verifications_count, 0)
+      |> assign(:verifications_loaded?, false)
+      |> stream(:verifications, [], dom_id: &"verification-#{&1.id}")
 
     {:ok, if(connected?(socket), do: load(socket, :pending), else: socket)}
   end
@@ -47,14 +49,20 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
         _ -> []
       end
 
-    assign(socket, :verifications, verifications)
+    socket
+    |> assign(:verifications_count, length(verifications))
+    |> assign(:verifications_loaded?, true)
+    |> stream(:verifications, verifications, reset: true)
   rescue
     exception ->
       Logger.error(
         "[platform.verification_live] load loading verifications raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, :verifications, [])
+      socket
+      |> assign(:verifications_count, 0)
+      |> assign(:verifications_loaded?, true)
+      |> stream(:verifications, [], reset: true)
   end
 
   @impl true
@@ -76,6 +84,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
               {"All", "all"}
             ]
           }
+          id={"verification-filter-#{value}"}
           type="button"
           phx-click="filter"
           phx-value-status={value}
@@ -102,16 +111,28 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
               <th class="px-6 py-3"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr :if={is_nil(@verifications)}>
+          <tbody
+            id="platform-verifications"
+            phx-update="stream"
+            data-count={@verifications_count}
+            class="divide-y divide-gray-100"
+          >
+            <tr :if={!@verifications_loaded?} id="platform-verifications-loading">
               <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
             </tr>
-            <tr :if={@verifications == []}>
+            <tr
+              :if={@verifications_loaded? && @verifications_count == 0}
+              id="platform-verifications-empty"
+            >
               <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                 No submissions
               </td>
             </tr>
-            <tr :for={v <- @verifications || []} class="hover:bg-gray-50 transition-colors">
+            <tr
+              :for={{id, v} <- @streams.verifications}
+              id={id}
+              class="hover:bg-gray-50 transition-colors"
+            >
               <td class="px-6 py-4 text-sm font-medium text-gray-900">{store_name(v)}</td>
               <td class="px-6 py-4 text-sm text-gray-600">{v.business_name}</td>
               <td class="px-6 py-4">

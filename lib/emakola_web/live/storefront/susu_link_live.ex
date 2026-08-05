@@ -84,7 +84,8 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
          |> assign(:search_overlay_query, "")
          |> assign(:search_overlay_results, [])
          |> assign(:search_overlay_total, 0)
-         |> assign(:searching, false)}
+         |> assign(:searching, false)
+         |> assign_susu_forms()}
 
       {:error, _} ->
         raise Ash.Error.Query.NotFound
@@ -104,6 +105,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
       |> maybe_assign_scalar(:amount, params["amount"])
       |> maybe_assign_nested(:buyer, params["buyer"])
       |> maybe_assign_nested(:delivery, params["delivery"])
+      |> assign_susu_forms()
 
     {:noreply, socket}
   end
@@ -174,7 +176,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
   @impl true
   def handle_event("chunk", %{"amount" => amount_str}, socket) do
     if socket.assigns.authorized? do
-      socket |> assign(:amount, amount_str) |> submit_chunk(amount_str, %{})
+      socket
+      |> assign(:amount, amount_str)
+      |> assign_susu_forms()
+      |> submit_chunk(amount_str, %{})
     else
       {:noreply, socket}
     end
@@ -219,6 +224,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
              socket
              |> refresh_from_plan(updated)
              |> assign(:delivery, delivery_fields(updated))
+             |> assign_susu_forms()
              |> put_flash(:info, "Delivery details updated.")}
 
           {:error, _reason} ->
@@ -373,6 +379,15 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
   defp maybe_assign_nested(socket, key, params),
     do: assign(socket, key, Map.merge(Map.fetch!(socket.assigns, key), params))
 
+  defp assign_susu_forms(socket) do
+    assign(socket,
+      amount_form: to_form(%{"amount" => socket.assigns.amount}),
+      buyer_form: to_form(socket.assigns.buyer, as: :buyer),
+      delivery_form: to_form(socket.assigns.delivery, as: :delivery),
+      resend_form: to_form(%{"phone" => ""})
+    )
+  end
+
   # -- Search overlay helpers (copied from PayLinkLive) --------------------
 
   defp search_overlay_products(store_id, query) do
@@ -402,6 +417,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
       socket
       |> assign(:amount, amount_str)
       |> assign(:buyer, Map.merge(socket.assigns.buyer, buyer))
+      |> assign_susu_forms()
 
     if plan.type == :catalog and out_of_stock?(plan, fresh_variant) do
       {:noreply, socket |> assign(:variant, fresh_variant) |> assign(:state, :sold_out)}
@@ -586,7 +602,13 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
         {@form_errors.base}
       </p>
 
-      <form id="susu-start-form" phx-submit="start" phx-change="validate" class="mt-6 space-y-4">
+      <.form
+        for={@buyer_form}
+        id="susu-start-form"
+        phx-submit="start"
+        phx-change="validate"
+        class="mt-6 space-y-4"
+      >
         <div>
           <label class="block text-sm font-medium text-slate-700" for="susu-amount">
             Amount to pay now
@@ -597,11 +619,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
               @store.currency || "GHS"
             )}
           </p>
-          <input
+          <.input
+            field={@amount_form[:amount]}
             type="text"
             id="susu-amount"
-            name="amount"
-            value={@amount}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -609,11 +630,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
 
         <div>
           <label class="block text-sm font-medium text-slate-700" for="susu-name">Full name</label>
-          <input
+          <.input
+            field={@buyer_form[:name]}
             type="text"
             id="susu-name"
-            name="buyer[name]"
-            value={@buyer["name"]}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -623,11 +643,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="susu-phone">
             Phone number
           </label>
-          <input
+          <.input
+            field={@buyer_form[:phone]}
             type="tel"
             id="susu-phone"
-            name="buyer[phone]"
-            value={@buyer["phone"]}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -637,11 +656,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="susu-email">
             Email (optional)
           </label>
-          <input
+          <.input
+            field={@buyer_form[:email]}
             type="email"
             id="susu-email"
-            name="buyer[email]"
-            value={@buyer["email"]}
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
         </div>
@@ -650,11 +668,12 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="susu-address">
             Delivery address
           </label>
-          <textarea
+          <.input
+            field={@buyer_form[:address]}
+            type="textarea"
             id="susu-address"
-            name="buyer[address]"
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-          >{@buyer["address"]}</textarea>
+          />
         </div>
 
         <button
@@ -665,7 +684,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
         >
           Pay now
         </button>
-      </form>
+      </.form>
     </div>
     """
   end
@@ -682,10 +701,15 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
         <p class="mt-1 text-xs text-[#94A3B8]">
           Enter the phone number on file and we'll text it to you.
         </p>
-        <form id="susu-resend-form" phx-submit="resend_link" class="mt-3 flex gap-2">
-          <input
+        <.form
+          for={@resend_form}
+          id="susu-resend-form"
+          phx-submit="resend_link"
+          class="mt-3 flex gap-2"
+        >
+          <.input
+            field={@resend_form[:phone]}
             type="tel"
-            name="phone"
             required
             placeholder="Phone number"
             class="flex-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
@@ -696,7 +720,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
           >
             Resend
           </button>
-        </form>
+        </.form>
       </div>
     </div>
     """
@@ -713,7 +737,13 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
         {@form_errors.base}
       </p>
 
-      <form id="susu-chunk-form" phx-submit="chunk" phx-change="validate" class="mt-6 space-y-4">
+      <.form
+        for={@amount_form}
+        id="susu-chunk-form"
+        phx-submit="chunk"
+        phx-change="validate"
+        class="mt-6 space-y-4"
+      >
         <div>
           <label class="block text-sm font-medium text-slate-700" for="susu-amount">
             Pay another chunk
@@ -724,11 +754,10 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
               @store.currency || "GHS"
             )}
           </p>
-          <input
+          <.input
+            field={@amount_form[:amount]}
             type="text"
             id="susu-amount"
-            name="amount"
-            value={@amount}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -742,45 +771,45 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
         >
           Pay this chunk
         </button>
-      </form>
+      </.form>
 
       <div
         :if={@plan.collect_delivery}
         class="mt-8 rounded-2xl border border-[#E2E8F0] bg-white p-4"
       >
         <h2 class="text-sm font-semibold text-slate-900">Delivery details</h2>
-        <form
+        <.form
+          for={@delivery_form}
           id="susu-delivery-form"
           phx-submit="update_delivery"
           phx-change="validate"
           class="mt-3 space-y-3"
         >
-          <input
+          <.input
+            field={@delivery_form[:name]}
             type="text"
-            name="delivery[name]"
-            value={@delivery["name"]}
             placeholder="Full name"
             class="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
-          <input
+          <.input
+            field={@delivery_form[:phone]}
             type="tel"
-            name="delivery[phone]"
-            value={@delivery["phone"]}
             placeholder="Phone number"
             class="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
-          <textarea
-            name="delivery[address]"
+          <.input
+            field={@delivery_form[:address]}
+            type="textarea"
             placeholder="Delivery address"
             class="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-          >{@delivery["address"]}</textarea>
+          />
           <button
             type="submit"
             class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
           >
             Update delivery
           </button>
-        </form>
+        </.form>
       </div>
 
       <button

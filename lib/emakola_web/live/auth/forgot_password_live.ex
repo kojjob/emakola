@@ -20,78 +20,80 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
-      <div class="w-full max-w-md">
-        <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
-          <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
-        </div>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
+        <div class="w-full max-w-md">
+          <div class="flex items-center justify-center gap-2 mb-8">
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
+          </div>
 
-        <div class="mb-8 text-center">
-          <h1 class="text-2xl font-bold text-[#0c1526]">Forgot your password?</h1>
-          <p class="text-[#5f6b7a] mt-1 text-sm">
-            Enter your account email and we'll send you a reset link.
+          <div class="mb-8 text-center">
+            <h1 class="text-2xl font-bold text-[#0c1526]">Forgot your password?</h1>
+            <p class="text-[#5f6b7a] mt-1 text-sm">
+              Enter your account email and we'll send you a reset link.
+            </p>
+          </div>
+
+          <div
+            :if={@flash["error"]}
+            class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-lg text-red-500">error</span>
+            <span>{@flash["error"]}</span>
+          </div>
+
+          <div
+            :if={@sent}
+            class="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800"
+            role="status"
+          >
+            <span class="material-symbols-outlined text-lg text-emerald-600">mark_email_read</span>
+            <span>
+              If that email has a Makola account, we've sent a reset link.
+              It expires in 24 hours — check your spam folder too.
+            </span>
+          </div>
+
+          <.form
+            :if={!@sent}
+            for={@form}
+            id="forgot-password-form"
+            phx-submit="request_reset"
+            class="space-y-4"
+          >
+            <div>
+              <label class="block text-sm font-medium text-[#0c1526] mb-1.5">Email</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8896ab] text-xl">
+                  mail
+                </span>
+                <input
+                  type="email"
+                  name="forgot[email]"
+                  value={@form[:email].value}
+                  placeholder="you@business.com"
+                  required
+                  class="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
+            >
+              Send Reset Link
+            </button>
+          </.form>
+
+          <p class="mt-6 text-center text-sm text-[#5f6b7a]">
+            Remembered it?
+            <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">Back to login</a>
           </p>
         </div>
-
-        <div
-          :if={@flash["error"]}
-          class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-          role="alert"
-        >
-          <span class="material-symbols-outlined text-lg text-red-500">error</span>
-          <span>{@flash["error"]}</span>
-        </div>
-
-        <div
-          :if={@sent}
-          class="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800"
-          role="status"
-        >
-          <span class="material-symbols-outlined text-lg text-emerald-600">mark_email_read</span>
-          <span>
-            If that email has a Makola account, we've sent a reset link.
-            It expires in 24 hours — check your spam folder too.
-          </span>
-        </div>
-
-        <.form
-          :if={!@sent}
-          for={@form}
-          id="forgot-password-form"
-          phx-submit="request_reset"
-          class="space-y-4"
-        >
-          <div>
-            <label class="block text-sm font-medium text-[#0c1526] mb-1.5">Email</label>
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8896ab] text-xl">
-                mail
-              </span>
-              <input
-                type="email"
-                name="forgot[email]"
-                value={@form[:email].value}
-                placeholder="you@business.com"
-                required
-                class="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
-          >
-            Send Reset Link
-          </button>
-        </.form>
-
-        <p class="mt-6 text-center text-sm text-[#5f6b7a]">
-          Remembered it?
-          <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">Back to login</a>
-        </p>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

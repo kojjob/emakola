@@ -10,10 +10,12 @@ defmodule Emakola.Themes.Electronics.ProductList do
   alias Emakola.Themes.Electronics.Shared
 
   attr :store, :map, required: true
-  attr :products, :list, required: true
+  attr :streams, :map, required: true
+  attr :products_count, :integer, required: true
   attr :categories, :list, default: []
   attr :theme, :map, required: true
   attr :cart_count, :integer, default: 0
+  attr :has_more, :boolean, default: false
   attr :search_query, :string, default: nil
   attr :active_category_slug, :string, default: nil
 
@@ -63,35 +65,47 @@ defmodule Emakola.Themes.Electronics.ProductList do
       <section class="bg-[#F5EFE5] py-10 sm:py-16">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <p class="text-sm text-[#4B5563] mb-6">
-            <span class="font-semibold text-[#134E4A]">{length(@products)}</span>
-            {if length(@products) == 1, do: "product", else: "products"}
+            <span class="font-semibold text-[#134E4A]">{@products_count}</span>
+            {if @products_count == 1, do: "product", else: "products"}
           </p>
 
-          <div :if={@products == []} class="text-center py-20">
-            <span class="material-symbols-outlined text-[#134E4A]/30" style="font-size: 80px;">
-              devices
-            </span>
-            <h2 class="electronics-heading text-2xl font-bold text-[#134E4A] mt-4 mb-2">
-              No products found
-            </h2>
-            <p class="text-sm text-[#4B5563]">Try a different category.</p>
-            <a
-              href={store_path(@store.slug, "/products")}
-              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold hover:bg-[#0E3F3B] transition-colors"
-            >
-              Browse all
-            </a>
-          </div>
-
           <div
-            :if={@products != []}
+            id="product-list"
+            phx-update="stream"
             class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5"
           >
-            <Shared.product_card
-              :for={product <- @products}
-              product={product}
-              store={@store}
-            />
+            <div id="product-list-empty" class="col-span-full hidden text-center py-20 only:block">
+              <span class="material-symbols-outlined text-[#134E4A]/30" style="font-size: 80px;">
+                devices
+              </span>
+              <h2 class="electronics-heading text-2xl font-bold text-[#134E4A] mt-4 mb-2">
+                No products found
+              </h2>
+              <p class="text-sm text-[#4B5563]">Try a different category.</p>
+              <a
+                href={store_path(@store.slug, "/products")}
+                class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold hover:bg-[#0E3F3B] transition-colors"
+              >
+                Browse all
+              </a>
+            </div>
+            <div
+              :for={{dom_id, %{product: product}} <- @streams.products}
+              id={dom_id}
+              class="contents"
+            >
+              <Shared.product_card product={product} store={@store} />
+            </div>
+          </div>
+
+          <div :if={@has_more} class="mt-10 text-center">
+            <button
+              type="button"
+              phx-click="load_more"
+              class="inline-flex min-h-12 items-center rounded-full bg-[var(--theme-primary,#134E4A)] px-8 text-sm font-bold text-white transition-colors hover:bg-[#0E3F3B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2"
+            >
+              Load more
+            </button>
           </div>
         </div>
       </section>

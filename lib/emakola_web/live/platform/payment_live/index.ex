@@ -14,6 +14,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
       socket
       |> assign(:page_title, "Payments")
       |> assign(:active_nav, :payments)
+      |> stream(:failed, [])
+      |> stream(:refunds, [])
 
     socket =
       if connected?(socket) do
@@ -23,9 +25,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
           loaded: false,
           stats: nil,
           success_rate: nil,
-          gateways: [],
-          failed: nil,
-          refunds: nil
+          gateways: []
         )
       end
 
@@ -38,6 +38,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
     total = Stats.total_payments()
     gmv = Stats.total_gmv()
     refunded_total = Stats.total_refunded()
+    failed = Stats.recent_failed_payments(20)
+    refunds = Stats.recent_refunded_payments(10)
 
     success_rate =
       if success + failed_count > 0 do
@@ -57,8 +59,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
     })
     |> assign(:success_rate, success_rate)
     |> assign(:gateways, Stats.payment_gateway_breakdown())
-    |> assign(:failed, Stats.recent_failed_payments(20))
-    |> assign(:refunds, Stats.recent_refunded_payments(10))
+    |> stream(:failed, failed, reset: true)
+    |> stream(:refunds, refunds, reset: true)
   end
 
   @impl true
@@ -152,13 +154,17 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
                   <th class="px-6 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@failed == []}>
+              <tbody id="failed-payments" phx-update="stream" class="divide-y divide-gray-100">
+                <tr id="failed-payments-empty" class="hidden only:table-row">
                   <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                     No failed payments — nothing to reconcile.
                   </td>
                 </tr>
-                <tr :for={pay <- @failed} class="hover:bg-gray-50 transition-colors">
+                <tr
+                  :for={{id, pay} <- @streams.failed}
+                  id={id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
                   <td class="px-6 py-4 text-sm text-gray-700">
                     {(pay.store && pay.store.name) || "—"}
                   </td>
@@ -191,13 +197,17 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
                   <th class="px-6 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@refunds == []}>
+              <tbody id="recent-refunds" phx-update="stream" class="divide-y divide-gray-100">
+                <tr id="recent-refunds-empty" class="hidden only:table-row">
                   <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                     No refunds recorded.
                   </td>
                 </tr>
-                <tr :for={pay <- @refunds} class="hover:bg-gray-50 transition-colors">
+                <tr
+                  :for={{id, pay} <- @streams.refunds}
+                  id={id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
                   <td class="px-6 py-4 text-sm text-gray-700">
                     {(pay.store && pay.store.name) || "—"}
                   </td>

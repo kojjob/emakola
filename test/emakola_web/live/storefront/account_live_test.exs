@@ -30,6 +30,17 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
   end
 
   describe "AccountLive" do
+    # /account/downloads is built, themed and tested but had no link from
+    # anywhere — the same orphaned-route defect as the admin files page, and
+    # the reason a buyer would never find what they paid for. The tab nav is a
+    # phx-click="switch_tab" button list, so a cross-route entry cannot join
+    # tabs/0 and needs its own link.
+    test "links to the downloads library", %{conn: conn, store: store} do
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+
+      assert html =~ "/s/#{store.slug}/account/downloads"
+    end
+
     test "renders customer account page with profile section", %{conn: conn, store: store} do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
 

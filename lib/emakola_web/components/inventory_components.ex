@@ -9,7 +9,7 @@ defmodule EmakolaWeb.InventoryComponents do
   use Phoenix.Component
 
   import EmakolaWeb.AdminComponents, only: [admin_button: 1, admin_card: 1]
-  import EmakolaWeb.CoreComponents, only: [hide_modal: 1, icon: 1, modal: 1]
+  import EmakolaWeb.CoreComponents, only: [hide_modal: 1, icon: 1, input: 1, modal: 1]
 
   @doc """
   Renders a color-coded stock status badge.
@@ -52,6 +52,8 @@ defmodule EmakolaWeb.InventoryComponents do
   attr :totals, :map, required: true
   attr :renaming_id, :string, default: nil
   attr :show_form, :boolean, default: false
+  attr :location_form, Phoenix.HTML.Form, required: true
+  attr :rename_location_form, Phoenix.HTML.Form, required: true
 
   def locations_card(assigns) do
     ~H"""
@@ -69,21 +71,28 @@ defmodule EmakolaWeb.InventoryComponents do
       </div>
 
       <div :if={@show_form} class="px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-        <form id="add-location-form" phx-submit="create_location" class="flex items-center gap-2">
-          <input
-            type="text"
-            name="name"
-            required
-            maxlength="120"
-            placeholder="e.g. Market Stall, Warehouse"
-            class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
-            autofocus
-          />
+        <.form
+          for={@location_form}
+          id="add-location-form"
+          phx-submit="create_location"
+          class="flex items-center gap-2"
+        >
+          <div class="flex-1">
+            <.input
+              field={@location_form[:name]}
+              type="text"
+              required
+              maxlength="120"
+              placeholder="e.g. Market Stall, Warehouse"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+              autofocus
+            />
+          </div>
           <.admin_button type="submit" size={:sm}>Add</.admin_button>
           <.admin_button variant={:secondary} size={:sm} phx-click="toggle_location_form">
             Cancel
           </.admin_button>
-        </form>
+        </.form>
       </div>
 
       <ul class="divide-y divide-slate-100">
@@ -92,21 +101,23 @@ defmodule EmakolaWeb.InventoryComponents do
           class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-3"
         >
           <%= if @renaming_id == location.id do %>
-            <form
+            <.form
+              for={@rename_location_form}
               id="rename-location-form"
               phx-submit="rename_location"
               class="flex items-center gap-2"
             >
-              <input type="hidden" name="location_id" value={location.id} />
-              <input
-                type="text"
-                name="name"
-                value={location.name}
-                required
-                maxlength="120"
-                class="w-44 px-2 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-                autofocus
-              />
+              <.input field={@rename_location_form[:location_id]} type="hidden" />
+              <div class="w-44">
+                <.input
+                  field={@rename_location_form[:name]}
+                  type="text"
+                  required
+                  maxlength="120"
+                  class="w-full px-2 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  autofocus
+                />
+              </div>
               <button type="submit" class="text-primary hover:text-primary-hover" title="Save">
                 <.icon name="hero-check" class="w-4 h-4" />
               </button>
@@ -118,7 +129,7 @@ defmodule EmakolaWeb.InventoryComponents do
               >
                 <.icon name="hero-x-mark" class="w-4 h-4" />
               </button>
-            </form>
+            </.form>
           <% else %>
             <span class="text-sm font-medium text-slate-800">{location.name}</span>
           <% end %>
@@ -194,19 +205,22 @@ defmodule EmakolaWeb.InventoryComponents do
   """
   attr :variant, :map, default: nil
   attr :locations, :list, required: true
+  attr :form, Phoenix.HTML.Form, required: true
 
   def transfer_modal(assigns) do
     active = Enum.filter(assigns.locations, & &1.active)
 
-    assigns =
-      assigns
-      |> assign(:active_locations, active)
-      |> assign(:from_id, Enum.find_value(active, fn l -> l.default && l.id end))
-      |> assign(:to_id, Enum.find_value(active, fn l -> !l.default && l.id end))
+    assigns = assign(assigns, :active_locations, active)
 
     ~H"""
     <.modal id="transfer-modal" title="Transfer Stock" size={:md}>
-      <form :if={@variant} id="transfer-form" phx-submit="save_transfer" class="space-y-4">
+      <.form
+        :if={@variant}
+        for={@form}
+        id="transfer-form"
+        phx-submit="save_transfer"
+        class="space-y-4"
+      >
         <p class="text-sm text-slate-600">
           {variant_title(@variant)}
           <span :if={@variant.sku} class="font-mono text-xs text-slate-400">({@variant.sku})</span>
@@ -214,40 +228,28 @@ defmodule EmakolaWeb.InventoryComponents do
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">From</label>
-            <select
-              name="transfer[from_location_id]"
+            <.input
+              field={@form[:from_location_id]}
+              type="select"
+              options={Enum.map(@active_locations, &{&1.name, &1.id})}
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option
-                :for={location <- @active_locations}
-                value={location.id}
-                selected={location.id == @from_id}
-              >
-                {location.name}
-              </option>
-            </select>
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">To</label>
-            <select
-              name="transfer[to_location_id]"
+            <.input
+              field={@form[:to_location_id]}
+              type="select"
+              options={Enum.map(@active_locations, &{&1.name, &1.id})}
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option
-                :for={location <- @active_locations}
-                value={location.id}
-                selected={location.id == @to_id}
-              >
-                {location.name}
-              </option>
-            </select>
+            />
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1.5">Quantity</label>
-          <input
+          <.input
+            field={@form[:quantity]}
             type="number"
-            name="transfer[quantity]"
             min="1"
             step="1"
             required
@@ -263,7 +265,7 @@ defmodule EmakolaWeb.InventoryComponents do
             Transfer
           </.admin_button>
         </div>
-      </form>
+      </.form>
     </.modal>
     """
   end

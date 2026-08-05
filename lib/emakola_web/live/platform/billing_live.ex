@@ -28,12 +28,21 @@ defmodule EmakolaWeb.Platform.BillingLive do
       socket
       |> assign(:page_title, "Billing")
       |> assign(:active_nav, :billing)
+      |> stream(:plans, [])
+      |> stream(:subscriptions, [])
+      |> stream(:invoices, [])
 
     socket =
       if connected?(socket) do
         load_billing(socket)
       else
-        assign(socket, loaded: false, plans: [], subscriptions: [], invoices: [], stats: nil)
+        assign(socket,
+          loaded: false,
+          plans_empty?: true,
+          subscriptions_empty?: true,
+          invoices_empty?: true,
+          stats: nil
+        )
       end
 
     {:ok, socket}
@@ -50,15 +59,18 @@ defmodule EmakolaWeb.Platform.BillingLive do
     invoices =
       safe_list(fn -> Billing.list_invoices(load: [:organisation], authorize?: false) end)
 
+    sorted_plans = Enum.sort_by(plans, & &1.sort_order)
+    recent_invoices = Enum.sort_by(invoices, & &1.period_start, {:desc, Date}) |> Enum.take(10)
+
     socket
     |> assign(:loaded, true)
-    |> assign(:plans, Enum.sort_by(plans, & &1.sort_order))
-    |> assign(:subscriptions, subscriptions)
-    |> assign(
-      :invoices,
-      Enum.sort_by(invoices, & &1.period_start, {:desc, Date}) |> Enum.take(10)
-    )
+    |> assign(:plans_empty?, sorted_plans == [])
+    |> assign(:subscriptions_empty?, subscriptions == [])
+    |> assign(:invoices_empty?, recent_invoices == [])
     |> assign(:stats, compute_stats(plans, subscriptions))
+    |> stream(:plans, sorted_plans, reset: true)
+    |> stream(:subscriptions, subscriptions, reset: true)
+    |> stream(:invoices, recent_invoices, reset: true)
   end
 
   defp safe_list(fun) do
@@ -164,10 +176,14 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Plans</h2>
           <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div :if={@plans == []} class="px-6 py-12 text-center text-sm text-gray-400">
+            <div
+              :if={@plans_empty?}
+              id="billing-plans-empty"
+              class="px-6 py-12 text-center text-sm text-gray-400"
+            >
               No plans configured.
             </div>
-            <table :if={@plans != []} class="w-full">
+            <table :if={!@plans_empty?} id="billing-plans-table" class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Plan</th>
@@ -176,8 +192,12 @@ defmodule EmakolaWeb.Platform.BillingLive do
                   <th class="px-6 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :for={plan <- @plans} class="hover:bg-gray-50">
+              <tbody id="billing-plans" phx-update="stream" class="divide-y divide-gray-100">
+                <tr
+                  :for={{id, plan} <- @streams.plans}
+                  id={id}
+                  class="hover:bg-gray-50"
+                >
                   <td class="px-6 py-4">
                     <p class="font-medium text-gray-900">{plan.name}</p>
                     <p class="text-xs text-gray-400 font-mono">{plan.slug}</p>
@@ -209,10 +229,14 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Subscriptions</h2>
           <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div :if={@subscriptions == []} class="px-6 py-12 text-center text-sm text-gray-400">
+            <div
+              :if={@subscriptions_empty?}
+              id="billing-subscriptions-empty"
+              class="px-6 py-12 text-center text-sm text-gray-400"
+            >
               No subscriptions yet.
             </div>
-            <table :if={@subscriptions != []} class="w-full">
+            <table :if={!@subscriptions_empty?} id="billing-subscriptions-table" class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Organisation</th>
@@ -221,8 +245,16 @@ defmodule EmakolaWeb.Platform.BillingLive do
                   <th class="px-6 py-3">Renews</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :for={sub <- @subscriptions} class="hover:bg-gray-50">
+              <tbody
+                id="billing-subscriptions"
+                phx-update="stream"
+                class="divide-y divide-gray-100"
+              >
+                <tr
+                  :for={{id, sub} <- @streams.subscriptions}
+                  id={id}
+                  class="hover:bg-gray-50"
+                >
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
                     {(sub.organisation && sub.organisation.name) || "—"}
                   </td>
@@ -248,10 +280,14 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Recent invoices</h2>
           <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div :if={@invoices == []} class="px-6 py-12 text-center text-sm text-gray-400">
+            <div
+              :if={@invoices_empty?}
+              id="billing-invoices-empty"
+              class="px-6 py-12 text-center text-sm text-gray-400"
+            >
               No invoices yet.
             </div>
-            <table :if={@invoices != []} class="w-full">
+            <table :if={!@invoices_empty?} id="billing-invoices-table" class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Invoice</th>
@@ -261,8 +297,12 @@ defmodule EmakolaWeb.Platform.BillingLive do
                   <th class="px-6 py-3">Period</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :for={inv <- @invoices} class="hover:bg-gray-50">
+              <tbody id="billing-invoices" phx-update="stream" class="divide-y divide-gray-100">
+                <tr
+                  :for={{id, inv} <- @streams.invoices}
+                  id={id}
+                  class="hover:bg-gray-50"
+                >
                   <td class="px-6 py-4 text-sm font-mono text-gray-700">{inv.invoice_number}</td>
                   <td class="px-6 py-4 text-sm text-gray-600">
                     {(inv.organisation && inv.organisation.name) || "—"}

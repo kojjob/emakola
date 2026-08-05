@@ -21,8 +21,12 @@ defmodule Emakola.Webhooks.OutboundWebhook do
     attribute :secret, :string do
       allow_nil?(false)
       sensitive?(true)
-      public?(true)
       constraints(max_length: 255)
+    end
+
+    attribute :secret_encrypted, :string do
+      allow_nil?(true)
+      sensitive?(true)
     end
 
     attribute :events, {:array, :string} do
@@ -57,6 +61,11 @@ defmodule Emakola.Webhooks.OutboundWebhook do
       accept([:url, :secret, :events, :active, :description, :metadata])
       argument(:organisation_id, :uuid, allow_nil?: false)
       change(manage_relationship(:organisation_id, :organisation, type: :append))
+
+      change({
+        Emakola.Security.Changes.EncryptAttribute,
+        source: :secret, encrypted: :secret_encrypted, context: "outbound_webhooks.secret"
+      })
     end
 
     update :update do
@@ -64,7 +73,13 @@ defmodule Emakola.Webhooks.OutboundWebhook do
     end
 
     update :rotate_secret do
+      require_atomic?(false)
       accept([:secret])
+
+      change({
+        Emakola.Security.Changes.EncryptAttribute,
+        source: :secret, encrypted: :secret_encrypted, context: "outbound_webhooks.secret"
+      })
     end
   end
 end

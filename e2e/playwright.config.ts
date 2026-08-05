@@ -5,6 +5,10 @@ export default defineConfig({
   timeout: 30_000,
   retries: 1,
   workers: 2,
+  reporter: [
+    ["line"],
+    ["html", { open: "never" }],
+  ],
   use: {
     // Overridable so a git-worktree checkout can run its own server on
     // another port without fighting the shared :4000 instance.

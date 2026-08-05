@@ -672,6 +672,7 @@ defmodule Emakola.Themes.ChaleTest do
       __changed__: nil
     }
     |> Map.merge(attrs)
+    |> Emakola.LiveViewHelpers.with_product_stream()
     |> Chale.render_product_list()
     |> rendered_to_string()
   end

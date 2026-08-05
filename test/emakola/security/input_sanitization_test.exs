@@ -246,7 +246,7 @@ defmodule Emakola.InputSanitizationTest do
         |> Ash.Query.filter(store_id == ^store.id)
         |> Ash.read(authorize?: false)
 
-      assert length(orders) >= 1
+      assert orders != []
     end
 
     test "UNION SELECT injection in order notes is harmless", %{store: store} do
@@ -316,7 +316,7 @@ defmodule Emakola.InputSanitizationTest do
         |> Ash.Query.filter(store_id == ^store.id)
         |> Ash.read(authorize?: false)
 
-      assert length(all_products) >= 1
+      assert all_products != []
     end
 
     test "UNION injection in product search is parameterized", %{store: store} do

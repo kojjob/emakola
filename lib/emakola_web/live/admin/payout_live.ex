@@ -44,6 +44,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> assign(:active_nav, :payouts)
          |> assign(:account, account)
          |> assign(:method, current_method(account))
+         |> assign(:payout_form, payout_form(account))
          |> assign(:currency, store.currency || "GHS")
          |> assign_async(:money, fn -> load_money(store_id) end)}
 
@@ -114,8 +115,12 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   defp format_payout_date(_), do: "—"
 
   @impl true
-  def handle_event("validate", %{"payout" => %{"method" => method}}, socket) do
-    {:noreply, assign(socket, :method, normalize_method(method))}
+  def handle_event("validate", %{"payout" => %{"method" => method} = params}, socket) do
+    {:noreply,
+     assign(socket,
+       method: normalize_method(method),
+       payout_form: to_form(params, as: :payout)
+     )}
   end
 
   def handle_event("validate", _params, socket), do: {:noreply, socket}
@@ -134,6 +139,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
              socket
              |> assign(:account, account)
              |> assign(:method, method)
+             |> assign(:payout_form, payout_form(account))
              |> put_flash(:info, "Payout details saved.")}
 
           {:error, _} ->
@@ -141,7 +147,10 @@ defmodule EmakolaWeb.Admin.PayoutLive do
         end
 
       {:error, message} ->
-        {:noreply, socket |> assign(:method, method) |> put_flash(:error, message)}
+        {:noreply,
+         socket
+         |> assign(method: method, payout_form: to_form(params, as: :payout))
+         |> put_flash(:error, message)}
     end
   end
 
@@ -402,62 +411,56 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
       <.destination_notice account={@account} />
 
-      <form
+      <.form
+        for={@payout_form}
         id="payout-form"
         phx-submit="save"
         phx-change="validate"
         class="space-y-5 rounded-lg border border-slate-200 bg-white p-6"
       >
         <div>
-          <label class="block text-sm font-medium text-slate-700">Payout method</label>
-          <select
-            name="payout[method]"
+          <.input
+            field={@payout_form[:method]}
+            type="select"
+            label="Payout method"
+            options={[{"Mobile money", "mobile_money"}, {"Bank account", "bank"}]}
             class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          >
-            <option value="mobile_money" selected={@method == "mobile_money"}>Mobile money</option>
-            <option value="bank" selected={@method == "bank"}>Bank account</option>
-          </select>
+          />
         </div>
 
         <div :if={@method == "mobile_money"} class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700">Provider</label>
-            <select
-              name="payout[provider]"
+            <.input
+              field={@payout_form[:provider]}
+              type="select"
+              label="Provider"
+              options={[
+                {"MTN MoMo", "mtn"},
+                {"Telecel / Telecel Cash", "vodafone"},
+                {"AirtelTigo Money", "airteltigo"}
+              ]}
               class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="mtn" selected={dest(@account, "provider") == "mtn"}>MTN MoMo</option>
-              <option value="vodafone" selected={dest(@account, "provider") == "vodafone"}>
-                Telecel / Telecel Cash
-              </option>
-              <option value="airteltigo" selected={dest(@account, "provider") == "airteltigo"}>
-                AirtelTigo Money
-              </option>
-            </select>
+            />
           </div>
           <.text_field
-            name="payout[number]"
+            field={@payout_form[:number]}
             label="Mobile money number"
-            value={dest(@account, "number")}
           />
           <.text_field
-            name="payout[account_name]"
+            field={@payout_form[:account_name]}
             label="Account name"
-            value={dest(@account, "account_name")}
           />
         </div>
 
         <div :if={@method == "bank"} class="space-y-4">
-          <.text_field name="payout[bank_name]" label="Bank" value={dest(@account, "bank_name")} />
+          <.text_field field={@payout_form[:bank_name]} label="Bank" />
           <.text_field
-            name="payout[account_number]"
+            field={@payout_form[:account_number]}
             label="Account number"
-            value={dest(@account, "account_number")}
           />
           <.text_field
-            name="payout[account_name]"
+            field={@payout_form[:account_name]}
             label="Account name"
-            value={dest(@account, "account_name")}
           />
         </div>
 
@@ -467,7 +470,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
         >
           {if @account, do: "Update payout details", else: "Save payout details"}
         </button>
-      </form>
+      </.form>
     </section>
     """
   end
@@ -582,21 +585,31 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   defp status_pill_label(:reversed), do: "Reversed"
   defp status_pill_label(_pending), do: "Pending"
 
-  attr :name, :string, required: true
+  attr :field, Phoenix.HTML.FormField, required: true
   attr :label, :string, required: true
-  attr :value, :any, default: nil
 
   defp text_field(assigns) do
     ~H"""
-    <div>
-      <label class="block text-sm font-medium text-slate-700">{@label}</label>
-      <input
-        type="text"
-        name={@name}
-        value={@value}
-        class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-      />
-    </div>
+    <.input
+      field={@field}
+      type="text"
+      label={@label}
+      class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+    />
     """
+  end
+
+  defp payout_form(account) do
+    to_form(
+      %{
+        "method" => current_method(account),
+        "provider" => dest(account, "provider") || "mtn",
+        "number" => dest(account, "number") || "",
+        "account_name" => dest(account, "account_name") || "",
+        "bank_name" => dest(account, "bank_name") || "",
+        "account_number" => dest(account, "account_number") || ""
+      },
+      as: :payout
+    )
   end
 end

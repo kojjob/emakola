@@ -280,6 +280,7 @@ defmodule Emakola.Catalog.Product do
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change(Emakola.Catalog.Changes.UntrackVariantsOnTypeChange)
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
@@ -364,6 +365,14 @@ defmodule Emakola.Catalog.Product do
         |> Ash.Query.sort(inserted_at: :desc)
         |> Ash.Query.load([:min_price, :max_price, :images, :variant_count])
       end)
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
     end
 
     read :list_by_store_and_status do
@@ -498,4 +507,40 @@ defmodule Emakola.Catalog.Product do
       prepare(build(sort: [inserted_at: :desc], load: [:store, :images, :min_price]))
     end
   end
+
+  @doc """
+  Whether a line of this product needs a delivery address and a shipping fee.
+
+  `product_type` is the single source of truth — there is deliberately no
+  `requires_shipping` boolean, which would be duplicate state able to drift
+  from it.
+
+  The polarity is a blacklist on purpose: a product type added later without
+  touching this function is treated as shipping. That over-collects an
+  address, which is recoverable, rather than silently shipping a physical
+  good with no delivery fee, which is not.
+  """
+  @spec requires_shipping?(t() | atom()) :: boolean()
+  # Plain-map pattern, NOT %__MODULE__{}. The Dockerfile pins Elixir 1.18.3
+  # while CI and local run 1.20.x, and on 1.18.3 a %__MODULE__{} pattern inside
+  # an Ash resource expands before Spark has defined the struct — so it
+  # compiles everywhere except the release image. Matching the shape avoids the
+  # struct expansion entirely and behaves identically.
+  def requires_shipping?(%{product_type: type}), do: requires_shipping?(type)
+  def requires_shipping?(:digital_download), do: false
+  def requires_shipping?(type) when is_atom(type), do: true
+
+  @doc """
+  The product types a merchant may actually choose in the admin.
+
+  Deliberately narrower than the `:product_type` attribute's `one_of`
+  constraint. The other five types exist and route through
+  `Emakola.Fulfillment.Dispatcher`, but none has a working delivery path, so
+  offering them would sell a promise the platform cannot keep. Do not collapse
+  the two lists — `Emakola.Fulfillment.Dispatcher.supported_types/0` is
+  asserted to equal `one_of` exactly, so trimming the constraint breaks
+  routing.
+  """
+  @spec sellable_types() :: [atom()]
+  def sellable_types, do: [:physical, :digital_download]
 end

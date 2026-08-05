@@ -82,6 +82,9 @@ test.describe("Dashboard real-time updates", () => {
   test("a shopper's order appears on the merchant dashboard without a reload", async ({
     browser,
   }) => {
+    // Two full journeys plus a real api.paystack.co rejection (45s envelope)
+    // plus the 20s PubSub poll — far beyond the global 30s test budget.
+    test.setTimeout(120_000);
     // Two independent contexts: merchant watching the dashboard, shopper buying.
     // baseURL is passed explicitly — manually created contexts don't inherit
     // it from the project's `use` block.
@@ -93,23 +96,25 @@ test.describe("Dashboard real-time updates", () => {
     const shopperCtx = await browser.newContext({ baseURL });
 
     try {
+      // networkidle is not "LiveView joined": the WS join can land after HTTP
+      // goes quiet, and clicks (or PubSub renders) before the join are lost.
       const merchantPage = await merchantCtx.newPage();
       await merchantPage.goto("/dashboard");
-      await merchantPage.waitForLoadState("networkidle");
+      await waitForLiveView(merchantPage);
 
       const orderPattern = /ORD-\d{8}-[A-Z0-9]+/g;
       const before = new Set((await merchantPage.locator("body").innerText()).match(orderPattern) ?? []);
 
       const shopperPage = await shopperCtx.newPage();
       await shopperPage.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-      await shopperPage.waitForLoadState("networkidle");
+      await waitForLiveView(shopperPage);
       await shopperPage.getByRole("button", { name: "Add to Bag" }).click();
       await expect(shopperPage.locator("#flash-info")).toContainText("Added to cart", {
         timeout: 10_000,
       });
 
       await shopperPage.goto(`${STORE}/checkout`);
-      await shopperPage.waitForLoadState("networkidle");
+      await waitForLiveView(shopperPage);
       await shopperPage.locator("#phone").fill("0244555222");
       await shopperPage.locator("#fullname").fill("QA Realtime Shopper");
       await shopperPage.locator("#address").fill("77 PubSub Avenue, Osu");
@@ -117,9 +122,11 @@ test.describe("Dashboard real-time updates", () => {
 
       // Payment fails on placeholder gateway keys, but the order is created and
       // Dispatcher broadcasts :order_placed — which is what the dashboard needs.
+      // Like error-messages.spec, this waits out a real api.paystack.co call;
+      // a tarpitted runner only flashes after ~30s connect + 10s receive_timeout.
       await expect(shopperPage.locator("[role=alert]").first()).toContainText(
         /ORD-\d{8}-[A-Z0-9]+/,
-        { timeout: 20_000 }
+        { timeout: 45_000 }
       );
 
       // The merchant page is never reloaded — this only passes via PubSub.

@@ -54,8 +54,15 @@ swap_size_mb = 256
 
   [http_service.concurrency]
     type = "connections"
+    # Benchmarked 2026-08-05: one shared-cpu-1x machine saturates dynamic
+    # (storefront) rendering at ~70-80 req/s ≈ 100-150 concurrent connections.
+    # The old soft_limit of 800 meant the proxy never woke the second machine
+    # until far past single-machine saturation — under the load ladder, all
+    # traffic piled onto one machine while the other stayed suspended.
+    # soft_limit 100 makes the proxy spread/wake at the REAL knee, roughly
+    # doubling usable capacity. hard_limit stays high as a backstop only.
     hard_limit = 1000
-    soft_limit = 800
+    soft_limit = 100
 
   # NOTE: http_service.checks is an ARRAY of tables ([[...]]), not named
   # tables — fly rejects the config otherwise.

@@ -1,156 +1,119 @@
-# Emakola — Monitoring & Observability
+# Emakola monitoring and observability
 
-## Stack
+This document describes what the repository actually ships. Dashboard and
+alert-provider setup is operational work outside this repository; recommended
+alerts are explicitly labelled below.
 
-| Layer | Tool | Purpose |
-|-------|------|---------|
-| APM | Phoenix Telemetry + PromEx | Metrics collection |
-| Logging | Logger + JSON formatter | Structured logging |
-| Alerting | Fly.io Metrics + PagerDuty | Incident detection |
-| Uptime | BetterStack (formerly BetterUptime) | External monitoring |
-| Error Tracking | Sentry | Exception tracking |
+## Shipped stack
 
-## Health Check Endpoint
+| Layer | Implementation | Status |
+| --- | --- | --- |
+| Health | `GET /api/health` on the public Phoenix service | Shipped |
+| Metrics | Prometheus 0.0.4 exposition on a private Bandit listener | Shipped |
+| Scraping | Fly `[metrics]`, port `9091`, path `/metrics` | Configured |
+| Request telemetry | `[:phoenix, :endpoint, :stop]` counters in bounded ETS keys | Shipped |
+| Error reporting | Sentry logger handler when `SENTRY_DSN` is configured | Shipped |
+| Logs | Elixir Logger with `request_id` metadata | Shipped |
+| Dashboards/alerts | Fly/Grafana/PagerDuty/Better Stack | Not provisioned here |
 
-```elixir
-# GET /health → 200 OK
-defmodule EmakolaWeb.HealthController do
-  use EmakolaWeb, :controller
+The public HTTP service exposes port `4000`. Metrics use a separate listener on
+`METRICS_PORT` (default `9091` in production), so `/metrics` is not a public
+storefront route. Fly scrapes that listener directly from inside the machine.
 
-  def show(conn, _params) do
-    checks = %{
-      database: check_database(),
-      oban: check_oban(),
-      storage: check_s3()
-    }
+## Health check
 
-    status = if Enum.all?(Map.values(checks)), do: :ok, else: :service_unavailable
+`GET /api/health` performs `SELECT 1` against the primary database:
 
-    json(conn, %{
-      status: if(status == :ok, "healthy", "degraded"),
-      version: Application.spec(:emakola, :vsn) |> to_string(),
-      timestamp: DateTime.utc_now(),
-      checks: checks
-    })
-  end
-end
+- `200 {"status":"ok"}` when the database is reachable.
+- `503 {"status":"error","message":"database unreachable"}` otherwise.
+
+Fly calls it every 15 seconds with a five-second timeout. This is a readiness
+signal, not a complete dependency audit: payment, messaging, storage, and search
+providers are intentionally not called from the health request.
+
+## Exported metrics
+
+The exporter emits bounded operational labels only. It never labels by store,
+merchant, customer, request path, email, phone, token, or payload.
+
+| Metric | Type | Meaning |
+| --- | --- | --- |
+| `emakola_up` | gauge | Metrics process is running |
+| `emakola_database_up` | gauge | Primary database query succeeded |
+| `emakola_vm_memory_bytes{kind}` | gauge | BEAM memory by fixed VM category |
+| `emakola_vm_process_count` | gauge | Current BEAM process count |
+| `emakola_vm_process_limit` | gauge | Configured BEAM process limit |
+| `emakola_vm_run_queue` | gauge | Scheduler run queue |
+| `emakola_cluster_nodes` | gauge | This node plus connected nodes |
+| `emakola_http_requests_total{status_class}` | counter | Completed requests by `1xx`–`5xx`/`unknown` |
+| `emakola_http_request_duration_seconds_sum` | counter | Cumulative endpoint duration |
+| `emakola_http_request_duration_seconds_count` | counter | Requests in the duration aggregate |
+| `emakola_oban_metrics_up` | gauge | Oban aggregation query succeeded |
+| `emakola_oban_jobs{queue,state}` | gauge | Incomplete jobs by bounded queue/state |
+
+The duration pair supports an average. It does not claim to provide a p95; add a
+histogram exporter before configuring percentile alerts.
+
+## Configuration
+
+Production defaults to:
+
+```text
+METRICS_PORT=9091
+SENTRY_DSN=<optional Sentry project DSN>
+SENTRY_RELEASE=<optional release identifier>
 ```
 
-## Key Metrics
+`fly.toml` must use the same metrics port and `/metrics` path. Do not add the
+metrics port to `http_service`; it is intentionally private.
 
-### Application Metrics
-| Metric | Type | Alert Threshold |
-|--------|------|----------------|
-| HTTP request duration (P95) | Histogram | > 2s warning, > 5s critical |
-| HTTP error rate (5xx) | Counter | > 1% warning, > 5% critical |
-| LiveView WebSocket connections | Gauge | — |
-| LiveView crash rate | Counter | > 0.5% critical |
-| Active sessions | Gauge | — |
+## Recommended alert policy (not provisioned by this repository)
 
-### Business Metrics
-| Metric | Type | Alert Threshold |
-|--------|------|----------------|
-| Orders created per hour | Counter | < 50% of baseline → warning |
-| Payment success rate | Gauge | < 95% warning, < 90% critical |
-| Payment gateway latency | Histogram | > 10s critical |
-| Mobile money callback delay | Histogram | > 60s warning |
-| Merchant signups per day | Counter | — |
-| Storefront page load time | Histogram | > 3s on 3G → warning |
+- Critical: `emakola_up == 0` or `emakola_database_up == 0` for two scrapes.
+- Critical: public health check fails from two regions for five minutes.
+- High: 5xx share exceeds 5% for five minutes with meaningful request volume.
+- High: `emakola_oban_metrics_up == 0` or incomplete jobs grow continuously for
+  15 minutes.
+- High: VM memory exceeds 85% of the Fly machine limit for ten minutes.
+- Medium: run queue remains above the online scheduler count for ten minutes.
+- Medium: `emakola_cluster_nodes` differs from the intended machine count.
 
-### Infrastructure Metrics
-| Metric | Type | Alert Threshold |
-|--------|------|----------------|
-| CPU utilization | Gauge | > 80% warning, > 95% critical |
-| Memory utilization | Gauge | > 85% warning, > 95% critical |
-| DB connection pool usage | Gauge | > 80% critical |
-| Oban job queue depth | Gauge | > 1000 warning |
-| Oban job failure rate | Counter | > 5% critical |
-| Disk usage | Gauge | > 80% warning |
+Payment success, callback delay, and notification delivery rates are important
+business alerts but are not exported by the current endpoint. Do not create
+dashboards that imply those signals exist until their domain telemetry ships.
 
-## Logging Strategy
+## Incident triage
 
-### Structured JSON Logging
-```elixir
-# config/prod.exs
-config :logger, :console,
-  format: {Jason.Formatter, :format},
-  metadata: [:request_id, :store_id, :merchant_id, :order_id]
-```
+### Database unavailable
 
-### Log Levels
-| Level | Use For | Example |
-|-------|---------|---------|
-| `:debug` | Dev-only detail | SQL queries, assigns |
-| `:info` | Business events | Order created, payment received, merchant signup |
-| `:warning` | Recoverable issues | Payment retry, slow query, rate limit hit |
-| `:error` | Failures | Payment failed, webhook error, service timeout |
+1. Confirm `/api/health` and `emakola_database_up` agree.
+2. Check Fly Postgres reachability, connection count, locks, and recent deploys.
+3. Stop retry storms or non-essential workers before increasing pool size.
+4. Restore health, then inspect failed/retryable Oban jobs.
 
-### Critical Events to Log
-```elixir
-# Always log these with full context:
-Logger.info("order_created", %{order_id: id, store_id: store_id, total: total, currency: currency})
-Logger.info("payment_received", %{order_id: id, gateway: :paystack, method: :mtn_momo, amount: amount})
-Logger.info("payment_failed", %{order_id: id, gateway: :hubtel, error: reason})
-Logger.info("merchant_signup", %{merchant_id: id, email: masked_email, plan: :free})
-Logger.warning("payment_retry", %{order_id: id, attempt: 2, gateway: :paystack})
-Logger.error("webhook_error", %{gateway: :paystack, error: reason, payload_hash: hash})
-```
+### High error rate
 
-### PII Handling
-```elixir
-# NEVER log: full phone numbers, emails, passwords, card numbers, MoMo PINs
-# ALWAYS mask: phone → +233****4567, email → a***@example.com
-defp mask_phone("+233" <> rest), do: "+233****" <> String.slice(rest, -4, 4)
-defp mask_email(email) do
-  [name, domain] = String.split(email, "@")
-  String.first(name) <> "***@" <> domain
-end
-```
+1. Inspect Sentry groups and correlate the first occurrence with deploy time.
+2. Compare 5xx growth with VM memory, run queue, database, and Oban signals.
+3. Determine whether the failure is global or isolated to one provider flow.
+4. Roll back only when the deploy correlation is established; otherwise degrade
+   the failing external feature and preserve checkout/account access.
 
-## Alerting Rules
+### Oban backlog
 
-### P1 — Critical (immediate response)
-- Payment gateway completely down (0% success for 5 min)
-- Database unreachable
-- Application crash loop (> 3 restarts in 5 min)
-- All SMS/WhatsApp delivery failing
+1. Identify the queue/state labels that are growing.
+2. Inspect retry reasons without logging job payloads or credentials.
+3. Verify the downstream provider before increasing concurrency.
+4. Drain idempotent jobs first and monitor database pool pressure.
 
-### P2 — High (respond within 1 hour)
-- Payment success rate < 90%
-- Error rate > 5%
-- Oban queue depth > 5000
-- Response time P95 > 5s
+## Verification
 
-### P3 — Medium (respond within 24 hours)
-- Payment success rate < 95%
-- Oban job failure rate > 5%
-- Storage usage > 80%
-- Memory usage sustained > 85%
+The repository verifies exporter rendering, database/Oban collection, bounded
+HTTP counters, content type, and the private Plug's 404 behavior in:
 
-### P4 — Low (next business day)
-- Slow queries > 1s
-- Non-critical background job failures
-- Rate limiting triggered frequently
+- `test/emakola/metrics_test.exs`
+- `test/emakola/metrics/endpoint_test.exs`
 
-## Incident Response
-
-### On-Call Rotation
-- Primary: responds to P1/P2 within 15min
-- Secondary: backup, handles P3
-
-### Runbook: Payment Gateway Down
-1. Check gateway status page (status.paystack.com / hubtel.com/status)
-2. Check if specific to us or global outage
-3. If our issue: check webhook endpoint, verify secrets, check rate limits
-4. If gateway issue: enable feature flag to show "card payments temporarily unavailable"
-5. Route to alternative gateway if available
-6. Notify affected merchants via SMS
-7. Post-incident: document timeline, root cause, prevention
-
-### Runbook: High Error Rate
-1. Check Sentry for error grouping
-2. Identify: is it one store or all stores?
-3. Check recent deployments (rollback if correlated)
-4. Check database health (connections, locks, slow queries)
-5. Check external service health (payment gateways, SMS providers)
-6. Mitigate → Fix → Document
+CI compiles the dedicated Bandit listener and exercises the exporter. Before a
+deploy, validate `fly.toml` with Fly's CLI; after deployment, confirm the Fly
+metrics target is healthy before treating the exporter as an alert source.

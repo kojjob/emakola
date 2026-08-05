@@ -631,12 +631,11 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert html =~ "80"
     assert html =~ "pay-link-quantity"
 
-    html =
-      view
-      |> element("#pay-link-quantity")
-      |> render_change(%{"quantity" => "3"})
+    view
+    |> element("#pay-link-quantity")
+    |> render_change(%{"quantity" => "3"})
 
-    assert html =~ ~s(value="3" selected)
+    assert has_element?(view, "#pay-link-quantity option[value='3'][selected]")
   end
 
   test "catalog link with an out-of-stock variant renders the sold-out message", %{
@@ -740,9 +739,9 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
     link = catalog_link!(store, variant, %{quantity: 2})
 
-    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+    {:ok, view, html} = live(conn, "/pay/#{link.code}")
 
-    assert html =~ ~s(value="2" selected)
+    assert has_element?(view, "#pay-link-quantity option[value='2'][selected]")
     assert html =~ EmakolaWeb.Helpers.Currency.format_price(8_000 * 2, "GHS")
   end
 

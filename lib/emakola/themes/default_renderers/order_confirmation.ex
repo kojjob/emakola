@@ -332,6 +332,15 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
         <%!-- CTAs --%>
         <div class="space-y-3 mb-6">
+          <%!-- /track was reachable only from an SMS. A buyer who deleted the
+                message — or never got one, since SMS is dummy-keyed — had no
+                route back to it. --%>
+          <a
+            href={store_path(@store.slug, "/track/#{@order.order_number}")}
+            class="w-full flex items-center justify-center gap-2.5 px-8 py-4 border border-stone-200 text-cta-dark text-sm font-semibold tracking-wide rounded-2xl hover:bg-stone-50 transition-colors"
+          >
+            Track this order
+          </a>
           <a
             href={store_path(@store.slug, "/")}
             class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:opacity-90 transition-all hover:shadow-lg hover:shadow-stone-900/10"

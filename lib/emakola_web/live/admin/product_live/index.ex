@@ -27,6 +27,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         active_nav: :products,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         status_filter: :all,
         products: [],
         products_limit: @admin_products_limit,
@@ -39,10 +40,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         # Product form slide-over
         show_product_form: false,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{},
         editing_product: nil,
         # Bulk upload slide-over
         show_bulk_upload: false,
+        bulk_upload_form: to_form(%{}),
         csv_preview: [],
         csv_errors: [],
         bulk_importing: false
@@ -74,7 +77,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query, products_limit: @admin_products_limit)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        products_limit: @admin_products_limit
+      )
       |> load_products()
 
     {:noreply, socket}
@@ -189,13 +196,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: true,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
 
   @impl true
   def handle_event("open_edit_product", %{"id" => id}, socket) do
-    product = load_product(id)
+    product = load_product(id, socket)
 
     if product do
       {:noreply,
@@ -203,6 +211,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
          show_product_form: true,
          editing_product: product,
          form_data: product_to_form_data(product),
+         product_form: to_form(product_to_form_data(product), as: :product),
          form_errors: %{}
        )}
     else
@@ -213,7 +222,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   @impl true
   def handle_event("validate_product", %{"product" => params}, socket) do
     errors = validate_form(params)
-    {:noreply, assign(socket, form_data: params, form_errors: errors)}
+
+    {:noreply,
+     assign(socket,
+       form_data: params,
+       product_form: to_form(params, as: :product),
+       form_errors: errors
+     )}
   end
 
   @impl true
@@ -235,7 +250,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
-      {:noreply, assign(socket, form_data: params, form_errors: errors)}
+      {:noreply,
+       assign(socket,
+         form_data: params,
+         product_form: to_form(params, as: :product),
+         form_errors: errors
+       )}
     else
       attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
       pesewas = pesewas_from_price_result(price_result)
@@ -259,7 +279,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:error, error} ->
           {:noreply,
            socket
-           |> assign(form_data: params)
+           |> assign(form_data: params, product_form: to_form(params, as: :product))
            |> put_flash(:error, format_error(error))}
       end
     end
@@ -272,6 +292,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: false,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
@@ -438,7 +459,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       </div>
 
       <%!-- Search & Filters --%>
-      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+      <.table_toolbar
+        id="product-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search products..."
+      >
         <:filters>
           <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
             <.status_tab status={:all} current={@status_filter} label="All" />
@@ -481,9 +507,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       <.product_form_slideover
         editing_product={@editing_product}
         form_data={@form_data}
+        product_form={@product_form}
         form_errors={@form_errors}
         categories_list={@categories_list}
         uploads={@uploads}
+        bulk_upload_form={@bulk_upload_form}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}
         bulk_importing={@bulk_importing}
@@ -586,6 +614,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         show_product_form: false,
         editing_product: nil,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{}
       )
       |> load_products()
@@ -601,11 +630,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     end
   end
 
-  defp load_product(id) do
+  defp load_product(id, socket) do
     # The edit slide-over renders @editing_product.images and .variants —
     # load them here or the render crashes with Enumerable not implemented
     # for Ash.NotLoaded.
-    case Emakola.Catalog.get_product(id, load: [:images, :variants]) do
+    opts = [
+      actor: socket.assigns[:current_merchant],
+      tenant: socket.assigns.store_id,
+      load: [:images, :variants]
+    ]
+
+    case Emakola.Catalog.get_product_for_store(id, socket.assigns.store_id, opts) do
       {:ok, product} -> product
       _ -> nil
     end

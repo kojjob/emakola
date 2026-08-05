@@ -22,8 +22,9 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     test "owner can mount /platform/stores", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)
 
-      {:ok, _view, html} = live(conn, "/platform/stores")
+      {:ok, view, html} = live(conn, "/platform/stores")
       assert html =~ "Stores"
+      assert has_element?(view, "#platform-stores[phx-update='stream']")
     end
 
     test "staff with :manage_stores can mount /platform/stores", %{conn: conn} do
@@ -88,6 +89,45 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert html =~ "don&#39;t have permission"
       reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
       refute reloaded.verified
+    end
+  end
+
+  describe "directory rank form" do
+    test "updates a store rank through its uniquely identified form", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(featured_rank: nil)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-rank-form-#{store.id}")
+
+      view
+      |> form("#store-rank-form-#{store.id}", %{"value" => "3"})
+      |> render_change()
+
+      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 3
+      assert has_element?(view, "#store-rank-#{store.id}[value='3']")
+    end
+  end
+
+  describe "streamed directory" do
+    test "search resets the store stream", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      matching = Factory.create_store!(name: "Stream Needle Shop", slug: "stream-needle-shop")
+      other = Factory.create_store!(name: "Different Market", slug: "different-market")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-#{matching.id}")
+      assert has_element?(view, "#store-#{other.id}")
+
+      view
+      |> form("#platform-store-search-form", %{"search" => "Needle"})
+      |> render_change()
+
+      assert has_element?(view, "#platform-stores[phx-update='stream'][data-count='1']")
+      assert has_element?(view, "#store-#{matching.id}")
+      refute has_element?(view, "#store-#{other.id}")
     end
   end
 

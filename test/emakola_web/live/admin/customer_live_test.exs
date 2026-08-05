@@ -56,6 +56,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
     test "renders search input", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/customers")
 
+      assert has_element?(view, "#customer-search-form")
       assert has_element?(view, "input[name=\"search\"]")
     end
 
@@ -104,7 +105,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
 
       html =
         view
-        |> element("form[phx-change=\"search\"]")
+        |> element("#customer-search-form")
         |> render_change(%{"search" => "Ama"})
 
       assert html =~ "Ama Mensah"
@@ -119,7 +120,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
 
       html =
         view
-        |> element("form[phx-change=\"search\"]")
+        |> element("#customer-search-form")
         |> render_change(%{"search" => "kofi@"})
 
       refute html =~ "Ama Mensah"

@@ -20,6 +20,7 @@ defmodule EmakolaWeb.Platform.LoginLive do
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Accounts.TOTP
+  alias Emakola.Security.SecretStorage
   alias EmakolaWeb.AuthTokens
 
   @rate_limit 5
@@ -133,7 +134,15 @@ defmodule EmakolaWeb.Platform.LoginLive do
     end
   end
 
-  defp advance_to_totp(socket, %{totp_secret: nil} = user) do
+  defp advance_to_totp(socket, user) do
+    if SecretStorage.totp_configured?(user) do
+      assign(socket, step: :totp, pending_user_id: user.id, error: nil)
+    else
+      begin_totp_setup(socket, user)
+    end
+  end
+
+  defp begin_totp_setup(socket, user) do
     secret = TOTP.generate_secret()
     uri = TOTP.otpauth_uri(to_string(user.email), secret)
 
@@ -146,10 +155,6 @@ defmodule EmakolaWeb.Platform.LoginLive do
       otpauth_secret_base32: Base.encode32(secret, padding: false),
       error: nil
     )
-  end
-
-  defp advance_to_totp(socket, user) do
-    assign(socket, step: :totp, pending_user_id: user.id, error: nil)
   end
 
   defp invalid_credentials(socket, email) do
@@ -165,7 +170,27 @@ defmodule EmakolaWeb.Platform.LoginLive do
   # ── TOTP verification ───────────────────────────────────────────
 
   defp verify_totp(socket, user, code) do
-    if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
+    case SecretStorage.user_totp_secret(user) do
+      {:ok, secret} when is_binary(secret) ->
+        verify_totp_secret(socket, user, secret, code)
+
+      {:error, _reason} ->
+        PlatformAudit.log(
+          :totp_failed,
+          user,
+          %{reason: "secret_unavailable"},
+          socket.assigns.client_ip
+        )
+
+        {:noreply, assign(socket, error: "Invalid code")}
+
+      _other ->
+        {:noreply, assign(socket, error: "Invalid code")}
+    end
+  end
+
+  defp verify_totp_secret(socket, user, secret, code) do
+    if TOTP.valid_code?(secret, code, since: user.totp_last_used_at) do
       # Best-effort: user already proved identity; recording use is non-critical
       _ =
         user
@@ -211,47 +236,49 @@ defmodule EmakolaWeb.Platform.LoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
-      <div class="w-full max-w-md">
-        <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
-          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-          <div class="mb-6">
-            <h1 class="text-2xl font-bold text-[#0c1526]">Platform sign in</h1>
-            <p class="text-[#5f6b7a] mt-1 text-sm">{subtitle(@step)}</p>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
+        <div class="w-full max-w-md">
+          <div class="flex items-center justify-center gap-2 mb-8">
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
           </div>
 
-          <div
-            :if={@flash["error"]}
-            class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-            role="alert"
-          >
-            <span class="material-symbols-outlined text-lg text-red-500">error</span>
-            <span>{@flash["error"]}</span>
-          </div>
+          <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+            <div class="mb-6">
+              <h1 class="text-2xl font-bold text-[#0c1526]">Platform sign in</h1>
+              <p class="text-[#5f6b7a] mt-1 text-sm">{subtitle(@step)}</p>
+            </div>
 
-          <div
-            :if={@error}
-            class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-            role="alert"
-          >
-            <span class="material-symbols-outlined text-lg text-red-500">error</span>
-            <span>{@error}</span>
-          </div>
+            <div
+              :if={@flash["error"]}
+              class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+              role="alert"
+            >
+              <span class="material-symbols-outlined text-lg text-red-500">error</span>
+              <span>{@flash["error"]}</span>
+            </div>
 
-          <.credentials_form :if={@step == :credentials} form={@form} />
-          <.totp_setup_form
-            :if={@step == :totp_setup}
-            qr_svg={@qr_svg}
-            otpauth_secret_base32={@otpauth_secret_base32}
-          />
-          <.totp_form :if={@step == :totp} />
+            <div
+              :if={@error}
+              class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+              role="alert"
+            >
+              <span class="material-symbols-outlined text-lg text-red-500">error</span>
+              <span>{@error}</span>
+            </div>
+
+            <.credentials_form :if={@step == :credentials} form={@form} />
+            <.totp_setup_form
+              :if={@step == :totp_setup}
+              qr_svg={@qr_svg}
+              otpauth_secret_base32={@otpauth_secret_base32}
+            />
+            <.totp_form :if={@step == :totp} />
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

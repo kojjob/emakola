@@ -18,7 +18,10 @@ test.describe("Merchant Authentication", () => {
     await page.getByRole("textbox", { name: /password/i }).fill("badpassword");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.locator("[role=alert]")).toContainText("Invalid email or password", {
+    // #flash-error is the put_flash error toast. A bare [role=alert] can never
+    // pass strict mode here: the layout always mounts the hidden #client-error
+    // and #server-error alerts alongside it.
+    await expect(page.locator("#flash-error")).toContainText("Invalid email or password", {
       timeout: 10_000,
     });
     await expect(page).toHaveURL("/auth/login");

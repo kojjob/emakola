@@ -26,6 +26,8 @@ defmodule Emakola.Notifications.Channels.SMS do
 
   @behaviour Emakola.Notifications.SMSProvider
 
+  alias Emakola.Privacy
+
   require Logger
 
   # Per-store SMS rate limit. 100/hour catches accidental notification
@@ -46,7 +48,7 @@ defmodule Emakola.Notifications.Channels.SMS do
         store_id = Keyword.get(opts, :store_id)
 
         Logger.warning(
-          "[SMS] rate limit exceeded for store=#{inspect(store_id)} " <>
+          "[SMS] rate limit exceeded for store=#{Privacy.safe_uuid(store_id)} " <>
             "(#{@rate_limit} per #{div(@rate_window_ms, 60_000)}m); dropping message"
         )
 
@@ -57,18 +59,18 @@ defmodule Emakola.Notifications.Channels.SMS do
   defp do_send_sms(phone, message) do
     body = build_sms_payload(phone, message)
 
-    Logger.info("[SMS] Sending to #{normalize_phone(phone)}: #{String.slice(message, 0..49)}...")
+    Logger.info("[SMS] Sending message to #{Privacy.mask_phone(phone)}")
 
     case http_client().post(api_url(), json: body, headers: auth_headers()) do
       {:ok, %{status: status, body: resp_body}} when status in 200..299 ->
         {:ok, %{status: status, body: resp_body, to: normalize_phone(phone)}}
 
       {:ok, %{status: status, body: resp_body}} ->
-        Logger.error("[SMS] API error #{status}: #{inspect(resp_body)}")
+        Logger.error("[SMS] API error #{status}; provider response omitted")
         {:error, %{status: status, body: resp_body}}
 
       {:error, reason} ->
-        Logger.error("[SMS] HTTP error: #{inspect(reason)}")
+        Logger.error("[SMS] HTTP error type=#{Privacy.error_type(reason)}")
         {:error, reason}
     end
   end

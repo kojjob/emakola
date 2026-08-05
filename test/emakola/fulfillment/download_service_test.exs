@@ -77,6 +77,21 @@ defmodule Emakola.Fulfillment.DownloadServiceTest do
       assert {:ok, "https://cdn.example/sig?token=abc"} = DownloadService.issue_url(grant)
     end
 
+    # The module documents a 15-minute URL, but it passed `ttl:` while
+    # Emakola.Storage.S3 reads `expires_in:` (defaulting to 3600) — so every
+    # production download link lived four times longer than intended. Every
+    # other test here ignores opts, which is exactly why it survived.
+    test "asks storage for a 15-minute URL, using the option name storage reads" do
+      grant = issue_grant!()
+
+      expect(Emakola.StorageMock, :presigned_url, fn _path, opts ->
+        assert Keyword.get(opts, :expires_in) == 900
+        {:ok, "https://cdn.example/sig?token=abc"}
+      end)
+
+      assert {:ok, _url} = DownloadService.issue_url(grant)
+    end
+
     test "increments downloaded_count on success" do
       grant = issue_grant!()
 
