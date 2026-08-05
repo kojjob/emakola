@@ -15,7 +15,7 @@ defmodule Emakola.AI.PricingTest do
   test "sonnet costs more per token than haiku for identical usage" do
     usage = %{input_tokens: 1000, output_tokens: 1000}
     haiku = Pricing.cost_microusd("claude-haiku-4-5", usage)
-    sonnet = Pricing.cost_microusd("claude-sonnet-4-6", usage)
+    sonnet = Pricing.cost_microusd("claude-sonnet-5", usage)
     assert sonnet > haiku
   end
 

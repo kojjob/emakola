@@ -105,6 +105,25 @@ defmodule Emakola.AI.Providers.AnthropicTest do
     assert {:ok, %Response{text: "Handwoven kente in gold"}} = Anthropic.complete(request)
   end
 
+  test "sends thinking disabled on the wire when the request asks for it" do
+    expect(Emakola.HTTPClientMock, :post, fn _url, opts ->
+      assert opts[:json].thinking == %{type: "disabled"}
+      anthropic_response("ok")
+    end)
+
+    request = %{text_request() | thinking: :disabled}
+    assert {:ok, %Response{}} = Anthropic.complete(request)
+  end
+
+  test "omits the thinking key entirely when the request does not set it" do
+    expect(Emakola.HTTPClientMock, :post, fn _url, opts ->
+      refute Map.has_key?(opts[:json], :thinking)
+      anthropic_response("ok")
+    end)
+
+    assert {:ok, %Response{}} = Anthropic.complete(text_request())
+  end
+
   test "ships dark: returns {:error, :not_configured} with no API key" do
     Application.delete_env(:emakola, :anthropic_api_key)
     assert {:error, :not_configured} = Anthropic.complete(text_request())

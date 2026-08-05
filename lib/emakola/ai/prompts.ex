@@ -15,7 +15,13 @@ defmodule Emakola.AI.Prompts do
   alias Emakola.AI.Request
 
   @cheap_model "claude-haiku-4-5"
-  @longform_model "claude-sonnet-4-6"
+
+  # Sonnet 5 thinks by default when the request omits `thinking`, and thinking
+  # tokens bill against max_tokens — so every longform request pairs this model
+  # with `thinking: :disabled` (these are format-strict drafts, not reasoning
+  # tasks). Its tokenizer also counts ~30% more tokens for the same text than
+  # Sonnet 4.6's, hence the larger budgets below.
+  @longform_model "claude-sonnet-5"
 
   @doc "Build the request for `feature` from `inputs`."
   @spec build(atom(), map()) :: Request.t()
@@ -70,7 +76,11 @@ defmodule Emakola.AI.Prompts do
 
     user = "Store: #{field(store, :name)}. Topic: #{topic}."
 
-    %{text_request(@longform_model, system, user, 2000) | response_format: :json}
+    %{
+      text_request(@longform_model, system, user, 3000)
+      | response_format: :json,
+        thinking: :disabled
+    }
   end
 
   def build(:image_alt_text, %{image_url: image_url}) do
@@ -105,7 +115,11 @@ defmodule Emakola.AI.Prompts do
 
     user = "Store: #{field(store, :name)}. Product: #{field(product, :title)}. Create a recipe."
 
-    %{text_request(@longform_model, system, user, 1500) | response_format: :json}
+    %{
+      text_request(@longform_model, system, user, 2000)
+      | response_format: :json,
+        thinking: :disabled
+    }
   end
 
   # -- helpers --
