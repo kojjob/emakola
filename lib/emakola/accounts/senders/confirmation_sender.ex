@@ -10,6 +10,7 @@ defmodule Emakola.Accounts.Senders.ConfirmationSender do
   OAuth upserts over it, and sign-in is not gated on confirmation.
   """
   use AshAuthentication.Sender
+  alias Emakola.Privacy
   require Logger
 
   @impl true
@@ -21,12 +22,12 @@ defmodule Emakola.Accounts.Senders.ConfirmationSender do
         other -> to_string(other)
       end
 
-    Logger.info("Sending email confirmation to #{email}")
+    Logger.info("Sending email confirmation to #{Privacy.mask_email(email)}")
     Emakola.Notifications.AuthMailer.confirm_email(email, token)
     :ok
   rescue
     error ->
-      Logger.error("Email confirmation send failed for merchant: #{Exception.message(error)}")
+      Logger.error("Email confirmation send failed type=#{Privacy.error_type(error)}")
       :ok
   end
 end

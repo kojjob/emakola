@@ -38,6 +38,66 @@ config :emakola, EmakolaWeb.Endpoint,
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
 if config_env() == :prod do
+  config :emakola,
+         :metrics_port,
+         String.to_integer(System.get_env("METRICS_PORT", "9091"))
+
+  # Application-level encryption keyrings. Values are JSON objects mapping a
+  # stable key id to a base64-encoded, 32-byte random key. Ciphertext envelopes
+  # carry the encryption key id so old keys can remain readable during
+  # rotation. Blind-index keys are deliberately separate key material.
+  decode_keyring! = fn env_name ->
+    encoded =
+      System.get_env(env_name) ||
+        raise("environment variable #{env_name} is missing.")
+
+    case Jason.decode(encoded) do
+      {:ok, keyring} when is_map(keyring) and map_size(keyring) > 0 ->
+        Map.new(keyring, fn {key_id, encoded_key} ->
+          key =
+            case is_binary(encoded_key) && Base.decode64(encoded_key) do
+              {:ok, key} when byte_size(key) == 32 -> key
+              _ -> raise("#{env_name} contains a key that is not valid base64 for 32 bytes.")
+            end
+
+          unless Regex.match?(~r/\A[A-Za-z0-9][A-Za-z0-9_-]{0,63}\z/, key_id) do
+            raise("#{env_name} contains an invalid key id.")
+          end
+
+          {key_id, key}
+        end)
+
+      _ ->
+        raise("environment variable #{env_name} must be a non-empty JSON object.")
+    end
+  end
+
+  encryption_keys = decode_keyring!.("FIELD_ENCRYPTION_KEYS")
+  encryption_active_key_id = System.fetch_env!("FIELD_ENCRYPTION_ACTIVE_KEY_ID")
+  blind_index_keys = decode_keyring!.("FIELD_BLIND_INDEX_KEYS")
+  blind_index_active_key_id = System.fetch_env!("FIELD_BLIND_INDEX_ACTIVE_KEY_ID")
+
+  unless Map.has_key?(encryption_keys, encryption_active_key_id) do
+    raise("FIELD_ENCRYPTION_ACTIVE_KEY_ID is not present in FIELD_ENCRYPTION_KEYS.")
+  end
+
+  unless Map.has_key?(blind_index_keys, blind_index_active_key_id) do
+    raise("FIELD_BLIND_INDEX_ACTIVE_KEY_ID is not present in FIELD_BLIND_INDEX_KEYS.")
+  end
+
+  unless MapSet.disjoint?(
+           MapSet.new(Map.values(encryption_keys)),
+           MapSet.new(Map.values(blind_index_keys))
+         ) do
+    raise("field-encryption and blind-index keyrings must use separate key material.")
+  end
+
+  config :emakola, Emakola.Security.FieldEncryption,
+    active_key_id: encryption_active_key_id,
+    keys: encryption_keys,
+    blind_index_active_key_id: blind_index_active_key_id,
+    blind_index_keys: blind_index_keys
+
   # Database
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -104,7 +164,8 @@ if config_env() == :prod do
     chrome_executable: System.get_env("CHROME_EXECUTABLE", "/usr/bin/chromium"),
     no_sandbox: System.get_env("CHROME_NO_SANDBOX", "true") == "true",
     discard_stderr: true,
-    on_demand: true
+    on_demand: true,
+    session_pool: [checkout_timeout: 30_000]
 
   # S3-compatible storage for product images, media uploads
   config :emakola, :storage, Emakola.Storage.S3

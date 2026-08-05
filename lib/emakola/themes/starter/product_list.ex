@@ -20,7 +20,8 @@ defmodule Emakola.Themes.Starter.ProductList do
 
   Expects assigns:
   - `@store` -- store map
-  - `@products` -- list of products
+  - `@streams.products` -- streamed product entries
+  - `@products_count` -- number of displayed products
   - `@categories` -- list of categories
   - `@selected_category` -- currently selected category ID or nil
   - `@search_query` -- current search string
@@ -29,7 +30,8 @@ defmodule Emakola.Themes.Starter.ProductList do
   - `@cart_count` -- integer cart item count
   """
   attr :store, :map, required: true
-  attr :products, :list, required: true
+  attr :streams, :map, required: true
+  attr :products_count, :integer, required: true
   attr :categories, :list, required: true
   attr :selected_category, :any, default: nil
   attr :search_query, :string, default: ""
@@ -76,7 +78,7 @@ defmodule Emakola.Themes.Starter.ProductList do
             Products
           </h1>
           <p class="text-[#64748B] text-sm mt-1" style="font-family: 'Inter', sans-serif;">
-            {length(@products)} products
+            {@products_count} products
           </p>
         </div>
       </div>
@@ -149,8 +151,12 @@ defmodule Emakola.Themes.Starter.ProductList do
         </div>
 
         <%!-- Product Grid --%>
-        <%= if @products == [] do %>
-          <div class="py-20 text-center">
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
+        >
+          <div id="product-list-empty" class="col-span-full hidden py-20 text-center only:block">
             <div class="w-16 h-16 rounded-2xl bg-gray-100 mx-auto mb-4 flex items-center justify-center">
               <svg
                 class="w-8 h-8 text-[#94A3B8]"
@@ -185,34 +191,37 @@ defmodule Emakola.Themes.Starter.ProductList do
               Clear filters
             </button>
           </div>
-        <% else %>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-            <Shared.product_card :for={product <- @products} product={product} store={@store} />
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.product_card product={product} store={@store} />
           </div>
+        </div>
 
-          <div :if={@has_more} class="mt-10 text-center">
-            <button
-              phx-click="load_more"
-              class="inline-flex items-center gap-2 px-10 py-3.5 bg-[var(--theme-primary,#6366F1)] text-white rounded-full text-sm font-semibold hover:bg-[#4F46E5] active:scale-[0.97] transition-all shadow-sm"
-              style="font-family: 'Inter', sans-serif;"
+        <div :if={@has_more} class="mt-10 text-center">
+          <button
+            phx-click="load_more"
+            class="inline-flex items-center gap-2 px-10 py-3.5 bg-[var(--theme-primary,#6366F1)] text-white rounded-full text-sm font-semibold hover:bg-[#4F46E5] active:scale-[0.97] transition-all shadow-sm"
+            style="font-family: 'Inter', sans-serif;"
+          >
+            Load More
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
             >
-              Load More
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
-                />
-              </svg>
-            </button>
-          </div>
-        <% end %>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <Shared.footer store={@store} categories={@categories} />

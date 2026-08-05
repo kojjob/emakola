@@ -27,11 +27,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         payment: nil,
         protection_hold: nil,
         tracking_number: "",
+        tracking_form: to_form(%{"tracking_number" => ""}),
+        notes_form: to_form(%{"notes" => ""}),
         fulfillments: [],
         ship_fulfillment_id: nil,
         fulfillment_tracking: "",
+        fulfillment_tracking_form: to_form(%{"tracking_number" => ""}),
         delivery_code_fulfillment_id: nil,
-        delivery_code: ""
+        delivery_code: "",
+        delivery_code_form: to_form(%{"code" => ""})
       )
       |> load_order()
       |> load_payment()
@@ -68,7 +72,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   @impl true
   def handle_event("update_tracking", %{"tracking_number" => tracking}, socket) do
-    {:noreply, assign(socket, tracking_number: tracking)}
+    {:noreply,
+     assign(socket,
+       tracking_number: tracking,
+       tracking_form: to_form(%{"tracking_number" => tracking})
+     )}
   end
 
   @impl true
@@ -86,7 +94,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       {:ok, updated_order} ->
         socket =
           socket
-          |> assign(order: updated_order)
+          |> assign(
+            order: updated_order,
+            notes_form: to_form(%{"notes" => updated_order.notes || ""})
+          )
           |> put_flash(:info, "Notes updated")
 
         {:noreply, socket}
@@ -118,12 +129,21 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   @impl true
   def handle_event("select_ship_fulfillment", %{"id" => id}, socket) do
-    {:noreply, assign(socket, ship_fulfillment_id: id, fulfillment_tracking: "")}
+    {:noreply,
+     assign(socket,
+       ship_fulfillment_id: id,
+       fulfillment_tracking: "",
+       fulfillment_tracking_form: to_form(%{"tracking_number" => ""})
+     )}
   end
 
   @impl true
   def handle_event("update_fulfillment_tracking", %{"tracking_number" => tracking}, socket) do
-    {:noreply, assign(socket, fulfillment_tracking: tracking)}
+    {:noreply,
+     assign(socket,
+       fulfillment_tracking: tracking,
+       fulfillment_tracking_form: to_form(%{"tracking_number" => tracking})
+     )}
   end
 
   @impl true
@@ -475,8 +495,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                         shown to the merchant when issued — only the masked
                         recipient is — so entering it proves someone at the
                         delivery address has it. --%>
-                  <form
+                  <.form
                     :if={@delivery_code_fulfillment_id == f.id}
+                    for={@delivery_code_form}
+                    id={"delivery-code-form-#{f.id}"}
                     phx-submit="submit_delivery_code"
                     class="mt-3 flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center"
                   >
@@ -484,10 +506,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     <label for={"delivery-code-#{f.id}"} class="sr-only">
                       Delivery code from the customer
                     </label>
-                    <input
-                      id={"delivery-code-#{f.id}"}
+                    <.input
+                      field={@delivery_code_form[:code]}
                       type="text"
-                      name="code"
+                      id={"delivery-code-#{f.id}"}
                       inputmode="numeric"
                       autocomplete="off"
                       placeholder="6-digit code"
@@ -503,7 +525,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                         Cancel
                       </button>
                     </div>
-                  </form>
+                  </.form>
                 </div>
               </div>
             </.admin_card>
@@ -513,21 +535,23 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                 Notes
               </h2>
-              <form phx-submit="update_notes">
-                <textarea
-                  name="notes"
+              <.form for={@notes_form} id="order-notes-form" phx-submit="update_notes">
+                <.input
+                  field={@notes_form[:notes]}
+                  id="order-notes"
+                  type="textarea"
                   rows="3"
                   placeholder="Add internal notes about this order..."
                   class="w-full px-3 py-2 text-sm border border-slate-200 rounded-control
                          focus:outline-none focus:ring-2 focus:ring-emerald-500/30
                          focus:border-emerald-500 placeholder:text-slate-400 resize-none"
-                >{@order.notes || ""}</textarea>
+                />
                 <div class="flex justify-end mt-2">
                   <.admin_button type="submit">
                     Save Notes
                   </.admin_button>
                 </div>
-              </form>
+              </.form>
             </.admin_card>
           </div>
 
@@ -683,7 +707,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
         <%!-- Mark as Shipped Modal (with tracking number input) --%>
         <.modal id="shipped-order-modal" title="Mark as Shipped" size={:md}>
-          <form phx-submit="submit_shipped" class="space-y-4">
+          <.form
+            for={@tracking_form}
+            id="shipped-order-form"
+            phx-submit="submit_shipped"
+            class="space-y-4"
+          >
             <p class="text-sm text-slate-600">
               Mark order <span class="font-semibold">{@order.order_number}</span> as shipped.
               You can optionally add a tracking number.
@@ -692,11 +721,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               <label for="tracking-number" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Tracking Number (optional)
               </label>
-              <input
+              <.input
+                field={@tracking_form[:tracking_number]}
                 type="text"
                 id="tracking-number"
-                name="tracking_number"
-                value={@tracking_number}
                 phx-change="update_tracking"
                 placeholder="e.g., GH12345678"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
@@ -737,7 +765,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 Mark as Shipped
               </button>
             </div>
-          </form>
+          </.form>
         </.modal>
 
         <.confirm_modal
@@ -762,7 +790,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
         <%!-- Mark fulfillment shipped modal --%>
         <.modal id="ship-fulfillment-modal" title="Mark Fulfillment Shipped" size={:md}>
-          <form phx-submit="submit_ship_fulfillment" class="space-y-4">
+          <.form
+            for={@fulfillment_tracking_form}
+            id="ship-fulfillment-form"
+            phx-submit="submit_ship_fulfillment"
+            class="space-y-4"
+          >
             <p class="text-sm text-slate-600">
               Add an optional tracking number for this fulfillment.
             </p>
@@ -773,11 +806,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               >
                 Tracking Number (optional)
               </label>
-              <input
+              <.input
+                field={@fulfillment_tracking_form[:tracking_number]}
                 type="text"
                 id="fulfillment-tracking-number"
-                name="tracking_number"
-                value={@fulfillment_tracking}
                 phx-change="update_fulfillment_tracking"
                 placeholder="e.g., GH12345678"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
@@ -798,7 +830,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 Mark Shipped
               </button>
             </div>
-          </form>
+          </.form>
         </.modal>
       <% end %>
     </div>
@@ -942,7 +974,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         do: "Order #{order.order_number}",
         else: "Order Not Found"
 
-    assign(socket, order: order, page_title: page_title)
+    assign(socket,
+      order: order,
+      page_title: page_title,
+      notes_form: to_form(%{"notes" => (order && order.notes) || ""})
+    )
   end
 
   defp load_payment(socket) do

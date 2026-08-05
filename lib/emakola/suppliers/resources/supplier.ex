@@ -48,7 +48,7 @@ defmodule Emakola.Suppliers.Supplier do
     end
 
     attribute :payment_details, :map do
-      public?(true)
+      sensitive?(true)
     end
 
     # Bridges an external supplier to a wholesaler that is itself an Emakola

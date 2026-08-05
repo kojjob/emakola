@@ -33,7 +33,7 @@ defmodule Emakola.MixProject do
   def application do
     [
       mod: {Emakola.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:crypto, :logger, :runtime_tools]
     ]
   end
 
@@ -159,9 +159,11 @@ defmodule Emakola.MixProject do
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
-        "format",
+        "format --check-formatted",
+        "credo --strict",
         "deps.audit",
-        "test"
+        "sobelow --config",
+        "test --warnings-as-errors --cover"
       ]
     ]
   end

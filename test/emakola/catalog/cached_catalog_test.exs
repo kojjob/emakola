@@ -5,12 +5,12 @@ defmodule Emakola.Catalog.CachedCatalogTest do
   Verifies that the cache wrapper correctly delegates to the cache
   and only calls the database on misses.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Emakola.Cache.StoreCache
 
   setup do
-    table_name = :"test_cached_catalog_#{:erlang.unique_integer([:positive])}"
+    table_name = :test_cached_catalog_cache
     {:ok, pid} = StoreCache.start_link(name: table_name)
 
     on_exit(fn ->

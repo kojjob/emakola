@@ -2,7 +2,7 @@
 
 ## Getting Started
 1. Fork the repo and create a feature branch
-2. Follow conventions in `CLAUDE.md`
+2. Follow conventions in `AGENTS.md`
 3. Write tests first (TDD)
 4. Run full test suite before submitting PR
 
@@ -26,13 +26,11 @@ perf(storefront): optimize product listing query
 ```
 
 ## Pull Request Process
-1. All tests pass (`mix test`)
-2. Code formatted (`mix format`)
-3. Credo passes (`mix credo --strict`)
-4. New code has tests (90% coverage minimum)
-5. Documentation updated if needed
-6. One feature/fix per PR
-7. Request review from at least one maintainer
+1. The full project gate passes (`mix precommit`)
+2. New behaviour has outcome-focused tests and the configured coverage floor is maintained
+3. Documentation is updated when configuration or behaviour changes
+4. One cohesive feature/fix per PR
+5. Request review from at least one maintainer
 
 ## Code Review Checklist
 - [ ] Tests pass and coverage maintained

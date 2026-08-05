@@ -38,12 +38,12 @@ defmodule Emakola.Stores.StorePayoutAccount do
     # The gateway subaccount code money is settled to. Nil until the subaccount
     # has been created at the gateway.
     attribute :subaccount_code, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     # MoMo / bank details captured during onboarding.
     attribute :payout_destination, :map do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :verification_status, :atom do

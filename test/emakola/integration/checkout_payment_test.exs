@@ -383,8 +383,8 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         |> Ash.Query.filter(store_id == ^ctx.store_b.id)
         |> Ash.read!(authorize?: false)
 
-      assert length(store_a_payments) >= 1
-      assert length(store_b_payments) >= 1
+      assert store_a_payments != []
+      assert store_b_payments != []
 
       # No overlap in IDs
       a_ids = MapSet.new(Enum.map(store_a_payments, & &1.id))
@@ -573,7 +573,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       assert li_v1.line_total == 1500 * 3
 
       li_v2 = Enum.find(order.line_items, &(&1.variant_id == v2.id))
-      assert li_v2.line_total == 3200 * 1
+      assert li_v2.line_total == 3200
 
       li_v3 = Enum.find(order.line_items, &(&1.variant_id == v3.id))
       assert li_v3.line_total == 750 * 5

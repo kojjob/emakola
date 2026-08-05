@@ -29,25 +29,26 @@ defmodule Emakola.Payments.RefundLiability do
   # reversals sum exactly to the splits' proportional share of the refund —
   # per-split flooring silently dropped up to n-1 pesewas per partial refund.
   def reconcile!(payment, splits) do
-    splits
-    |> Enum.sort_by(& &1.id)
-    |> with_reversible_bases(payment)
-    |> Enum.reduce({0, 0}, fn {split, base}, {base_before, target_before} ->
-      base_after = base_before + base
+    _totals =
+      splits
+      |> Enum.sort_by(& &1.id)
+      |> with_reversible_bases(payment)
+      |> Enum.reduce({0, 0}, fn {split, base}, {base_before, target_before} ->
+        base_after = base_before + base
 
-      target_after =
-        proportional_amount(base_after, payment.refunded_amount, payment.amount)
+        target_after =
+          proportional_amount(base_after, payment.refunded_amount, payment.amount)
 
-      reversed_amount = target_after - target_before
+        reversed_amount = target_after - target_before
 
-      if reversed_amount > split.reversed_amount do
-        split
-        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
-        |> Ash.update!(authorize?: false)
-      end
+        if reversed_amount > split.reversed_amount do
+          split
+          |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+          |> Ash.update!(authorize?: false)
+        end
 
-      {base_after, target_after}
-    end)
+        {base_after, target_after}
+      end)
 
     :ok
   end

@@ -13,6 +13,7 @@ defmodule Emakola.Application do
     children =
       [
         EmakolaWeb.Telemetry,
+        Emakola.Metrics,
         Emakola.Repo,
         {DNSCluster, query: Application.get_env(:emakola, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Emakola.PubSub},
@@ -30,10 +31,8 @@ defmodule Emakola.Application do
         # ETS cache for storefront product/category queries
         Emakola.Cache.StoreCache,
         # Per-store daily AI-generation cap (SEO Phase 3 cost guard)
-        Emakola.Content.RateLimiter,
-        # Start to serve requests, typically the last entry
-        EmakolaWeb.Endpoint
-      ] ++ fcm_children() ++ gsc_children()
+        Emakola.Content.RateLimiter
+      ] ++ metrics_children() ++ [EmakolaWeb.Endpoint] ++ fcm_children() ++ gsc_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -81,6 +80,24 @@ defmodule Emakola.Application do
              {:service_account, credentials,
               scopes: ["https://www.googleapis.com/auth/webmasters.readonly"]}}
         ]
+    end
+  end
+
+  defp metrics_children do
+    case Application.get_env(:emakola, :metrics_port) do
+      port when is_integer(port) and port > 0 ->
+        options = [
+          plug: Emakola.Metrics.Endpoint,
+          scheme: :http,
+          port: port,
+          ip: {0, 0, 0, 0},
+          startup_log: false
+        ]
+
+        [Supervisor.child_spec({Bandit, options}, id: Emakola.Metrics.Endpoint)]
+
+      _disabled ->
+        []
     end
   end
 end

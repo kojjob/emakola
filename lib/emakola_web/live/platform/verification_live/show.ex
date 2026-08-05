@@ -35,6 +35,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
       |> assign(:id_document_url, nil)
       |> assign(:business_doc_url, nil)
       |> assign(:reject_modal, false)
+      |> assign(:reject_form, to_form(%{"reason" => ""}))
       |> assign(:history, [])
       |> assign(:history_actors, %{})
       |> assign(:not_found, false)
@@ -57,14 +58,16 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
   end
 
   def handle_event("open_reject_modal", _params, socket) do
-    {:noreply, assign(socket, :reject_modal, true)}
+    {:noreply, assign(socket, reject_modal: true, reject_form: to_form(%{"reason" => ""}))}
   end
 
   def handle_event("cancel_modal", _params, socket) do
-    {:noreply, assign(socket, :reject_modal, false)}
+    {:noreply, assign(socket, reject_modal: false, reject_form: to_form(%{"reason" => ""}))}
   end
 
-  def handle_event("confirm_reject", %{"reason" => reason}, socket) do
+  def handle_event("confirm_reject", %{"reason" => reason} = params, socket) do
+    socket = assign(socket, :reject_form, to_form(params))
+
     authorized(socket, fn socket ->
       reason = String.trim(reason || "")
 
@@ -98,6 +101,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
      socket
      |> assign(:verification, updated)
      |> assign(:reject_modal, false)
+     |> assign(:reject_form, to_form(%{"reason" => ""}))
      |> load_history(store.id)
      |> put_flash(:info, Keyword.fetch!(opts, :flash))}
   end
@@ -218,10 +222,13 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
       <div :if={@verification} class="mt-4">
         <div class="flex items-center gap-3">
           <h1 class="text-2xl font-bold text-gray-900">{@store && @store.name}</h1>
-          <span class={[
-            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-            status_class(@verification.status)
-          ]}>
+          <span
+            id="verification-status"
+            class={[
+              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+              status_class(@verification.status)
+            ]}
+          >
             {status_label(@verification.status)}
           </span>
         </div>
@@ -314,13 +321,20 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
           <p class="mt-1 text-sm text-gray-500">
             The reason is shown to the merchant so they can fix and resubmit.
           </p>
-          <form phx-submit="confirm_reject" class="mt-4">
+          <.form
+            for={@reject_form}
+            id="verification-reject-form"
+            phx-submit="confirm_reject"
+            class="mt-4"
+          >
             <label class="block text-sm font-medium text-gray-700">Reason (required)</label>
-            <textarea
-              name="reason"
+            <.input
+              field={@reject_form[:reason]}
+              type="textarea"
+              id="verification-reject-reason"
               rows="3"
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            ></textarea>
+            />
             <div class="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -336,7 +350,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
                 Reject
               </button>
             </div>
-          </form>
+          </.form>
         </div>
       </div>
     </div>

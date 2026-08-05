@@ -18,10 +18,13 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
         active_nav: :discounts,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         status_filter: :all,
+        status_form: to_form(%{"status" => "all"}),
         discounts: placeholder_discounts(),
         show_create_form: false,
-        discount_type: "percentage"
+        discount_type: "percentage",
+        discount_form: discount_form()
       )
 
     {:ok, socket}
@@ -30,7 +33,13 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
     filtered = filter_discounts(placeholder_discounts(), query, socket.assigns.status_filter)
-    {:noreply, assign(socket, search_query: query, discounts: filtered)}
+
+    {:noreply,
+     assign(socket,
+       search_query: query,
+       search_form: to_form(%{"search" => query}),
+       discounts: filtered
+     )}
   end
 
   @impl true
@@ -45,7 +54,13 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
       end
 
     filtered = filter_discounts(placeholder_discounts(), socket.assigns.search_query, status_atom)
-    {:noreply, assign(socket, status_filter: status_atom, discounts: filtered)}
+
+    {:noreply,
+     assign(socket,
+       status_filter: status_atom,
+       status_form: to_form(%{"status" => status}),
+       discounts: filtered
+     )}
   end
 
   @impl true
@@ -68,7 +83,11 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
     socket =
       socket
       |> put_flash(:info, "Discount created successfully")
-      |> assign(show_create_form: false)
+      |> assign(
+        show_create_form: false,
+        discount_type: "percentage",
+        discount_form: discount_form()
+      )
 
     {:noreply, socket}
   end
@@ -170,19 +189,27 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
     <%!-- Filter Bar --%>
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <div class="relative">
-        <form phx-change="filter_status">
-          <select
-            name="status"
+        <.form for={@status_form} id="discount-status-filter-form" phx-change="filter_status">
+          <.input
+            field={@status_form[:status]}
+            type="select"
+            options={[
+              {"All Statuses", "all"},
+              {"Active", "active"},
+              {"Scheduled", "scheduled"},
+              {"Expired", "expired"}
+            ]}
             class="appearance-none bg-white border border-slate-200 rounded-xl pl-3 pr-9 py-2.5 text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-          >
-            <option value="all" selected={@status_filter == :all}>All Statuses</option>
-            <option value="active" selected={@status_filter == :active}>Active</option>
-            <option value="scheduled" selected={@status_filter == :scheduled}>Scheduled</option>
-            <option value="expired" selected={@status_filter == :expired}>Expired</option>
-          </select>
-        </form>
+          />
+        </.form>
       </div>
-      <form phx-change="search" phx-debounce="300" class="relative flex-1 min-w-[200px] max-w-xs">
+      <.form
+        for={@search_form}
+        id="discount-search-form"
+        phx-change="search"
+        phx-debounce="300"
+        class="relative flex-1 min-w-[200px] max-w-xs"
+      >
         <svg
           class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
           fill="none"
@@ -196,15 +223,14 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
           />
         </svg>
-        <input
+        <.input
+          field={@search_form[:search]}
           type="search"
-          name="search"
-          value={@search_query}
           placeholder="Search discounts..."
           class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
           autocomplete="off"
         />
-      </form>
+      </.form>
     </div>
 
     <%!-- Discounts Table --%>
@@ -387,7 +413,12 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
       <h2 class="text-base font-bold text-slate-900 mb-1">Create New Discount</h2>
       <p class="text-xs text-slate-400 mb-6">Configure your discount code settings</p>
 
-      <form phx-submit="create_discount" class="space-y-6">
+      <.form
+        for={@discount_form}
+        id="create-discount-form"
+        phx-submit="create_discount"
+        class="space-y-6"
+      >
         <%!-- Row 1: Code + Type --%>
         <div class="grid sm:grid-cols-2 gap-4">
           <div>
@@ -395,10 +426,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
               Discount Code
             </label>
             <div class="flex gap-2">
-              <input
+              <.input
+                field={@discount_form[:code]}
                 type="text"
                 id="discount-code"
-                name="code"
                 placeholder="e.g. SUMMER20"
                 class="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
@@ -446,7 +477,8 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
               >
                 <input
                   type="radio"
-                  name="discount_type"
+                  id={"discount-type-#{value}"}
+                  name={@discount_form[:discount_type].name}
                   value={value}
                   checked={@discount_type == value}
                   phx-click="set_discount_type"
@@ -471,10 +503,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
               Discount Value
             </label>
             <div class="relative">
-              <input
+              <.input
+                field={@discount_form[:value]}
                 type="number"
                 id="discount-value"
-                name="value"
                 placeholder="10"
                 class="w-full px-3 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
@@ -491,10 +523,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
               <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono font-medium text-slate-400">
                 GH&#8373;
               </span>
-              <input
+              <.input
+                field={@discount_form[:min_purchase]}
                 type="number"
                 id="min-purchase"
-                name="min_purchase"
                 placeholder="0.00"
                 class="w-full pl-12 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
@@ -508,10 +540,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label for="usage-limit" class="block text-sm font-medium text-slate-700 mb-1.5">
               Usage Limit
             </label>
-            <input
+            <.input
+              field={@discount_form[:usage_limit]}
               type="number"
               id="usage-limit"
-              name="usage_limit"
               placeholder="Unlimited"
               class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
@@ -520,10 +552,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label for="start-date" class="block text-sm font-medium text-slate-700 mb-1.5">
               Start Date
             </label>
-            <input
+            <.input
+              field={@discount_form[:start_date]}
               type="date"
               id="start-date"
-              name="start_date"
               class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all cursor-pointer"
             />
           </div>
@@ -531,10 +563,10 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label for="end-date" class="block text-sm font-medium text-slate-700 mb-1.5">
               End Date
             </label>
-            <input
+            <.input
+              field={@discount_form[:end_date]}
               type="date"
               id="end-date"
-              name="end_date"
               class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all cursor-pointer"
             />
           </div>
@@ -547,7 +579,8 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label class="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-2 border-emerald-500 rounded-xl cursor-pointer">
               <input
                 type="radio"
-                name="applies_to"
+                id="discount-applies-to-all"
+                name={@discount_form[:applies_to].name}
                 value="all"
                 checked
                 class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
@@ -557,7 +590,8 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label class="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:border-slate-300 transition-colors">
               <input
                 type="radio"
-                name="applies_to"
+                id="discount-applies-to-categories"
+                name={@discount_form[:applies_to].name}
                 value="categories"
                 class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
               />
@@ -566,7 +600,8 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             <label class="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:border-slate-300 transition-colors">
               <input
                 type="radio"
-                name="applies_to"
+                id="discount-applies-to-products"
+                name={@discount_form[:applies_to].name}
                 value="products"
                 class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
               />
@@ -593,7 +628,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
             Create Discount
           </button>
         </div>
-      </form>
+      </.form>
     </div>
     """
   end
@@ -723,6 +758,19 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
   defp usage_bar_color(used, limit, _status) when used >= limit, do: "bg-slate-400"
   defp usage_bar_color(used, limit, _status) when used / limit > 0.5, do: "bg-amber-500"
   defp usage_bar_color(_used, _limit, _status), do: "bg-emerald-500"
+
+  defp discount_form do
+    to_form(%{
+      "code" => "",
+      "discount_type" => "percentage",
+      "value" => "",
+      "min_purchase" => "",
+      "usage_limit" => "",
+      "start_date" => "",
+      "end_date" => "",
+      "applies_to" => "all"
+    })
+  end
 
   # ── Placeholder Data ──
 

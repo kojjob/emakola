@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Api.DeviceTokenEndpointsTest do
 
     assert %{"data" => %{"id" => id, "attributes" => attrs}} = json_response(conn, 201)
     assert is_binary(id)
-    assert attrs["token"] == "fcm-abc-123"
+    refute Map.has_key?(attrs, "token")
     assert attrs["platform"] == "android"
   end
 

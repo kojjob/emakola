@@ -39,7 +39,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [x] Strip FounderPad boilerplate (7 LiveViews, 3 controllers, API modules)
 - [x] Fix compilation errors (duplicate modules, missing deps)
 - [x] Add missing deps: swoosh, phoenix_live_dashboard, hammer, req
-- [ ] Add `/metrics` endpoint or remove from fly.toml
+- [x] Add a private `/metrics` listener on port 9091 and wire it to fly.toml
 
 **Tests:** 145 passing | **PR:** #7
 
@@ -237,7 +237,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [ ] Rate limiting on auth endpoints specifically
 - [ ] Structured logging with request metadata
 - [ ] Error tracking (Sentry — DSN in .env.example but not configured)
-- [ ] Prometheus metrics exporter (fly.toml expects port 9091)
+- [x] Prometheus metrics exporter on the private port expected by fly.toml
 - [ ] Database connection pooling tuning for production load
 - [ ] Session-based cart persistence (currently ephemeral in LiveView assigns)
 - [ ] Subdomain-based store resolution (currently URL slug)

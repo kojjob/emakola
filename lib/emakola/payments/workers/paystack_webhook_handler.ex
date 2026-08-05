@@ -33,7 +33,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   require Logger
 
   alias Emakola.Notifications.Dispatcher
-  alias Emakola.Payments.{Payment, PayoutService, ProtectionHolds}
+  alias Emakola.Payments.{Payment, PayoutService, ProtectionHolds, RefundReconciliation}
 
   @terminal_states [:success, :failed, :refunded]
 
@@ -316,38 +316,31 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     reference = get_in(data, ["transaction", "reference"])
     event_amount = data["amount"]
 
-    with {:ok, payment} <- find_payment(reference),
-         false <- payment.status == :refunded,
-         # Accumulate this refund event onto any prior partial refunds. The
-         # worker is unique on [:args] for 24h, so an identical redelivery won't
-         # double-count, and RefundAmountNotExceeded caps the running total.
-         cumulative = (payment.refunded_amount || 0) + event_amount,
-         {:ok, updated} <-
-           payment
-           |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: cumulative})
-           |> Ash.update(authorize?: false) do
-      # Reverse the split allocations so a clawback can recover each party's
-      # share against future payouts.
-      reverse_splits(updated)
-      Emakola.Suppliers.SalesTeams.reverse_attributed_payment(updated)
-      maybe_close_protection_hold(updated)
+    case RefundReconciliation.process(reference, event_amount, event_key: refund_event_key(data)) do
+      {:ok, %{payment: updated, replay?: replay?}} ->
+        # Reverse the split allocations so a clawback can recover each party's
+        # share against future payouts. These operations are deliberately
+        # replayed: each is cumulative/idempotent, so an Oban retry heals a
+        # first delivery that committed payment/order state and then crashed
+        # during post-processing.
+        reverse_splits(updated)
+        Emakola.Suppliers.SalesTeams.reverse_attributed_payment(updated)
+        maybe_close_protection_hold(updated)
 
-      Phoenix.PubSub.broadcast(
-        Emakola.PubSub,
-        "payment:#{reference}",
-        {:payment_refunded, reference, updated}
-      )
+        unless replay? do
+          Phoenix.PubSub.broadcast(
+            Emakola.PubSub,
+            "payment:#{reference}",
+            {:payment_refunded, reference, updated}
+          )
+        end
 
-      :ok
-    else
-      # Already refunded — idempotent success
-      true ->
         :ok
 
       # Refund rejected by business rules (payment not :success, or amount
       # exceeds original). The money already moved at the gateway, so log
       # loudly — retrying won't fix a validation failure.
-      {:error, %Ash.Error.Invalid{} = error} ->
+      {:error, {:invalid_refund, %Ash.Error.Invalid{} = error}} ->
         Logger.warning(
           "refund.processed rejected for payment #{reference}: #{Exception.message(error)}"
         )
@@ -357,6 +350,13 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  # Production Paystack refund payloads carry a stable refund identifier. Use
+  # whichever documented form is present; legacy fixtures without one retain
+  # their existing amount-only semantics.
+  defp refund_event_key(data) do
+    data["refund_reference"] || data["id"] || get_in(data, ["refund", "id"])
   end
 
   # The genuine terminal success state for a refund: the cumulative amount

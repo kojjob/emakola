@@ -25,6 +25,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         active_nav: :orders,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         status_filter: :all,
         orders: [],
         orders_limit: @orders_per_page,
@@ -40,7 +41,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query, orders_limit: @orders_per_page)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        orders_limit: @orders_per_page
+      )
       |> load_orders()
 
     {:noreply, socket}
@@ -89,7 +94,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         </div>
 
         <%!-- Search --%>
-        <form phx-change="search" phx-debounce="300" class="relative flex-1 min-w-[200px] max-w-xs">
+        <.form
+          for={@search_form}
+          id="order-search-form"
+          phx-change="search"
+          class="relative flex-1 min-w-[200px] max-w-xs"
+        >
           <svg
             class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
             fill="none"
@@ -103,17 +113,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
               d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
             />
           </svg>
-          <input
+          <.input
+            field={@search_form[:search]}
             type="search"
-            name="search"
             value={@search_query}
             placeholder="Search orders..."
+            phx-debounce="300"
             class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-700
                    placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30
                    focus:border-emerald-500 transition-all"
             autocomplete="off"
           />
-        </form>
+        </.form>
       </div>
 
       <%!-- Orders --%>

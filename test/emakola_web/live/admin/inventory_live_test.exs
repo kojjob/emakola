@@ -150,7 +150,7 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
 
       html =
         view
-        |> element("form")
+        |> element("#inventory-search-form")
         |> render_change(%{"query" => "Kente"})
 
       assert html =~ "KC-001"
@@ -166,7 +166,7 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
 
       html =
         view
-        |> element("form")
+        |> element("#inventory-search-form")
         |> render_change(%{"query" => "UNIQUE"})
 
       assert html =~ "UNIQUE-SKU-123"

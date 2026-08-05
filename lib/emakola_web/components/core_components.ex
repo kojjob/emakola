@@ -8,16 +8,12 @@ defmodule EmakolaWeb.CoreComponents do
   with doc strings and declarative assigns. You may customize and style
   them in any way you want, based on your application growth and needs.
 
-  The foundation for styling is Tailwind CSS, a utility-first CSS framework,
-  augmented with daisyUI, a Tailwind CSS plugin that provides UI components
-  and themes. Here are useful references:
+  The foundation for styling is Tailwind CSS, using the semantic design
+  tokens declared in `assets/css/app.css` for shared colors, controls, and
+  surfaces. Useful references include:
 
-    * [daisyUI](https://daisyui.com/docs/intro/) - a good place to get
-      started and see the available components.
-
-    * [Tailwind CSS](https://tailwindcss.com) - the foundational framework
-      we build on. You will use it for layout, sizing, flexbox, grid, and
-      spacing.
+    * [Tailwind CSS](https://tailwindcss.com) - the utility framework used
+      for layout, sizing, typography, state, and responsive styling.
 
     * [Heroicons](https://heroicons.com) - see `icon/1` for usage.
 
@@ -103,11 +99,17 @@ defmodule EmakolaWeb.CoreComponents do
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
+    variants = %{
+      "primary" => "bg-primary text-white shadow-sm hover:bg-primary-hover",
+      nil => "border border-emerald-200 bg-primary-soft text-primary hover:bg-emerald-100"
+    }
 
     assigns =
       assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
+        [
+          "inline-flex min-h-10 items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+          Map.fetch!(variants, assigns[:variant])
+        ]
       end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
@@ -214,8 +216,8 @@ defmodule EmakolaWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
+    <div class="mb-2">
+      <label for={@id} class="block">
         <input
           type="hidden"
           name={@name}
@@ -223,14 +225,17 @@ defmodule EmakolaWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="label">
+        <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input
             type="checkbox"
             id={@id}
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
+            class={
+              @class ||
+                "size-4 shrink-0 cursor-pointer rounded border border-slate-300 bg-white accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+            }
             {@rest}
           />{@label}
         </span>
@@ -242,13 +247,18 @@ defmodule EmakolaWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="mb-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="mb-1.5 block text-sm font-medium text-slate-700">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[
+            @class ||
+              "w-full rounded-control border border-border bg-white px-3 py-2.5 text-sm text-text shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500",
+            @errors != [] &&
+              (@error_class || "border-danger focus:border-danger focus:ring-danger/20")
+          ]}
           multiple={@multiple}
           {@rest}
         >
@@ -263,15 +273,17 @@ defmodule EmakolaWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="mb-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="mb-1.5 block text-sm font-medium text-slate-700">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
-            @errors != [] && (@error_class || "textarea-error")
+            @class ||
+              "min-h-24 w-full resize-y rounded-control border border-border bg-white px-3 py-2.5 text-sm text-text shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500",
+            @errors != [] &&
+              (@error_class || "border-danger focus:border-danger focus:ring-danger/20")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -284,17 +296,19 @@ defmodule EmakolaWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="mb-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="mb-1.5 block text-sm font-medium text-slate-700">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
+            @class ||
+              "h-11 w-full rounded-control border border-border bg-white px-3 text-sm text-text shadow-sm outline-none transition placeholder:text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500",
+            @errors != [] &&
+              (@error_class || "border-danger focus:border-danger focus:ring-danger/20")
           ]}
           {@rest}
         />
@@ -328,7 +342,7 @@ defmodule EmakolaWeb.CoreComponents do
         <h1 class="text-lg font-semibold leading-8">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-sm text-text-muted">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -369,7 +383,7 @@ defmodule EmakolaWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class="w-full text-left text-sm [&_th]:px-4 [&_th]:py-3 [&_td]:px-4 [&_td]:py-3 [&_thead]:bg-slate-50 [&_thead]:text-xs [&_thead]:font-semibold [&_thead]:uppercase [&_thead]:tracking-wide [&_thead]:text-slate-500 [&_tbody_tr]:border-t [&_tbody_tr]:border-slate-200 [&_tbody_tr:nth-child(even)]:bg-slate-50/60">
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>
@@ -416,9 +430,9 @@ defmodule EmakolaWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <ul class="list">
-      <li :for={item <- @item} class="list-row">
-        <div class="list-col-grow">
+    <ul class="divide-y divide-slate-200 overflow-hidden rounded-card border border-slate-200 bg-white">
+      <li :for={item <- @item} class="px-4 py-3">
+        <div class="min-w-0">
           <div class="font-bold">{item.title}</div>
           <div>{render_slot(item)}</div>
         </div>

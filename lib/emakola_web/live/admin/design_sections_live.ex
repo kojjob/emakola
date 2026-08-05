@@ -464,14 +464,20 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       case Sections.resolve(entry["type"]) do
         {:ok, {module, meta}} ->
+          schema = schema_for(module, meta)
+          settings = entry["settings"] || %{}
+          style = entry["style"] || %{}
+
           Map.merge(base, %{
             label: module.label(),
             missing?: false,
             enabled?: entry["enabled"] == true,
             custom?: custom_entry?(entry),
-            schema: schema_for(module, meta),
-            settings: entry["settings"] || %{},
-            style: entry["style"] || %{}
+            schema: schema,
+            settings: settings,
+            settings_form: settings_form(entry["id"], schema, settings),
+            style: style,
+            style_form: style_form(entry["id"], style)
           })
 
         :error ->
@@ -482,7 +488,9 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
             custom?: false,
             schema: [],
             settings: %{},
-            style: %{}
+            settings_form: settings_form(entry["id"], [], %{}),
+            style: %{},
+            style_form: style_form(entry["id"], %{})
           })
       end
     end
@@ -527,6 +535,27 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   end
 
   defp humanize(key), do: key |> String.replace("_", " ") |> String.capitalize()
+
+  defp settings_form(id, schema, settings) do
+    params =
+      Map.new(schema, fn field ->
+        {field.key, Map.get(settings, field.key, field.default)}
+      end)
+
+    to_form(params, as: :settings, id: "section_settings_#{id}")
+  end
+
+  defp style_form(id, style) do
+    to_form(
+      %{
+        "bg" => Map.get(style, "bg") || "#ffffff",
+        "text" => Map.get(style, "text") || "#0f172a",
+        "padding" => Map.get(style, "padding") || "none"
+      },
+      as: :style,
+      id: "section_style_#{id}"
+    )
+  end
 
   # ── Live preview ────────────────────────────────────────────────
   # The preview is a PICTURE of the storefront, not a working one. It
@@ -617,7 +646,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # ── Settings + style forms ──────────────────────────────────────
   # Both forms push the ENTIRE form's current field values on every change
   # (standard phx-change behavior), so the "id" comes from phx-value-id on
-  # the <form> itself, matching the update_settings/update_style event
+  # the form itself, matching the update_settings/update_style event
   # contract exactly: %{"id" => id, "settings"/"style" => params}.
 
   attr :row, :map, required: true
@@ -625,7 +654,9 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
   defp section_settings_form(assigns) do
     ~H"""
-    <form
+    <.form
+      for={@row.settings_form}
+      id={"section-settings-form-#{@row.id}"}
       phx-change="update_settings"
       phx-value-id={@row.id}
       class="grid grid-cols-1 gap-4 sm:grid-cols-2"
@@ -637,79 +668,85 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         :for={field <- @row.schema}
         field={field}
         value={Map.get(@row.settings, field.key)}
+        form={@row.settings_form}
         categories={@categories}
       />
-    </form>
+    </.form>
     """
   end
 
   attr :field, :map, required: true
   attr :value, :any, default: nil
+  attr :form, Phoenix.HTML.Form, required: true
   attr :categories, :list, default: []
 
   defp setting_field(assigns) do
     assigns = assign(assigns, :current, assigns.value || assigns.field.default)
 
     ~H"""
-    <label class={["block", @field.type == :text && "sm:col-span-2"]}>
+    <div class={["block", @field.type == :text && "sm:col-span-2"]}>
       <span class="mb-1 block text-xs font-medium text-text-muted">{@field.label}</span>
       <%= case @field.type do %>
         <% :text -> %>
-          <textarea
-            name={"settings[#{@field.key}]"}
+          <.input
+            type="textarea"
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
+            value={@current}
             rows="3"
             phx-debounce="300"
             class={setting_input_classes()}
-          >{@current}</textarea>
+          />
         <% :boolean -> %>
           <span class="flex items-center pt-1.5">
-            <input type="hidden" name={"settings[#{@field.key}]"} value="false" />
-            <input
+            <.input
               type="checkbox"
-              name={"settings[#{@field.key}]"}
-              value="true"
+              id={"#{@form.id}_#{@field.key}"}
+              name={"#{@form.name}[#{@field.key}]"}
               checked={@current == true}
               class="size-4 rounded border-border text-primary focus:ring-2 focus:ring-primary/30"
             />
           </span>
         <% :integer -> %>
-          <input
+          <.input
             type="number"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             phx-debounce="300"
             class={setting_input_classes()}
           />
         <% type when type in [:image_url, :link] -> %>
-          <input
+          <.input
             type="url"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             placeholder="https://"
             phx-debounce="300"
             class={setting_input_classes()}
           />
         <% :category -> %>
-          <select name={"settings[#{@field.key}]"} class={setting_input_classes()}>
-            <option value="">Select a category</option>
-            <option
-              :for={category <- @categories}
-              value={category.id}
-              selected={@current == category.id}
-            >
-              {category.name}
-            </option>
-          </select>
+          <.input
+            type="select"
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
+            value={@current}
+            prompt="Select a category"
+            options={Enum.map(@categories, &{&1.name, &1.id})}
+            class={setting_input_classes()}
+          />
         <% _string_or_unknown -> %>
-          <input
+          <.input
             type="text"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             phx-debounce="300"
             class={setting_input_classes()}
           />
       <% end %>
-    </label>
+    </div>
     """
   end
 
@@ -717,42 +754,39 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
   defp section_style_form(assigns) do
     ~H"""
-    <form
+    <.form
+      for={@row.style_form}
+      id={"section-style-form-#{@row.id}"}
       phx-change="update_style"
       phx-value-id={@row.id}
       class="grid grid-cols-1 gap-4 sm:grid-cols-3"
     >
-      <label class="block">
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Background color</span>
-        <input
+        <.input
+          field={@row.style_form[:bg]}
           type="color"
-          name="style[bg]"
-          value={@row.style["bg"] || "#ffffff"}
           class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
         />
-      </label>
-      <label class="block">
+      </div>
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Text color</span>
-        <input
+        <.input
+          field={@row.style_form[:text]}
           type="color"
-          name="style[text]"
-          value={@row.style["text"] || "#0f172a"}
           class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
         />
-      </label>
-      <label class="block">
+      </div>
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Padding</span>
-        <select name="style[padding]" class={setting_input_classes()}>
-          <option
-            :for={{padding, text} <- padding_options()}
-            value={padding}
-            selected={@row.style["padding"] == padding}
-          >
-            {text}
-          </option>
-        </select>
-      </label>
-    </form>
+        <.input
+          field={@row.style_form[:padding]}
+          type="select"
+          options={Enum.map(padding_options(), fn {value, label} -> {label, value} end)}
+          class={setting_input_classes()}
+        />
+      </div>
+    </.form>
     """
   end
 

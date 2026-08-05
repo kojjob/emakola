@@ -10,7 +10,8 @@ defmodule Emakola.Cache.StoreCache do
 
   - ETS table owned by a GenServer for crash safety
   - TTL-based expiration (default 5 minutes)
-  - Per-store invalidation for multi-tenant safety
+  - Exact per-store invalidation for multi-tenant safety
+  - Cluster-wide invalidation through Phoenix PubSub
   - Simple API: `get/2`, `put/3`, `fetch/4`, `invalidate/2`
 
   ## Cache Keys
@@ -45,6 +46,8 @@ defmodule Emakola.Cache.StoreCache do
   @default_ttl :timer.minutes(5)
   @cleanup_interval :timer.minutes(1)
   @default_name :emakola_store_cache
+  @pubsub Emakola.PubSub
+  @topic "__emakola_store_cache"
 
   # ── Client API ──
 
@@ -138,32 +141,22 @@ defmodule Emakola.Cache.StoreCache do
   """
   @spec invalidate(atom(), String.t()) :: :ok
   def invalidate(cache \\ @default_name, key) do
-    :ets.delete(cache, key)
+    local_invalidate(cache, key)
+    _ = broadcast_remote({:invalidate, cache, key})
     :ok
   end
 
   @doc """
   Invalidates all cache entries for a given store.
 
-  This scans the ETS table for keys containing the store_id.
+  This scans the ETS table for keys whose exact tenant segment is `store_id`.
   Called when products or categories are created, updated, or deleted
   for a specific store.
   """
   @spec invalidate_store(atom(), String.t()) :: :ok
   def invalidate_store(cache \\ @default_name, store_id) do
-    # Match all keys that contain the store_id
-    :ets.foldl(
-      fn {key, _value, _expires_at}, acc ->
-        if String.contains?(key, store_id) do
-          :ets.delete(cache, key)
-        end
-
-        acc
-      end,
-      :ok,
-      cache
-    )
-
+    local_invalidate_store(cache, store_id)
+    _ = broadcast_remote({:invalidate_store, cache, store_id})
     :ok
   end
 
@@ -172,7 +165,8 @@ defmodule Emakola.Cache.StoreCache do
   """
   @spec invalidate_all(atom()) :: :ok
   def invalidate_all(cache \\ @default_name) do
-    :ets.delete_all_objects(cache)
+    local_invalidate_all(cache)
+    _ = broadcast_remote({:invalidate_all, cache})
     :ok
   end
 
@@ -227,6 +221,7 @@ defmodule Emakola.Cache.StoreCache do
   def init(opts) do
     table_name = Keyword.get(opts, :name, @default_name)
     cleanup_interval = Keyword.get(opts, :cleanup_interval, @cleanup_interval)
+    pubsub = Keyword.get(opts, :pubsub, @pubsub)
 
     table =
       :ets.new(table_name, [
@@ -237,9 +232,10 @@ defmodule Emakola.Cache.StoreCache do
         write_concurrency: true
       ])
 
+    subscribe(pubsub)
     schedule_cleanup(cleanup_interval)
 
-    {:ok, %{table: table, cleanup_interval: cleanup_interval}}
+    {:ok, %{table: table, cleanup_interval: cleanup_interval, pubsub: pubsub}}
   end
 
   @impl true
@@ -259,10 +255,74 @@ defmodule Emakola.Cache.StoreCache do
     {:noreply, state}
   end
 
+  def handle_info({:invalidate, table, key}, %{table: table} = state) do
+    local_invalidate(table, key)
+    {:noreply, state}
+  end
+
+  def handle_info({:invalidate_store, table, store_id}, %{table: table} = state) do
+    local_invalidate_store(table, store_id)
+    {:noreply, state}
+  end
+
+  def handle_info({:invalidate_all, table}, %{table: table} = state) do
+    local_invalidate_all(table)
+    {:noreply, state}
+  end
+
+  def handle_info(_message, state), do: {:noreply, state}
+
   # ── Private ──
 
   defp schedule_cleanup(interval) do
     Process.send_after(self(), :cleanup, interval)
+  end
+
+  defp subscribe(nil), do: :ok
+
+  defp subscribe(pubsub) do
+    case Process.whereis(pubsub) do
+      nil -> :ok
+      _pid -> Phoenix.PubSub.subscribe(pubsub, @topic)
+    end
+  end
+
+  defp broadcast_remote(message) do
+    case Registry.meta(@pubsub, :pubsub) do
+      {:ok, {adapter, adapter_name}} ->
+        adapter.broadcast(adapter_name, @topic, message, Phoenix.PubSub)
+
+      :error ->
+        {:error, :pubsub_unavailable}
+    end
+  end
+
+  defp local_invalidate(cache, key) do
+    :ets.delete(cache, key)
+  end
+
+  defp local_invalidate_store(cache, store_id) do
+    :ets.foldl(
+      fn {key, _value, _expires_at}, acc ->
+        if key_belongs_to_store?(key, store_id), do: :ets.delete(cache, key)
+        acc
+      end,
+      :ok,
+      cache
+    )
+  end
+
+  defp key_belongs_to_store?(key, store_id) when is_binary(key) do
+    case String.split(key, ":", parts: 3) do
+      [_resource, ^store_id, _qualifier] -> true
+      _other -> false
+    end
+  end
+
+  defp key_belongs_to_store?(_key, _store_id), do: false
+
+  defp local_invalidate_all(cache) do
+    :ets.delete_all_objects(cache)
   end
 
   defp safe_lookup(table, key) do

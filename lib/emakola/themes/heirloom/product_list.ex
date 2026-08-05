@@ -24,7 +24,6 @@ defmodule Emakola.Themes.Heirloom.ProductList do
       assigns
       |> assign(:theme_module, Emakola.Themes.Heirloom)
       |> assign(:categories, assigns[:categories] || [])
-      |> assign(:products, assigns[:products] || [])
 
     ~H"""
     <div class="min-h-screen bg-[color:var(--hl-bg)] [font-family:var(--hl-font)]">
@@ -56,18 +55,18 @@ defmodule Emakola.Themes.Heirloom.ProductList do
           </button>
         </div>
 
-        <p
-          :if={@products == []}
-          class="mt-16 rounded-[28px] border border-[color:var(--hl-border)] bg-white p-12 text-center text-sm text-[color:var(--hl-muted)]"
-        >
-          Nothing here yet. Check back soon.
-        </p>
-
         <ul
-          :if={@products != []}
+          id="product-list"
+          phx-update="stream"
           class="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6"
         >
-          <li :for={product <- @products}>
+          <li
+            id="product-list-empty"
+            class="col-span-full hidden rounded-[28px] border border-[color:var(--hl-border)] bg-white p-12 text-center text-sm text-[color:var(--hl-muted)] only:block"
+          >
+            Nothing here yet. Check back soon.
+          </li>
+          <li :for={{dom_id, %{product: product}} <- @streams.products} id={dom_id}>
             <.tile product={product} store={@store} />
           </li>
         </ul>

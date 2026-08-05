@@ -35,6 +35,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
 
         socket =
           socket
+          |> stream_configure(:wishlist, dom_id: &wishlist_dom_id/1)
           |> assign(:store, store)
           |> assign(:current_customer, customer)
           |> assign(:categories, [])
@@ -66,12 +67,17 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
           image_url: params["image_url"]
         }
 
-        wishlist = socket.assigns.wishlist
-
-        unless Enum.any?(wishlist, &(&1.product_id == item.product_id)) do
-          {:noreply, assign(socket, :wishlist, wishlist ++ [item])}
-        else
+        if MapSet.member?(socket.assigns.wishlisted_product_ids, item.product_id) do
           {:noreply, socket}
+        else
+          {:noreply,
+           socket
+           |> assign(:wishlist_count, socket.assigns.wishlist_count + 1)
+           |> assign(
+             :wishlisted_product_ids,
+             MapSet.put(socket.assigns.wishlisted_product_ids, item.product_id)
+           )
+           |> stream_insert(:wishlist, item)}
         end
 
       customer ->
@@ -132,8 +138,18 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   def handle_event("remove_from_wishlist", %{"product_id" => product_id}, socket) do
     case socket.assigns.current_customer do
       nil ->
-        wishlist = Enum.reject(socket.assigns.wishlist, &(&1.product_id == product_id))
-        {:noreply, assign(socket, :wishlist, wishlist)}
+        if MapSet.member?(socket.assigns.wishlisted_product_ids, product_id) do
+          {:noreply,
+           socket
+           |> assign(:wishlist_count, max(socket.assigns.wishlist_count - 1, 0))
+           |> assign(
+             :wishlisted_product_ids,
+             MapSet.delete(socket.assigns.wishlisted_product_ids, product_id)
+           )
+           |> stream_delete_by_dom_id(:wishlist, wishlist_dom_id(%{product_id: product_id}))}
+        else
+          {:noreply, socket}
+        end
 
       customer ->
         store = socket.assigns.store
@@ -182,8 +198,9 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
     case socket.assigns.current_customer do
       nil ->
         socket
-        |> assign(:wishlist, Map.get(socket.assigns, :wishlist, []))
+        |> assign(:wishlist_count, 0)
         |> assign(:wishlisted_product_ids, MapSet.new())
+        |> stream(:wishlist, [], reset: true)
 
       customer ->
         store = socket.assigns.store
@@ -195,10 +212,16 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
           |> MapSet.new()
 
         socket
-        |> assign(:wishlist, items)
+        |> assign(:wishlist_count, length(items))
         |> assign(:wishlisted_product_ids, wishlisted_ids)
+        |> stream(:wishlist, items, reset: true)
     end
   end
+
+  defp wishlist_dom_id(item), do: "wishlist-item-#{item_product_id(item)}"
+
+  defp item_product_id(%{product_id: id}), do: id
+  defp item_product_id(%{product: %{id: id}}), do: id
 
   # Only treat the hook-resolved customer as signed in when they belong to the
   # store being viewed (a customer is per-store); otherwise fall back to guest.
@@ -213,6 +236,4 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
       :error -> 0
     end
   end
-
-  # -- Item accessors (handle both DB-backed WishlistItem and guest maps) --
 end

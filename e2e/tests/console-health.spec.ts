@@ -83,3 +83,52 @@ test.describe("Admin sidebar collapse", () => {
     await expect(page.locator("#admin-shell")).not.toHaveClass(/collapsed/);
   });
 });
+
+test.describe("Platform sidebar collapse", () => {
+  test("has no CSP errors and persists across a full page load", async ({ browser, browserName }) => {
+    test.skip(browserName !== "chromium", "one desktop browser covers the bundled CSP behaviour");
+
+    const storageState = process.env.PLATFORM_STORAGE_STATE;
+    test.skip(
+      !storageState,
+      "Set PLATFORM_STORAGE_STATE to an authenticated platform-owner Playwright state file",
+    );
+
+    const context = await browser.newContext({
+      storageState,
+      viewport: { width: 1280, height: 800 },
+    });
+    const page = await context.newPage();
+    const errors = collectErrors(page);
+
+    try {
+      await page.goto("/platform");
+      await page.waitForLoadState("networkidle");
+
+      await page.evaluate(() => localStorage.removeItem("platform-sidebar-collapsed"));
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+
+      const shell = page.locator("#platform-shell");
+      const toggle = page.locator("[data-toggle-platform-sidebar]");
+
+      await expect(toggle).toBeVisible();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+      await expect(shell).not.toHaveClass(/collapsed/);
+
+      await toggle.click();
+      await expect(shell).toHaveClass(/collapsed/);
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(
+        await page.evaluate(() => localStorage.getItem("platform-sidebar-collapsed")),
+      ).toBe("true");
+
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("#platform-shell")).toHaveClass(/collapsed/);
+      expect(errors, "console/CSP errors on /platform").toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+});

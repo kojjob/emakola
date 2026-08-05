@@ -29,24 +29,26 @@ defmodule EmakolaWeb.MerchantStoreLockedLive do
     assigns = assign(assigns, status: store.status, reason: store.status_reason)
 
     ~H"""
-    <main class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div class="max-w-lg text-center">
-        <h1 class="text-2xl font-semibold text-gray-900">{heading(@status)}</h1>
-        <p class="mt-3 text-gray-600">{body(@status)}</p>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <main class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <div class="max-w-lg text-center">
+          <h1 class="text-2xl font-semibold text-gray-900">{heading(@status)}</h1>
+          <p class="mt-3 text-gray-600">{body(@status)}</p>
 
-        <div :if={@reason} class="mt-6 rounded-lg border border-gray-200 bg-white p-4 text-left">
-          <p class="text-sm font-medium text-gray-500">Reason</p>
-          <p class="mt-1 text-gray-900">{@reason}</p>
+          <div :if={@reason} class="mt-6 rounded-lg border border-gray-200 bg-white p-4 text-left">
+            <p class="text-sm font-medium text-gray-500">Reason</p>
+            <p class="mt-1 text-gray-900">{@reason}</p>
+          </div>
+
+          <p class="mt-8 text-sm text-gray-500">
+            Questions? Contact support at
+            <a href="mailto:support@makola.io" class="font-medium text-emerald-700 hover:underline">
+              support@makola.io
+            </a>
+          </p>
         </div>
-
-        <p class="mt-8 text-sm text-gray-500">
-          Questions? Contact support at
-          <a href="mailto:support@makola.io" class="font-medium text-emerald-700 hover:underline">
-            support@makola.io
-          </a>
-        </p>
-      </div>
-    </main>
+      </main>
+    </Layouts.app>
     """
   end
 

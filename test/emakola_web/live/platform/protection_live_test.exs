@@ -87,8 +87,10 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
         authorize?: false
       )
 
-    {:ok, _view, html} = live(conn, ~p"/platform/protection")
+    {:ok, view, html} = live(conn, ~p"/platform/protection")
 
+    assert has_element?(view, "#frozen-protection-holds[phx-update='stream']")
+    assert has_element?(view, "#frozen_holds-#{hold.id}")
     assert html =~ "Kente Co"
     assert html =~ "Not received"
     assert html =~ "Never arrived"
@@ -100,8 +102,10 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
     hold = protected_hold!(store)
     force_age!(hold.id, days: 31)
 
-    {:ok, _view, html} = live(conn, ~p"/platform/protection")
+    {:ok, view, html} = live(conn, ~p"/platform/protection")
 
+    assert has_element?(view, "#stale-protection-holds[phx-update='stream']")
+    assert has_element?(view, "#stale_holds-#{hold.id}")
     assert html =~ "Kente Co"
   end
 
@@ -111,6 +115,26 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
     {:ok, _view, html} = live(conn, ~p"/platform/protection")
 
     refute html =~ "2222"
+  end
+
+  test "a forged event cannot act on a hold outside the mounted oversight queues", %{
+    conn: conn,
+    store: store
+  } do
+    {:ok, view, _html} = live(conn, ~p"/platform/protection")
+    hold = protected_hold!(store)
+
+    render_hook(view, "force_release", %{"id" => hold.id})
+
+    {:ok, unchanged} =
+      Payments.get_protection_hold_by_payment(hold.payment_id,
+        tenant: store.id,
+        authorize?: false
+      )
+
+    assert unchanged.status == :held
+    refute has_element?(view, "#frozen_holds-#{hold.id}")
+    refute has_element?(view, "#stale_holds-#{hold.id}")
   end
 
   test "shows the amount in the order's own currency, not a hardcoded GHS", %{

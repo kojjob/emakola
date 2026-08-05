@@ -1,82 +1,89 @@
-<style>
-  body { background-color: #f8fafc !important; }
-</style>
-<div
-  id="admin-shell"
-  class="admin-shell flex h-screen bg-slate-50 text-slate-800 font-[Inter,system-ui,sans-serif] antialiased"
->
-  <%!-- SIDEBAR (mobile overlay + aside + user popover) — SidebarComponents --%>
-  <.admin_sidebar
-    active_nav={assigns[:active_nav]}
-    current_user={assigns[:current_user]}
-    current_merchant={assigns[:current_merchant]}
-    current_store={assigns[:current_store]}
-    pending_order_count={assigns[:pending_order_count]}
-  />
-
-  <%!-- ═══════════════════════════════════════════ --%>
-  <%!-- MAIN CONTENT                                --%>
-  <%!-- ═══════════════════════════════════════════ --%>
-  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-    <%!-- IMPERSONATION BANNER (platform staff viewing a merchant's account) --%>
-    <div
-      :if={@impersonator}
-      class="flex items-center justify-between gap-4 bg-amber-500 px-4 sm:px-8 py-2 text-sm font-medium text-amber-950 shrink-0"
-    >
-      <span>
-        You ({@impersonator.email}) are viewing {@current_merchant &&
-          (@current_merchant.name || @current_merchant.email)}'s account.
-      </span>
-      <a
-        href={~p"/platform/impersonate/exit"}
-        class="rounded-md bg-amber-950/10 px-3 py-1 font-semibold hover:bg-amber-950/20 transition-colors whitespace-nowrap"
-      >
-        Exit impersonation
-      </a>
-    </div>
-
-    <%!-- PLATFORM ANNOUNCEMENTS (Dashboard only) --%>
-    <div
-      :for={announcement <- assigns[:announcements] || []}
-      :if={assigns[:active_nav] == :dashboard}
-      id={"announcement-#{announcement.id}"}
-      class={[
-        "flex items-start justify-between gap-3 px-4 sm:px-8 py-3 text-sm border-b shrink-0",
-        announcement_classes(announcement.severity)
-      ]}
-    >
-      <div class="min-w-0">
-        <p class="font-semibold">{announcement.title}</p>
-        <p class="opacity-90">{announcement.body}</p>
-      </div>
-      <button
-        type="button"
-        phx-click="dismiss_announcement"
-        phx-value-id={announcement.id}
-        class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold hover:bg-black/10 transition-colors"
-        aria-label="Dismiss announcement"
-      >
-        Dismiss
-      </button>
-    </div>
-
-    <%!-- TOP BAR — SidebarComponents --%>
-    <.admin_topbar
+<%= if assigns[:variant] == :plain do %>
+  <div id="plain-app-layout">
+    <.flash_group flash={@flash} />
+    {render_slot(assigns[:inner_block])}
+  </div>
+<% else %>
+  <style>
+    body { background-color: #f8fafc !important; }
+  </style>
+  <div
+    id="admin-shell"
+    class="admin-shell flex h-screen bg-slate-50 text-slate-800 font-[Inter,system-ui,sans-serif] antialiased"
+  >
+    <%!-- SIDEBAR (mobile overlay + aside + user popover) — SidebarComponents --%>
+    <.admin_sidebar
+      active_nav={assigns[:active_nav]}
       current_user={assigns[:current_user]}
       current_merchant={assigns[:current_merchant]}
       current_store={assigns[:current_store]}
-      current_plan={assigns[:current_plan]}
-      order_count={assigns[:order_count]}
-      product_count={assigns[:product_count]}
-      customer_count={assigns[:customer_count]}
-      notifications={assigns[:notifications]}
-      unread_notification_count={assigns[:unread_notification_count]}
+      pending_order_count={assigns[:pending_order_count]}
     />
 
-    <%!-- SCROLLABLE CONTENT --%>
-    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      <.flash_group flash={@flash} />
-      {@inner_content}
-    </main>
+    <%!-- ═══════════════════════════════════════════ --%>
+    <%!-- MAIN CONTENT                                --%>
+    <%!-- ═══════════════════════════════════════════ --%>
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <%!-- IMPERSONATION BANNER (platform staff viewing a merchant's account) --%>
+      <div
+        :if={@impersonator}
+        class="flex items-center justify-between gap-4 bg-amber-500 px-4 sm:px-8 py-2 text-sm font-medium text-amber-950 shrink-0"
+      >
+        <span>
+          You ({@impersonator.email}) are viewing {@current_merchant &&
+            (@current_merchant.name || @current_merchant.email)}'s account.
+        </span>
+        <a
+          href={~p"/platform/impersonate/exit"}
+          class="rounded-md bg-amber-950/10 px-3 py-1 font-semibold hover:bg-amber-950/20 transition-colors whitespace-nowrap"
+        >
+          Exit impersonation
+        </a>
+      </div>
+
+      <%!-- PLATFORM ANNOUNCEMENTS (Dashboard only) --%>
+      <div
+        :for={announcement <- assigns[:announcements] || []}
+        :if={assigns[:active_nav] == :dashboard}
+        id={"announcement-#{announcement.id}"}
+        class={[
+          "flex items-start justify-between gap-3 px-4 sm:px-8 py-3 text-sm border-b shrink-0",
+          announcement_classes(announcement.severity)
+        ]}
+      >
+        <div class="min-w-0">
+          <p class="font-semibold">{announcement.title}</p>
+          <p class="opacity-90">{announcement.body}</p>
+        </div>
+        <button
+          type="button"
+          phx-click="dismiss_announcement"
+          phx-value-id={announcement.id}
+          class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold hover:bg-black/10 transition-colors"
+          aria-label="Dismiss announcement"
+        >
+          Dismiss
+        </button>
+      </div>
+
+      <%!-- TOP BAR — SidebarComponents --%>
+      <.admin_topbar
+        current_user={assigns[:current_user]}
+        current_merchant={assigns[:current_merchant]}
+        current_store={assigns[:current_store]}
+        current_plan={assigns[:current_plan]}
+        order_count={assigns[:order_count]}
+        product_count={assigns[:product_count]}
+        customer_count={assigns[:customer_count]}
+        notifications={assigns[:notifications]}
+        unread_notification_count={assigns[:unread_notification_count]}
+      />
+
+      <%!-- SCROLLABLE CONTENT --%>
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <.flash_group flash={@flash} />
+        {@inner_content}
+      </main>
+    </div>
   </div>
-</div>
+<% end %>

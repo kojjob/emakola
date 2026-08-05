@@ -2,6 +2,8 @@ defmodule Emakola.Webhooks.Workers.WebhookDeliveryWorker do
   @moduledoc "Delivers outbound webhooks with HMAC-SHA256 signing."
   use Oban.Worker, queue: :default, max_attempts: 5
 
+  alias Emakola.Security.SecretStorage
+
   @impl Oban.Worker
   def perform(%Oban.Job{args: args, attempt: attempt}) do
     %{
@@ -20,7 +22,16 @@ defmodule Emakola.Webhooks.Workers.WebhookDeliveryWorker do
         {:cancel, "webhook #{webhook_id} disabled"}
 
       webhook ->
-        deliver(webhook, event_type, payload, attempt)
+        case SecretStorage.outbound_webhook_secret(webhook) do
+          {:ok, secret} when is_binary(secret) ->
+            deliver(webhook, secret, event_type, payload, attempt)
+
+          {:error, _reason} ->
+            {:error, :webhook_secret_unavailable}
+
+          _other ->
+            {:error, :webhook_secret_unavailable}
+        end
     end
   end
 
@@ -33,7 +44,7 @@ defmodule Emakola.Webhooks.Workers.WebhookDeliveryWorker do
     end
   end
 
-  defp deliver(%{id: webhook_id, url: url, secret: secret}, event_type, payload, attempt) do
+  defp deliver(%{id: webhook_id, url: url}, secret, event_type, payload, attempt) do
     body = Jason.encode!(payload)
     timestamp = DateTime.utc_now() |> DateTime.to_unix() |> to_string()
     signature = compute_hmac(secret, timestamp, body)

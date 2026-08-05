@@ -63,21 +63,6 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
-// Sidebar collapse toggle with localStorage persistence
-window.addEventListener("toggle-sidebar", () => {
-  const shell = document.getElementById("admin-shell")
-  if (shell) {
-    shell.classList.toggle("collapsed")
-    localStorage.setItem("sidebar-collapsed", shell.classList.contains("collapsed"))
-  }
-})
-
-// Restore sidebar state on page load
-if (localStorage.getItem("sidebar-collapsed") === "true") {
-  const shell = document.getElementById("admin-shell")
-  if (shell) shell.classList.add("collapsed")
-}
-
 // Password visibility toggle (used by auth forms via JS.dispatch)
 window.addEventListener("toggle-password", (e) => {
   const input = e.target
@@ -159,28 +144,85 @@ if (process.env.NODE_ENV === "development") {
 }
 
 
-// Admin sidebar collapse, persisted in localStorage.
+// Merchant and platform sidebars, persisted in localStorage.
 //
 // This lives here rather than in an inline <script> in app.html.heex because
 // the CSP sets `script-src 'self' 'nonce-…'` with no 'unsafe-inline': an
 // un-nonced inline block is blocked outright, and an `onclick="…"` attribute
 // is blocked even *with* a nonce (nonces don't cover event-handler
 // attributes). Bundled assets are served from 'self', so they just work.
-function applyStoredSidebarState() {
-  const shell = document.getElementById("admin-shell")
-  if (shell && localStorage.getItem("sidebar-collapsed") === "true") {
-    shell.classList.add("collapsed")
+const sidebarConfigs = [
+  {
+    shellId: "admin-shell",
+    storageKey: "sidebar-collapsed",
+    toggleSelector: "[data-toggle-sidebar]",
+  },
+  {
+    shellId: "platform-shell",
+    storageKey: "platform-sidebar-collapsed",
+    toggleSelector: "[data-toggle-platform-sidebar]",
+  },
+]
+
+function storedSidebarValue(key) {
+  try {
+    return localStorage.getItem(key)
+  } catch (_error) {
+    return null
   }
 }
 
+function persistSidebarValue(key, collapsed) {
+  try {
+    localStorage.setItem(key, String(collapsed))
+  } catch (_error) {
+    // Storage may be unavailable in a hardened/private browser context. The
+    // control should still work for the current page without a console error.
+  }
+}
+
+function applySidebarState(config, collapsed) {
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  shell.classList.toggle("collapsed", collapsed)
+  document.querySelectorAll(config.toggleSelector).forEach(toggle => {
+    toggle.setAttribute("aria-expanded", String(!collapsed))
+  })
+}
+
+function applyStoredSidebarStates() {
+  sidebarConfigs.forEach(config => {
+    applySidebarState(config, storedSidebarValue(config.storageKey) === "true")
+  })
+}
+
 document.addEventListener("click", e => {
-  if (!e.target.closest("[data-toggle-sidebar]")) { return }
-  const shell = document.getElementById("admin-shell")
-  if (!shell) { return }
-  shell.classList.toggle("collapsed")
-  localStorage.setItem("sidebar-collapsed", shell.classList.contains("collapsed"))
+  if (!(e.target instanceof Element)) return
+
+  const config = sidebarConfigs.find(item => e.target.closest(item.toggleSelector))
+  if (!config) return
+
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  const collapsed = !shell.classList.contains("collapsed")
+  applySidebarState(config, collapsed)
+  persistSidebarValue(config.storageKey, collapsed)
 })
 
-applyStoredSidebarState()
-// Re-apply after LiveView navigations, which re-render the admin shell.
-window.addEventListener("phx:page-loading-stop", applyStoredSidebarState)
+// Backwards compatibility for any server-rendered JS.dispatch("toggle-sidebar")
+// caller while click delegation remains the primary path.
+window.addEventListener("toggle-sidebar", () => {
+  const config = sidebarConfigs[0]
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  const collapsed = !shell.classList.contains("collapsed")
+  applySidebarState(config, collapsed)
+  persistSidebarValue(config.storageKey, collapsed)
+})
+
+applyStoredSidebarStates()
+// Re-apply after LiveView navigations, which can re-render either shell.
+window.addEventListener("phx:page-loading-stop", applyStoredSidebarStates)

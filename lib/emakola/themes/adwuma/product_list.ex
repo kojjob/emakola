@@ -17,7 +17,6 @@ defmodule Emakola.Themes.Adwuma.ProductList do
     assigns =
       assigns
       |> assign(:theme_module, Emakola.Themes.Adwuma)
-      |> assign(:products, Map.get(assigns, :products) || [])
       |> assign(:categories, Map.get(assigns, :categories) || [])
 
     ~H"""
@@ -73,18 +72,35 @@ defmodule Emakola.Themes.Adwuma.ProductList do
           </button>
         </div>
 
-        <div :if={@products != []} class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <Shared.product_card
-            :for={product <- @products}
-            product={product}
-            store={@store}
-            show_add={true}
-          />
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <p
+            id="product-list-empty"
+            class="col-span-full hidden py-16 text-center text-[color:var(--adw-muted)] only:block"
+          >
+            Nothing here yet.
+          </p>
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.product_card product={product} store={@store} show_add={true} />
+          </div>
         </div>
 
-        <p :if={@products == []} class="mt-16 text-center text-[color:var(--adw-muted)]">
-          Nothing here yet.
-        </p>
+        <div :if={assigns[:has_more]} class="mt-12 text-center">
+          <button
+            type="button"
+            phx-click="load_more"
+            class="inline-flex min-h-11 items-center rounded-full border border-[color:var(--adw-ink)] px-8 text-sm font-medium text-[color:var(--adw-ink)] transition-colors hover:bg-[color:var(--adw-ink)] hover:text-white"
+          >
+            Load more
+          </button>
+        </div>
       </main>
 
       <Shared.footer store={@store} categories={@categories} />

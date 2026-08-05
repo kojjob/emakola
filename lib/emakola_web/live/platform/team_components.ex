@@ -7,14 +7,18 @@ defmodule EmakolaWeb.Platform.TeamComponents do
   for non-owner actors here AND enforced server-side in
   `Emakola.Accounts.PlatformTeam`.
   """
-  use Phoenix.Component
+  use EmakolaWeb, :html
+
+  alias Emakola.Security.SecretStorage
 
   attr :staff, :list, required: true
   attr :invites, :list, required: true
   attr :session_counts, :map, required: true
   attr :owner_actor, :boolean, required: true
   attr :invite_modal_open, :boolean, required: true
+  attr :invite_form, :any, required: true
   attr :edit_user, :map, required: true
+  attr :edit_permissions_form, :any, required: true
   attr :all_permissions, :list, required: true
 
   def team_page(assigns) do
@@ -44,10 +48,15 @@ defmodule EmakolaWeb.Platform.TeamComponents do
         <.invites_table invites={@invites} />
       <% end %>
 
-      <.invite_modal :if={@invite_modal_open} all_permissions={@all_permissions} />
+      <.invite_modal
+        :if={@invite_modal_open}
+        all_permissions={@all_permissions}
+        form={@invite_form}
+      />
       <.edit_modal
         :if={@edit_user}
         user={@edit_user}
+        form={@edit_permissions_form}
         all_permissions={@all_permissions}
         owner_actor={@owner_actor}
       />
@@ -78,7 +87,11 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr :for={user <- @staff} class="hover:bg-gray-50 transition-colors">
+            <tr
+              :for={user <- @staff}
+              id={"staff-#{user.id}"}
+              class="hover:bg-gray-50 transition-colors"
+            >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2 min-w-0">
                   <div class="min-w-0">
@@ -120,12 +133,12 @@ defmodule EmakolaWeb.Platform.TeamComponents do
               <td class="px-6 py-4">
                 <span class={[
                   "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                  if(user.totp_secret,
+                  if(SecretStorage.totp_configured?(user),
                     do: "bg-blue-100 text-blue-700",
                     else: "bg-slate-100 text-slate-500"
                   )
                 ]}>
-                  {if user.totp_secret, do: "Enabled", else: "Off"}
+                  {if SecretStorage.totp_configured?(user), do: "Enabled", else: "Off"}
                 </span>
               </td>
               <td class="px-6 py-4 text-right whitespace-nowrap">
@@ -229,7 +242,11 @@ defmodule EmakolaWeb.Platform.TeamComponents do
                 No pending invites
               </td>
             </tr>
-            <tr :for={invite <- @invites} class="hover:bg-gray-50 transition-colors">
+            <tr
+              :for={invite <- @invites}
+              id={"invite-#{invite.id}"}
+              class="hover:bg-gray-50 transition-colors"
+            >
               <td class="px-6 py-4 text-sm font-medium text-gray-900">{invite.email}</td>
               <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
@@ -278,32 +295,33 @@ defmodule EmakolaWeb.Platform.TeamComponents do
   end
 
   attr :all_permissions, :list, required: true
+  attr :form, :any, required: true
 
   defp invite_modal(assigns) do
     ~H"""
     <.team_modal title="Invite team member" cancel_event="close_invite_modal">
-      <form id="invite-form" phx-submit="send_invite" class="space-y-4">
+      <.form for={@form} id="invite-form" phx-submit="send_invite" class="space-y-4">
         <div>
           <label for="invite-email" class="block text-sm font-medium text-gray-700 mb-1">
             Email
           </label>
-          <input
+          <.input
+            field={@form[:email]}
             type="email"
             id="invite-email"
-            name="email"
             required
             placeholder="colleague@example.com"
             class="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
           />
         </div>
-        <.permission_checkboxes all_permissions={@all_permissions} checked={[]} />
+        <.permission_checkboxes all_permissions={@all_permissions} form={@form} />
         <button
           type="submit"
           class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Send invite
         </button>
-      </form>
+      </.form>
     </.team_modal>
     """
   end
@@ -311,26 +329,31 @@ defmodule EmakolaWeb.Platform.TeamComponents do
   attr :user, :map, required: true
   attr :all_permissions, :list, required: true
   attr :owner_actor, :boolean, required: true
+  attr :form, :any, required: true
 
   defp edit_modal(assigns) do
     ~H"""
     <.team_modal title={"Edit permissions — #{@user.email}"} cancel_event="close_edit_modal">
-      <form id="edit-permissions-form" phx-submit="save_permissions" class="space-y-4">
+      <.form
+        for={@form}
+        id="edit-permissions-form"
+        phx-submit="save_permissions"
+        class="space-y-4"
+      >
         <.permission_checkboxes
           all_permissions={@all_permissions}
-          checked={@user.platform_permissions}
+          form={@form}
         />
         <%= if @owner_actor do %>
-          <label class="flex items-center gap-2 pt-2 border-t border-gray-100 text-sm text-gray-700">
-            <input type="hidden" name="is_owner" value="false" />
-            <input
+          <div class="pt-2 border-t border-gray-100 text-sm text-gray-700">
+            <.input
+              field={@form[:is_owner]}
               type="checkbox"
-              name="is_owner"
-              value="true"
-              checked={@user.is_owner}
+              id="edit-is-owner"
+              label="Owner (full access, can manage owners)"
               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-            /> Owner (full access, can manage owners)
-          </label>
+            />
+          </div>
         <% end %>
         <button
           type="submit"
@@ -338,13 +361,13 @@ defmodule EmakolaWeb.Platform.TeamComponents do
         >
           Save changes
         </button>
-      </form>
+      </.form>
     </.team_modal>
     """
   end
 
   attr :all_permissions, :list, required: true
-  attr :checked, :list, required: true
+  attr :form, :any, required: true
 
   defp permission_checkboxes(assigns) do
     ~H"""
@@ -356,7 +379,7 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             type="checkbox"
             name="permissions[]"
             value={perm}
-            checked={perm in @checked}
+            checked={permission_selected?(@form, perm)}
             class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           {perm}
@@ -364,6 +387,12 @@ defmodule EmakolaWeb.Platform.TeamComponents do
       </div>
     </fieldset>
     """
+  end
+
+  defp permission_selected?(form, permission) do
+    Enum.any?(List.wrap(form[:permissions].value), fn selected ->
+      to_string(selected) == to_string(permission)
+    end)
   end
 
   attr :title, :string, required: true

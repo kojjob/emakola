@@ -20,6 +20,24 @@ defmodule Emakola.LiveViewHelpers do
 
   alias Emakola.Factory
 
+  @doc "Builds stream-shaped assigns for isolated product-list component tests."
+  def with_product_stream(assigns) when is_map(assigns) do
+    products = Map.get(assigns, :products, [])
+
+    entries =
+      products
+      |> Enum.with_index(1)
+      |> Enum.map(fn {product, position} ->
+        {"products-test-#{position}",
+         %{id: Map.get(product, :id, position), product: product, position: position}}
+      end)
+
+    assigns
+    |> Map.delete(:products)
+    |> Map.put(:products_count, length(products))
+    |> Map.put(:streams, %{products: entries})
+  end
+
   @doc """
   Create platform staff with a DB-backed session, returning {conn, user, session}.
 

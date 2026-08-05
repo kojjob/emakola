@@ -14,11 +14,12 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
   @impl true
   def run(input, _opts, context) do
     address_id = input.arguments.address_id
+    resource = input.resource
 
-    address = Ash.get!(Emakola.Customers.Address, address_id, authorize?: false)
+    address = Ash.get!(resource, address_id, authorize?: false)
 
     with :ok <- authorize_actor(address, context.actor) do
-      set_default(address, address_id)
+      set_default(resource, address, address_id)
     end
   end
 
@@ -27,8 +28,9 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
   # their own addresses; any other actor type is denied.
   defp authorize_actor(_address, nil), do: :ok
 
-  defp authorize_actor(address, %Emakola.Customers.Customer{} = actor) do
-    if address.customer_id == actor.id and address.store_id == actor.store_id do
+  defp authorize_actor(address, %{__struct__: actor_resource} = actor) do
+    if actor_resource == customer_resource() and address.customer_id == actor.id and
+         address.store_id == actor.store_id do
       :ok
     else
       {:error, Ash.Error.Forbidden.exception([])}
@@ -37,9 +39,15 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
 
   defp authorize_actor(_address, _actor), do: {:error, Ash.Error.Forbidden.exception([])}
 
-  defp set_default(address, address_id) do
+  # safe_concat/1 resolves only atoms that already exist, so this cannot mint
+  # one at runtime. The indirection itself is a compile-cycle workaround: naming
+  # the resource directly would create a cycle between the action and the
+  # resource that declares it.
+  defp customer_resource, do: Module.safe_concat(["Emakola", "Customers", "Customer"])
+
+  defp set_default(resource, address, address_id) do
     # Clear all defaults for this customer
-    Emakola.Customers.Address
+    resource
     |> Ash.Query.filter(
       customer_id == ^address.customer_id and is_default == true and id != ^address_id
     )

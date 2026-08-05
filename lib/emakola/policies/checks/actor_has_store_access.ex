@@ -86,7 +86,7 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
   end
 
   defp actor_has_store?(%{id: merchant_id} = actor, store_id) do
-    if is_merchant?(actor) do
+    if merchant?(actor) do
       lookup_membership(merchant_id, store_id)
     else
       false
@@ -95,8 +95,8 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
 
   defp actor_has_store?(_actor, _store_id), do: false
 
-  defp is_merchant?(%Emakola.Accounts.Merchant{}), do: true
-  defp is_merchant?(_), do: false
+  defp merchant?(%Emakola.Accounts.Merchant{}), do: true
+  defp merchant?(_), do: false
 
   defp lookup_membership(merchant_id, store_id) do
     case Emakola.Accounts.StoreMembership

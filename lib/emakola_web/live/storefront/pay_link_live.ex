@@ -24,6 +24,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
       {:ok, link} ->
         store = Ash.get!(Emakola.Stores.Store, link.store_id, authorize?: false)
         variant = load_variant(link)
+        quantity = initial_quantity(link, variant)
 
         if connected?(socket) do
           link
@@ -37,16 +38,9 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:store, store)
          |> assign(:variant, variant)
          |> assign(:state, page_state(link, store, variant))
-         |> assign(:quantity, initial_quantity(link, variant))
+         |> assign(:quantity, quantity)
          |> assign(:processing, false)
-         |> assign(:buyer, %{
-           "name" => "",
-           "phone" => "",
-           "email" => "",
-           "address" => "",
-           "digital_address" => "",
-           "landmark" => ""
-         })
+         |> assign(:buyer, empty_buyer())
          |> assign(:form_errors, %{})
          |> assign(:page_title, store.name)
          # The storefront layout renders the search overlay whenever @store is
@@ -58,7 +52,8 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:search_overlay_query, "")
          |> assign(:search_overlay_results, [])
          |> assign(:search_overlay_total, 0)
-         |> assign(:searching, false)}
+         |> assign(:searching, false)
+         |> assign_pay_forms()}
 
       {:error, _} ->
         raise Ash.Error.Query.NotFound
@@ -116,12 +111,18 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   @impl true
   def handle_event("validate", %{"buyer" => buyer_params}, socket) do
-    {:noreply, assign(socket, :buyer, Map.merge(socket.assigns.buyer, buyer_params))}
+    {:noreply,
+     socket
+     |> assign(:buyer, Map.merge(socket.assigns.buyer, buyer_params))
+     |> assign_pay_forms()}
   end
 
   @impl true
   def handle_event("set_quantity", %{"quantity" => quantity_str}, socket) do
-    {:noreply, assign(socket, :quantity, parse_quantity(quantity_str))}
+    {:noreply,
+     socket
+     |> assign(:quantity, parse_quantity(quantity_str))
+     |> assign_pay_forms()}
   end
 
   # The storefront layout mounts `EmakolaWeb.SearchComponents.search_overlay`
@@ -530,36 +531,35 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         {@form_errors.base}
       </p>
 
-      <form id="pay-link-form" phx-submit="pay" phx-change="validate" class="mt-6 space-y-4">
+      <.form
+        for={@buyer_form}
+        id="pay-link-form"
+        phx-submit="pay"
+        phx-change="validate"
+        class="mt-6 space-y-4"
+      >
         <div :if={@link.type == :catalog and @variant}>
           <label class="block text-sm font-medium text-slate-700" for="pay-link-quantity">
             Quantity
           </label>
-          <select
+          <.input
+            field={@quantity_form[:quantity]}
+            type="select"
             id="pay-link-quantity"
-            name="quantity"
+            options={Enum.map(quantity_options(@variant, @link.quantity), &{to_string(&1), &1})}
             phx-change="set_quantity"
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-          >
-            <option
-              :for={n <- quantity_options(@variant, @link.quantity)}
-              value={n}
-              selected={n == @quantity}
-            >
-              {n}
-            </option>
-          </select>
+          />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-slate-700" for="pay-link-name">
             Full name
           </label>
-          <input
+          <.input
+            field={@buyer_form[:name]}
             type="text"
             id="pay-link-name"
-            name="buyer[name]"
-            value={@buyer["name"]}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -569,11 +569,10 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="pay-link-phone">
             Phone number
           </label>
-          <input
+          <.input
+            field={@buyer_form[:phone]}
             type="tel"
             id="pay-link-phone"
-            name="buyer[phone]"
-            value={@buyer["phone"]}
             required
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
@@ -583,11 +582,10 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="pay-link-email">
             Email (optional)
           </label>
-          <input
+          <.input
+            field={@buyer_form[:email]}
             type="email"
             id="pay-link-email"
-            name="buyer[email]"
-            value={@buyer["email"]}
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           />
         </div>
@@ -596,11 +594,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           <label class="block text-sm font-medium text-slate-700" for="pay-link-address">
             Delivery address
           </label>
-          <textarea
+          <.input
+            field={@buyer_form[:address]}
+            type="textarea"
             id="pay-link-address"
-            name="buyer[address]"
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-          >{@buyer["address"]}</textarea>
+          />
         </div>
 
         <AddressComponents.gh_address_fields
@@ -618,7 +617,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         >
           Pay {Currency.format_price(pay_amount(assigns), @store.currency || "GHS")}
         </button>
-      </form>
+      </.form>
     </div>
     """
   end
@@ -651,4 +650,22 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
        do: 1..min(stock, max(10, link_quantity))
 
   defp quantity_options(_variant, link_quantity), do: 1..max(10, link_quantity)
+
+  defp empty_buyer do
+    %{
+      "name" => "",
+      "phone" => "",
+      "email" => "",
+      "address" => "",
+      "digital_address" => "",
+      "landmark" => ""
+    }
+  end
+
+  defp assign_pay_forms(socket) do
+    assign(socket,
+      buyer_form: to_form(socket.assigns.buyer, as: :buyer),
+      quantity_form: to_form(%{"quantity" => socket.assigns.quantity})
+    )
+  end
 end

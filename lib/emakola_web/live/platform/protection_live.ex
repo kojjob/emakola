@@ -31,6 +31,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       until the webhook lands.
   """
   use EmakolaWeb, :live_view
+  require Ash.Query
   require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_billing}
@@ -38,6 +39,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Payments.ProtectionHolds
+  alias Emakola.Payments.ProtectionHold
   alias Emakola.Payments.ProtectionRelease
   alias Emakola.Payments.RefundService
 
@@ -47,8 +49,12 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       socket
       |> assign(:page_title, "Buyer Protection")
       |> assign(:active_nav, :protection)
-      |> assign(:frozen_holds, nil)
-      |> assign(:stale_holds, nil)
+      |> assign(:holds_loaded?, false)
+      |> assign(:frozen_holds_count, 0)
+      |> assign(:stale_holds_count, 0)
+      |> assign(:hold_tenants, %{})
+      |> stream(:frozen_holds, [])
+      |> stream(:stale_holds, [])
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
@@ -185,10 +191,16 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   defp refund_error(_reason), do: "Could not initiate the refund."
 
   defp find_hold(socket, id) do
-    Enum.find(
-      (socket.assigns.frozen_holds || []) ++ (socket.assigns.stale_holds || []),
-      &(&1.id == id)
-    )
+    with {:ok, store_id} <- Map.fetch(socket.assigns.hold_tenants, id),
+         {:ok, hold} <-
+           ProtectionHold
+           |> Ash.Query.filter(id == ^id and status == :held)
+           |> Ash.Query.load([:store, :order])
+           |> Ash.read_one(tenant: store_id, authorize?: false) do
+      hold
+    else
+      _ -> nil
+    end
   end
 
   # Re-check the permission against a fresh user (Iron Law: never trust mount).
@@ -208,16 +220,31 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   end
 
   defp load(socket) do
+    frozen_holds = ProtectionHolds.list_frozen()
+    stale_holds = ProtectionHolds.list_stale()
+
+    hold_tenants =
+      (frozen_holds ++ stale_holds)
+      |> Map.new(&{&1.id, &1.store_id})
+
     socket
-    |> assign(:frozen_holds, ProtectionHolds.list_frozen())
-    |> assign(:stale_holds, ProtectionHolds.list_stale())
+    |> assign(:holds_loaded?, true)
+    |> assign(:frozen_holds_count, length(frozen_holds))
+    |> assign(:stale_holds_count, length(stale_holds))
+    |> assign(:hold_tenants, hold_tenants)
+    |> stream(:frozen_holds, frozen_holds, reset: true)
+    |> stream(:stale_holds, stale_holds, reset: true)
   rescue
     exception ->
       Logger.error("[platform.protection_live] load raised: #{Exception.message(exception)}")
 
       socket
-      |> assign(:frozen_holds, [])
-      |> assign(:stale_holds, [])
+      |> assign(:holds_loaded?, true)
+      |> assign(:frozen_holds_count, 0)
+      |> assign(:stale_holds_count, 0)
+      |> assign(:hold_tenants, %{})
+      |> stream(:frozen_holds, [], reset: true)
+      |> stream(:stale_holds, [], reset: true)
   end
 
   @impl true
@@ -245,16 +272,23 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr :if={is_nil(@frozen_holds)}>
+            <tbody id="frozen-protection-holds" phx-update="stream" class="divide-y divide-gray-100">
+              <tr :if={!@holds_loaded?} id="frozen-protection-holds-loading">
                 <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
               </tr>
-              <tr :if={@frozen_holds == []}>
+              <tr
+                :if={@holds_loaded? and @frozen_holds_count == 0}
+                id="frozen-protection-holds-empty"
+              >
                 <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
                   No open complaints.
                 </td>
               </tr>
-              <tr :for={hold <- @frozen_holds || []} class="hover:bg-gray-50 transition-colors">
+              <tr
+                :for={{id, hold} <- @streams.frozen_holds}
+                id={id}
+                class="hover:bg-gray-50 transition-colors"
+              >
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
                   {(hold.order && hold.order.order_number) || "—"}
                 </td>
@@ -294,16 +328,23 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr :if={is_nil(@stale_holds)}>
+            <tbody id="stale-protection-holds" phx-update="stream" class="divide-y divide-gray-100">
+              <tr :if={!@holds_loaded?} id="stale-protection-holds-loading">
                 <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
               </tr>
-              <tr :if={@stale_holds == []}>
+              <tr
+                :if={@holds_loaded? and @stale_holds_count == 0}
+                id="stale-protection-holds-empty"
+              >
                 <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
                   Nothing stale right now.
                 </td>
               </tr>
-              <tr :for={hold <- @stale_holds || []} class="hover:bg-gray-50 transition-colors">
+              <tr
+                :for={{id, hold} <- @streams.stale_holds}
+                id={id}
+                class="hover:bg-gray-50 transition-colors"
+              >
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
                   {(hold.order && hold.order.order_number) || "—"}
                 </td>

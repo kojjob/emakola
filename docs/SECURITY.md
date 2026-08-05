@@ -1,7 +1,7 @@
 # Emakola Security Policy
 
-Version: 1.0
-Last Updated: 2026-03-21
+Version: 1.1
+Last Updated: 2026-08-04
 Classification: Internal
 
 ---
@@ -80,9 +80,20 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 
 - **PostgreSQL**: Deployed on Fly.io with encrypted volumes (AES-256)
 - **Backups**: Encrypted using Fly.io managed backup encryption
-- **Application-level encryption**: Sensitive fields (phone numbers, addresses) encrypted using `Cloak.Ecto` with AES-GCM-256
-  - Key rotation supported without downtime
-  - Encryption keys stored in Fly.io secrets, never in source code
+- **Application-level encryption rollout**: TOTP seeds, outbound-webhook signing
+  secrets, and FCM device tokens have versioned AES-256-GCM shadow columns.
+  New writes update both the legacy and encrypted columns, reads prefer the
+  authenticated ciphertext, and a release RPC backfills existing rows after
+  the schema-only expand migrations complete.
+  Authenticated stale shadows caused by an old node are temporarily resolved
+  through the compatibility column and repaired by a post-rollout reconcile.
+  Device-token equality migration is prepared with a separate keyed-HMAC blind
+  index. The legacy plaintext columns are intentionally retained until the
+  rolling-deploy contract release; see `docs/ENCRYPTION_AT_REST.md` for the
+  exact coverage, residual fields, verification, and rotation runbook.
+- **Key management**: Encryption and blind-index keyrings use independent
+   32-byte keys from production runtime secrets. Envelopes include a key id so
+   old and new encryption keys can overlap during rotation.
 
 ### 2.2 Encryption in Transit
 
@@ -94,12 +105,16 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 
 ### 2.3 PII Handling
 
-- **Logging**: All PII masked before logging
-  - Phone numbers: `+233XXXXXXX45` (show last 2 digits)
+- **Logging**: Notification and authentication sender paths use
+  `Emakola.Privacy`; new log statements must not serialise request/provider
+  payloads or message bodies.
+  - Phone numbers: `+233****4567` (show final 4 digits)
   - Email addresses: `k***@example.com`
-  - Names: Never logged unless explicitly required for debugging (and then redacted within 24 hours)
+- **Never log** raw message bodies, provider responses, credentials, tokens, or
+  authentication codes.
 - **Log storage**: Structured JSON logs, retained for 90 days, then purged
-- **Database**: PII fields identified and tagged in schema documentation
+- **Database**: Persisted PII and credentials are inventoried in
+  [`SENSITIVE_DATA_INVENTORY.md`](SENSITIVE_DATA_INVENTORY.md)
 - **Access**: PII access restricted to authorized personnel with audit trail
 
 ### 2.4 Password Security
@@ -114,8 +129,12 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 - **Payment card data**: Never touches our servers. All card data handled by Paystack/Flutterwave via their hosted payment pages or tokenized client-side SDKs
 - **Payment tokens**: We store only gateway transaction references (e.g., Paystack `reference` strings)
 - **Mobile money PINs**: Never collected by our platform; handled entirely by USSD/provider
-- **API keys**: Stored encrypted, displayed once on creation, shown masked thereafter
-- **Merchant bank details**: Encrypted at rest with Cloak.Ecto
+- **API/provider keys**: Runtime provider credentials are injected by the
+  production secret manager and are not persisted in application tables.
+- **Merchant bank details**: Application-level encryption is not yet complete
+  for every payout and supplier field. The remaining columns are enumerated in
+  `docs/ENCRYPTION_AT_REST.md`; encrypted database volumes remain the current
+  at-rest control for those residuals.
 
 ---
 
@@ -242,7 +261,7 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 |---|---|
 | Weak password hashing | bcrypt with cost factor 12 |
 | Data in transit | TLS 1.3 enforced, HSTS enabled |
-| Sensitive data at rest | Cloak.Ecto AES-GCM-256 for PII fields, encrypted disk volumes |
+| Sensitive data at rest | Versioned AES-256-GCM rollout for TOTP/webhook/device secrets; encrypted volumes plus a tracked contract plan for residual fields |
 | Exposed secrets | Fly.io secrets store, never in code |
 
 ### A03:2021 — Injection

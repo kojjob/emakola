@@ -23,6 +23,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         active_nav: :customers,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         customers: [],
         customers_limit: @customers_limit,
         more_customers?: false,
@@ -46,7 +47,11 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query, customers_limit: @customers_limit)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        customers_limit: @customers_limit
+      )
       |> load_customers()
 
     {:noreply, socket}
@@ -98,7 +103,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       </div>
 
       <%!-- Filter Bar --%>
-      <.table_toolbar search_query={@search_query} placeholder="Search by name or email..." />
+      <.table_toolbar
+        id="customer-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search by name or email..."
+      />
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>

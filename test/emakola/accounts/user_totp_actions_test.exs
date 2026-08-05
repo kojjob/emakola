@@ -38,6 +38,8 @@ defmodule Emakola.Accounts.UserTotpActionsTest do
       assert {:ok, updated} = setup_totp(user, secret, NimbleTOTP.verification_code(secret))
 
       assert updated.totp_secret == secret
+      assert Emakola.Security.FieldEncryption.encrypted?(updated.totp_secret_encrypted)
+      assert {:ok, ^secret} = Emakola.Security.SecretStorage.user_totp_secret(updated)
       assert %DateTime{} = updated.totp_last_used_at
       assert [_log] = audit_rows(user, :totp_enabled)
     end
@@ -79,6 +81,7 @@ defmodule Emakola.Accounts.UserTotpActionsTest do
         |> Ash.update!(authorize?: false)
 
       assert is_nil(cleared.totp_secret)
+      assert is_nil(cleared.totp_secret_encrypted)
       assert is_nil(cleared.totp_last_used_at)
     end
 

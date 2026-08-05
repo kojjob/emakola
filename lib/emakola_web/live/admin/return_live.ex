@@ -37,7 +37,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            status_filter: "all",
            selected_return: nil,
            action_notes: "",
+           action_notes_form: to_form(%{"notes" => ""}),
            refund_amount_input: "",
+           refund_amount_form: to_form(%{"amount" => ""}),
            refund_dispatch_fee: false,
            selected_payment: nil,
            selected_fulfillments: []
@@ -65,7 +67,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
      assign(socket,
        selected_return: selected,
        action_notes: "",
+       action_notes_form: to_form(%{"notes" => ""}),
        refund_amount_input: "",
+       refund_amount_form: to_form(%{"amount" => ""}),
        refund_dispatch_fee: false,
        selected_payment: payment,
        selected_fulfillments: fulfillments
@@ -79,17 +83,25 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
   @impl true
   def handle_event("update_notes", %{"notes" => notes}, socket) do
-    {:noreply, assign(socket, action_notes: notes)}
+    {:noreply,
+     assign(socket,
+       action_notes: notes,
+       action_notes_form: to_form(%{"notes" => notes})
+     )}
   end
 
   @impl true
   def handle_event("update_refund_amount", %{"amount" => amount}, socket) do
-    {:noreply, assign(socket, refund_amount_input: amount)}
+    {:noreply,
+     assign(socket,
+       refund_amount_input: amount,
+       refund_amount_form: to_form(%{"amount" => amount})
+     )}
   end
 
   @impl true
   def handle_event("noop_submit", _params, socket) do
-    # The notes/amount inputs live in their own <form> so LiveView can send
+    # The notes/amount inputs live in their own forms so LiveView can send
     # phx-change events (browsers refuse phx-change from an input with no
     # form ancestor). Neither form has a submit button, but pressing Enter
     # while focused in one still fires a submit — this swallows it so Enter
@@ -377,16 +389,23 @@ defmodule EmakolaWeb.Admin.ReturnLive do
             <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
               Notes
             </label>
-            <form phx-submit="noop_submit" class="contents">
-              <textarea
+            <.form
+              for={@action_notes_form}
+              id="return-action-notes-form"
+              phx-submit="noop_submit"
+              class="contents"
+            >
+              <.input
+                field={@action_notes_form[:notes]}
+                id="return-action-notes"
+                type="textarea"
                 phx-change="update_notes"
-                name="notes"
                 rows="3"
                 maxlength="2000"
                 placeholder="Add notes about this decision..."
                 class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
-              >{@action_notes}</textarea>
-            </form>
+              />
+            </.form>
           </div>
           <%!-- Refund guidance --%>
           <div :if={@selected_payment} class="space-y-3">
@@ -421,16 +440,21 @@ defmodule EmakolaWeb.Admin.ReturnLive do
             <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
               Refund Amount (GHS)
             </label>
-            <form phx-submit="noop_submit" class="contents">
-              <input
+            <.form
+              for={@refund_amount_form}
+              id="return-refund-amount-form"
+              phx-submit="noop_submit"
+              class="contents"
+            >
+              <.input
+                field={@refund_amount_form[:amount]}
+                id="return-refund-amount"
                 type="text"
                 phx-change="update_refund_amount"
-                name="amount"
-                value={@refund_amount_input}
                 placeholder="0.00"
                 class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
               />
-            </form>
+            </.form>
             <p :if={@amount_exceeds_suggested_max?} class="mt-2 text-xs font-medium text-amber-700">
               Above the suggested limit of {Currency.format_price(
                 @suggested_max,
