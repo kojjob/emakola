@@ -99,6 +99,8 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
                 {@product.title}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Price + dimensions --%>
               <div class="flex items-baseline gap-4 mb-6 flex-wrap">
                 <span class="home-living-heading text-3xl font-semibold text-[#C2410C]">

@@ -28,7 +28,7 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
        page_title: "SEO",
        active_nav: :settings,
        store: store,
-       ai_enabled: ai_enabled?()
+       ai_enabled: EmakolaWeb.AiGate.enabled?()
      )
      |> load_gaps()}
   end
@@ -85,8 +85,6 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
     |> Ash.Query.limit(@batch)
     |> Ash.read!(tenant: store_id, authorize?: false)
   end
-
-  defp ai_enabled?, do: not is_nil(Application.get_env(:emakola, :anthropic_api_key))
 
   @impl true
   def render(assigns) do

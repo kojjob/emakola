@@ -129,6 +129,8 @@ defmodule Emakola.Themes.Ntoma.ProductDetail do
             {@product.title}
           </h1>
 
+          <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
           <div class="mt-4 flex flex-wrap items-baseline gap-3">
             <p class="text-2xl font-semibold tabular-nums text-[#2B1708] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)] sm:text-[1.75rem]">
               <%= if @selected_variant do %>

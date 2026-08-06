@@ -124,6 +124,8 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <p class="mt-5 flex flex-wrap items-baseline gap-3">
               <span
                 :if={@selected_variant}

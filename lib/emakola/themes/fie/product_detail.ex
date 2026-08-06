@@ -120,6 +120,8 @@ defmodule Emakola.Themes.Fie.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-[#EBDAD3] pb-5">
               <p class="text-2xl font-medium tabular-nums tracking-tight text-stone-900 [font-family:'Space_Grotesk','Inter',sans-serif]">
                 <%= if @selected_variant do %>

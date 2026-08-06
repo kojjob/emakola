@@ -97,6 +97,8 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                 {@product.title}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Price --%>
               <p class="fashion-heading text-2xl sm:text-3xl font-semibold text-[var(--theme-primary,#5B21B6)] mb-6">
                 {EmakolaWeb.Helpers.Currency.format_price(

@@ -377,6 +377,7 @@ reuses protection's held-funds ledger, addressing is independent.
       badge with domain-level revocation on image swap. Price is merchant-typed,
       never guessed.
       Spec: `docs/superpowers/specs/2026-08-05-snap-to-shop-design.md` ✅ specced
+      → implemented (PR pending)
 - [ ] Brainstorm shortlist (not specced): WhatsApp AI shop assistant (chat →
       pay-link checkout; gated on Meta approval), Instagram shop importer
       (IG screenshots → products), one-tap AI shop designer (rides section
