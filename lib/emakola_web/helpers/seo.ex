@@ -135,7 +135,7 @@ defmodule EmakolaWeb.Helpers.SEO do
       "contactPoint" => %{
         "@type" => "ContactPoint",
         "contactType" => "customer support",
-        "email" => "support@emakola.com",
+        "email" => "support@makola.io",
         "availableLanguage" => ["English"]
       }
     }

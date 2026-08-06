@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Company.ContactLive do
        form: contact_form(empty_form()),
        sent: false,
        error: nil,
-       support_email: Application.get_env(:emakola, :contact_email, "support@emakola.com"),
+       support_email: Application.get_env(:emakola, :contact_email, "support@makola.io"),
        whatsapp: Application.get_env(:emakola, :support_whatsapp, "233200000000"),
        phone: Application.get_env(:emakola, :support_phone, "+233 20 000 0000")
      ), layout: false}

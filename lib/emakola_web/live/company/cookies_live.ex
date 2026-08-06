@@ -124,10 +124,10 @@ defmodule EmakolaWeb.Company.CookiesLive do
             <:section id="contact" title="Contact us">
               <p class="text-[#5f6b7a] leading-relaxed">
                 If you have questions about our use of cookies, please contact us at <a
-                  href="mailto:support@emakola.com"
+                  href="mailto:support@makola.io"
                   class="text-[#d4a843] hover:underline"
                 >
-                support@emakola.com
+                support@makola.io
               </a>.
               </p>
             </:section>

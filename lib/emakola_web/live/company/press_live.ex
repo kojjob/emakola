@@ -13,7 +13,7 @@ defmodule EmakolaWeb.Company.PressLive do
          "Press resources, brand assets, and media contact for Makola — the commerce platform for West African merchants.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/press"),
-       press_email: Application.get_env(:emakola, :press_email, "press@emakola.com")
+       press_email: Application.get_env(:emakola, :press_email, "press@makola.io")
      ), layout: false}
   end
 

@@ -717,7 +717,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     cond do
       assigns[:email] not in [nil, ""] -> assigns.email
       Map.get(store, :contact_email) not in [nil, ""] -> store.contact_email
-      true -> "checkout+#{store.slug}@emakola.com"
+      true -> "checkout+#{store.slug}@makola.io"
     end
   end
 

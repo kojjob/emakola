@@ -439,7 +439,7 @@ defmodule Emakola.Orders.SusuChunks do
   end
 
   defp store_fallback_email(store),
-    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@emakola.com"
+    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@makola.io"
 
   # -- Confirmation ------------------------------------------------------
 

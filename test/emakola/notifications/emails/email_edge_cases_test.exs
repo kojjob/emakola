@@ -595,8 +595,8 @@ defmodule Emakola.Notifications.Emails.EmailEdgeCasesTest do
 
       assert email.html_body != nil
       assert email.text_body != nil
-      # The from address should fall back to noreply@emakola.com
-      assert {_, "noreply@emakola.com"} = email.from
+      # The from address should fall back to noreply@makola.io
+      assert {_, "noreply@makola.io"} = email.from
     end
   end
 

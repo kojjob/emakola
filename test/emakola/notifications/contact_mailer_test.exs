@@ -14,7 +14,7 @@ defmodule Emakola.Notifications.ContactMailerTest do
       })
 
     assert_email_sent(fn email ->
-      assert {_, "support@emakola.com"} = hd(email.to)
+      assert {_, "support@makola.io"} = hd(email.to)
       # reply_to must be a SINGLE recipient tuple, not a list — the Resend
       # adapter's format_recipient/1 has no clause for a list and raises in prod.
       assert {_, "ama@example.com"} = email.reply_to

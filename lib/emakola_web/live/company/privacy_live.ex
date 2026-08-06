@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
               </p>
               <p class="text-[#5f6b7a] leading-relaxed">
                 No system is completely secure. If you discover a security vulnerability, please
-                report it to support@emakola.com and we will respond promptly.
+                report it to support@makola.io and we will respond promptly.
               </p>
             </:section>
 
@@ -161,7 +161,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
                 </li>
               </ul>
               <p class="text-[#5f6b7a] leading-relaxed">
-                To exercise any of these rights, email us at support@emakola.com. We will respond
+                To exercise any of these rights, email us at support@makola.io. We will respond
                 within thirty days.
               </p>
             </:section>
@@ -200,10 +200,10 @@ defmodule EmakolaWeb.Company.PrivacyLive do
               <p class="text-[#5f6b7a] leading-relaxed">
                 If you have questions about this Privacy Policy or how we handle your data,
                 please contact our privacy team at <a
-                  href="mailto:support@emakola.com"
+                  href="mailto:support@makola.io"
                   class="text-[#d4a843] hover:underline"
                 >
-                support@emakola.com
+                support@makola.io
               </a>.
               </p>
               <p class="text-[#5f6b7a] leading-relaxed">

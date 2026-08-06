@@ -108,7 +108,7 @@ defmodule Emakola.Notifications.Emails.OrderEmailTest do
     test "falls back to noreply when store has no contact_email" do
       store = build_store(contact_email: nil)
       email = OrderEmail.order_confirmation(build_order(), build_customer(), store)
-      assert {"Accra Fashion Hub", "noreply@emakola.com"} = email.from
+      assert {"Accra Fashion Hub", "noreply@makola.io"} = email.from
     end
 
     test "HTML body contains order number" do

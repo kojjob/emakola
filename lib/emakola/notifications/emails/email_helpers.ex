@@ -33,10 +33,10 @@ defmodule Emakola.Notifications.Emails.EmailHelpers do
 
   @doc """
   Returns the from tuple for an email based on the store.
-  Falls back to noreply@emakola.com when store has no contact_email.
+  Falls back to noreply@makola.io when store has no contact_email.
   """
   def from_address(store) do
-    email = store.contact_email || "noreply@emakola.com"
+    email = store.contact_email || "noreply@makola.io"
     {store.name, email}
   end
 

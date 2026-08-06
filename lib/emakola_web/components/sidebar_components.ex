@@ -439,7 +439,7 @@ defmodule EmakolaWeb.SidebarComponents do
                   else: "Merchant"}
               </p>
               <p class="text-[10px] text-white/30 truncate leading-tight">
-                {if sidebar_user, do: sidebar_user.email, else: "merchant@emakola.com"}
+                {if sidebar_user, do: sidebar_user.email, else: "merchant@makola.io"}
               </p>
             </div>
             <svg
