@@ -91,17 +91,48 @@ secrets — the sign-in buttons appear automatically, nothing else to deploy:
       emakola.com` and `'*.emakola.com'` → wait for **Ready** →
       `fly secrets set PHX_HOST=emakola.com` → optionally flip Cloudflare to
       Proxied. (§9)
-- [ ] **Paystack live keys** — after business verification; swap with the
-      same `fly secrets set`.
+- [ ] **Paystack live cutover** — after business verification. The code is
+      mode-agnostic (no `sk_test` conditionals anywhere), and the webhook
+      HMAC derives from the secret key, so the swap below re-keys signature
+      verification by itself. In order:
+      1. Live-mode dashboard: enable the **Mobile Money** channel and set the
+         webhook URL to `https://makola.io/webhooks/paystack`. (The test-mode
+         registration points at `emakola.fly.dev`, which still routes to the
+         same app — but live should name the real host.)
+      2. One command so both keys flip together (machines restart on set):
+         `fly secrets set PAYSTACK_SECRET_KEY=sk_live_… PAYSTACK_PUBLIC_KEY=pk_live_…`
+      3. ⚠️ **Test-mode subaccounts do not exist in live mode**, and
+         `SubaccountCreationWorker` is an idempotent no-op once a code is
+         saved — it will NOT self-heal after the swap. Check for poisoned rows:
+         `SELECT store_id, subaccount_code FROM store_payout_accounts
+         WHERE subaccount_code IS NOT NULL;`
+         For each row: set `subaccount_code = NULL,
+         verification_status = 'unverified'`, then have the merchant re-save
+         their payout details at `/admin/payouts` — that enqueues the worker,
+         which re-creates the subaccount under the live keys. Transfer
+         recipients need nothing: they are built per-payout from the saved
+         MoMo number. Just don't approve any payout row created pre-swap.
+      4. Live smoke, in order: 1-cedi MoMo order on a real store →
+         `charge.success` arrives (`fly logs`) → payment `:succeeded` and the
+         split rows settle → `/admin/earnings` shows the accrual → approve a
+         payout in `/platform/finance` → `transfer.success` → money on the
+         phone. (Reminder from the smoke section above: Paystack holds a new
+         subaccount's **first** payout until it's verified in the dashboard.)
+      5. Rollback = swap the test keys back with the same command. Rows
+         cleared in step 3 stay cleared; the worker recreates codes under
+         whichever mode is active.
 - [ ] **Purge demo credentials** — superseded by step **7b** above
       (`Emakola.Stores.DemoPurge`, PR #329).
 - [ ] **Rotate Postgres credentials** — `fly postgres attach` echoes the DB
       password into terminal output; rotate if those transcripts are ever
       shared.
-- [ ] **GitHub branch protection** — repo Settings → Branches → `main` →
+- [x] **GitHub branch protection** — repo Settings → Branches → `main` →
       ☑ *Require branches to be up to date before merging*. Five separate
       stranded-PR/semantic-merge incidents this cycle; one checkbox kills
-      the whole class.
+      the whole class. *(Verified enabled 2026-08-05 via the API: `strict:
+      true` + required check `Test`, now reported by the CI umbrella job.
+      Cost: every merge invalidates other open PRs for a ~15-min re-run —
+      merge stacked work in quick succession.)*
 - [ ] **Click the PDF export once in prod** — ChromicPDF/Chromium ships in
       the image (on-demand spawn) but the `:pdf` tests are excluded from CI;
       verify the real button works.
