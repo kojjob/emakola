@@ -81,6 +81,8 @@ defmodule Emakola.Themes.Dede.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <p
               :if={@orderable}
               class="mt-2.5 inline-flex items-center gap-1.5 text-sm font-bold text-[#166534]"

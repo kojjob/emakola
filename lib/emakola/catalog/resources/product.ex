@@ -145,6 +145,12 @@ defmodule Emakola.Catalog.Product do
       constraints(min: 0)
     end
 
+    attribute :snap_verified, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -205,7 +211,8 @@ defmodule Emakola.Catalog.Product do
     # `authorize?: false` from the moderation queue. Forbidding every actor
     # means a merchant can't reverse a takedown, even though the merchant
     # write policy below would otherwise admit the update.
-    policy action([:take_down, :reinstate]) do
+    # Same applies to :set_snap_verified — badge integrity requires system-only writes.
+    policy action([:take_down, :reinstate, :set_snap_verified]) do
       forbid_if(always())
     end
 
@@ -332,6 +339,11 @@ defmodule Emakola.Catalog.Product do
       require_atomic?(true)
       accept([])
       change(atomic_update(:share_count, expr(share_count + 1)))
+    end
+
+    update :set_snap_verified do
+      require_atomic?(false)
+      accept([:snap_verified])
     end
 
     read :search do

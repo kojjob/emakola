@@ -105,6 +105,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
             <h1 class="mt-2 text-3xl text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)] sm:text-4xl">
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <Shared.caught_light class="mt-5 w-16" />
 
             <p class="mt-5 text-2xl tabular-nums text-[#211D16]">

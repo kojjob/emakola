@@ -20,6 +20,14 @@ defmodule EmakolaWeb.DashboardComponents do
       </div>
 
       <div class="flex items-center gap-2">
+        <.link
+          :if={EmakolaWeb.AiGate.enabled?()}
+          navigate="/admin/products/snap"
+          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-white"
+        >
+          📸 Add by photo
+        </.link>
+
         <div class="flex items-center rounded-control bg-surface shadow-sm p-1">
           <button
             :for={p <- @periods}

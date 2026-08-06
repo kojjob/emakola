@@ -250,6 +250,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 {@product.title}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Price --%>
               <div class="flex items-baseline gap-2.5 mb-3">
                 <p class="text-2xl lg:text-[1.75rem] font-bold text-[#0F172A] tabular-nums">
