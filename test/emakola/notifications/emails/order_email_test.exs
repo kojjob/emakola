@@ -224,12 +224,15 @@ defmodule Emakola.Notifications.Emails.OrderEmailTest do
     end
   end
 
-  # ── Supplier dispatch fee itemization ────────────────────────────
-  # Regression for the pre-fix bug: shipping was `total - subtotal`, which
-  # silently folded the supplier dispatch fee into the Shipping line.
+  # ── Supplier dispatch fee presentation ───────────────────────────
+  # "Supplier dispatch" is supply-chain vocabulary a buyer should never see —
+  # it exposes that the shop doesn't hold the stock. The fee is deliberately
+  # FOLDED into the Shipping line, as an explicit delivery_fee +
+  # dispatch_fee_total sum (never the old total - subtotal remainder, which
+  # once swallowed discounts too). The merchant admin keeps the breakdown.
 
   describe "order_confirmation/3 with a supplier dispatch fee" do
-    test "shipping line shows the delivery fee alone; dispatch fee gets its own line" do
+    test "dispatch folds into the Shipping line; no supply-chain wording for buyers" do
       order =
         build_order(
           delivery_fee: 1_000,
@@ -240,20 +243,20 @@ defmodule Emakola.Notifications.Emails.OrderEmailTest do
 
       email = OrderEmail.order_confirmation(order, build_customer(), build_store())
 
-      assert email.html_body =~ "Supplier dispatch"
-      assert email.html_body =~ "GH₵15.00"
-      # Shipping is the delivery fee alone (GH₵10.00) — not delivery + dispatch (GH₵25.00).
-      refute email.html_body =~ "GH₵25.00"
+      refute email.html_body =~ "Supplier dispatch"
+      # Shipping is delivery + dispatch (GH₵10.00 + GH₵15.00), summed explicitly.
+      assert email.html_body =~ "GH₵25.00"
 
-      assert email.text_body =~ "Supplier dispatch: GH₵15.00"
-      assert email.text_body =~ "Shipping: GH₵10.00"
-      refute email.text_body =~ "Shipping: GH₵25.00"
+      refute email.text_body =~ "Supplier dispatch"
+      assert email.text_body =~ "Shipping: GH₵25.00"
+      refute email.text_body =~ "Shipping: GH₵10.00"
     end
 
-    test "no dispatch line when dispatch_fee_total is 0" do
+    test "shipping is the delivery fee alone when dispatch_fee_total is 0" do
       order = build_order(delivery_fee: 1_000, dispatch_fee_total: 0, total: 39_500)
       email = OrderEmail.order_confirmation(order, build_customer(), build_store())
 
+      assert email.text_body =~ "Shipping: GH₵10.00"
       refute email.html_body =~ "Supplier dispatch"
       refute email.text_body =~ "Supplier dispatch"
     end

@@ -239,21 +239,14 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
               </span>
             </div>
             <div
-              :if={order_has_field?(@order, :delivery_fee) && @order.delivery_fee > 0}
+              :if={delivery_line_total(@order) > 0}
               class="flex justify-between text-sm"
             >
+              <%!-- Includes any supplier dispatch fee — supply-chain wording
+                    stays out of buyer receipts. --%>
               <span class="text-[#78716C]">Delivery</span>
               <span class="text-[#44403C] tabular-nums">
-                {Currency.format_price(@order.delivery_fee, @store.currency)}
-              </span>
-            </div>
-            <div
-              :if={order_has_field?(@order, :dispatch_fee_total) && @order.dispatch_fee_total > 0}
-              class="flex justify-between text-sm"
-            >
-              <span class="text-[#78716C]">Supplier dispatch</span>
-              <span class="text-[#44403C] tabular-nums">
-                {Currency.format_price(@order.dispatch_fee_total, @store.currency)}
+                {Currency.format_price(delivery_line_total(@order), @store.currency)}
               </span>
             </div>
             <div class="flex justify-between items-baseline pt-3 border-t border-[#E7E5E4]">
@@ -455,6 +448,17 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
   defp order_has_field?(order, field) do
     Map.has_key?(order, field) && not is_nil(Map.get(order, field))
+  end
+
+  # Buyer-facing "Delivery" is delivery + supplier dispatch, summed explicitly
+  # from the snapshotted fields (guarded — older orders may lack them).
+  defp delivery_line_total(order) do
+    delivery = if order_has_field?(order, :delivery_fee), do: order.delivery_fee, else: 0
+
+    dispatch =
+      if order_has_field?(order, :dispatch_fee_total), do: order.dispatch_fee_total, else: 0
+
+    delivery + dispatch
   end
 
   defp customer_phone(order) do

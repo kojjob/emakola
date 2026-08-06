@@ -792,7 +792,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   # -- Supplier Dispatch Fee --
 
   describe "supplier dispatch fee" do
-    test "supplier dispatch line appears for dropship carts and updates with region", %{
+    test "dispatch folds into the Shipping line and tracks region changes", %{
       conn: conn
     } do
       {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dispatch Reseller"})
@@ -802,9 +802,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       drop =
         import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
           "Greater Accra" => 1_500,
-          # Deliberately distinct from Ashanti's default DELIVERY fee (2_500)
-          # so the post-region-change assertion can't pass vacuously against
-          # the Shipping line instead of the Supplier dispatch line.
+          # Deliberately distinct from Ashanti's fallback DELIVERY fee (2_500)
+          # so the combined-line sums below (3_000 vs 5_200) can't collide.
           "Ashanti" => 2_700
         })
 
@@ -822,14 +821,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
       {:ok, view, html} = live(conn, "/s/#{reseller.slug}/checkout")
 
-      assert html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(1_500)
+      # Buyers never see supply-chain vocabulary — dispatch folds into
+      # Shipping: Greater Accra fallback 1_500 + dispatch 1_500 = 3_000.
+      refute html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(3_000)
 
       html = render_change(view, "update_details", %{"region" => "ashanti"})
 
-      assert html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(2_700)
-      refute html =~ Currency.format_price(1_500)
+      # Ashanti fallback 2_500 + Ashanti dispatch 2_700 = 5_200.
+      refute html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(5_200)
+      refute html =~ Currency.format_price(3_000)
     end
 
     test "no dispatch line for merchant-only carts", %{conn: conn, store: store, variant: variant} do
