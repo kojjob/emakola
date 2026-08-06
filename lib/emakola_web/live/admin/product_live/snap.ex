@@ -24,7 +24,19 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
 
   @impl true
   def mount(_params, _session, socket) do
-    store = socket.assigns.current_store
+    case socket.assigns.current_store do
+      nil ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Create your store first")
+         |> push_navigate(to: ~p"/dashboard")}
+
+      store ->
+        mount_with_store(store, socket)
+    end
+  end
+
+  defp mount_with_store(store, socket) do
     categories = load_store_categories(store.id)
 
     socket =

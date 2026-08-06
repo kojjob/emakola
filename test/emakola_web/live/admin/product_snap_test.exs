@@ -732,4 +732,20 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
       refute has_element?(view, "input[type=file]")
     end
   end
+
+  describe "merchant without a store" do
+    test "redirects to the dashboard instead of crashing", %{conn: conn} do
+      merchant = Emakola.Factory.create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+        |> get(~p"/admin/products/snap")
+
+      assert redirected_to(conn) == "/dashboard"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Create your store first"
+    end
+  end
 end
