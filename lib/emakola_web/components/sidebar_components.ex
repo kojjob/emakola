@@ -139,7 +139,7 @@ defmodule EmakolaWeb.SidebarComponents do
           </div>
           <div class="nav-label min-w-0">
             <span class="text-[15px] font-bold text-white tracking-tight leading-tight block">
-              emakola
+              Makola
             </span>
             <span class="text-[10px] text-emerald-400/60 font-medium leading-tight block">
               Merchant Portal
