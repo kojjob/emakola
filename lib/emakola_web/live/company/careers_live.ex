@@ -13,7 +13,7 @@ defmodule EmakolaWeb.Company.CareersLive do
          "Join Makola and help build commerce tools for West African merchants. Remote-friendly, mission-driven, early-stage.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/careers"),
-       careers_email: Application.get_env(:emakola, :careers_email, "careers@emakola.com")
+       careers_email: Application.get_env(:emakola, :careers_email, "careers@makola.io")
      ), layout: false}
   end
 

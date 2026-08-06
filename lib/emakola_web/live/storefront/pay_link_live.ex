@@ -435,7 +435,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   end
 
   defp fallback_email(store),
-    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@emakola.com"
+    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@makola.io"
 
   # -- Settlement split helpers (copied from CheckoutLive) -----------------
 

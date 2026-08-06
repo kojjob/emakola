@@ -251,7 +251,7 @@ defmodule EmakolaWeb.PricingLive do
                     </li>
                   </ul>
                   <a
-                    href="mailto:sales@emakola.com"
+                    href="mailto:sales@makola.io"
                     class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
                   >
                     Contact Sales

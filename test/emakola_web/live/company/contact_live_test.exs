@@ -9,7 +9,7 @@ defmodule EmakolaWeb.Company.ContactLiveTest do
     assert has_element?(view, "#contact-form")
     assert has_element?(view, "#contact-form input[name='contact[email]']")
     assert has_element?(view, "a[href^='https://wa.me/']")
-    assert has_element?(view, "a[href='mailto:support@emakola.com']")
+    assert has_element?(view, "a[href='mailto:support@makola.io']")
   end
 
   test "valid submission sends an email and shows success", %{conn: conn} do
@@ -28,7 +28,7 @@ defmodule EmakolaWeb.Company.ContactLiveTest do
     |> render_submit()
 
     assert has_element?(view, "#contact-success")
-    assert_email_sent(fn email -> assert {_, "support@emakola.com"} = hd(email.to) end)
+    assert_email_sent(fn email -> assert {_, "support@makola.io"} = hd(email.to) end)
   end
 
   test "honeypot filled drops the submission silently (no email)", %{conn: conn} do

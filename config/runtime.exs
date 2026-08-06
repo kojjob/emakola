@@ -144,15 +144,15 @@ if config_env() == :prod do
     api_key: resend_api_key
 
   config :emakola,
-    contact_email: System.get_env("CONTACT_EMAIL", "support@emakola.com"),
-    careers_email: System.get_env("CAREERS_EMAIL", "careers@emakola.com"),
-    press_email: System.get_env("PRESS_EMAIL", "press@emakola.com"),
+    contact_email: System.get_env("CONTACT_EMAIL", "support@makola.io"),
+    careers_email: System.get_env("CAREERS_EMAIL", "careers@makola.io"),
+    press_email: System.get_env("PRESS_EMAIL", "press@makola.io"),
     support_whatsapp: System.get_env("SUPPORT_WHATSAPP", "233200000000"),
     support_phone: System.get_env("SUPPORT_PHONE", "+233 20 000 0000")
 
   # Outbound mail "from" domain (noreply@/billing@). Flip the whole sending
   # domain by setting MAIL_FROM_DOMAIN — no code change needed.
-  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "emakola.com")
+  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "makola.io")
 
   # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
   # chromium package and runs as a non-root user. Chrome's sandbox needs
@@ -384,7 +384,7 @@ if config_env() == :prod do
     System.get_env("PHX_HOST") ||
       raise """
       environment variable PHX_HOST is missing.
-      Set it to the canonical hostname, e.g. PHX_HOST=emakola.com.
+      Set it to the canonical hostname, e.g. PHX_HOST=makola.io.
       It is used for URL generation (emails, webhooks) and check_origin —
       a silent default would generate links to the wrong domain.
       """

@@ -42,9 +42,9 @@ config :emakola, :dropship_fee_rate_bps, 1000
 
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
-  contact_email: "support@emakola.com",
-  careers_email: "careers@emakola.com",
-  press_email: "press@emakola.com",
+  contact_email: "support@makola.io",
+  careers_email: "careers@makola.io",
+  press_email: "press@makola.io",
   support_whatsapp: "233200000000",
   support_phone: "+233 20 000 0000"
 
