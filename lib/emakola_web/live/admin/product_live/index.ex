@@ -431,6 +431,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         </div>
         <div class="flex items-center gap-2">
           <.link
+            :if={EmakolaWeb.AiGate.enabled?()}
+            navigate={~p"/admin/products/snap"}
+            class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-white"
+          >
+            📸 Add by photo
+          </.link>
+          <.link
             navigate={~p"/admin/products/bulk"}
             class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-white"
           >

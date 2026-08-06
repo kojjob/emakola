@@ -122,6 +122,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             >
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <p class="text-2xl font-bold text-[var(--theme-primary,#B45309)] mb-3">
               <%= if @selected_variant do %>
                 {Currency.format_price(@selected_variant.price, @store.currency)}

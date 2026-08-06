@@ -98,6 +98,8 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                 {@product.title}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Rating (real review data only) --%>
               <div
                 :if={Map.get(@product, :review_count, 0) > 0}

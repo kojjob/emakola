@@ -103,4 +103,49 @@ defmodule Emakola.AI.PromptsTest do
     assert image_request.system =~ "Describe only visible details"
     assert image_request.system =~ "do not infer material"
   end
+
+  describe "build(:snap_to_shop, ...)" do
+    setup do
+      store = %{name: "Kente Kingdom", currency: "GHS"}
+
+      req =
+        Emakola.AI.Prompts.build(:snap_to_shop, %{
+          image_url: "https://example.com/p.png",
+          store: store,
+          category_names: ["Fabrics", "Accessories"]
+        })
+
+      %{req: req}
+    end
+
+    test "uses the longform model with thinking disabled", %{req: req} do
+      assert req.model == "claude-sonnet-5"
+      assert req.thinking == :disabled
+    end
+
+    test "sends the image and the category list", %{req: req} do
+      [%{content: content}] = req.messages
+      assert %{type: :image, url: "https://example.com/p.png"} in content
+      assert Enum.any?(content, &match?(%{type: :text}, &1))
+
+      text =
+        Enum.find_value(content, fn
+          %{type: :text, text: t} -> t
+          _ -> nil
+        end)
+
+      assert text =~ "Fabrics"
+    end
+
+    test "carries the provenance rule, length guidance, and a closed schema", %{req: req} do
+      assert req.system =~ "Never invent a material, ingredient, origin"
+      assert req.system =~ "Title 60 characters or fewer"
+      assert req.system =~ "At most 8 tags"
+      assert req.system =~ "Alt text under 125 characters"
+      assert req.system =~ "no 'image of' or 'picture of'"
+      assert req.response_format == :json
+      assert req.json_schema["additionalProperties"] == false
+      assert "photo_flags" in req.json_schema["required"]
+    end
+  end
 end

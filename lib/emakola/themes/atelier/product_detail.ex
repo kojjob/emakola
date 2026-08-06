@@ -195,6 +195,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                 {product_title_with_accent(@product.title)}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Rating (only when the product has real reviews) --%>
               <div
                 :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}

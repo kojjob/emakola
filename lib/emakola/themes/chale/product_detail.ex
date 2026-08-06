@@ -139,6 +139,8 @@ defmodule Emakola.Themes.Chale.ProductDetail do
             {@product.title}
           </h1>
 
+          <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
           <div class="mt-4 flex flex-wrap items-baseline gap-3">
             <p class="text-3xl font-bold tabular-nums tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-4xl">
               <%= if @selected_variant do %>
