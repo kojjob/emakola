@@ -78,33 +78,26 @@ defmodule Emakola.Payments.OrderSettlement do
         end
 
       # A normal own-stock order (no dropship items — dropship always wins,
-      # matched above): buyer protection (TC-2), if it applies, wins next —
-      # the charge settles with NO merchant gateway share and the payment is
-      # flagged payout_held for a later manual release (Task 5+). Otherwise
-      # take the platform's transaction fee and route the merchant their net
-      # via their verified subaccount (same split-remainder model — the
-      # platform's fee stays in the main account).
+      # matched above): buyer protection (TC-2), if it applies, still wins —
+      # the charge settles with no allocation rows and the payment is flagged
+      # payout_held for a later release. Everything else settles internal
+      # (single rail, P1): same fee math, rows on the ledger, paid out by
+      # MoMo transfer — verification no longer selects a settlement path.
       {:no_split, :no_dropship_items} ->
         if protected?(order, store_id) do
           {:hold, :buyer_protection}
         else
-          # prepare_platform_fee's own :payout_unverified return is produced
-          # here, inside this branch — it never re-enters the case above, so
-          # the guarded clause below can't catch it. Route it to the internal
-          # rail the same way.
-          case prepare_platform_fee(order, store_id) do
-            {:no_split, :payout_unverified} -> prepare_internal(order_id, store_id)
-            result -> result
-          end
+          prepare_internal(order_id, store_id)
         end
 
       # Verification failures route to the internal rail: the charge settles
       # to the platform account, allocations (incl. the platform fee) are
       # recorded on the ledger, and parties are paid by MoMo transfer once
       # they add a destination. Genuine split failures still fall through to
-      # the legacy :none path (no rows, escrow-compatible). Own-stock
-      # unverified orders arrive via the prepare_platform_fee reroute above,
-      # not here: `:payout_unverified` in this guard is defense-in-depth only
+      # the legacy :none path (no rows, escrow-compatible). Own-stock orders
+      # never reach this guard at all (P1): the {:no_split, :no_dropship_items}
+      # clause above calls prepare_internal/2 unconditionally now — verification
+      # no longer gates it. `:payout_unverified` here is defense-in-depth only
       # — DropshipSettlement remaps it to :dropshipper_payout_unverified at
       # dropship_settlement.ex:56, so it's unreachable in this clause.
       {:no_split, reason}
@@ -194,45 +187,6 @@ defmodule Emakola.Payments.OrderSettlement do
     Map.merge(alloc, %{settlement_method: :internal_hold, subaccount_code: nil})
   end
 
-  defp prepare_platform_fee(order, store_id) do
-    case verified_subaccount(store_id) do
-      {:ok, code} ->
-        %{fee: fee, net: net} = PlatformFee.calculate(order.total, platform_fee_rate_bps())
-
-        if net > 0 do
-          allocations =
-            [
-              %{
-                role: :merchant,
-                recipient_store_id: store_id,
-                amount: net,
-                subaccount_code: code
-              },
-              %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
-            ]
-            |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
-            |> RefundLiability.reserve!()
-
-          if sum_matches_total?(order, allocations) do
-            {:split,
-             %{
-               total: order.total,
-               allocations: allocations,
-               shares: gateway_shares(allocations),
-               mode: :platform_fee
-             }}
-          else
-            {:no_split, :allocation_sum_mismatch}
-          end
-        else
-          {:no_split, :unrepresentable_split}
-        end
-
-      {:error, :payout_unverified} ->
-        {:no_split, :payout_unverified}
-    end
-  end
-
   # TC-2 Buyer Protection: order has a pay link → the link's `protected`
   # field governs; otherwise the store's `buyer_protection_enabled` setting
   # governs. Same lookup pattern as PayLinkClaim.claim_for_order/1 (no
@@ -245,17 +199,6 @@ defmodule Emakola.Payments.OrderSettlement do
         Ash.get!(Emakola.Orders.PayLink, order.pay_link_id, authorize?: false)
 
     Emakola.Payments.Protection.applies?(store, pay_link)
-  end
-
-  # Mirrors DropshipSettlement's notion of a usable payout account.
-  defp verified_subaccount(store_id) do
-    case Emakola.Stores.get_payout_account(store_id, authorize?: false) do
-      {:ok, %{verification_status: :verified, subaccount_code: code}} when is_binary(code) ->
-        {:ok, code}
-
-      _ ->
-        {:error, :payout_unverified}
-    end
   end
 
   # Platform rows are always :internal_hold (spec §3 — that money stays in the

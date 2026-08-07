@@ -183,7 +183,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
     end
   end
 
-  describe "prepare/2 — platform fee on normal orders" do
+  describe "prepare/2 — own-stock orders settle internal (P1)" do
     test "splits an own-stock order: merchant net to subaccount, platform keeps the fee", %{
       dropshipper: merchant,
       product: product
@@ -198,19 +198,16 @@ defmodule Emakola.Payments.OrderSettlementTest do
           []
         )
 
-      assert {:split, %{mode: :platform_fee, total: 10_000, shares: shares, allocations: allocs}} =
+      assert {:split, %{mode: :internal, total: 10_000, shares: [], allocations: allocs}} =
                OrderSettlement.prepare(order.id, merchant.id)
 
       # 2% of 10_000 = 200 fee, 9_800 net.
-      assert %{subaccount: "ACCT_drop", share: 9_800} in shares
-      # The platform's cut is the remainder — never a gateway share.
-      refute Enum.any?(shares, &(&1.share == 200))
-
       by_role = Map.new(allocs, &{&1.role, &1})
       assert by_role[:merchant].amount == 9_800
-      assert by_role[:merchant].subaccount_code == "ACCT_drop"
+      assert by_role[:merchant].subaccount_code == nil
       assert by_role[:platform].amount == 200
       assert by_role[:platform].subaccount_code == nil
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
       # No money created or lost.
       assert 10_000 == Enum.sum(Enum.map(allocs, & &1.amount))
     end
@@ -229,6 +226,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
         )
 
       {:split, %{allocations: allocs}} = OrderSettlement.prepare(order.id, merchant.id)
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
       payment = create_payment!(merchant, order_id: order.id, amount: 10_000)
 
       :ok = OrderSettlement.record_splits!(payment, allocs)
@@ -240,7 +238,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
 
       by_role = Map.new(splits, &{&1.role, &1})
       assert by_role[:merchant].amount == 9_800
-      assert by_role[:merchant].subaccount_code == "ACCT_drop"
+      assert by_role[:merchant].subaccount_code == nil
       assert by_role[:platform].amount == 200
     end
 
@@ -279,17 +277,18 @@ defmodule Emakola.Payments.OrderSettlementTest do
 
       assert {:split,
               %{
-                mode: :platform_fee,
+                mode: :internal,
                 total: 5_000,
-                shares: [%{subaccount: "ACCT_drop", share: 4_900}],
+                shares: [],
                 allocations: allocs
               }} = OrderSettlement.prepare(order.id, merchant.id)
 
       by_role = Map.new(allocs, &{&1.role, &1})
       assert by_role.merchant.amount == 4_900
-      assert by_role.merchant.subaccount_code == "ACCT_drop"
+      assert by_role.merchant.subaccount_code == nil
       assert by_role.platform.amount == 100
       assert by_role.platform.subaccount_code == nil
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
     end
   end
 
