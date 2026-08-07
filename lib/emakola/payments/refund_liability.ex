@@ -194,6 +194,43 @@ defmodule Emakola.Payments.RefundLiability do
     {liabilities, liabilities |> Enum.map(&outstanding/1) |> Enum.sum()}
   end
 
+  @doc """
+  Books `deduction` of payout-withheld recovery across `liabilities` (already
+  FOR-UPDATE-locked by `outstanding_for_recipient!/1`) in `id` order, with
+  payout provenance. Called inside the payout's own transaction.
+  """
+  def collect_at_payout!(_liabilities, 0, _payout_ref), do: :ok
+
+  def collect_at_payout!(liabilities, deduction, payout_ref) do
+    liabilities
+    |> Enum.sort_by(& &1.id)
+    |> Enum.reduce(deduction, fn
+      _liability, 0 ->
+        0
+
+      liability, remaining ->
+        applied = min(outstanding(liability), remaining)
+
+        if applied > 0 do
+          recoveries = Map.get(liability.recovery_breakdown, "payout_recoveries", [])
+
+          update_tracking!(liability, %{
+            recovered_amount: liability.recovered_amount + applied,
+            recovery_breakdown:
+              Map.put(
+                liability.recovery_breakdown,
+                "payout_recoveries",
+                recoveries ++ [%{"payout_ref" => payout_ref, "amount" => applied}]
+              )
+          })
+        end
+
+        remaining - applied
+    end)
+
+    :ok
+  end
+
   @doc "Reserves recipient liabilities and returns gateway-ready net allocations."
   def reserve!(allocations) do
     {:ok, adjusted} =

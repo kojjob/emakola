@@ -10,6 +10,7 @@ defmodule Emakola.Payments.PayoutService do
   """
   alias Emakola.Payments
   alias Emakola.Payments.Payment
+  alias Emakola.Payments.RefundLiability
   alias Emakola.Stores
 
   # Paystack Ghana mobile-money telco codes (List Banks, type: mobile_money).
@@ -127,9 +128,47 @@ defmodule Emakola.Payments.PayoutService do
   path — that `mark_paid_out` really applied `frozen_paid_amount/1` to the
   exact row this precompute read (the `FOR UPDATE` lock rules out a stale
   read) — and would only fire if a future edit broke that wiring.
+
+  CONTRACT CHANGE (P2a): `Payout.amount` is `Σ frozen_paid_amount − outstanding
+  refund liability`, not the raw `Σ frozen_paid_amount` from before — any
+  refund debt the recipient owes is deducted from its own payout. This runs
+  as two transactions:
+
+    1. Debt collection — locks the recipient's outstanding liabilities
+       (`RefundLiability.outstanding_for_recipient!/1`) and books
+       `min(payable, outstanding)` against them via `collect_at_payout!/3`,
+       stamped with a `transfer_reference` generated before either
+       transaction opens. Commits on its own, independent of whether a
+       payout is ultimately created: a payout fully consumed by debt still
+       collects the debt (the withheld money is real and stays collected).
+    2. The claim — as before, but the final `amount` is `Σ frozen_paid_amount
+       (from ITS OWN locked read) − deduction`; `<= 0` rolls back
+       `:nothing_outstanding` (the deduction, or a concurrent claim shrinking
+       the payable set, consumed it all). The Payout's `transfer_reference`
+       reuses the same reference from step 1, so the recovery booked there
+       can be traced to the payout it funded.
   """
   def prepare_internal_payout(recipient_store_id) do
     with {:ok, _dest} <- transfer_destination(recipient_store_id) do
+      reference = "po_" <> Ecto.UUID.generate()
+
+      # Phase 1 — collect the debt, in its own transaction: the collection
+      # must survive even when the claim below aborts (fully-consumed
+      # payout), and the FOR UPDATE inside outstanding_for_recipient!/1
+      # serializes against charge-time reserve!/1 so the two sites can never
+      # double-collect.
+      {:ok, deduction} =
+        Emakola.Repo.transaction(fn ->
+          {liabilities, outstanding} =
+            RefundLiability.outstanding_for_recipient!(recipient_store_id)
+
+          gross = payable_gross(recipient_store_id)
+          deduction = min(gross, outstanding)
+          :ok = RefundLiability.collect_at_payout!(liabilities, deduction, reference)
+          deduction
+        end)
+
+      # Phase 2 — the claim, exactly as before, minus the deduction.
       Emakola.Repo.transaction(fn ->
         splits =
           Emakola.Payments.PaymentSplit
@@ -146,9 +185,12 @@ defmodule Emakola.Payments.PayoutService do
         end
 
         amount =
-          claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+          (claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()) -
+            deduction
 
-        reference = "po_" <> Ecto.UUID.generate()
+        if amount <= 0 do
+          Emakola.Repo.rollback(:nothing_outstanding)
+        end
 
         {:ok, payout} =
           Emakola.Payments.create_payout(
@@ -182,6 +224,17 @@ defmodule Emakola.Payments.PayoutService do
     else
       {:error, :no_momo_destination} = err -> err
     end
+  end
+
+  # Gross payable WITHOUT locking (Phase 1 sizing only, to cap the deduction;
+  # Phase 2 re-reads under its own FOR UPDATE and the final amount uses
+  # Phase 2's Σ).
+  defp payable_gross(recipient_store_id) do
+    Emakola.Payments.PaymentSplit
+    |> Ash.Query.for_read(:payable_internal, %{recipient_store_id: recipient_store_id})
+    |> Ash.read!(authorize?: false)
+    |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1)
+    |> Enum.sum()
   end
 
   @doc """

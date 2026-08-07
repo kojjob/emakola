@@ -276,7 +276,8 @@ defmodule Emakola.Payments.PaymentSplit do
         :recovered_amount,
         :reserved_recovery_amount,
         :recovery_applied_amount,
-        :recovery_reversed_amount
+        :recovery_reversed_amount,
+        :recovery_breakdown
       ])
     end
 
