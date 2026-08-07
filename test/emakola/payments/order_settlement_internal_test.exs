@@ -617,20 +617,21 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
       assert {:hold, :buyer_protection} = OrderSettlement.prepare(order.id, store.id)
     end
 
-    # (d) no-regression guard: a verified store's own-stock order stays on the
-    # gateway rail exactly as before — fee-parity pair with (a).
-    test "(d) verified store: prepare/2 stays on the gateway rail (:platform_fee) — no regression" do
+    # (d) verified store: settling internal is now unconditional (P1) — a
+    # verified subaccount no longer keeps an own-stock order on the gateway
+    # rail. Fee-parity pair with (a).
+    test "(d) verified store: prepare/2 settles internal (P1)" do
       store = create_store!()
       verified_payout!(store, "ACCT_flip_verified")
       order = checkout_own_stock_order!(store)
 
-      assert {:split, %{mode: :platform_fee, shares: shares, allocations: allocations}} =
+      assert {:split, %{mode: :internal, shares: [], allocations: allocations}} =
                OrderSettlement.prepare(order.id, store.id)
 
-      assert shares != []
       merchant = Enum.find(allocations, &(&1.role == :merchant))
       platform = Enum.find(allocations, &(&1.role == :platform))
-      assert merchant.subaccount_code == "ACCT_flip_verified"
+      assert merchant.subaccount_code == nil
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
 
       # Fee parity with (a): same PlatformFee.calculate math on both rails.
       %{fee: fee, net: net} =

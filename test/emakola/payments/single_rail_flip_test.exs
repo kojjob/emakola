@@ -44,4 +44,40 @@ defmodule Emakola.Payments.SingleRailFlipTest do
       assert 10_000 == Enum.sum(Enum.map(allocs, & &1.amount))
     end
   end
+
+  describe "dropship orders" do
+    test "a fully-verified dropship charge settles internal — no gateway shares" do
+      dropshipper = create_store!(name: "Dropshipper")
+      verified_payout!(dropshipper, "ACCT_drop")
+      product = create_product!(dropshipper, title: "Settle Product")
+
+      wholesaler = create_store!(name: "Wholesaler")
+      verified_payout!(wholesaler, "ACCT_whole")
+      supplier = create_supplier!(dropshipper, name: "Linked", linked_store_id: wholesaler.id)
+
+      drop =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "S-DROP",
+          supplier_id: supplier.id,
+          cost_price: 800
+        )
+
+      own = create_variant!(product, dropshipper, price: 3_000, sku: "S-OWN", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          dropshipper.id,
+          [%{variant_id: drop.id, quantity: 2}, %{variant_id: own.id, quantity: 1}],
+          []
+        )
+
+      assert {:split, %{mode: :internal, shares: [], allocations: allocs}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
+
+      assert Enum.any?(allocs, &(&1.role == :platform and &1.amount > 0))
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocs, &is_nil(&1.subaccount_code))
+    end
+  end
 end

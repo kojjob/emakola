@@ -26,7 +26,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
     {:ok, dropshipper: dropshipper, product: product}
   end
 
-  describe "prepare/2 — linked wholesaler" do
+  describe "prepare/2 — dropship orders settle internal (P1)" do
     setup %{dropshipper: dropshipper, product: product} do
       wholesaler = create_store!(name: "Wholesaler")
       verified_payout!(wholesaler, "ACCT_whole")
@@ -56,13 +56,10 @@ defmodule Emakola.Payments.OrderSettlementTest do
       dropshipper: dropshipper,
       order: order
     } do
-      assert {:split, %{total: 13_000, shares: shares, allocations: allocs}} =
+      assert {:split, %{total: 13_000, shares: [], allocations: allocs}} =
                OrderSettlement.prepare(order.id, dropshipper.id)
 
-      assert %{subaccount: "ACCT_whole", share: 1_600} in shares
-      assert %{subaccount: "ACCT_drop", share: 10_560} in shares
-      # Platform's cut stays in the main account — never a share.
-      refute Enum.any?(shares, &(&1.share == 840))
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
       assert length(allocs) == 3
     end
 
@@ -80,9 +77,9 @@ defmodule Emakola.Payments.OrderSettlementTest do
       expected =
         Enum.sort_by(
           [
-            %{role: :wholesaler, amount: 1_600, subaccount_code: "ACCT_whole"},
-            %{role: :platform, amount: 840},
-            %{role: :dropshipper, amount: 10_560, subaccount_code: "ACCT_drop"}
+            %{role: :wholesaler, amount: 1_600, subaccount_code: nil},
+            %{role: :platform, amount: 840, subaccount_code: nil},
+            %{role: :dropshipper, amount: 10_560, subaccount_code: nil}
           ],
           & &1.role
         )
@@ -95,6 +92,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
       order: order
     } do
       {:split, %{allocations: allocs}} = OrderSettlement.prepare(order.id, dropshipper.id)
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
       payment = create_payment!(dropshipper, order_id: order.id, amount: 13_000)
 
       :ok = OrderSettlement.record_splits!(payment, allocs)
@@ -107,7 +105,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
       assert length(splits) == 3
       by_role = Map.new(splits, &{&1.role, &1})
       assert by_role[:wholesaler].amount == 1_600
-      assert by_role[:wholesaler].subaccount_code == "ACCT_whole"
+      assert by_role[:wholesaler].subaccount_code == nil
       assert by_role[:platform].amount == 840
       assert by_role[:dropshipper].amount == 10_560
     end
@@ -120,7 +118,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
       |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
       |> Ash.update!(authorize?: false)
 
-      assert {:split, %{mode: :dropship_split}} =
+      assert {:split, %{mode: :internal}} =
                OrderSettlement.prepare(order.id, dropshipper.id)
     end
 
@@ -131,14 +129,13 @@ defmodule Emakola.Payments.OrderSettlementTest do
     } do
       liability = refundable_liability!(dropshipper, wholesaler, 600)
 
-      assert {:split, %{total: 13_000, shares: shares, allocations: allocations}} =
+      assert {:split, %{total: 13_000, shares: [], allocations: allocations}} =
                OrderSettlement.prepare(order.id, dropshipper.id)
-
-      assert %{subaccount: "ACCT_whole", share: 1_000} in shares
 
       by_role = Map.new(allocations, &{&1.role, &1})
       assert by_role.wholesaler.recovery_amount == 600
       assert by_role.platform.amount == 1_440
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
       assert Enum.sum(Enum.map(allocations, & &1.amount)) == 13_000
 
       updated = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
@@ -170,14 +167,14 @@ defmodule Emakola.Payments.OrderSettlementTest do
           delivery_fee: 1_500
         )
 
-      assert {:split, %{total: total, shares: shares, allocations: allocs}} =
+      assert {:split, %{total: total, shares: [], allocations: allocs}} =
                OrderSettlement.prepare(order.id, dropshipper.id)
 
       # subtotal 10000 + delivery 1500 = 11500 = order.total
       assert total == 11_500
       # dropshipper margin 7560 + delivery 1500 = 9060
       assert %{role: :dropshipper, amount: 9_060} = Enum.find(allocs, &(&1.role == :dropshipper))
-      assert %{subaccount: "ACCT_drop", share: 9_060} in shares
+      assert Enum.all?(allocs, &(&1.settlement_method == :internal_hold))
       # Wholesaler cost + dropshipper share + platform fee == the actual charge.
       assert total == Enum.sum(Enum.map(allocs, & &1.amount))
     end

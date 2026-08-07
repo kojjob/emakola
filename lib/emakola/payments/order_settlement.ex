@@ -47,35 +47,13 @@ defmodule Emakola.Payments.OrderSettlement do
            fee_rate_bps: fee_rate_bps(),
            dispatch_fees: dispatch_fees
          ) do
-      {:split, %{allocations: allocations}} ->
-        # The split is computed on the subtotal; the customer is charged the
-        # order total. Delivery (minus any discount) belongs to the dropshipper,
-        # so fold it into their share — otherwise that money would fall to the
-        # platform's main account as the split remainder.
-        adjustment = (order.delivery_fee || 0) - (order.discount_amount || 0)
-
-        allocations = adjust_dropshipper(allocations, adjustment)
-
-        if valid_shares?(allocations) do
-          allocations =
-            allocations
-            |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
-            |> RefundLiability.reserve!()
-
-          if sum_matches_total?(order, allocations) do
-            {:split,
-             %{
-               total: order.total,
-               allocations: allocations,
-               shares: gateway_shares(allocations),
-               mode: :dropship_split
-             }}
-          else
-            {:no_split, :allocation_sum_mismatch}
-          end
-        else
-          {:no_split, :unrepresentable_split}
-        end
+      {:split, _gateway} ->
+        # Single rail (P1): the gateway computed a valid dropship split, which
+        # proves this is a dropship order — but nothing settles at the gateway
+        # any more. prepare_internal re-runs the SAME allocation math
+        # (delivery-fee fold, dispatch fees, carve, reserve) on the internal
+        # rail. P3 removes this double computation with the gateway path itself.
+        prepare_internal(order_id, store_id)
 
       # A normal own-stock order (no dropship items — dropship always wins,
       # matched above): buyer protection (TC-2), if it applies, still wins —
@@ -300,27 +278,6 @@ defmodule Emakola.Payments.OrderSettlement do
       %{role: :dropshipper} = alloc -> %{alloc | amount: alloc.amount + adjustment}
       alloc -> alloc
     end)
-  end
-
-  # Paystack rejects negative or zero flat shares; if an aggressive discount
-  # drives the dropshipper's share non-positive, fall back to the manual ledger.
-  defp valid_shares?(allocations) do
-    allocations
-    |> Enum.filter(& &1[:subaccount_code])
-    |> Enum.all?(&(&1.amount > 0))
-  end
-
-  # Only allocations with a subaccount become gateway shares. The platform's
-  # cut is the unassigned remainder, kept by the main account.
-  defp gateway_shares(allocations) do
-    allocations
-    |> Enum.filter(fn alloc ->
-      # Absent key = gateway rail (gateway builders don't tag); internal
-      # builders tag every allocation :internal_hold — never a gateway share.
-      (Map.get(alloc, :settlement_method, :gateway_share) == :gateway_share and
-         alloc[:subaccount_code]) && alloc.amount > 0
-    end)
-    |> Enum.map(&%{subaccount: &1.subaccount_code, share: &1.amount})
   end
 
   # Dispatch fee snapshots recorded per supplier at checkout (Task 2), keyed

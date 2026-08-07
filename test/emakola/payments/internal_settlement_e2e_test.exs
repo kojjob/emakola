@@ -154,18 +154,20 @@ defmodule Emakola.Payments.InternalSettlementE2ETest do
     assert reloaded_split.payout_id == payout.id
     refute is_nil(reloaded_split.paid_out_at)
 
-    # -- Twin run: identical order shape through a VERIFIED store — the
-    # gateway rail. Parity assertion: same platform-fee allocation, exactly.
+    # -- Twin run: identical order shape through a VERIFIED store. Parity
+    # assertion: same platform-fee allocation, exactly (both rails settle
+    # internal now — P1).
     verified_store = create_store!(name: "E2E Verified Store")
     verified_payout!(verified_store, "ACCT_e2e_verified")
 
     verified_order = checkout_own_stock_order!(verified_store)
 
-    assert {:split, %{mode: :platform_fee, allocations: verified_allocations}} =
+    assert {:split, %{mode: :internal, allocations: verified_allocations}} =
              OrderSettlement.prepare(verified_order.id, verified_store.id)
 
     verified_platform_alloc = Enum.find(verified_allocations, &(&1.role == :platform))
     refute is_nil(verified_platform_alloc)
+    assert Enum.all?(verified_allocations, &(&1.settlement_method == :internal_hold))
 
     assert verified_platform_alloc.amount == platform_alloc.amount
   end
