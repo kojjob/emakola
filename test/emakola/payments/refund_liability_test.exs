@@ -648,4 +648,102 @@ defmodule Emakola.Payments.RefundLiabilityTest do
   end
 
   defp fresh(split), do: Ash.get!(PaymentSplit, split.id, authorize?: false)
+
+  describe "outstanding_for_recipient!/1" do
+    test "sums outstanding over the recipient's recoverable splits, floored at zero" do
+      store = create_store!(name: "Owing Store")
+      payment = create_payment!(store)
+
+      # A claimed internal split reversed AFTER its claim: frozen fence 0,
+      # reversal 3_000 → outstanding 3_000.
+      _owing =
+        split_fixture!(payment, store,
+          amount: 10_000,
+          settlement_method: :internal_hold,
+          status: :partially_reversed,
+          reversed_amount: 3_000,
+          paid_out_at: DateTime.utc_now(),
+          netted_reversal_amount: 0
+        )
+
+      # An UNCLAIMED internal split with a reversal nets at source:
+      # effective_netted = min(amount, reversed) → outstanding 0.
+      _self_netting =
+        split_fixture!(payment, store,
+          amount: 5_000,
+          settlement_method: :internal_hold,
+          status: :partially_reversed,
+          reversed_amount: 2_000
+        )
+
+      {:ok, {splits, total}} =
+        Emakola.Repo.transaction(fn ->
+          Emakola.Payments.RefundLiability.outstanding_for_recipient!(store.id)
+        end)
+
+      assert total == 3_000
+      assert length(splits) >= 1
+    end
+
+    test "a recipient with no liabilities owes zero" do
+      store = create_store!(name: "Clean Store")
+
+      {:ok, {splits, total}} =
+        Emakola.Repo.transaction(fn ->
+          Emakola.Payments.RefundLiability.outstanding_for_recipient!(store.id)
+        end)
+
+      assert splits == []
+      assert total == 0
+    end
+  end
+
+  # Drives a PaymentSplit through its real lifecycle actions to the target
+  # state instead of force-writing claim-lifecycle attrs — :create rejects
+  # paid_out_at/netted_reversal_amount (see PaymentSplit's :create accept
+  # list). `paid_out_at` present means the claim happens BEFORE the reversal
+  # (mirrors refund_liability_no_double_claw_test.exs's settled_internal!/
+  # mark_paid_out idiom); its exact value is irrelevant, only presence.
+  #
+  # supplier_id gets a fresh UUID per call purely to dodge unique_allocation
+  # (payment_id, role, supplier_id, credit_agreement_id): both fixtures below
+  # share one payment_id and role: :merchant, and the identity treats nulls
+  # as equal, so two nil supplier_ids on the same payment would collide.
+  defp split_fixture!(payment, store, opts) do
+    opts = Map.new(opts)
+
+    split =
+      PaymentSplit
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: store.id,
+        payment_id: payment.id,
+        role: :merchant,
+        recipient_store_id: store.id,
+        supplier_id: Ash.UUID.generate(),
+        amount: Map.fetch!(opts, :amount),
+        settlement_method: Map.get(opts, :settlement_method, :gateway_share)
+      })
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+
+    split =
+      if Map.has_key?(opts, :paid_out_at) do
+        split
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+        |> Ash.update!(authorize?: false)
+      else
+        split
+      end
+
+    case Map.get(opts, :reversed_amount) do
+      nil ->
+        split
+
+      reversed_amount ->
+        split
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+        |> Ash.update!(authorize?: false)
+    end
+  end
 end

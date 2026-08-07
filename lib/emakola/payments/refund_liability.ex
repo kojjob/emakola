@@ -175,6 +175,25 @@ defmodule Emakola.Payments.RefundLiability do
     end
   end
 
+  @doc """
+  FOR-UPDATE-locks the recipient's recoverable splits and returns
+  `{locked_splits, total_outstanding}`. Must run inside a transaction — the
+  caller (charge-time reserve or payout-time netting) holds the lock until
+  its own bookkeeping commits, which is what makes double-recovery across
+  the two sites impossible.
+  """
+  def outstanding_for_recipient!(recipient_store_id) do
+    liabilities =
+      PaymentSplit
+      |> Ash.Query.for_read(:recoverable_by_recipient, %{
+        recipient_store_id: recipient_store_id
+      })
+      |> Ash.Query.lock("FOR UPDATE")
+      |> Ash.read!(authorize?: false)
+
+    {liabilities, liabilities |> Enum.map(&outstanding/1) |> Enum.sum()}
+  end
+
   @doc "Reserves recipient liabilities and returns gateway-ready net allocations."
   def reserve!(allocations) do
     {:ok, adjusted} =
@@ -269,11 +288,7 @@ defmodule Emakola.Payments.RefundLiability do
     do: {items, recovered}
 
   defp reserve_from_liabilities([liability | rest], available, items, recovered) do
-    outstanding =
-      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
-        liability.reserved_recovery_amount
-
-    amount = min(max(outstanding, 0), available)
+    amount = min(outstanding(liability), available)
 
     update_tracking!(liability, %{
       reserved_recovery_amount: liability.reserved_recovery_amount + amount
@@ -301,6 +316,14 @@ defmodule Emakola.Payments.RefundLiability do
 
   defp effective_netted(%{settlement_method: :internal_hold} = liability) do
     liability.netted_reversal_amount
+  end
+
+  defp outstanding(liability) do
+    max(
+      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
+        liability.reserved_recovery_amount,
+      0
+    )
   end
 
   defp add_to_platform(allocations, 0), do: allocations
