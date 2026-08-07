@@ -621,17 +621,8 @@ defmodule EmakolaWeb.StoresLive do
   end
 
   defp load_theme_counts(socket) do
-    counts =
-      Enum.reduce(theme_ids(), %{"all" => count_active_stores()}, fn theme_id, acc ->
-        n = filtered_count(%{theme: theme_id, region: nil, search: nil, sort: :featured})
-        Map.put(acc, theme_id, n)
-      end)
-
+    counts = Map.put(Emakola.Stores.theme_counts(), "all", count_active_stores())
     assign(socket, :theme_counts, counts)
-  end
-
-  defp theme_ids do
-    ~w(market atelier vibrant starter bold fresh pharmacy beauty home_living electronics fashion)
   end
 
   # ── Phase 3: favorites + recently viewed ──
