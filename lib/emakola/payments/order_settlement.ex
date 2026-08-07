@@ -79,12 +79,11 @@ defmodule Emakola.Payments.OrderSettlement do
   end
 
   @doc """
-  Internal-rail settlement for a charge that cannot be split at the gateway
-  (unverified parties, unlinked suppliers). Same allocation math and fee rates
-  as the gateway rail; every allocation is tagged `settlement_method:
-  :internal_hold` with no subaccount, and a `:platform` row is always present.
-  Returns `shares: []` — nothing is attached to the gateway charge. Routed to
-  by `prepare/2`'s verification-failure fallbacks since Phase 3.
+  Internal-rail settlement — THE settlement path for all charges. Applies the same
+  allocation math and fee rates as always: fees, delivery fold, dispatch fees,
+  carve, reserve. Every allocation is tagged `settlement_method: :internal_hold`
+  with no subaccount, and a `:platform` row is always present. Returns `shares: []`
+  because nothing settles at the gateway.
   """
   def prepare_internal(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)

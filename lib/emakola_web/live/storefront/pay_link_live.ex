@@ -340,8 +340,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   defp initiate_payment(socket, store, order) do
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
-    # Resolve how the charge is split at the gateway — same trustless
-    # dropship/platform-fee settlement every other order gets.
+    # Same single-rail internal settlement every other order gets.
     settlement = Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
 
     params =
