@@ -64,6 +64,24 @@ defmodule Emakola.Platform.FinanceStatsInternalTest do
     refute Map.has_key?(by_id, seller.id)
   end
 
+  test "reserved_recovery_amount also nets out of the payable amount, same as recovered" do
+    seller = Factory.create_store!()
+    payment = Factory.create_payment!(seller)
+
+    seller
+    |> internal_split!(payment, %{amount: 10_000})
+    |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 4_000})
+    |> Ash.update!(authorize?: false)
+    |> Ash.Changeset.for_update(:update_recovery_tracking, %{
+      recovered_amount: 1_000,
+      reserved_recovery_amount: 500
+    })
+    |> Ash.update!(authorize?: false)
+
+    # payable_net = amount - (reversed - recovered - reserved) = 10_000 - (4_000 - 1_000 - 500) = 7_500
+    assert FinanceStats.total_outstanding_payouts() == 7_500
+  end
+
   test "a claimed internal split (already paid out) contributes nothing" do
     store = Factory.create_store!()
     payment = Factory.create_payment!(store)
