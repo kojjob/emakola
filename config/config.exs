@@ -40,6 +40,14 @@ config :emakola, :mail_from_domain, "emakola.com"
 # effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
 config :emakola, :dropship_fee_rate_bps, 1000
 
+# Settlement-rail policy (SplitPay). :gateway_first preserves Paystack
+# split-at-source for verified parties; :internal_first routes every charge
+# to the internal ledger regardless of subaccount state. The pin list keeps
+# individual stores on the gateway rail under an :internal_first default.
+config :emakola, Emakola.SplitPay,
+  default_rail: :gateway_first,
+  gateway_rail_store_ids: []
+
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
   contact_email: "support@makola.io",

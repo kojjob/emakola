@@ -37,8 +37,33 @@ defmodule Emakola.Payments.OrderSettlement do
   alias Emakola.Payments.DropshipSettlement
   alias Emakola.Payments.PlatformFee
   alias Emakola.Payments.RefundLiability
+  alias Emakola.SplitPay.RailPolicy
 
-  def prepare(order_id, store_id) do
+  def prepare(order_id, store_id, opts \\ []) do
+    case RailPolicy.rail(store_id, opts) do
+      :gateway_first -> prepare_gateway_first(order_id, store_id)
+      :internal_first -> prepare_internal_first(order_id, store_id)
+    end
+  end
+
+  # Internal-first (the SplitPay flip): no Paystack subaccount state is read
+  # at charge time. Buyer protection keeps its own-stock precedence (as it
+  # wins over :platform_fee on the gateway rail); dropship orders keep
+  # beating protection (as :dropship_split does) and settle on the ledger.
+  defp prepare_internal_first(order_id, store_id) do
+    order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
+    line_items = load_line_items(order_id, store_id)
+
+    cond do
+      Enum.any?(line_items, & &1.supplier_id) -> prepare_internal(order_id, store_id)
+      protected?(order, store_id) -> {:hold, :buyer_protection}
+      true -> prepare_internal(order_id, store_id)
+    end
+  end
+
+  # The pre-flip routing authority, body unchanged: gateway split when every
+  # party is verified, protection hold, platform fee, internal fallback.
+  defp prepare_gateway_first(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
     line_items = load_line_items(order_id, store_id)
     dispatch_fees = load_dispatch_fees(order_id)
