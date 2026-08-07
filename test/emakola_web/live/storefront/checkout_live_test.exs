@@ -338,7 +338,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   # -- Dropship split settlement --
 
-  describe "dropship split settlement" do
+  describe "dropship orders settle internal (P1)" do
     defp verified_payout!(store, code) do
       Emakola.Stores.StorePayoutAccount
       |> Ash.Changeset.for_create(:create, %{store_id: store.id})
@@ -493,25 +493,27 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
         |> Ash.read!(authorize?: false, tenant: dropshipper.id)
         |> List.first()
 
-      assert payment.split_mode == :dropship_split
+      assert payment.split_mode == :internal
 
       {:ok, splits} =
         Emakola.Payments.PaymentSplit
         |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
         |> Ash.read(authorize?: false)
 
+      assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+
       by_role = Map.new(splits, &{&1.role, &1})
       assert by_role[:wholesaler].amount == 1_600
-      assert by_role[:wholesaler].subaccount_code == "ACCT_whole"
+      assert by_role[:wholesaler].subaccount_code == nil
       assert by_role[:platform].amount == 840
       # dropshipper margin 7560 + Greater Accra delivery 1500 = 9060
       assert by_role[:dropshipper].amount == 9_060
     end
   end
 
-  # -- Platform fee settlement (normal own-stock order) --
+  # -- Own-stock settlement (normal own-stock order) --
 
-  describe "platform fee settlement" do
+  describe "own-stock orders settle internal (P1)" do
     test "places a normal order routing the merchant net and keeping the platform fee", %{
       conn: conn,
       store: store,
@@ -535,17 +537,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
         |> Ash.read!(authorize?: false, tenant: store.id)
         |> List.first()
 
-      assert payment.split_mode == :platform_fee
+      assert payment.split_mode == :internal
 
       {:ok, splits} =
         Emakola.Payments.PaymentSplit
         |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
         |> Ash.read(authorize?: false)
 
+      assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+
       by_role = Map.new(splits, &{&1.role, &1})
       # subtotal 10000 + Greater Accra delivery 1500 = 11500 total; 2% fee = 230.
       assert by_role[:merchant].amount == 11_270
-      assert by_role[:merchant].subaccount_code == "ACCT_own"
+      assert by_role[:merchant].subaccount_code == nil
       assert by_role[:platform].amount == 230
     end
   end

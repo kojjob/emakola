@@ -80,4 +80,45 @@ defmodule Emakola.Payments.SingleRailFlipTest do
       assert Enum.all?(allocs, &is_nil(&1.subaccount_code))
     end
   end
+
+  describe "P1 exit invariant — persisted charges" do
+    test "a persisted charge has rows that sum to it, including the platform fee" do
+      merchant = create_store!(name: "Persist Flip")
+      verified_payout!(merchant, "ACCT_persist")
+      product = create_product!(merchant, title: "Persist Product")
+
+      own =
+        create_variant!(product, merchant, price: 7_500, sku: "FLIP-PERSIST", stock_quantity: 5)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 1}],
+          []
+        )
+
+      settlement = OrderSettlement.prepare(order.id, merchant.id)
+      assert {:split, %{mode: :internal}} = settlement
+
+      {:ok, payment} =
+        OrderSettlement.persist_payment(
+          %{
+            store_id: merchant.id,
+            order_id: order.id,
+            amount: order.total,
+            currency: "GHS",
+            gateway: :paystack,
+            gateway_reference: "flip-#{order.id}",
+            split_mode: :internal
+          },
+          settlement
+        )
+
+      {:ok, splits} = Emakola.Payments.list_payment_splits(payment.id, authorize?: false)
+
+      assert order.total == Enum.sum(Enum.map(splits, & &1.amount))
+      assert Enum.any?(splits, &(&1.role == :platform and &1.amount > 0))
+      assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+    end
+  end
 end
