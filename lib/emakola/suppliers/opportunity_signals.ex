@@ -59,16 +59,12 @@ defmodule Emakola.Suppliers.OpportunitySignals do
     since = DateTime.add(DateTime.utc_now(), -days, :day)
 
     Emakola.Analytics.AppEvent
-    |> Ash.Query.filter(event_name == "earn.supplier_demand_alert" and occurred_at >= ^since)
+    |> Ash.Query.filter(
+      event_name == "earn.supplier_demand_alert" and occurred_at >= ^since and
+        fragment("? ->> 'wholesaler_store_id' = ?", metadata, ^store_id)
+    )
     |> Ash.Query.sort(occurred_at: :desc)
     |> Ash.read(authorize?: false)
-    |> case do
-      {:ok, events} ->
-        {:ok, Enum.filter(events, &(&1.metadata["wholesaler_store_id"] == store_id))}
-
-      error ->
-        error
-    end
   end
 
   def fingerprint(query) do
@@ -85,9 +81,11 @@ defmodule Emakola.Suppliers.OpportunitySignals do
     since = DateTime.add(DateTime.utc_now(), -1, :day)
 
     Emakola.Analytics.AppEvent
-    |> Ash.Query.filter(event_name == "earn.supplier_demand_alert" and occurred_at >= ^since)
-    |> Ash.read!(authorize?: false)
-    |> Enum.any?(&(&1.metadata["offer_id"] == offer_id))
+    |> Ash.Query.filter(
+      event_name == "earn.supplier_demand_alert" and occurred_at >= ^since and
+        fragment("? ->> 'offer_id' = ?", metadata, ^offer_id)
+    )
+    |> Ash.exists?(authorize?: false)
   end
 
   defp track(name, metadata) do
