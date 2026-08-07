@@ -114,6 +114,8 @@ defmodule EmakolaWeb.Router do
   scope "/webhooks", EmakolaWeb do
     pipe_through :api
     post "/paystack", WebhookController, :paystack
+    # SplitPay events — HMAC-signed (t=..,v1=..) over the raw body.
+    post "/splitpay", SplitPayWebhookController, :handle
   end
 
   # Mobile/JSON API auth — bearer token pair lifecycle. Strict per-IP rate limit:
