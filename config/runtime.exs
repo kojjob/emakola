@@ -37,6 +37,14 @@ config :emakola, EmakolaWeb.Endpoint,
 # builder's (unset) value into release builds permanently.
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
+# SplitPay tenant client (any env) — ships dark until both are set.
+if splitpay_url = System.get_env("SPLITPAY_API_URL") do
+  config :emakola, Emakola.SplitPay.Client,
+    base_url: splitpay_url,
+    api_key: System.get_env("SPLITPAY_API_KEY"),
+    webhook_secret: System.get_env("SPLITPAY_WEBHOOK_SECRET")
+end
+
 if config_env() == :prod do
   config :emakola,
          :metrics_port,

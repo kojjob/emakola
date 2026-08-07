@@ -337,7 +337,41 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   # -- Payment initiation (mirrors CheckoutLive:470-530) -------------------
 
+  # Ship-dark SplitPay pilot: when the client is configured, pay-link
+  # charges route through SplitPay (order confirmation then arrives via
+  # /webhooks/splitpay); otherwise the existing gateway path runs
+  # unchanged.
   defp initiate_payment(socket, store, order) do
+    if Emakola.SplitPay.Client.enabled?() do
+      initiate_splitpay_payment(socket, store, order)
+    else
+      initiate_gateway_payment(socket, store, order)
+    end
+  end
+
+  defp initiate_splitpay_payment(socket, store, order) do
+    case Emakola.SplitPay.Checkout.initiate(order, store,
+           customer_email: customer_email(order, store)
+         ) do
+      {:ok, %{checkout_url: url}} ->
+        {:noreply, socket |> assign(:processing, false) |> redirect(external: url)}
+
+      {:error, reason} ->
+        Logger.error(
+          "[pay_link] SplitPay initiation failed for order #{order.order_number}: #{inspect(reason)}"
+        )
+
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> assign(:form_errors, %{
+           base:
+             "We couldn't start your payment just now. Your order #{order.order_number} is saved — please try again."
+         })}
+    end
+  end
+
+  defp initiate_gateway_payment(socket, store, order) do
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
     # Resolve how the charge is split at the gateway — same trustless
