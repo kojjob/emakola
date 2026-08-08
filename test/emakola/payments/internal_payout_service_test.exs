@@ -59,6 +59,7 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
     store = create_store!()
     momo_destination!(store)
     payment = create_payment!(store)
+    old_payment = create_payment!(store)
 
     plain = settled_internal_split!(store, payment, %{amount: 10_000})
 
@@ -67,22 +68,29 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
       |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 3_000})
       |> Ash.update!(authorize?: false)
 
+    # A real liability, so the deduction is non-zero and the assertion below
+    # actually exercises the new contract rather than a zero-deduction
+    # restatement of the old one.
+    owing_split = owing_split!(store, old_payment, 9_000, 4_000)
+
     {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
 
-    # 10_000 + (8_000 − 3_000) = 15_000 gross. No outstanding liability on
-    # this store, so deduction is 0 — but the contract itself is
-    # `Σ frozen − deduction`, not bare Σ frozen; the assertion says so
-    # explicitly even though this fixture's deduction happens to be zero.
-    deduction = 0
-    assert payout.amount == 15_000 - deduction
+    # 10_000 + (8_000 − 3_000) = 15_000 gross, minus the 4_000 owed.
+    assert payout.amount == 15_000 - 4_000
+    assert payout.amount == 11_000
     assert payout.basis == :allocations
     assert payout.currency == "GHS"
     assert payout.status == :pending
+    assert payout.metadata["liability_deduction"] == 4_000
 
     {:ok, claimed} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
     assert length(claimed) == 2
-    assert Enum.sum(Enum.map(claimed, & &1.paid_amount)) == payout.amount
+    # Each claimed split still freezes its own GROSS frozen value — the
+    # deduction is booked on the liability, never hidden inside a claim.
+    assert Enum.sum(Enum.map(claimed, & &1.paid_amount)) == 15_000
     assert MapSet.new(claimed, & &1.id) == MapSet.new([plain.id, partially.id], & &1)
+
+    assert reload_split!(owing_split).recovered_amount == 4_000
 
     # Second approval finds nothing — the claim emptied the payable set.
     assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
@@ -207,6 +215,7 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
 
       # 10_000 earned − 3_000 owed = 7_000 transferred.
       assert payout.amount == 7_000
+      assert payout.metadata["liability_deduction"] == 3_000
 
       # The claimed split keeps its frozen paid_amount — the deduction is NOT
       # hidden inside the claim value.
@@ -298,6 +307,12 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
       assert released_owing.recovery_breakdown["payout_recoveries"] == []
       assert reload_split!(payable_split).paid_out_at == nil
 
+      # A replay (webhook retry, or a crash-and-retry of the release itself)
+      # is idempotent — the entry is already gone, so recovered_amount stays
+      # at 0 and never goes negative.
+      PayoutService.release_payout_balance(payout)
+      assert reload_split!(owing_split).recovered_amount == 0
+
       # Retry nets fresh: 3_000 is owed again, so a fresh payout still only
       # transfers 7_000, not the full 10_000.
       assert {:ok, retried} = PayoutService.prepare_internal_payout(store.id)
@@ -336,6 +351,64 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
       assert reload_split!(ngn_payable).paid_amount == 10_000
     end
 
+    # Fix round 2 (re-review NEW-1): picking the currency from ONLY the
+    # first-seen split meant a debt that fully consumed THAT partition
+    # rolled the whole call back forever — even though a completely
+    # different currency owed nothing and had real payable money sitting
+    # right there. prepare_internal_payout/1 now tries every currency
+    # present, in first-seen order, and takes the first one whose own
+    # amount is positive.
+    test "cross-currency: a debt-bearing currency inserted first does not strand the other currency's payable" do
+      store = create_store!()
+      momo_destination!(store)
+      ghs_payment = create_payment!(store, currency: "GHS")
+      ngn_payment = create_payment!(store, currency: "NGN")
+      old_payment = create_payment!(store)
+
+      # GHS is inserted FIRST — under the old, defective logic this is the
+      # ONLY currency ever tried, and its 8_000 debt fully consumes its
+      # 5_000 payable, so the call would roll back :nothing_outstanding on
+      # every future attempt, forever stranding NGN's 6_000.
+      ghs_payable = settled_internal_split!(store, ghs_payment, %{amount: 5_000, currency: "GHS"})
+      ngn_payable = settled_internal_split!(store, ngn_payment, %{amount: 6_000, currency: "NGN"})
+      owing_split = owing_split!(store, old_payment, 9_000, 8_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.currency == "NGN"
+      assert payout.amount == 6_000
+
+      # GHS is simply skipped this call, not partially drained — nothing
+      # was collected against a currency that never got its own payout.
+      assert reload_split!(ghs_payable).paid_out_at == nil
+      assert reload_split!(owing_split).recovered_amount == 0
+      refute is_nil(reload_split!(ngn_payable).paid_out_at)
+    end
+
+    test "cross-currency: a currency fully consumed by its own debt waits while the other currency still pays" do
+      store = create_store!()
+      momo_destination!(store)
+      ngn_payment = create_payment!(store, currency: "NGN")
+      ghs_payment = create_payment!(store, currency: "GHS")
+      old_payment = create_payment!(store)
+
+      settled_internal_split!(store, ngn_payment, %{amount: 6_000, currency: "NGN"})
+      ghs_payable = settled_internal_split!(store, ghs_payment, %{amount: 4_000, currency: "GHS"})
+      # The GHS debt EQUALS the GHS payable exactly — its own amount hits
+      # 0, not merely a reduced positive amount.
+      owing_split = owing_split!(store, old_payment, 9_000, 4_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.currency == "NGN"
+      assert payout.amount == 6_000
+
+      # Only the fully-consumed GHS partition remains now — it correctly
+      # waits (:nothing_outstanding), not a $0 or negative payout, and the
+      # untouched debt is not collected against.
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
+      assert reload_split!(ghs_payable).paid_out_at == nil
+      assert reload_split!(owing_split).recovered_amount == 0
+    end
+
     test "a recipient with no liability pays out gross, byte-identical to before" do
       store = create_store!()
       momo_destination!(store)
@@ -344,6 +417,7 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
 
       assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
       assert payout.amount == 10_000
+      assert payout.metadata["liability_deduction"] == 0
       assert reload_split!(payable_split).paid_amount == 10_000
 
       # No payout_recoveries stamped anywhere — there was nothing to collect.

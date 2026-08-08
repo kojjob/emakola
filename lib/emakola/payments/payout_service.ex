@@ -136,29 +136,36 @@ defmodule Emakola.Payments.PayoutService do
   committing:
 
     - Locks the payable set (as before) and the recipient's outstanding
-      liabilities (`RefundLiability.outstanding_for_recipient!/1`), then
-      filters the liabilities to the SAME currency as the claimed splits —
-      a recipient's debt and its earnings can be in different currencies,
-      and only same-currency debt nets against this payout.
-    - `deduction = min(gross, outstanding)`; `amount = gross - deduction`.
-    - `claimed == []` or `amount <= 0` rolls back `:nothing_outstanding`:
-      NOTHING is collected and NOTHING is claimed. A payout a debt would
-      fully consume is simply never created — the debt keeps waiting for
-      more earnings (charge-time `reserve!/1` grinds it down independently
-      in the meantime). This is the deliberate inversion over an earlier,
-      defective two-phase design: collecting debt in a transaction that
-      commits regardless of whether the claim succeeds would withhold real
-      money against a payout that never happens, on every claim-abort path
-      (fully-consumed payout, repeated calls, concurrent claims, transfer
-      failure).
-    - Only once `amount > 0` — the payout is actually about to be created —
-      does `RefundLiability.collect_at_payout!/3` run, in the SAME
-      transaction, stamped with the payout's own `transfer_reference`
-      (generated before the transaction opens) and mirrored on the Payout's
-      `metadata` as `"liability_deduction"`. If the transfer later fails,
-      `release_payout_balance/1` calls
+      liabilities (`RefundLiability.outstanding_for_recipient!/1`). For EACH
+      currency present in the payable set, in first-seen order: filters the
+      liabilities to that SAME currency (a recipient's debt and its earnings
+      can be in different currencies, and only same-currency debt nets
+      against a given partition), computes `deduction = min(gross,
+      outstanding)` and `amount = gross - deduction` for that currency's own
+      partition, and takes the FIRST currency whose `amount > 0`. A debt
+      that fully consumes one currency's partition does not strand every
+      OTHER currency's payable money behind it — that currency is simply
+      skipped this call, exactly as if it had nothing payable yet.
+    - No currency yields a positive `amount` → rolls back
+      `:nothing_outstanding`: NOTHING is collected and NOTHING is claimed,
+      for any currency. A payout a debt would fully consume is simply never
+      created — the debt keeps waiting for more earnings (charge-time
+      `reserve!/1` grinds it down independently in the meantime). This is
+      the deliberate inversion over an earlier, defective two-phase design:
+      collecting debt in a transaction that commits regardless of whether
+      the claim succeeds would withhold real money against a payout that
+      never happens, on every claim-abort path (fully-consumed payout,
+      repeated calls, concurrent claims, transfer failure).
+    - Once a currency's `amount > 0` is chosen, `RefundLiability.
+      collect_at_payout!/3` runs, in the SAME transaction, against ONLY that
+      currency's matched liabilities — stamped with the payout's own
+      `transfer_reference` (generated before the transaction opens) and
+      mirrored on the Payout's `metadata` as `"liability_deduction"`. If the
+      transfer later fails, `release_payout_balance/1` calls
       `RefundLiability.release_payout_recovery!/1` to undo exactly this
       booking — nobody was paid, so the withholding never actually happened.
+      Still one payout per call — the existing one-currency-per-payout
+      partition rule.
   """
   def prepare_internal_payout(recipient_store_id) do
     with {:ok, _dest} <- transfer_destination(recipient_store_id) do
@@ -171,29 +178,24 @@ defmodule Emakola.Payments.PayoutService do
           |> Ash.Query.lock("FOR UPDATE")
           |> Ash.read!(authorize?: false)
 
-        # One currency per payout, same partition rule as prepare_payout/1.
-        currency = splits |> List.first(%{}) |> Map.get(:currency, "GHS")
-        claimed = Enum.filter(splits, &(&1.currency == currency))
-
-        if claimed == [] do
-          Emakola.Repo.rollback(:nothing_outstanding)
-        end
-
-        gross =
-          claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
-
         {liabilities, _all_currencies_total} =
           RefundLiability.outstanding_for_recipient!(recipient_store_id)
 
-        # Same-currency debt only — see the CONTRACT CHANGE note above.
-        matched_liabilities = Enum.filter(liabilities, &(&1.currency == currency))
-        outstanding = RefundLiability.outstanding_total(matched_liabilities)
-        deduction = min(gross, outstanding)
-        amount = gross - deduction
+        # One currency per payout, same partition rule as prepare_payout/1 —
+        # but tried across every currency present (first-seen order), so a
+        # debt that fully consumes one currency's partition doesn't strand
+        # the others (see the CONTRACT CHANGE note above).
+        candidate =
+          splits
+          |> Enum.map(& &1.currency)
+          |> Enum.uniq()
+          |> Enum.find_value(&currency_partition(splits, liabilities, &1))
 
-        if amount <= 0 do
+        if is_nil(candidate) do
           Emakola.Repo.rollback(:nothing_outstanding)
         end
+
+        {currency, claimed, matched_liabilities, deduction, amount} = candidate
 
         {:ok, payout} =
           Emakola.Payments.create_payout(
@@ -230,6 +232,24 @@ defmodule Emakola.Payments.PayoutService do
     else
       {:error, :no_momo_destination} = err -> err
     end
+  end
+
+  # A single currency's candidate partition: its claimed splits, gross,
+  # same-currency matched liabilities, and the resulting deduction/amount —
+  # or `nil` when that amount isn't positive (this currency can't fund a
+  # payout THIS call; see prepare_internal_payout/1's per-currency loop).
+  defp currency_partition(splits, liabilities, currency) do
+    claimed = Enum.filter(splits, &(&1.currency == currency))
+
+    gross =
+      claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+
+    matched_liabilities = Enum.filter(liabilities, &(&1.currency == currency))
+    outstanding = RefundLiability.outstanding_total(matched_liabilities)
+    deduction = min(gross, outstanding)
+    amount = gross - deduction
+
+    if amount > 0, do: {currency, claimed, matched_liabilities, deduction, amount}
   end
 
   @doc """
