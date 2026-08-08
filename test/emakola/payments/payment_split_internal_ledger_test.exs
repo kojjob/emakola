@@ -376,7 +376,7 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert is_nil(released.paid_out_at)
       # payable_internal must NOT resurface it (amount > reversed is false)...
       assert payable_internal(store.id) == []
-      # ...and the forensic flag marks it for manual remediation review.
+      # ...and the forensic flag stamps the release as an unreclaimable-release audit record.
       assert released.recovery_breakdown["unreclaimable_release"] == true
 
       # Pin the boundary (P2a fix-round-2): the payout never delivered

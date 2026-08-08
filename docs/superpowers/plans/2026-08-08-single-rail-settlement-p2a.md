@@ -1,5 +1,7 @@
 # Single-Rail Settlement P2a — Debts Settle Before Any New Payout: Implementation Plan
 
+> **SUPERSEDED IN EXECUTION (2026-08-08):** two designs below were overruled during the review loops and the ledger + task reports are the authority: (1) the two-phase 'collection survives claim abort' structure in Task 2 books recovery with zero withholding — shipped design collects only inside the transaction that commits a positive payout; (2) Task 3's scenario amounts encode a debt for a FAILED payout — a failed payout delivers nothing, so its fully-reversed claim owes nothing; the genuine carry-forward case is a payout that SUCCEEDS and is then reversed. Do not paste Task 4's PR body.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Enforce spec §3.2's rule "a recipient's balance may go negative via carry-forward
