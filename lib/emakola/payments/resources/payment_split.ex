@@ -356,10 +356,18 @@ defmodule Emakola.Payments.PaymentSplit do
     #   - internal_hold, claimed (paid_out_at set): netted_reversal_amount, the
     #     value frozen by mark_paid_out — already net of any recovery taken
     #     before that claim.
-    #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
-    #     own future claim will net up to its full amount; only reversal BEYOND
-    #     amount (over-reversal from dispatch-fee redistribution) is exposed
-    #     here, never the part the split will net itself.
+    #   - internal_hold, unclaimed, stamped unreclaimable_release (P2a):
+    #     netted_reversal_amount, the value frozen by release_from_payout —
+    #     this row is gone from payable_internal for good (amount <=
+    #     reversed), so unlike the plain-unclaimed rule below there is no
+    #     future claim left to net the reversal at source. Checked as a
+    #     DISTINCT population from the plain-unclaimed branch, not a special
+    #     case folded into it, so the two conditions can't silently overlap.
+    #   - internal_hold, unclaimed (unstamped): min(amount, reversed_amount) —
+    #     the split's own future claim will net up to its full amount; only
+    #     reversal BEYOND amount (over-reversal from dispatch-fee
+    #     redistribution) is exposed here, never the part the split will net
+    #     itself.
     read :recoverable_by_recipient do
       argument(:recipient_store_id, :uuid, allow_nil?: false)
 
@@ -369,6 +377,10 @@ defmodule Emakola.Payments.PaymentSplit do
             ((settlement_method == :gateway_share and
                 reversed_amount > recovered_amount + reserved_recovery_amount) or
                (settlement_method == :internal_hold and not is_nil(paid_out_at) and
+                  reversed_amount >
+                    netted_reversal_amount + recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and is_nil(paid_out_at) and
+                  fragment("(? ->> 'unreclaimable_release')::boolean IS TRUE", recovery_breakdown) and
                   reversed_amount >
                     netted_reversal_amount + recovered_amount + reserved_recovery_amount) or
                (settlement_method == :internal_hold and is_nil(paid_out_at) and
@@ -510,9 +522,18 @@ defmodule Emakola.Payments.PaymentSplit do
           )
 
         # An unreclaimable split (fully reversed while claimed) exits the
-        # payable population forever; any recovery its claim justified cannot
-        # be auto-unwound yet (see P2 plan Task 4 — decision pending). Stamp
-        # the release so finance can find and remediate these manually.
+        # payable population forever. The stamp below is what makes its
+        # outstanding liability visible again: RefundLiability.effective_netted/1
+        # and recoverable_by_recipient's matching filter arm treat a stamped
+        # row as netted only up to netted_reversal_amount — never
+        # min(amount, reversed_amount) — because a stamped row has no future
+        # claim left to net the reversal at source (see both sites' synced
+        # comments). The remainder is then collected automatically by
+        # payout-time netting (RefundLiability.collect_at_payout!, P2a) when
+        # the recipient's next positive payout commits, and by charge-time
+        # reserve! — precision matters: netting does NOT collect on an
+        # aborted payout. The stamp remains as finance's audit trail of the
+        # event — needs_remediation is a historical record, not a to-do list.
         if changeset.data.status == :reversed do
           Ash.Changeset.change_attribute(
             changeset,
@@ -531,8 +552,9 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     # Splits `release_from_payout` stamped as unreclaimable (fully reversed
-    # while claimed — see that action's comment) — finance's manual-remediation
-    # worklist. No args: this is a cross-store platform view.
+    # while claimed — see that action's comment) — finance's audit trail of
+    # unreclaimable releases; recovery is automatic since P2a. No args: this
+    # is a cross-store platform view.
     #
     # `recovery_breakdown["unreclaimable_release"] == true` (Ash bracket
     # syntax) compiles but fails at the DB: AshPostgres's jsonb `get_path`

@@ -8,7 +8,8 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
   use Emakola.DataCase, async: true
   import Emakola.Factory
 
-  alias Emakola.Payments.{PaymentSplit, PayoutService}
+  alias Emakola.Payments.{PaymentSplit, PayoutService, RefundLiability}
+  alias Emakola.Payments.Workers.PayoutWorker
 
   defp momo_destination!(store) do
     Emakola.Stores.StorePayoutAccount
@@ -422,6 +423,114 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
 
       # No payout_recoveries stamped anywhere — there was nothing to collect.
       refute Map.has_key?(reload_split!(payable_split).recovery_breakdown, "payout_recoveries")
+    end
+  end
+
+  describe "unreclaimable release drains via payout netting (P2a)" do
+    test "a split fully reversed while claimed is recovered by the next payout" do
+      store = create_store!()
+      payout_account = momo_destination!(store)
+      payment_a = create_payment!(store)
+
+      # 1. Recipient earns: split A (10_000) settles payable.
+      split_a = settled_internal_split!(store, payment_a, %{amount: 10_000})
+
+      # 2. Payout 1 claims A (paid_amount 10_000, netted fence 0).
+      assert {:ok, payout1} = PayoutService.prepare_internal_payout(store.id)
+      assert payout1.amount == 10_000
+
+      claimed_a = reload_split!(split_a)
+      assert claimed_a.paid_amount == 10_000
+      assert claimed_a.netted_reversal_amount == 0
+
+      # 3. Full reversal lands on A (refund after payout) → reversed 10_000.
+      reversed_a =
+        claimed_a
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 10_000})
+        |> Ash.update!(authorize?: false)
+
+      assert reversed_a.status == :reversed
+
+      # 4. Payout 1 FAILS pre-webhook (no MoMo destination — the recipient's
+      # destination is cleared here, a real action, mirroring
+      # payout_worker_test's "no MoMo destination" idiom) → mark_failed →
+      # release_payout_balance → release_from_payout: A exits payable
+      # (amount ≤ reversed), stamped recovery_breakdown["unreclaimable_release"]
+      # == true, netted reset to recovered+reserved. A's outstanding = 10_000.
+      payout_account
+      |> Ash.Changeset.for_update(:update, %{payout_destination: %{}})
+      |> Ash.update!(authorize?: false)
+
+      assert :ok =
+               Oban.Testing.perform_job(
+                 PayoutWorker,
+                 %{"payout_id" => payout1.id},
+                 repo: Emakola.Repo
+               )
+
+      assert Emakola.Payments.get_payout!(payout1.id, authorize?: false).status == :failed
+
+      released_a = reload_split!(split_a)
+      assert is_nil(released_a.paid_out_at)
+      assert is_nil(released_a.payout_id)
+      assert released_a.recovery_breakdown["unreclaimable_release"] == true
+      assert released_a.netted_reversal_amount == 0
+
+      assert {:ok, {_liabilities, outstanding}} =
+               Emakola.Repo.transaction(fn ->
+                 RefundLiability.outstanding_for_recipient!(store.id)
+               end)
+
+      assert outstanding == 10_000
+
+      # The recipient re-registers a MoMo destination — a real action — so
+      # subsequent payouts in this test aren't blocked on that unrelated gate.
+      payout_account
+      |> Ash.Changeset.for_update(:update, %{
+        payout_destination: %{
+          "method" => "mobile_money",
+          "provider" => "mtn",
+          "number" => "0244000111",
+          "account_name" => "Test Merchant"
+        }
+      })
+      |> Ash.update!(authorize?: false)
+
+      # 5. Recipient earns again: split B (6_000) settles payable.
+      payment_b = create_payment!(store)
+      split_b = settled_internal_split!(store, payment_b, %{amount: 6_000})
+
+      # 6. prepare_internal_payout → {:error, :nothing_outstanding}: the
+      # 6_000 is fully consumed by the 10_000 debt; A.recovered_amount == 0
+      # (nothing is collected without a committing payout); B stays payable.
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
+      assert reload_split!(split_a).recovered_amount == 0
+      assert reload_split!(split_b).paid_out_at == nil
+
+      # 7. Recipient earns split C (5_000): payable is now 11_000 > the
+      # 10_000 debt, so this payout commits and nets the remainder.
+      payment_c = create_payment!(store)
+      split_c = settled_internal_split!(store, payment_c, %{amount: 5_000})
+
+      assert {:ok, payout2} = PayoutService.prepare_internal_payout(store.id)
+      assert payout2.amount == 1_000
+      assert payout2.metadata["liability_deduction"] == 10_000
+
+      assert reload_split!(split_a).recovered_amount == 10_000
+      refute is_nil(reload_split!(split_b).paid_out_at)
+      refute is_nil(reload_split!(split_c).paid_out_at)
+
+      # needs_remediation still lists A — the stamp is a historical record,
+      # not a to-do list — but its outstanding liability is now 0.
+      assert {:ok, remediation} = Emakola.Payments.list_remediation_splits(authorize?: false)
+      assert Enum.any?(remediation, &(&1.id == split_a.id))
+
+      assert {:ok, {_liabilities, outstanding_after}} =
+               Emakola.Repo.transaction(fn ->
+                 RefundLiability.outstanding_for_recipient!(store.id)
+               end)
+
+      assert outstanding_after == 0
     end
   end
 end

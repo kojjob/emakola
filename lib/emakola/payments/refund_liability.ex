@@ -401,10 +401,28 @@ defmodule Emakola.Payments.RefundLiability do
   #     reversal is recoverable.
   #   - internal_hold, claimed: the frozen netted_reversal_amount, already net
   #     of whatever was recovered before that claim.
-  #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
-  #     own future claim nets up to its full amount; only reversal beyond
-  #     amount (over-reversal from dispatch-fee redistribution) is exposed.
+  #   - internal_hold, unclaimed, stamped unreclaimable_release (P2a): the
+  #     frozen netted_reversal_amount (recovered + reserved at release), NOT
+  #     min(amount, reversed_amount) — release_from_payout stamps this ONLY
+  #     when the split is gone from payable_internal for good (amount <=
+  #     reversed), so unlike the plain-unclaimed rule below, there is no
+  #     future claim left to net the reversal at source; checked BEFORE that
+  #     rule since it is a distinct population, not a special case of it.
+  #   - internal_hold, unclaimed (unstamped): min(amount, reversed_amount) —
+  #     the split's own future claim nets up to its full amount; only
+  #     reversal beyond amount (over-reversal from dispatch-fee
+  #     redistribution) is exposed.
   defp effective_netted(%{settlement_method: :gateway_share}), do: 0
+
+  defp effective_netted(
+         %{
+           settlement_method: :internal_hold,
+           paid_out_at: nil,
+           recovery_breakdown: %{"unreclaimable_release" => true}
+         } = liability
+       ) do
+    liability.netted_reversal_amount
+  end
 
   defp effective_netted(%{settlement_method: :internal_hold, paid_out_at: nil} = liability) do
     min(liability.amount, liability.reversed_amount)
