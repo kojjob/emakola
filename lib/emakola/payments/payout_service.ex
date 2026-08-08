@@ -130,45 +130,40 @@ defmodule Emakola.Payments.PayoutService do
   read) — and would only fire if a future edit broke that wiring.
 
   CONTRACT CHANGE (P2a): `Payout.amount` is `Σ frozen_paid_amount − outstanding
-  refund liability`, not the raw `Σ frozen_paid_amount` from before — any
-  refund debt the recipient owes is deducted from its own payout. This runs
-  as two transactions:
+  refund liability`, not the raw `Σ frozen_paid_amount` from before. Sizing
+  the debt, booking the collection, and claiming the splits all happen in
+  ONE transaction, so collection is conditional on a positive payout actually
+  committing:
 
-    1. Debt collection — locks the recipient's outstanding liabilities
-       (`RefundLiability.outstanding_for_recipient!/1`) and books
-       `min(payable, outstanding)` against them via `collect_at_payout!/3`,
-       stamped with a `transfer_reference` generated before either
-       transaction opens. Commits on its own, independent of whether a
-       payout is ultimately created: a payout fully consumed by debt still
-       collects the debt (the withheld money is real and stays collected).
-    2. The claim — as before, but the final `amount` is `Σ frozen_paid_amount
-       (from ITS OWN locked read) − deduction`; `<= 0` rolls back
-       `:nothing_outstanding` (the deduction, or a concurrent claim shrinking
-       the payable set, consumed it all). The Payout's `transfer_reference`
-       reuses the same reference from step 1, so the recovery booked there
-       can be traced to the payout it funded.
+    - Locks the payable set (as before) and the recipient's outstanding
+      liabilities (`RefundLiability.outstanding_for_recipient!/1`), then
+      filters the liabilities to the SAME currency as the claimed splits —
+      a recipient's debt and its earnings can be in different currencies,
+      and only same-currency debt nets against this payout.
+    - `deduction = min(gross, outstanding)`; `amount = gross - deduction`.
+    - `claimed == []` or `amount <= 0` rolls back `:nothing_outstanding`:
+      NOTHING is collected and NOTHING is claimed. A payout a debt would
+      fully consume is simply never created — the debt keeps waiting for
+      more earnings (charge-time `reserve!/1` grinds it down independently
+      in the meantime). This is the deliberate inversion over an earlier,
+      defective two-phase design: collecting debt in a transaction that
+      commits regardless of whether the claim succeeds would withhold real
+      money against a payout that never happens, on every claim-abort path
+      (fully-consumed payout, repeated calls, concurrent claims, transfer
+      failure).
+    - Only once `amount > 0` — the payout is actually about to be created —
+      does `RefundLiability.collect_at_payout!/3` run, in the SAME
+      transaction, stamped with the payout's own `transfer_reference`
+      (generated before the transaction opens) and mirrored on the Payout's
+      `metadata` as `"liability_deduction"`. If the transfer later fails,
+      `release_payout_balance/1` calls
+      `RefundLiability.release_payout_recovery!/1` to undo exactly this
+      booking — nobody was paid, so the withholding never actually happened.
   """
   def prepare_internal_payout(recipient_store_id) do
     with {:ok, _dest} <- transfer_destination(recipient_store_id) do
       reference = "po_" <> Ecto.UUID.generate()
 
-      # Phase 1 — collect the debt, in its own transaction: the collection
-      # must survive even when the claim below aborts (fully-consumed
-      # payout), and the FOR UPDATE inside outstanding_for_recipient!/1
-      # serializes against charge-time reserve!/1 so the two sites can never
-      # double-collect.
-      {:ok, deduction} =
-        Emakola.Repo.transaction(fn ->
-          {liabilities, outstanding} =
-            RefundLiability.outstanding_for_recipient!(recipient_store_id)
-
-          gross = payable_gross(recipient_store_id)
-          deduction = min(gross, outstanding)
-          :ok = RefundLiability.collect_at_payout!(liabilities, deduction, reference)
-          deduction
-        end)
-
-      # Phase 2 — the claim, exactly as before, minus the deduction.
       Emakola.Repo.transaction(fn ->
         splits =
           Emakola.Payments.PaymentSplit
@@ -184,9 +179,17 @@ defmodule Emakola.Payments.PayoutService do
           Emakola.Repo.rollback(:nothing_outstanding)
         end
 
-        amount =
-          (claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()) -
-            deduction
+        gross =
+          claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+
+        {liabilities, _all_currencies_total} =
+          RefundLiability.outstanding_for_recipient!(recipient_store_id)
+
+        # Same-currency debt only — see the CONTRACT CHANGE note above.
+        matched_liabilities = Enum.filter(liabilities, &(&1.currency == currency))
+        outstanding = RefundLiability.outstanding_total(matched_liabilities)
+        deduction = min(gross, outstanding)
+        amount = gross - deduction
 
         if amount <= 0 do
           Emakola.Repo.rollback(:nothing_outstanding)
@@ -199,10 +202,13 @@ defmodule Emakola.Payments.PayoutService do
               amount: amount,
               currency: currency,
               transfer_reference: reference,
-              basis: :allocations
+              basis: :allocations,
+              metadata: %{"liability_deduction" => deduction}
             },
             authorize?: false
           )
+
+        :ok = RefundLiability.collect_at_payout!(matched_liabilities, deduction, reference)
 
         Enum.each(claimed, fn split ->
           expected = Emakola.Payments.PaymentSplit.frozen_paid_amount(split)
@@ -226,17 +232,6 @@ defmodule Emakola.Payments.PayoutService do
     end
   end
 
-  # Gross payable WITHOUT locking (Phase 1 sizing only, to cap the deduction;
-  # Phase 2 re-reads under its own FOR UPDATE and the final amount uses
-  # Phase 2's Σ).
-  defp payable_gross(recipient_store_id) do
-    Emakola.Payments.PaymentSplit
-    |> Ash.Query.for_read(:payable_internal, %{recipient_store_id: recipient_store_id})
-    |> Ash.read!(authorize?: false)
-    |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1)
-    |> Enum.sum()
-  end
-
   @doc """
   Release every charge (payments and/or splits) a payout claimed, back to
   payable. Shared by two callers:
@@ -256,6 +251,13 @@ defmodule Emakola.Payments.PayoutService do
   without burying the balance. Legacy-basis payouts claim Payments;
   allocation-basis payouts claim PaymentSplits instead — each list is empty
   for the other basis, so both loops are safe to run unconditionally.
+
+  Also reverses any liability collection `prepare_internal_payout/1` booked
+  against this payout's `transfer_reference` (P2a): the transfer never
+  materialized, so nobody was paid and the withholding never actually
+  happened — `RefundLiability.release_payout_recovery!/1` is itself
+  idempotent, so replays are safe here too. A no-op for legacy-basis
+  payouts, which never collect against any liability.
   """
   def release_payout_balance(payout) do
     {:ok, payments} = Payments.list_payments_by_payout(payout.id, authorize?: false)
@@ -271,5 +273,7 @@ defmodule Emakola.Payments.PayoutService do
     Enum.each(splits, fn split ->
       {:ok, _} = Payments.release_payment_split_from_payout(split, authorize?: false)
     end)
+
+    :ok = RefundLiability.release_payout_recovery!(payout)
   end
 end

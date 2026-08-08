@@ -547,5 +547,26 @@ defmodule Emakola.Payments.PaymentSplit do
 
       prepare(build(sort: [updated_at: :desc]))
     end
+
+    # Finds every split still carrying a `payout_recoveries` entry for a
+    # given payout's `transfer_reference` — the read counterpart to
+    # `RefundLiability.collect_at_payout!/3`'s write, used by
+    # `release_payout_recovery!/1` to undo a collection whose payout never
+    # actually transferred. `@>` containment on the jsonb array matches an
+    # entry with AT LEAST this `payout_ref` (the `amount` key riding along is
+    # irrelevant to the match).
+    read :recovered_via_payout do
+      argument(:transfer_reference, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          fragment(
+            "(? -> 'payout_recoveries') @> jsonb_build_array(jsonb_build_object('payout_ref', ?::text))",
+            recovery_breakdown,
+            ^arg(:transfer_reference)
+          )
+        )
+      )
+    end
   end
 end

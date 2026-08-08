@@ -195,15 +195,31 @@ defmodule Emakola.Payments.RefundLiability do
   end
 
   @doc """
+  Sum of `outstanding/1` over a liability set — the same formula
+  `outstanding_for_recipient!/1` totals, exposed for callers (payout-time
+  netting) that need the total over a currency-filtered subset rather than
+  every currency the recipient carries at once. `outstanding/1` itself stays
+  private — this is the one place besides `outstanding_for_recipient!/1`
+  allowed to sum it.
+  """
+  def outstanding_total(liabilities), do: liabilities |> Enum.map(&outstanding/1) |> Enum.sum()
+
+  @doc """
   Books `deduction` of payout-withheld recovery across `liabilities` (already
-  FOR-UPDATE-locked by `outstanding_for_recipient!/1`) in `id` order, with
-  payout provenance. Called inside the payout's own transaction.
+  FOR-UPDATE-locked by `outstanding_for_recipient!/1`) in `inserted_at` order
+  — the same consumption order `recoverable_by_recipient`'s read (and so
+  `reserve_from_liabilities/4`) already uses, keeping recovery FIFO-consistent
+  across both sites — with payout provenance. Called inside the payout's own
+  transaction, and only once that payout is actually about to be created (see
+  `PayoutService.prepare_internal_payout/1` — collection must never commit
+  without a corresponding payout, or the withholding happens with no transfer
+  to show for it).
   """
   def collect_at_payout!(_liabilities, 0, _payout_ref), do: :ok
 
   def collect_at_payout!(liabilities, deduction, payout_ref) do
     liabilities
-    |> Enum.sort_by(& &1.id)
+    |> Enum.sort_by(& &1.inserted_at, DateTime)
     |> Enum.reduce(deduction, fn
       _liability, 0 ->
         0
@@ -229,6 +245,49 @@ defmodule Emakola.Payments.RefundLiability do
     end)
 
     :ok
+  end
+
+  @doc """
+  Reverses the debt collection `collect_at_payout!/3` booked for a payout
+  whose transfer never materialized (called from
+  `PayoutService.release_payout_balance/1`): for every split whose
+  `recovery_breakdown["payout_recoveries"]` carries an entry stamped with this
+  payout's `transfer_reference`, decrements `recovered_amount` by that
+  entry's amount and removes the entry — other payouts' entries on the same
+  split are untouched. Nobody was actually paid, so the withholding never
+  happened; the debt goes back to being outstanding. Idempotent: a payout
+  with no matching entries anywhere (already released, or nothing was ever
+  collected against it) is a no-op.
+  """
+  def release_payout_recovery!(%{transfer_reference: nil}), do: :ok
+
+  def release_payout_recovery!(%{transfer_reference: reference}) do
+    {:ok, :ok} =
+      Emakola.Repo.transaction(fn ->
+        PaymentSplit
+        |> Ash.Query.for_read(:recovered_via_payout, %{transfer_reference: reference})
+        |> Ash.Query.lock("FOR UPDATE")
+        |> Ash.read!(authorize?: false)
+        |> Enum.sort_by(& &1.id)
+        |> Enum.each(&release_one_payout_recovery!(&1, reference))
+
+        :ok
+      end)
+
+    :ok
+  end
+
+  defp release_one_payout_recovery!(split, reference) do
+    recoveries = Map.get(split.recovery_breakdown, "payout_recoveries", [])
+    {released_entries, remaining} = Enum.split_with(recoveries, &(&1["payout_ref"] == reference))
+    released = released_entries |> Enum.map(& &1["amount"]) |> Enum.sum()
+
+    if released > 0 do
+      update_tracking!(split, %{
+        recovered_amount: max(split.recovered_amount - released, 0),
+        recovery_breakdown: Map.put(split.recovery_breakdown, "payout_recoveries", remaining)
+      })
+    end
   end
 
   @doc "Reserves recipient liabilities and returns gateway-ready net allocations."
