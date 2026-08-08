@@ -682,7 +682,10 @@ defmodule Emakola.Payments.RefundLiabilityTest do
         end)
 
       assert total == 3_000
-      assert length(splits) >= 1
+      # `_self_netting` nets to 0 at source and never passes
+      # `recoverable_by_recipient`'s filter — `_owing` is the only row it can
+      # return for this store, so this is exactly one element, not "at least".
+      assert [_] = splits
     end
 
     test "a recipient with no liabilities owes zero" do

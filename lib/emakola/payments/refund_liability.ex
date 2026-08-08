@@ -218,31 +218,39 @@ defmodule Emakola.Payments.RefundLiability do
   def collect_at_payout!(_liabilities, 0, _payout_ref), do: :ok
 
   def collect_at_payout!(liabilities, deduction, payout_ref) do
-    liabilities
-    |> Enum.sort_by(& &1.inserted_at, DateTime)
-    |> Enum.reduce(deduction, fn
-      _liability, 0 ->
-        0
+    # `deduction` is always `min(gross, outstanding_total(liabilities))` at
+    # the only call site (PayoutService.currency_partition/3) against this
+    # exact, already-locked list — so it never exceeds `Σ outstanding/1` over
+    # `liabilities`, and this waterfall provably fully allocates it. Binding
+    # (and asserting) the result both satisfies Credo's unused-return check
+    # and pins that invariant: a mismatch here means the call site's sizing
+    # broke, not a value silently absorbed.
+    0 =
+      liabilities
+      |> Enum.sort_by(& &1.inserted_at, DateTime)
+      |> Enum.reduce(deduction, fn
+        _liability, 0 ->
+          0
 
-      liability, remaining ->
-        applied = min(outstanding(liability), remaining)
+        liability, remaining ->
+          applied = min(outstanding(liability), remaining)
 
-        if applied > 0 do
-          recoveries = Map.get(liability.recovery_breakdown, "payout_recoveries", [])
+          if applied > 0 do
+            recoveries = Map.get(liability.recovery_breakdown, "payout_recoveries", [])
 
-          update_tracking!(liability, %{
-            recovered_amount: liability.recovered_amount + applied,
-            recovery_breakdown:
-              Map.put(
-                liability.recovery_breakdown,
-                "payout_recoveries",
-                recoveries ++ [%{"payout_ref" => payout_ref, "amount" => applied}]
-              )
-          })
-        end
+            update_tracking!(liability, %{
+              recovered_amount: liability.recovered_amount + applied,
+              recovery_breakdown:
+                Map.put(
+                  liability.recovery_breakdown,
+                  "payout_recoveries",
+                  recoveries ++ [%{"payout_ref" => payout_ref, "amount" => applied}]
+                )
+            })
+          end
 
-        remaining - applied
-    end)
+          remaining - applied
+      end)
 
     :ok
   end
