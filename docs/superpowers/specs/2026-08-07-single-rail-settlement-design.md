@@ -9,11 +9,15 @@ deliberate simplification of it, not a bug fix.
 
 > **Amendment — 2026-08-12: pay-links are out of scope.**
 >
-> This spec was written on 2026-08-07 without reference to SplitPay
-> (`~/Projects/split_payment`), a standalone multi-party settlement engine Kojo is
-> building; grepping this document and its P1 plan for "SplitPay" returned zero hits.
-> The two designs collided on 2026-08-12: this one deliberately accepts platform custody
-> of all funds as float, while SplitPay is non-custodial by design.
+> This spec was written on 2026-08-07 without reference to SplitPay, a standalone
+> multi-party settlement engine Kojo is building in a **separate repository**
+> (`kojjob/split_payment` — not this one, and not a directory inside it). Grepping this
+> document and its P1 plan for "SplitPay" returned zero hits. The two designs collided on
+> 2026-08-12: this one deliberately accepts platform custody of all funds as float, while
+> SplitPay is non-custodial by design.
+>
+> Every cross-repo reference below names the repo explicitly for that reason. Nothing here
+> assumes the two checkouts sit side by side on one machine.
 >
 > **Ruling (Kojo, 2026-08-12): they coexist.** Makola's own commerce settles here —
 > storefront, dropship, buyer-protection holds, **susu/lay-away**, group-buy, preorder,
@@ -24,7 +28,8 @@ deliberate simplification of it, not a bug fix.
 > flip must not capture `PayLinkLive` (§3.5, amended below).
 >
 > Full reasoning, including what the carve-out costs and what it deliberately does not:
-> `split_payment/docs/superpowers/specs/2026-08-12-splitpay-makola-boundary.md`.
+> repo `kojjob/split_payment`, file
+> `docs/superpowers/specs/2026-08-12-splitpay-makola-boundary.md`.
 
 ## 1. Problem
 
@@ -206,12 +211,14 @@ insurance — is a business decision outside this spec.
 >
 > Match the full prefix including the hyphen: `SP-` and `SPT-` are ambiguous without it.
 > The prefixes are disjoint by luck, not design; SplitPay pins its half in
-> `test/split_pay/provider_reference_prefixes_test.exs`, and **`PAY-` has no mirror test
+> `kojjob/split_payment` → `test/split_pay/provider_reference_prefixes_test.exs`, and **`PAY-` has no mirror test
 > here yet.** Design:
-> `split_payment/docs/superpowers/specs/2026-08-12-reconciliation-under-two-ledgers.md`.
+> repo `kojjob/split_payment`, file
+> `docs/superpowers/specs/2026-08-12-reconciliation-under-two-ledgers.md`.
 >
 > Note this changes no regulatory exposure. The float sits in Makola's account either
 > way; only the bookkeeping is split. The custody question in decision 1 is unaffected —
 > though it is now worth asking a lawyer about **Makola** holding susu contributions and
 > buyer-protection escrow in that float, which the licence research
-> (`split_payment/docs/research/2026-08-11-psp-licence-paths.md`) frames only for SplitPay.
+> (repo `kojjob/split_payment`, `docs/research/2026-08-11-psp-licence-paths.md`) frames
+> only for SplitPay.
