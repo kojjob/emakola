@@ -6,7 +6,7 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
   use Emakola.DataCase, async: true
   import Emakola.Factory
 
-  alias Emakola.Payments.PaymentSplit
+  alias Emakola.Payments.{PaymentSplit, RefundLiability}
 
   setup do
     store = create_store!()
@@ -376,8 +376,20 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert is_nil(released.paid_out_at)
       # payable_internal must NOT resurface it (amount > reversed is false)...
       assert payable_internal(store.id) == []
-      # ...and the forensic flag marks it for manual remediation review.
+      # ...and the forensic flag stamps the release as an unreclaimable-release audit record.
       assert released.recovery_breakdown["unreclaimable_release"] == true
+
+      # Pin the boundary (P2a fix-round-2): the payout never delivered
+      # anything (release_from_payout only fires on a failed/reversed
+      # transfer), so this split owes nothing — outstanding is 0, not the
+      # reversed 6_000. The stamp above is a historical audit trail, not a
+      # debt marker.
+      assert {:ok, {_liabilities, outstanding}} =
+               Emakola.Repo.transaction(fn ->
+                 RefundLiability.outstanding_for_recipient!(store.id)
+               end)
+
+      assert outstanding == 0
     end
   end
 end

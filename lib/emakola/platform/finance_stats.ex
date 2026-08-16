@@ -90,10 +90,11 @@ defmodule Emakola.Platform.FinanceStats do
   end
 
   @doc """
-  Splits flagged for manual remediation (`PaymentSplit.needs_remediation` —
-  `release_from_payout` stamped `recovery_breakdown["unreclaimable_release"]`)
-  with their recipient store resolved, newest-flagged first — the platform
-  finance page's "Needs remediation" worklist.
+  Splits stamped as unreclaimable releases (`PaymentSplit.needs_remediation` —
+  `release_from_payout` stamped `recovery_breakdown["unreclaimable_release"]`):
+  audit trail of fully-reversed failed-payout claims with their recipient store
+  resolved, newest-flagged first. These rows carry no outstanding debt.
+  See `PaymentSplit.needs_remediation`.
 
   Each row: `%{split, store}`.
   """
@@ -138,9 +139,11 @@ defmodule Emakola.Platform.FinanceStats do
     splits
   end
 
-  # Display sums must agree with the payout engine to the pesewa (design spec
-  # §4.5) — delegates to PaymentSplit.frozen_paid_amount/1, THE single
-  # formula authority also called by mark_paid_out and
+  # Display sums are GROSS payable; the payout engine additionally nets
+  # outstanding refund liability at payout time (P2a), so an indebted
+  # recipient's actual transfer can be smaller. Liability-aware display is the
+  # P2b/UI pass. This delegates to PaymentSplit.frozen_paid_amount/1, the
+  # single formula authority also called by mark_paid_out and
   # PayoutService.prepare_internal_payout/1.
   defp payable_net(split), do: PaymentSplit.frozen_paid_amount(split)
 

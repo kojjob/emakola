@@ -10,11 +10,10 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   Distinct from `/platform/payments` (transaction ops) and `/platform/billing`
   (legacy Stripe subscriptions).
 
-  Also surfaces the "Needs remediation" worklist — splits
+  Also surfaces the "Unreclaimable releases" audit trail — splits
   `PaymentSplit.release_from_payout` stamped as unreclaimable (fully reversed
-  while their payout claim was in flight) — closing the gap where that flag
-  had zero UI surface despite the domain code's own comment promising finance
-  could find them.
+  while their payout claim was in flight) — an audit record of these historical
+  releases, providing transparency to finance operations.
   """
   use EmakolaWeb, :live_view
 
@@ -326,7 +325,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           />
           <.stat_tile
             id="remediation-count"
-            label="Needs remediation"
+            label="Unreclaimable releases"
             value={@remediation_count}
             icon="flag"
             color="rose"
@@ -531,19 +530,20 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           </div>
         </div>
 
-        <%!-- ── Needs remediation ──────────────────────────────────────── --%>
+        <%!-- ── Unreclaimable releases ────────────────────────────────── --%>
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-8">
           <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900">Needs remediation</h2>
+            <h2 class="text-lg font-semibold text-gray-900">Unreclaimable releases</h2>
             <p class="text-xs text-gray-400 mt-0.5">
-              Splits fully reversed while their payout claim was in flight — the platform holds
-              the shortfall and can no longer claw it back automatically. Follow up manually.
+              Audit record of splits fully reversed while their payout claim was in flight —
+              these represent historical releases that could not be recovered, preserved for
+              operational transparency.
             </p>
           </div>
           <.platform_empty_state
             :if={@remediation_count == 0}
-            title="Nothing needs remediation"
-            description="Flagged splits will show up here for manual follow-up."
+            title="No unreclaimable releases"
+            description="Audit records of unreclaimable releases will appear here."
             icon="hero-check-circle"
           />
           <%!-- The stream container stays mounted regardless of @remediation_count
@@ -584,7 +584,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-400">{date_str(row.split.updated_at)}</td>
                   <td class="px-6 py-4 text-sm">
-                    <.severity_pill tone="rose" label="Needs remediation" />
+                    <.severity_pill tone="rose" label="Unreclaimable release" />
                   </td>
                 </tr>
               </tbody>
