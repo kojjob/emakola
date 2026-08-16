@@ -28,6 +28,8 @@ defmodule Emakola.Themes.Adwuma do
   - `Emakola.Themes.Adwuma.Shared` — nav, footer, cards, styles
   """
 
+  use Phoenix.Component
+
   @behaviour Emakola.Themes.ThemeBehaviour
 
   alias Emakola.Themes.Adwuma.Shared
@@ -162,12 +164,21 @@ defmodule Emakola.Themes.Adwuma do
   # function_exported?/3).
   @impl true
   def storefront_nav(assigns) do
-    Shared.adwuma_nav(%{
+    # Shared pages (cart, checkout, …) render this chrome via Chrome without
+    # the theme's page wrapper, so the theme_styles block must ride with the
+    # nav — otherwise var(--adw-*)-styled chrome silently loses its styling.
+    assigns = %{
       __changed__: nil,
+      theme: Map.get(assigns, :theme) || %{},
       store: assigns.store,
       categories: Map.get(assigns, :categories) || [],
       cart_count: Map.get(assigns, :cart_count) || 0
-    })
+    }
+
+    ~H"""
+    <Shared.theme_styles theme={@theme} />
+    <Shared.adwuma_nav store={@store} categories={@categories} cart_count={@cart_count} />
+    """
   end
 
   @impl true
