@@ -34,9 +34,13 @@ defmodule Emakola.Themes.Chale.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#DC143C") %>;
-        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#09090B") %>;
-        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F4F4F5") %>;
+        <%!-- Fallbacks must match Chale.defaults().colors — on shared pages
+              this renders with an empty theme map, so the fallbacks paint the
+              page. The cobalt restyle missed these and About came out
+              crimson on a cobalt theme. --%>
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#2547E8") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#101114") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F7F5F1") %>;
         --chale-display: var(--dt-heading-font, 'Anton', 'Archivo', sans-serif);
       }
     </style>
