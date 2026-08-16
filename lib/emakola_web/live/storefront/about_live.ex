@@ -53,8 +53,11 @@ defmodule EmakolaWeb.Storefront.AboutLive do
     end
   end
 
+  # Only reached when the theme implements no :about callback — so this must
+  # never call back into the theme. Atelier's About is the platform default
+  # every other theme delegates to.
   defp render_default(assigns) do
-    assigns.theme_module.render_about(assigns)
+    Emakola.Themes.Atelier.About.render(assigns)
   end
 
   defp load_root_categories(store) do
