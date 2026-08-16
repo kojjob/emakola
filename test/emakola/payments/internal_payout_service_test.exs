@@ -1,12 +1,15 @@
 defmodule Emakola.Payments.InternalPayoutServiceTest do
   @moduledoc """
   Allocation-basis payouts: claim payable internal splits under FOR UPDATE and
-  pay the Σ of frozen paid_amounts (CONTRACT 1: never amount − reversed).
+  pay the Σ of frozen paid_amounts minus any outstanding refund liability the
+  recipient owes (CONTRACT 1 (P2a): never amount − reversed, and never gross
+  when a liability is outstanding).
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
 
-  alias Emakola.Payments.{PaymentSplit, PayoutService}
+  alias Emakola.Payments.{PaymentSplit, PayoutService, RefundLiability}
+  alias Emakola.Payments.Workers.{PaystackWebhookHandler, PayoutWorker}
 
   defp momo_destination!(store) do
     Emakola.Stores.StorePayoutAccount
@@ -38,10 +41,26 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
     |> Ash.update!(authorize?: false)
   end
 
-  test "claims payable splits, pays Σ frozen paid_amount, stamps payout_id" do
+  defp reload_split!(split), do: Ash.get!(PaymentSplit, split.id, authorize?: false)
+
+  # A liability the recipient already owes: claimed at frozen value (via a
+  # synthetic payout id, mirroring refund_liability_no_double_claw_test.exs's
+  # settled_internal!/mark_paid_out idiom) BEFORE any reversal, so the claim
+  # freezes netted_reversal_amount at 0 — then reversed AFTER the claim, so
+  # the reversal is pure liability rather than netted at claim time.
+  defp owing_split!(store, payment, amount, reversed_amount) do
+    settled_internal_split!(store, payment, %{amount: amount})
+    |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+    |> Ash.update!(authorize?: false)
+    |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+    |> Ash.update!(authorize?: false)
+  end
+
+  test "CONTRACT 1 (P2a): payout amount is Σ frozen paid_amounts minus liability deduction" do
     store = create_store!()
     momo_destination!(store)
     payment = create_payment!(store)
+    old_payment = create_payment!(store)
 
     plain = settled_internal_split!(store, payment, %{amount: 10_000})
 
@@ -50,18 +69,29 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
       |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 3_000})
       |> Ash.update!(authorize?: false)
 
+    # A real liability, so the deduction is non-zero and the assertion below
+    # actually exercises the new contract rather than a zero-deduction
+    # restatement of the old one.
+    owing_split = owing_split!(store, old_payment, 9_000, 4_000)
+
     {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
 
-    # CONTRACT 1: 10_000 + (8_000 − 3_000) — frozen paid_amounts, not raw sums.
-    assert payout.amount == 15_000
+    # 10_000 + (8_000 − 3_000) = 15_000 gross, minus the 4_000 owed.
+    assert payout.amount == 15_000 - 4_000
+    assert payout.amount == 11_000
     assert payout.basis == :allocations
     assert payout.currency == "GHS"
     assert payout.status == :pending
+    assert payout.metadata["liability_deduction"] == 4_000
 
     {:ok, claimed} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
     assert length(claimed) == 2
-    assert Enum.sum(Enum.map(claimed, & &1.paid_amount)) == payout.amount
+    # Each claimed split still freezes its own GROSS frozen value — the
+    # deduction is booked on the liability, never hidden inside a claim.
+    assert Enum.sum(Enum.map(claimed, & &1.paid_amount)) == 15_000
     assert MapSet.new(claimed, & &1.id) == MapSet.new([plain.id, partially.id], & &1)
+
+    assert reload_split!(owing_split).recovered_amount == 4_000
 
     # Second approval finds nothing — the claim emptied the payable set.
     assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
@@ -168,5 +198,385 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
 
     assert PayoutService.momo_destination?(with_dest.id)
     refute PayoutService.momo_destination?(without.id)
+  end
+
+  describe "payout-time liability netting (P2a)" do
+    test "outstanding liability is deducted from the payout and booked on the source splits" do
+      store = create_store!()
+      momo_destination!(store)
+      payment = create_payment!(store)
+      old_payment = create_payment!(store)
+
+      # A fresh settled internal split (10_000 payable) and an older claimed
+      # split reversed 3_000 AFTER its claim (pure liability, not netted).
+      payable_split = settled_internal_split!(store, payment, %{amount: 10_000})
+      owing_split = owing_split!(store, old_payment, 8_000, 3_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+
+      # 10_000 earned − 3_000 owed = 7_000 transferred.
+      assert payout.amount == 7_000
+      assert payout.metadata["liability_deduction"] == 3_000
+
+      # The claimed split keeps its frozen paid_amount — the deduction is NOT
+      # hidden inside the claim value.
+      claimed = reload_split!(payable_split)
+      assert claimed.paid_amount == 10_000
+
+      # The debt is booked on the SOURCE liability with payout provenance,
+      # linked via transfer_reference (the payout doesn't exist yet when
+      # collection runs).
+      owing = reload_split!(owing_split)
+      assert owing.recovered_amount == 3_000
+
+      assert [%{"payout_ref" => ref, "amount" => 3_000}] =
+               owing.recovery_breakdown["payout_recoveries"]
+
+      assert ref == payout.transfer_reference
+
+      # And the liability is extinguished: a second payout with new earnings
+      # deducts nothing.
+      new_payment = create_payment!(store)
+      new_split = settled_internal_split!(store, new_payment, %{amount: 4_000})
+
+      assert {:ok, second_payout} = PayoutService.prepare_internal_payout(store.id)
+      assert second_payout.amount == 4_000
+      assert reload_split!(owing_split).recovered_amount == 3_000
+      assert reload_split!(new_split).paid_amount == 4_000
+    end
+
+    test "a payout fully consumed by debt collects and claims NOTHING — the debt waits for more earnings" do
+      store = create_store!()
+      momo_destination!(store)
+      payment = create_payment!(store)
+      old_payment = create_payment!(store)
+
+      # payable 2_000, outstanding 5_000 → a payout here would be fully
+      # consumed by the debt.
+      payable_split = settled_internal_split!(store, payment, %{amount: 2_000})
+      owing_split = owing_split!(store, old_payment, 8_000, 5_000)
+
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
+
+      # The key inversion (fix round 1): collection is conditional on a
+      # payout actually committing. No payout committed here, so NOTHING was
+      # collected (not even the withholdable 2_000) and NOTHING was claimed
+      # — the debt is exactly as outstanding as before this call, and the
+      # earnings stay payable for a later, larger payout or charge-time
+      # reserve!/1 to grind down instead.
+      assert reload_split!(owing_split).recovered_amount == 0
+      assert reload_split!(payable_split).paid_out_at == nil
+
+      # Repeated invocation on the same fully-consumed fixture is an
+      # idempotent no-op — same error, same untouched state, every time.
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
+      assert reload_split!(owing_split).recovered_amount == 0
+
+      # The recipient earns 4_000 more: 2_000 + 4_000 = 6_000 > 5_000 debt,
+      # so this payout DOES commit and collection finally happens.
+      new_payment = create_payment!(store)
+      new_split = settled_internal_split!(store, new_payment, %{amount: 4_000})
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.amount == 1_000
+      assert reload_split!(owing_split).recovered_amount == 5_000
+      refute is_nil(reload_split!(payable_split).paid_out_at)
+      refute is_nil(reload_split!(new_split).paid_out_at)
+    end
+
+    test "a transfer failure releases the collected debt back to outstanding — retry nets fresh" do
+      store = create_store!()
+      momo_destination!(store)
+      payment = create_payment!(store)
+      old_payment = create_payment!(store)
+
+      payable_split = settled_internal_split!(store, payment, %{amount: 10_000})
+      owing_split = owing_split!(store, old_payment, 8_000, 3_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.amount == 7_000
+      assert reload_split!(owing_split).recovered_amount == 3_000
+
+      # The transfer never materialized — nobody was paid, so the
+      # withholding must be undone along with the claim (this is what
+      # PayoutWorker's mark_failed path and the transfer.failed webhook both
+      # drive, via this same shared function).
+      PayoutService.release_payout_balance(payout)
+
+      released_owing = reload_split!(owing_split)
+      assert released_owing.recovered_amount == 0
+      assert released_owing.recovery_breakdown["payout_recoveries"] == []
+      assert reload_split!(payable_split).paid_out_at == nil
+
+      # A replay (webhook retry, or a crash-and-retry of the release itself)
+      # is idempotent — the entry is already gone, so recovered_amount stays
+      # at 0 and never goes negative.
+      PayoutService.release_payout_balance(payout)
+      assert reload_split!(owing_split).recovered_amount == 0
+
+      # Retry nets fresh: 3_000 is owed again, so a fresh payout still only
+      # transfers 7_000, not the full 10_000.
+      assert {:ok, retried} = PayoutService.prepare_internal_payout(store.id)
+      assert retried.amount == 7_000
+      assert reload_split!(owing_split).recovered_amount == 3_000
+    end
+
+    test "cross-currency: a liability in one currency does not net against payable in another" do
+      store = create_store!()
+      momo_destination!(store)
+      ngn_payment = create_payment!(store, currency: "NGN")
+      ghs_payment = create_payment!(store, currency: "GHS")
+      old_payment = create_payment!(store)
+
+      # The NGN split is inserted first, so it's the currency the
+      # FOR-UPDATE read's sort (inserted_at asc, from payable_internal)
+      # picks first — a deterministic partition.
+      ngn_payable =
+        settled_internal_split!(store, ngn_payment, %{amount: 10_000, currency: "NGN"})
+
+      ghs_payable = settled_internal_split!(store, ghs_payment, %{amount: 5_000, currency: "GHS"})
+      owing_split = owing_split!(store, old_payment, 8_000, 3_000)
+
+      assert {:ok, ngn_payout} = PayoutService.prepare_internal_payout(store.id)
+      assert ngn_payout.currency == "NGN"
+      # The GHS debt does NOT touch the NGN payout — full gross transfers.
+      assert ngn_payout.amount == 10_000
+      assert reload_split!(owing_split).recovered_amount == 0
+      assert reload_split!(ghs_payable).paid_out_at == nil
+
+      assert {:ok, ghs_payout} = PayoutService.prepare_internal_payout(store.id)
+      assert ghs_payout.currency == "GHS"
+      # Now the GHS payout nets against the same-currency debt: 5_000 − 3_000.
+      assert ghs_payout.amount == 2_000
+      assert reload_split!(owing_split).recovered_amount == 3_000
+      assert reload_split!(ngn_payable).paid_amount == 10_000
+    end
+
+    # Fix round 2 (re-review NEW-1): picking the currency from ONLY the
+    # first-seen split meant a debt that fully consumed THAT partition
+    # rolled the whole call back forever — even though a completely
+    # different currency owed nothing and had real payable money sitting
+    # right there. prepare_internal_payout/1 now tries every currency
+    # present, in first-seen order, and takes the first one whose own
+    # amount is positive.
+    test "cross-currency: a debt-bearing currency inserted first does not strand the other currency's payable" do
+      store = create_store!()
+      momo_destination!(store)
+      ghs_payment = create_payment!(store, currency: "GHS")
+      ngn_payment = create_payment!(store, currency: "NGN")
+      old_payment = create_payment!(store)
+
+      # GHS is inserted FIRST — under the old, defective logic this is the
+      # ONLY currency ever tried, and its 8_000 debt fully consumes its
+      # 5_000 payable, so the call would roll back :nothing_outstanding on
+      # every future attempt, forever stranding NGN's 6_000.
+      ghs_payable = settled_internal_split!(store, ghs_payment, %{amount: 5_000, currency: "GHS"})
+      ngn_payable = settled_internal_split!(store, ngn_payment, %{amount: 6_000, currency: "NGN"})
+      owing_split = owing_split!(store, old_payment, 9_000, 8_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.currency == "NGN"
+      assert payout.amount == 6_000
+
+      # GHS is simply skipped this call, not partially drained — nothing
+      # was collected against a currency that never got its own payout.
+      assert reload_split!(ghs_payable).paid_out_at == nil
+      assert reload_split!(owing_split).recovered_amount == 0
+      refute is_nil(reload_split!(ngn_payable).paid_out_at)
+    end
+
+    test "cross-currency: a currency fully consumed by its own debt waits while the other currency still pays" do
+      store = create_store!()
+      momo_destination!(store)
+      ngn_payment = create_payment!(store, currency: "NGN")
+      ghs_payment = create_payment!(store, currency: "GHS")
+      old_payment = create_payment!(store)
+
+      settled_internal_split!(store, ngn_payment, %{amount: 6_000, currency: "NGN"})
+      ghs_payable = settled_internal_split!(store, ghs_payment, %{amount: 4_000, currency: "GHS"})
+      # The GHS debt EQUALS the GHS payable exactly — its own amount hits
+      # 0, not merely a reduced positive amount.
+      owing_split = owing_split!(store, old_payment, 9_000, 4_000)
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.currency == "NGN"
+      assert payout.amount == 6_000
+
+      # Only the fully-consumed GHS partition remains now — it correctly
+      # waits (:nothing_outstanding), not a $0 or negative payout, and the
+      # untouched debt is not collected against.
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
+      assert reload_split!(ghs_payable).paid_out_at == nil
+      assert reload_split!(owing_split).recovered_amount == 0
+    end
+
+    test "a recipient with no liability pays out gross, byte-identical to before" do
+      store = create_store!()
+      momo_destination!(store)
+      payment = create_payment!(store)
+      payable_split = settled_internal_split!(store, payment, %{amount: 10_000})
+
+      assert {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+      assert payout.amount == 10_000
+      assert payout.metadata["liability_deduction"] == 0
+      assert reload_split!(payable_split).paid_amount == 10_000
+
+      # No payout_recoveries stamped anywhere — there was nothing to collect.
+      refute Map.has_key?(reload_split!(payable_split).recovery_breakdown, "payout_recoveries")
+    end
+  end
+
+  describe "a failed payout's full reversal leaves no debt (P2a)" do
+    test "a split fully reversed while claimed, then released by a failed payout, owes nothing and never taxes future earnings" do
+      store = create_store!()
+      payout_account = momo_destination!(store)
+      payment_a = create_payment!(store)
+
+      # 1. Recipient earns: split A (10_000) settles payable.
+      split_a = settled_internal_split!(store, payment_a, %{amount: 10_000})
+
+      # 2. Payout 1 claims A (paid_amount 10_000, netted fence 0).
+      assert {:ok, payout1} = PayoutService.prepare_internal_payout(store.id)
+      assert payout1.amount == 10_000
+
+      claimed_a = reload_split!(split_a)
+      assert claimed_a.paid_amount == 10_000
+      assert claimed_a.netted_reversal_amount == 0
+
+      # 3. Full reversal lands on A (refund after payout) → reversed 10_000.
+      reversed_a =
+        claimed_a
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 10_000})
+        |> Ash.update!(authorize?: false)
+
+      assert reversed_a.status == :reversed
+
+      # 4. Payout 1 FAILS pre-webhook (no MoMo destination — the recipient's
+      # destination is cleared here, a real action, mirroring
+      # payout_worker_test's "no MoMo destination" idiom) → mark_failed →
+      # release_payout_balance → release_from_payout: A exits payable
+      # (amount ≤ reversed), stamped recovery_breakdown["unreclaimable_release"]
+      # == true, netted reset to recovered+reserved. The transfer never
+      # delivered anything — the customer's refund came out of the
+      # platform's own held float, not the recipient's pocket — so A owes
+      # NOTHING: outstanding is 0, not 10_000.
+      payout_account
+      |> Ash.Changeset.for_update(:update, %{payout_destination: %{}})
+      |> Ash.update!(authorize?: false)
+
+      assert :ok =
+               Oban.Testing.perform_job(
+                 PayoutWorker,
+                 %{"payout_id" => payout1.id},
+                 repo: Emakola.Repo
+               )
+
+      assert Emakola.Payments.get_payout!(payout1.id, authorize?: false).status == :failed
+
+      released_a = reload_split!(split_a)
+      assert is_nil(released_a.paid_out_at)
+      assert is_nil(released_a.payout_id)
+      assert released_a.recovery_breakdown["unreclaimable_release"] == true
+      assert released_a.netted_reversal_amount == 0
+
+      assert {:ok, {_liabilities, outstanding}} =
+               Emakola.Repo.transaction(fn ->
+                 RefundLiability.outstanding_for_recipient!(store.id)
+               end)
+
+      assert outstanding == 0
+
+      # The recipient re-registers a MoMo destination — a real action — so
+      # the next payout in this test isn't blocked on that unrelated gate.
+      payout_account
+      |> Ash.Changeset.for_update(:update, %{
+        payout_destination: %{
+          "method" => "mobile_money",
+          "provider" => "mtn",
+          "number" => "0244000111",
+          "account_name" => "Test Merchant"
+        }
+      })
+      |> Ash.update!(authorize?: false)
+
+      # 5. Recipient earns again: split B (6_000) settles payable. With no
+      # debt outstanding, this pays out GROSS — the write-off of A's
+      # reversal never taxes B's future earnings.
+      payment_b = create_payment!(store)
+      split_b = settled_internal_split!(store, payment_b, %{amount: 6_000})
+
+      assert {:ok, payout2} = PayoutService.prepare_internal_payout(store.id)
+      assert payout2.amount == 6_000
+      assert payout2.metadata["liability_deduction"] == 0
+      assert reload_split!(split_a).recovered_amount == 0
+      refute is_nil(reload_split!(split_b).paid_out_at)
+    end
+  end
+
+  describe "a successful payout's post-claim reversal is a genuine debt (P2a)" do
+    test "a split fully reversed after its payout actually delivers is recovered by the next payout" do
+      store = create_store!()
+      momo_destination!(store)
+      payment_a = create_payment!(store)
+
+      # 1. Recipient earns: split A (10_000) settles payable.
+      split_a = settled_internal_split!(store, payment_a, %{amount: 10_000})
+
+      # 2. Payout 1 claims A (paid_amount 10_000, netted fence 0).
+      assert {:ok, payout1} = PayoutService.prepare_internal_payout(store.id)
+      assert payout1.amount == 10_000
+
+      claimed_a = reload_split!(split_a)
+      assert claimed_a.paid_amount == 10_000
+      assert claimed_a.netted_reversal_amount == 0
+
+      # 3. Payout 1 actually DELIVERS: the transfer.success webhook lands,
+      # exactly as internal_payout_webhook_test.exs drives it. The claim
+      # stays in place (paid_out_at/payout_id untouched) — the recipient
+      # really has the 10_000 now.
+      assert :ok =
+               Oban.Testing.perform_job(
+                 PaystackWebhookHandler,
+                 %{
+                   "event" => "transfer.success",
+                   "data" => %{"reference" => payout1.transfer_reference, "status" => "success"}
+                 },
+                 repo: Emakola.Repo
+               )
+
+      assert Emakola.Payments.get_payout!(payout1.id, authorize?: false).status == :paid
+      assert reload_split!(split_a).payout_id == payout1.id
+
+      # 4. Full reversal lands on A AFTER the payout delivered → reversed
+      # 10_000. A is still claimed (paid_out_at set, netted fence frozen at
+      # 0 from step 2) — this is a genuine debt: real money already reached
+      # the recipient, and nothing about that delivery netted this reversal
+      # away. The claimed branch of recoverable_by_recipient (unchanged
+      # since Task 2) exposes it correctly.
+      reversed_a =
+        claimed_a
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 10_000})
+        |> Ash.update!(authorize?: false)
+
+      assert reversed_a.status == :reversed
+
+      assert {:ok, {_liabilities, outstanding}} =
+               Emakola.Repo.transaction(fn ->
+                 RefundLiability.outstanding_for_recipient!(store.id)
+               end)
+
+      assert outstanding == 10_000
+
+      # 5. Recipient earns again: 11_000 > the 10_000 debt, so the next
+      # payout commits and nets the remainder.
+      payment_b = create_payment!(store)
+      split_b = settled_internal_split!(store, payment_b, %{amount: 11_000})
+
+      assert {:ok, payout2} = PayoutService.prepare_internal_payout(store.id)
+      assert payout2.amount == 1_000
+      assert payout2.metadata["liability_deduction"] == 10_000
+      assert reload_split!(split_a).recovered_amount == 10_000
+      refute is_nil(reload_split!(split_b).paid_out_at)
+    end
   end
 end
