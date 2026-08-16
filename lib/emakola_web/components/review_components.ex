@@ -109,10 +109,12 @@ defmodule EmakolaWeb.ReviewComponents do
       end)
 
     ~H"""
-    <section class="py-10 lg:py-16 bg-white" id="reviews">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <%!-- No hard background: a full-width white band seams against every
+          non-white theme page. The bounded card below carries the surface. --%>
+    <section class="py-10 lg:py-16" id="reviews">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
         <%!-- Section Header --%>
-        <div class="mb-8">
+        <div class="mb-6">
           <h2 class="text-xl font-bold text-gray-900 sm:text-2xl">Customer Reviews</h2>
           <div :if={@review_count > 0} class="mt-2 flex items-center gap-3">
             <.star_display rating={@avg_rating || 0.0} size="md" />
@@ -256,9 +258,12 @@ defmodule EmakolaWeb.ReviewComponents do
           </p>
         </div>
 
-        <%!-- Purchase to Review Message --%>
+        <%!-- Purchase to Review Message (only alongside existing reviews —
+              the no-reviews case folds it into the empty state below, so a
+              reviewless product shows one compact block, not three stacked
+              boxes with a dead gap between them) --%>
         <div
-          :if={!@can_review && !@already_reviewed}
+          :if={!@can_review && !@already_reviewed && @reviews != []}
           class="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-4"
         >
           <p class="text-sm text-gray-500">
@@ -272,8 +277,13 @@ defmodule EmakolaWeb.ReviewComponents do
         </div>
 
         <%!-- Empty State --%>
-        <div :if={@reviews == []} class="text-center py-8">
-          <p class="text-gray-500">No reviews yet. Be the first to review this product!</p>
+        <div :if={@reviews == []} id="reviews-empty-state" class="text-center py-6">
+          <p class="text-gray-600 font-medium">
+            No reviews yet. Be the first to review this product!
+          </p>
+          <p :if={!@can_review && !@already_reviewed} class="mt-1 text-sm text-gray-500">
+            Purchase this product to leave a review.
+          </p>
         </div>
       </div>
     </section>
