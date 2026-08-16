@@ -186,4 +186,13 @@ defmodule Emakola.Themes.Adwuma do
       categories: Map.get(assigns, :categories) || []
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Shared.bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
 end

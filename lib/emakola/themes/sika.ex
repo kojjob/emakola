@@ -150,4 +150,19 @@ defmodule Emakola.Themes.Sika do
       categories: Map.get(assigns, :categories) || []
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Sika.Shared.sika_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Sika's bar speaks
+  # :home | :collection.
+  defp bottom_nav_active(:search), do: :collection
+  defp bottom_nav_active(_), do: :home
 end

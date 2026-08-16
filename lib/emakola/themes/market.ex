@@ -84,4 +84,13 @@ defmodule Emakola.Themes.Market do
 
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Market.ProductDetail, as: :render
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Market.Shared.market_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
 end

@@ -153,4 +153,20 @@ defmodule Emakola.Themes.Depot do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Depot.Shared.depot_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Depot's bar speaks
+  # :home | :catalogue | :cart.
+  defp bottom_nav_active(:cart), do: :cart
+  defp bottom_nav_active(:search), do: :catalogue
+  defp bottom_nav_active(_), do: :home
 end

@@ -143,4 +143,14 @@ defmodule Emakola.Themes.Ntoma do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Ntoma.Shared.ntoma_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: Map.get(assigns, :active_tab) || :home
+    })
+  end
 end

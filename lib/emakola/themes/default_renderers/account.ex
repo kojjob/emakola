@@ -15,7 +15,6 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents
   import EmakolaWeb.ReturnComponents
 
   alias EmakolaWeb.Helpers.CssColor
@@ -303,7 +302,12 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
         categories={@categories}
       />
     </div>
-    <.bottom_nav store_slug={@store.slug} active_tab={:account} cart_count={@cart_count} />
+    <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      active_tab={:account}
+      cart_count={@cart_count}
+    />
     """
   end
 

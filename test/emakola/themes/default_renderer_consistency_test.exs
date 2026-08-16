@@ -45,6 +45,24 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       end
     end
 
+    test "no renderer calls the generic bottom bar directly" do
+      # The mobile bottom bar dispatches through Chrome.bottom_nav so a theme
+      # with its own bar keeps it on fallback pages. A direct
+      # `<.bottom_nav` / StorefrontComponents.bottom_nav call reintroduces
+      # the generic Home/Search/Saved/Cart bar mid-store.
+      for file <- renderer_files() do
+        source = File.read!(file)
+
+        refute source =~ ~r/<\.bottom_nav[\s\/]/,
+               "#{Path.basename(file)} calls the generic bottom_nav directly — " <>
+                 "use Emakola.Themes.DefaultRenderers.Chrome.bottom_nav instead"
+
+        refute source =~ "StorefrontComponents.bottom_nav",
+               "#{Path.basename(file)} calls the generic bottom_nav directly — " <>
+                 "use Emakola.Themes.DefaultRenderers.Chrome.bottom_nav instead"
+      end
+    end
+
     test "every renderer mounts the shared navbar" do
       for file <- nav_footer_renderer_files() do
         source = File.read!(file)
