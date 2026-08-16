@@ -130,9 +130,6 @@ defmodule Emakola.Themes.Chale do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Chale.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     # Shared pages (cart, checkout, …) render this chrome via Chrome without
     # the theme's page wrapper, so the theme_styles block must ride with the

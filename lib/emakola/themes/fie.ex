@@ -130,9 +130,6 @@ defmodule Emakola.Themes.Fie do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Fie.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Fie.Shared.fie_nav(%{
       __changed__: nil,

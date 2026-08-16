@@ -132,9 +132,6 @@ defmodule Emakola.Themes.Depot do
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Depot.ProductDetail, as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Depot keeps its own chrome on the fallback pages (cart, checkout,
   # account, ...) instead of swapping to Atelier's mid-funnel.
   @impl true

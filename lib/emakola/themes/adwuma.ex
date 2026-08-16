@@ -156,9 +156,6 @@ defmodule Emakola.Themes.Adwuma do
     to: Emakola.Themes.Adwuma.ProductDetail,
     as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Without these two, cart / account / tracking / category / wishlist silently
   # wear Atelier's chrome mid-funnel (DefaultRenderers.Chrome dispatches on
   # function_exported?/3).

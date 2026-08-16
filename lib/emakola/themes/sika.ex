@@ -133,9 +133,6 @@ defmodule Emakola.Themes.Sika do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Sika.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Sika.Shared.sika_nav(%{
       __changed__: nil,

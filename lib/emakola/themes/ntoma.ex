@@ -125,9 +125,6 @@ defmodule Emakola.Themes.Ntoma do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Ntoma.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Ntoma.Shared.ntoma_nav(%{
       __changed__: nil,

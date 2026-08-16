@@ -157,9 +157,6 @@ defmodule Emakola.Themes.HomeLiving do
     as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.HomeLiving.Shared.home_living_nav(%{
       __changed__: nil,

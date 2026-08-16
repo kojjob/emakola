@@ -125,9 +125,6 @@ defmodule Emakola.Themes.Pace do
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Pace.ProductDetail, as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   @doc """
   Pace's chrome on fallback storefront pages (cart, checkout, account…)
   via `Emakola.Themes.DefaultRenderers.Chrome` — keeps the store in the
