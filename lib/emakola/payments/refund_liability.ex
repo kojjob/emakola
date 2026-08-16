@@ -175,6 +175,129 @@ defmodule Emakola.Payments.RefundLiability do
     end
   end
 
+  @doc """
+  FOR-UPDATE-locks the recipient's recoverable splits and returns
+  `{locked_splits, total_outstanding}`. Must run inside a transaction — the
+  caller (charge-time reserve or payout-time netting) holds the lock until
+  its own bookkeeping commits, which is what makes double-recovery across
+  the two sites impossible.
+  """
+  def outstanding_for_recipient!(recipient_store_id) do
+    liabilities =
+      PaymentSplit
+      |> Ash.Query.for_read(:recoverable_by_recipient, %{
+        recipient_store_id: recipient_store_id
+      })
+      |> Ash.Query.lock("FOR UPDATE")
+      |> Ash.read!(authorize?: false)
+
+    {liabilities, liabilities |> Enum.map(&outstanding/1) |> Enum.sum()}
+  end
+
+  @doc """
+  Sum of `outstanding/1` over a liability set — the same formula
+  `outstanding_for_recipient!/1` totals, exposed for callers (payout-time
+  netting) that need the total over a currency-filtered subset rather than
+  every currency the recipient carries at once. `outstanding/1` itself stays
+  private — this is the one place besides `outstanding_for_recipient!/1`
+  allowed to sum it.
+  """
+  def outstanding_total(liabilities), do: liabilities |> Enum.map(&outstanding/1) |> Enum.sum()
+
+  @doc """
+  Books `deduction` of payout-withheld recovery across `liabilities` (already
+  FOR-UPDATE-locked by `outstanding_for_recipient!/1`) in `inserted_at` order
+  — the same consumption order `recoverable_by_recipient`'s read (and so
+  `reserve_from_liabilities/4`) already uses, keeping recovery FIFO-consistent
+  across both sites — with payout provenance. Called inside the payout's own
+  transaction, and only once that payout is actually about to be created (see
+  `PayoutService.prepare_internal_payout/1` — collection must never commit
+  without a corresponding payout, or the withholding happens with no transfer
+  to show for it).
+  """
+  def collect_at_payout!(_liabilities, 0, _payout_ref), do: :ok
+
+  def collect_at_payout!(liabilities, deduction, payout_ref) do
+    # `deduction` is always `min(gross, outstanding_total(liabilities))` at
+    # the only call site (PayoutService.currency_partition/3) against this
+    # exact, already-locked list — so it never exceeds `Σ outstanding/1` over
+    # `liabilities`, and this waterfall provably fully allocates it. Binding
+    # (and asserting) the result both satisfies Credo's unused-return check
+    # and pins that invariant: a mismatch here means the call site's sizing
+    # broke, not a value silently absorbed.
+    0 =
+      liabilities
+      |> Enum.sort_by(& &1.inserted_at, DateTime)
+      |> Enum.reduce(deduction, fn
+        _liability, 0 ->
+          0
+
+        liability, remaining ->
+          applied = min(outstanding(liability), remaining)
+
+          if applied > 0 do
+            recoveries = Map.get(liability.recovery_breakdown, "payout_recoveries", [])
+
+            update_tracking!(liability, %{
+              recovered_amount: liability.recovered_amount + applied,
+              recovery_breakdown:
+                Map.put(
+                  liability.recovery_breakdown,
+                  "payout_recoveries",
+                  recoveries ++ [%{"payout_ref" => payout_ref, "amount" => applied}]
+                )
+            })
+          end
+
+          remaining - applied
+      end)
+
+    :ok
+  end
+
+  @doc """
+  Reverses the debt collection `collect_at_payout!/3` booked for a payout
+  whose transfer never materialized (called from
+  `PayoutService.release_payout_balance/1`): for every split whose
+  `recovery_breakdown["payout_recoveries"]` carries an entry stamped with this
+  payout's `transfer_reference`, decrements `recovered_amount` by that
+  entry's amount and removes the entry — other payouts' entries on the same
+  split are untouched. Nobody was actually paid, so the withholding never
+  happened; the debt goes back to being outstanding. Idempotent: a payout
+  with no matching entries anywhere (already released, or nothing was ever
+  collected against it) is a no-op.
+  """
+  def release_payout_recovery!(%{transfer_reference: nil}), do: :ok
+
+  def release_payout_recovery!(%{transfer_reference: reference}) do
+    {:ok, :ok} =
+      Emakola.Repo.transaction(fn ->
+        PaymentSplit
+        |> Ash.Query.for_read(:recovered_via_payout, %{transfer_reference: reference})
+        |> Ash.Query.lock("FOR UPDATE")
+        |> Ash.read!(authorize?: false)
+        |> Enum.sort_by(& &1.id)
+        |> Enum.each(&release_one_payout_recovery!(&1, reference))
+
+        :ok
+      end)
+
+    :ok
+  end
+
+  defp release_one_payout_recovery!(split, reference) do
+    recoveries = Map.get(split.recovery_breakdown, "payout_recoveries", [])
+    {released_entries, remaining} = Enum.split_with(recoveries, &(&1["payout_ref"] == reference))
+    released = released_entries |> Enum.map(& &1["amount"]) |> Enum.sum()
+
+    if released > 0 do
+      update_tracking!(split, %{
+        recovered_amount: max(split.recovered_amount - released, 0),
+        recovery_breakdown: Map.put(split.recovery_breakdown, "payout_recoveries", remaining)
+      })
+    end
+  end
+
   @doc "Reserves recipient liabilities and returns gateway-ready net allocations."
   def reserve!(allocations) do
     {:ok, adjusted} =
@@ -269,11 +392,7 @@ defmodule Emakola.Payments.RefundLiability do
     do: {items, recovered}
 
   defp reserve_from_liabilities([liability | rest], available, items, recovered) do
-    outstanding =
-      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
-        liability.reserved_recovery_amount
-
-    amount = min(max(outstanding, 0), available)
+    amount = min(outstanding(liability), available)
 
     update_tracking!(liability, %{
       reserved_recovery_amount: liability.reserved_recovery_amount + amount
@@ -289,10 +408,20 @@ defmodule Emakola.Payments.RefundLiability do
   #   - gateway_share: 0 — the money already left at charge time, so the full
   #     reversal is recoverable.
   #   - internal_hold, claimed: the frozen netted_reversal_amount, already net
-  #     of whatever was recovered before that claim.
+  #     of whatever was recovered before that claim. This is where a genuine
+  #     debt shows up: the payout DELIVERED (or is in flight to deliver) the
+  #     frozen paid_amount, and a reversal that grows AFTER that claim is real
+  #     money the recipient needs to give back.
   #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
   #     own future claim nets up to its full amount; only reversal beyond
   #     amount (over-reversal from dispatch-fee redistribution) is exposed.
+  #     This also correctly covers a released `unreclaimable_release`-stamped
+  #     row: its payout never delivered anything (release_from_payout only
+  #     fires when the transfer failed/reversed), the underlying refund came
+  #     out of the platform's own held float, and any recovery that dead
+  #     claim had justified is unwound by RefundLiability.release_payout_
+  #     recovery!/1 (P2a) — so its own reversal, up to its own amount,
+  #     nets to a real zero debt here, not a phantom one.
   defp effective_netted(%{settlement_method: :gateway_share}), do: 0
 
   defp effective_netted(%{settlement_method: :internal_hold, paid_out_at: nil} = liability) do
@@ -301,6 +430,14 @@ defmodule Emakola.Payments.RefundLiability do
 
   defp effective_netted(%{settlement_method: :internal_hold} = liability) do
     liability.netted_reversal_amount
+  end
+
+  defp outstanding(liability) do
+    max(
+      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
+        liability.reserved_recovery_amount,
+      0
+    )
   end
 
   defp add_to_platform(allocations, 0), do: allocations
