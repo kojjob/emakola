@@ -530,7 +530,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
            to: store_path(socket.assigns.store.slug, "/orders/#{order.order_number}/confirmation")
          )}
 
-      method when method in ["momo", "vodafone", "card"] ->
+      method when method in ["momo", "vodafone", "airteltigo", "card"] ->
         initiate_gateway_payment(socket, order, method)
 
       _ ->
@@ -700,6 +700,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   defp paystack_channel("momo"), do: "mobile_money"
   defp paystack_channel("vodafone"), do: "mobile_money"
+  defp paystack_channel("airteltigo"), do: "mobile_money"
   defp paystack_channel("card"), do: "card"
   defp paystack_channel(_), do: "mobile_money"
 

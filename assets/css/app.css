@@ -94,7 +94,8 @@
   --color-cta-dark: var(--theme-primary, #1C1917);
   --color-store-bg: var(--theme-bg, #FAFAF9);
   --color-mtn: #FFC107;                   /* MTN MoMo brand */
-  --color-voda: #E60000;                  /* Vodafone Cash brand */
+  --color-voda: #E60000;                  /* Telecel Cash brand (red carried over from Vodafone) */
+  --color-atl: #004F9F;                   /* AT (AirtelTigo) Money brand */
   --color-whatsapp: #25D366;              /* WhatsApp green */
   --color-whatsapp-dark: #1FAF55;         /* WhatsApp hover */
   --color-facebook: #1877F2;

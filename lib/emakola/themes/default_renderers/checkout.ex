@@ -34,6 +34,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           <div class="flex items-center justify-between h-16">
             <a
               href={store_path(@store.slug, "/cart")}
+              aria-label="Back to Bag"
               class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
               <svg
@@ -45,9 +46,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Bag
+              <%!-- Icon-only on mobile (mirrors Secure Checkout on the right)
+                    so the centered wordmark has clean room at 375px. --%>
+              <span class="hidden sm:inline">Back to Bag</span>
             </a>
-            <span class="absolute left-1/2 -translate-x-1/2 text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
+            <%!-- Bounded + truncated: unbounded absolute text wraps to two
+                  lines on long store names and collides with the side links. --%>
+            <span class="absolute left-1/2 -translate-x-1/2 max-w-[55%] truncate text-lg sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
               {String.upcase(@store.name)}
             </span>
             <div class="flex items-center gap-2 text-stone-600 text-sm font-medium">
@@ -447,10 +452,42 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         </svg>
                       </div>
                       <div class="w-14 h-14 rounded-2xl bg-voda flex items-center justify-center shadow-sm">
-                        <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
+                        <span class="text-white font-extrabold text-xs tracking-tight">Telecel</span>
                       </div>
                       <div>
                         <p class="text-sm font-bold text-stone-900">Telecel Cash</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
+                      </div>
+                    </button>
+
+                    <%!-- AirtelTigo Money --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="airteltigo"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "airteltigo", do: "border-atl bg-atl/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "airteltigo", do: "border-atl bg-atl", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "airteltigo"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-atl flex items-center justify-center shadow-sm">
+                        <span class="text-white font-extrabold text-lg tracking-tight">AT</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">AirtelTigo Money</p>
                         <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
                       </div>
                     </button>
@@ -1113,6 +1150,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
   defp momo_brand_name("momo"), do: "MTN Mobile Money"
   defp momo_brand_name("vodafone"), do: "Telecel Cash"
+  defp momo_brand_name("airteltigo"), do: "AirtelTigo Money"
   defp momo_brand_name(_), do: "Mobile Money"
 
   defp format_timer(seconds) do
