@@ -130,9 +130,6 @@ defmodule Emakola.Themes.Chale do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Chale.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     # Shared pages (cart, checkout, …) render this chrome via Chrome without
     # the theme's page wrapper, so the theme_styles block must ride with the
@@ -160,4 +157,20 @@ defmodule Emakola.Themes.Chale do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Shared.chale_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Chale's bar speaks
+  # :home | :shop | :saved | :cart.
+  defp bottom_nav_active(:cart), do: :cart
+  defp bottom_nav_active(:search), do: :shop
+  defp bottom_nav_active(_), do: :home
 end

@@ -156,9 +156,6 @@ defmodule Emakola.Themes.Adwuma do
     to: Emakola.Themes.Adwuma.ProductDetail,
     as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Without these two, cart / account / tracking / category / wishlist silently
   # wear Atelier's chrome mid-funnel (DefaultRenderers.Chrome dispatches on
   # function_exported?/3).
@@ -187,6 +184,15 @@ defmodule Emakola.Themes.Adwuma do
       __changed__: nil,
       store: assigns.store,
       categories: Map.get(assigns, :categories) || []
+    })
+  end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Shared.bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
     })
   end
 end

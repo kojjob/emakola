@@ -95,6 +95,57 @@ defmodule EmakolaWeb.ReviewComponentsTest do
     end
   end
 
+  describe "review_section/1 audit polish (2026-08-16)" do
+    # The audit flagged this block on every theme's PDP: a hard white
+    # full-width band that seams against cream/dark theme pages, and a
+    # ~200px stack of separate boxes (purchase prompt + dead gap + empty
+    # line) when a product has no reviews.
+
+    defp empty_state_html do
+      assigns = %{store: %{id: "store-1"}, product: %{id: "prod-1"}}
+
+      rendered_to_string(~H"""
+      <ReviewComponents.review_section
+        store={@store}
+        product={@product}
+        reviews={[]}
+        can_review={false}
+        already_reviewed={false}
+        review_form_rating={0}
+        review_form_title=""
+        review_form_body=""
+        review_submitting={false}
+        avg_rating={nil}
+        review_count={0}
+      />
+      """)
+    end
+
+    test "the section carries no hard white band" do
+      doc = LazyHTML.from_fragment(empty_state_html())
+      [section] = doc |> LazyHTML.query("section#reviews") |> Enum.to_list()
+
+      refute LazyHTML.attribute(section, "class") |> List.first() =~ "bg-white",
+             "the reviews section must not paint its own full-width white band — " <>
+               "it seams against every non-white theme page"
+    end
+
+    test "no reviews + cannot review collapses into one compact block" do
+      html = empty_state_html()
+      doc = LazyHTML.from_fragment(html)
+
+      combined = LazyHTML.query(doc, "#reviews-empty-state")
+
+      assert Enum.any?(combined),
+             "the no-reviews/can't-review case must render one combined block, " <>
+               "not a purchase-prompt box plus a separate dead-gapped empty line"
+
+      text = LazyHTML.text(combined)
+      assert text =~ "No reviews yet"
+      assert text =~ "Purchase this product to leave a review"
+    end
+  end
+
   describe "review_section/1" do
     test "renders empty state when no reviews" do
       assigns = %{

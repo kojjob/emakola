@@ -201,9 +201,6 @@ defmodule Emakola.Themes.Beauty do
     as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Beauty.Shared.beauty_nav(%{
       __changed__: nil,

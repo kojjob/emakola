@@ -36,8 +36,6 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
 
   import EmakolaWeb.Storefront.Path
 
-  import EmakolaWeb.StorefrontComponents
-
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -516,7 +514,12 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
       store={@store}
       categories={@categories}
     />
-    <.bottom_nav store_slug={@store.slug} active_tab={:cart} cart_count={@cart_count} />
+    <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      active_tab={:cart}
+      cart_count={@cart_count}
+    />
     """
   end
 

@@ -8,7 +8,8 @@ defmodule Emakola.Themes.Adwuma.Shared do
   than copied. `compare_at_price/1` in particular exists to stop a sale badge
   being shown without a real `compare_at_price` behind it, and a second copy is
   a second thing to drift into telling that lie. Cross-theme reuse is already
-  the house pattern — fifteen themes delegate `render_about` to Atelier.
+  the house pattern — every theme's About renders through
+  `DefaultRenderers.About`.
   """
 
   use Phoenix.Component

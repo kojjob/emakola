@@ -54,6 +54,43 @@ defmodule Emakola.Themes.DefaultRenderers.Chrome do
     end
   end
 
+  attr :theme_module, :any, default: nil
+  attr :store, :map, required: true
+  attr :cart_count, :integer, default: 0
+  attr :active_tab, :atom, default: :home
+
+  @doc """
+  The mobile bottom tab bar, dispatched to the active theme.
+
+  A theme exporting `storefront_bottom_nav/1` keeps its own bar on fallback
+  pages (Dede's WhatsApp-first tabs, Pace's dark pill, ...); otherwise the
+  generic Home/Search/Saved/Cart bar renders. Each branch is stamped with a
+  `data-bottom-nav` marker so the parity guard can tell them apart.
+  """
+  def bottom_nav(assigns) do
+    case chrome_fun(assigns.theme_module, :storefront_bottom_nav) do
+      nil ->
+        ~H"""
+        <div class="contents" data-bottom-nav="fallback">
+          <EmakolaWeb.StorefrontComponents.bottom_nav
+            store_slug={@store.slug}
+            active_tab={@active_tab}
+            cart_count={@cart_count}
+          />
+        </div>
+        """
+
+      fun ->
+        assigns = assign(assigns, :theme_bar, fun)
+
+        ~H"""
+        <div class="contents" data-bottom-nav="theme">
+          {@theme_bar.(assigns)}
+        </div>
+        """
+    end
+  end
+
   defp chrome_fun(nil, _name), do: nil
 
   defp chrome_fun(mod, name) when is_atom(mod) do
