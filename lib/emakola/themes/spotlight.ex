@@ -157,6 +157,9 @@ defmodule Emakola.Themes.Spotlight do
     as: :render
 
   @impl true
+  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Spotlight.Shared.nav(%{
       __changed__: nil,
