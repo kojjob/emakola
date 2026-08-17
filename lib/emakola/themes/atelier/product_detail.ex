@@ -372,7 +372,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   </p>
                 </.accordion_section>
 
-                <.accordion_section title="SHIPPING &amp; RETURNS">
+                <.accordion_section title="SHIPPING & RETURNS">
                   <p class="text-sm text-gray-600 leading-relaxed">
                     See our
                     <a
