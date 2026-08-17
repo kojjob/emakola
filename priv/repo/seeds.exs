@@ -424,7 +424,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: p1.id,
   store_id: store1.id,
   url: "/images/seed/kente-kingdom/kente-adweneasa-1.jpg",
-  alt_text: "Royal Adweneasa Kente cloth in gold and green",
+  alt_text: "Handwoven Kente cloth in bold geometric patterns",
   content_type: "image/jpeg",
   file_size_bytes: 450_000
 })
@@ -517,7 +517,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: p3.id,
   store_id: store1.id,
   url: "/images/seed/kente-kingdom/fusion-dress-1.jpg",
-  alt_text: "Ankara-Kente fusion midi dress",
+  alt_text: "Woman wearing an African-print dress with matching headwrap",
   content_type: "image/jpeg",
   file_size_bytes: 380_000
 })
@@ -550,7 +550,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: p4.id,
   store_id: store1.id,
   url: "/images/seed/kente-kingdom/kente-clutch-1.jpg",
-  alt_text: "Kente clutch bag with gold clasp",
+  alt_text: "Kente-print handbag with beaded handles",
   content_type: "image/jpeg",
   file_size_bytes: 290_000
 })
@@ -615,7 +615,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: p5.id,
   store_id: store1.id,
   url: "/images/seed/kente-kingdom/fugu-smock-1.jpg",
-  alt_text: "Dagomba Fugu smock in indigo blue",
+  alt_text: "Handwoven northern smocks in striped cotton",
   content_type: "image/jpeg",
   file_size_bytes: 410_000
 })
@@ -1041,7 +1041,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: ps1.id,
   store_id: store2.id,
   url: "/images/seed/accra-fresh/shito-1.jpg",
-  alt_text: "Homemade shito in glass jar",
+  alt_text: "Shito pepper sauce served with fried yam",
   content_type: "image/jpeg",
   file_size_bytes: 280_000
 })
@@ -1170,7 +1170,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: ps4.id,
   store_id: store2.id,
   url: "/images/seed/accra-fresh/groundnuts-1.jpg",
-  alt_text: "Roasted groundnuts in a bowl",
+  alt_text: "Salted roasted groundnuts",
   content_type: "image/jpeg",
   file_size_bytes: 63_399
 })
@@ -1202,7 +1202,7 @@ Seeds.create!(Emakola.Catalog.Image, :create, %{
   product_id: ps5.id,
   store_id: store2.id,
   url: "/images/seed/accra-fresh/dawadawa-1.jpg",
-  alt_text: "Dawadawa fermented locust beans in market bowl",
+  alt_text: "Dawadawa fermented locust bean balls",
   content_type: "image/jpeg",
   file_size_bytes: 260_989
 })
@@ -1765,7 +1765,7 @@ Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
   type: :image,
   url: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&q=80",
   filename: "shito-jar.jpg",
-  alt_text: "Homemade Ghanaian shito in a glass jar",
+  alt_text: "Shito pepper sauce served with fried yam",
   content_type: "image/jpeg",
   file_size: 142_000,
   position: 0
