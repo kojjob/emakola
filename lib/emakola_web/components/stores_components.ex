@@ -81,10 +81,10 @@ defmodule EmakolaWeb.StoresComponents do
         class="relative block aspect-[16/10] overflow-hidden bg-slate-200"
         aria-label={"Visit #{@store.name}"}
       >
-        <%= if @store.cover_image_url && @store.cover_image_url != "" do %>
+        <%= if card_image_url(@store) do %>
           <.optimized_image
-            src={@store.cover_image_url}
-            alt={"#{@store.name} cover"}
+            src={card_image_url(@store)}
+            alt={"#{@store.name} shop photo"}
             class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
           />
         <% else %>
@@ -277,10 +277,10 @@ defmodule EmakolaWeb.StoresComponents do
               class="group relative block w-[82vw] max-w-[400px] shrink-0 snap-start overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_20px_50px_-30px_rgba(12,31,23,0.65)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-28px_rgba(12,31,23,0.5)]"
             >
               <div class="relative aspect-[4/3] overflow-hidden">
-                <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                <%= if card_image_url(store) do %>
                   <.optimized_image
-                    src={store.cover_image_url}
-                    alt={"#{store.name} cover"}
+                    src={card_image_url(store)}
+                    alt={"#{store.name} shop photo"}
                     class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
                 <% else %>
@@ -442,10 +442,10 @@ defmodule EmakolaWeb.StoresComponents do
             >
               <%!-- IMAGE HERO --%>
               <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                <%= if card_image_url(store) do %>
                   <.optimized_image
-                    src={store.cover_image_url}
-                    alt={"#{store.name} cover"}
+                    src={card_image_url(store)}
+                    alt={"#{store.name} shop photo"}
                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                 <% else %>
@@ -932,6 +932,21 @@ defmodule EmakolaWeb.StoresComponents do
   # Setting the color tokens directly is the simplest override: inline
   # style declarations are unlayered, so they beat the `@layer theme`
   # :root token declarations for this element and its descendants.
+  # The image a shop card leads with: the merchant's own cover when they set
+  # one, else the newest active-product photo (the :card_image_url aggregate —
+  # guard on is_binary because callers that don't load it get %Ash.NotLoaded{}),
+  # else nil and the themed gradient pattern renders.
+  defp card_image_url(store) do
+    cover = Map.get(store, :cover_image_url)
+    product_photo = Map.get(store, :card_image_url)
+
+    cond do
+      is_binary(cover) and cover != "" -> cover
+      is_binary(product_photo) and product_photo != "" -> product_photo
+      true -> nil
+    end
+  end
+
   defp card_theme_vars(store) do
     "--color-store-accent: #{CssColor.safe_css_color(theme_primary(store), "#B45309")}; " <>
       "--color-cta-dark: #{CssColor.safe_css_color(theme_accent(store), "#1C1917")}"

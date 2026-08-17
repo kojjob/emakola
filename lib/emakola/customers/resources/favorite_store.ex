@@ -68,7 +68,7 @@ defmodule Emakola.Customers.FavoriteStore do
 
       filter(expr(customer_id == ^arg(:customer_id)))
 
-      prepare(build(load: [:store], sort: [inserted_at: :desc]))
+      prepare(build(load: [store: [:card_image_url]], sort: [inserted_at: :desc]))
     end
   end
 
