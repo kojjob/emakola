@@ -260,6 +260,14 @@ defmodule Emakola.Stores.Store do
     count :product_count, :products do
       filter(expr(status == :active))
     end
+
+    # The newest photo on an active product — the directory card's fallback
+    # when the merchant hasn't set a cover image, so shop cards show real
+    # goods instead of a gradient placeholder. Draft products stay invisible.
+    first :card_image_url, [:products, :images], :url do
+      filter(expr(product.status == :active))
+      sort(inserted_at: :desc)
+    end
   end
 
   identities do

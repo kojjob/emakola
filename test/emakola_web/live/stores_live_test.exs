@@ -34,6 +34,55 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, "#stores-grid")
     end
 
+    test "a store with no cover image shows its newest product photo", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Ama Provisions", slug: "ama-provisions"})
+      product = Factory.create_product!(store, %{title: "Shito Jar"})
+      Factory.create_variant!(product, store, %{price: 3_500, stock_quantity: 10})
+      Factory.create_image!(product, store, %{url: "/uploads/ama/shito-front.jpg"})
+
+      product
+      |> Ash.Changeset.for_update(:activate, %{}, authorize?: false)
+      |> Ash.update!()
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "/uploads/ama/shito-front.jpg",
+             "with no merchant cover set, the directory card must fall back to " <>
+               "a real product photo instead of a gradient placeholder"
+    end
+
+    test "a merchant-set cover image wins over product photos", %{conn: conn} do
+      store =
+        Factory.create_store!(%{
+          name: "Cover First",
+          slug: "cover-first",
+          cover_image_url: "/uploads/cover-first/storefront.jpg"
+        })
+
+      product = Factory.create_product!(store, %{title: "Basket"})
+      Factory.create_variant!(product, store, %{price: 2_000, stock_quantity: 5})
+      Factory.create_image!(product, store, %{url: "/uploads/cover-first/basket.jpg"})
+
+      product
+      |> Ash.Changeset.for_update(:activate, %{}, authorize?: false)
+      |> Ash.update!()
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "/uploads/cover-first/storefront.jpg"
+      refute html =~ "/uploads/cover-first/basket.jpg"
+    end
+
+    test "draft products' photos never surface on the directory", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Drafts Only", slug: "drafts-only"})
+      product = Factory.create_product!(store, %{title: "Unpublished"})
+      Factory.create_image!(product, store, %{url: "/uploads/drafts-only/secret.jpg"})
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      refute html =~ "/uploads/drafts-only/secret.jpg"
+    end
+
     test "excludes inactive stores", %{conn: conn} do
       Factory.create_store!(%{name: "Live Shop", slug: "live-shop"})
       Factory.create_store!(%{name: "Hidden Shop", slug: "hidden-shop", active: false})

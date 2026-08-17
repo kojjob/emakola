@@ -568,7 +568,7 @@ defmodule EmakolaWeb.StoresLive do
     new_page =
       Store
       |> Ash.Query.for_read(:list_with_filters, args)
-      |> Ash.Query.load([:product_count])
+      |> Ash.Query.load([:product_count, :card_image_url])
       |> Ash.Query.limit(per_page)
       |> Ash.Query.offset(offset)
       |> Ash.read!(authorize?: false)
@@ -621,6 +621,7 @@ defmodule EmakolaWeb.StoresLive do
   defp load_featured do
     Store
     |> Ash.Query.for_read(:list_featured, %{limit: 8})
+    |> Ash.Query.load([:card_image_url])
     |> Ash.Query.limit(8)
     |> Ash.read!(authorize?: false)
   rescue
@@ -632,6 +633,7 @@ defmodule EmakolaWeb.StoresLive do
   defp load_recent do
     Store
     |> Ash.Query.for_read(:list_recent, %{limit: 6})
+    |> Ash.Query.load([:card_image_url])
     |> Ash.Query.limit(6)
     |> Ash.read!(authorize?: false)
   rescue
@@ -697,7 +699,7 @@ defmodule EmakolaWeb.StoresLive do
     stores =
       Store
       |> Ash.Query.for_read(:list_by_slugs, %{slugs: slugs})
-      |> Ash.Query.load([:product_count])
+      |> Ash.Query.load([:product_count, :card_image_url])
       |> Ash.read!(authorize?: false)
 
     # Preserve cookie order (most-recent first); the DB query won't
