@@ -30,6 +30,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -255,11 +256,13 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     <%!-- Footer --%>
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
     <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       active_tab={:search}
       cart_count={@cart_count}

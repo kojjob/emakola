@@ -24,6 +24,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -298,12 +299,14 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
 
       <Emakola.Themes.DefaultRenderers.Chrome.footer
         theme_module={assigns[:theme_module]}
+        theme={assigns[:theme] || %{}}
         store={@store}
         categories={@categories}
       />
     </div>
     <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       active_tab={:account}
       cart_count={@cart_count}
