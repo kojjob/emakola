@@ -17,6 +17,8 @@ defmodule Emakola.Themes.Chale do
   - `Emakola.Themes.Chale.Shared` — chrome + cards (nav, footer, stamps)
   """
 
+  use Phoenix.Component
+
   @behaviour Emakola.Themes.ThemeBehaviour
 
   alias Emakola.Themes.Chale.Shared
@@ -132,12 +134,21 @@ defmodule Emakola.Themes.Chale do
 
   @impl true
   def storefront_nav(assigns) do
-    Shared.chale_nav(%{
+    # Shared pages (cart, checkout, …) render this chrome via Chrome without
+    # the theme's page wrapper, so the theme_styles block must ride with the
+    # nav — otherwise var(--chale-*)-styled chrome silently loses its styling.
+    assigns = %{
       __changed__: nil,
+      theme: Map.get(assigns, :theme) || %{},
       store: assigns.store,
       categories: Map.get(assigns, :categories) || [],
       cart_count: Map.get(assigns, :cart_count) || 0
-    })
+    }
+
+    ~H"""
+    <Shared.theme_styles theme={@theme} />
+    <Shared.chale_nav store={@store} categories={@categories} cart_count={@cart_count} />
+    """
   end
 
   @impl true
