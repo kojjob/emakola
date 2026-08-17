@@ -20,6 +20,7 @@ defmodule Emakola.Themes.DefaultRenderers.Downloads do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       cart_count={@cart_count}
       active_path="account"
@@ -94,6 +95,7 @@ defmodule Emakola.Themes.DefaultRenderers.Downloads do
 
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
     />
     """
