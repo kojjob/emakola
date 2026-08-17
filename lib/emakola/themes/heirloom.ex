@@ -25,6 +25,8 @@ defmodule Emakola.Themes.Heirloom do
   - `Emakola.Themes.Heirloom.Shared` — chrome (nav, footer, price helpers)
   """
 
+  use Phoenix.Component
+
   @behaviour Emakola.Themes.ThemeBehaviour
 
   alias Emakola.Themes.Heirloom.Shared
@@ -171,13 +173,27 @@ defmodule Emakola.Themes.Heirloom do
 
   @impl true
   def storefront_nav(assigns) do
-    Shared.heirloom_nav(%{
+    # Shared pages (cart, checkout, …) render this chrome via Chrome without
+    # the theme's page wrapper, so the theme_styles block must ride with the
+    # nav — otherwise var(--hl-*)-styled chrome silently loses its color
+    # (the cart footer rendered white-on-white this way).
+    assigns = %{
       __changed__: nil,
+      theme: Map.get(assigns, :theme) || %{},
       store: assigns.store,
       cart_count: Map.get(assigns, :cart_count) || 0,
-      on_dark: false,
       active_path: Map.get(assigns, :active_path) || ""
-    })
+    }
+
+    ~H"""
+    <Shared.theme_styles theme={@theme} />
+    <Shared.heirloom_nav
+      store={@store}
+      cart_count={@cart_count}
+      on_dark={false}
+      active_path={@active_path}
+    />
+    """
   end
 
   @impl true
