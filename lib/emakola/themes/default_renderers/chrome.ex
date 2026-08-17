@@ -16,6 +16,7 @@ defmodule Emakola.Themes.DefaultRenderers.Chrome do
   use Phoenix.Component
 
   attr :theme_module, :any, default: nil
+  attr :theme, :map, default: %{}
   attr :store, :map, required: true
   attr :categories, :list, default: []
   attr :cart_count, :integer, default: 0
@@ -39,6 +40,7 @@ defmodule Emakola.Themes.DefaultRenderers.Chrome do
   end
 
   attr :theme_module, :any, default: nil
+  attr :theme, :map, default: %{}
   attr :store, :map, required: true
   attr :categories, :list, default: []
 
@@ -55,6 +57,7 @@ defmodule Emakola.Themes.DefaultRenderers.Chrome do
   end
 
   attr :theme_module, :any, default: nil
+  attr :theme, :map, default: %{}
   attr :store, :map, required: true
   attr :cart_count, :integer, default: 0
   attr :active_tab, :atom, default: :home

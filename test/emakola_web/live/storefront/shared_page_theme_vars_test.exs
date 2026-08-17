@@ -45,6 +45,32 @@ defmodule EmakolaWeb.Storefront.SharedPageThemeVarsTest do
     |> Ash.update!(authorize?: false)
   end
 
+  describe "merchant overrides reach shared pages" do
+    test "a merchant's primary color override paints the cart page chrome", %{conn: conn} do
+      store = store_on_theme!("chale")
+
+      store
+      |> Ash.Changeset.for_update(:update, %{
+        theme_config: %{"theme" => "chale", "colors" => %{"primary" => "#1A2B3C"}}
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
+
+      primaries =
+        ~r/--theme-primary:\s*(#[0-9A-Fa-f]{3,8})/
+        |> Regex.scan(html, capture: :all_but_first)
+        |> List.flatten()
+
+      assert primaries != [] and Enum.all?(primaries, &(&1 == "#1A2B3C")),
+             "the merchant picked #1A2B3C, but a later --theme-primary definition " <>
+               "(#{inspect(Enum.uniq(primaries))}) still paints the theme default — " <>
+               "the theme's chrome-injected theme_styles renders with an empty theme " <>
+               "map and overrides the layout's correct value; Chrome must pass the " <>
+               "resolved theme through"
+    end
+  end
+
   for theme_id <- ThemeResolver.theme_ids() do
     test "#{theme_id}: the cart page defines every CSS variable it references", %{conn: conn} do
       store = store_on_theme!(unquote(theme_id))
