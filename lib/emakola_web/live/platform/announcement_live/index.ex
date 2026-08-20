@@ -31,6 +31,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
       |> assign(:active_nav, :announcements)
       |> assign(:announcement_form, announcement_form())
       |> assign(:announcements_count, 0)
+      |> assign(:scheduled_count, 0)
+      |> assign(:live_count, 0)
       |> assign(:announcements_loaded?, false)
       |> stream(:announcements, [], dom_id: &"announcement-#{&1.id}")
 
@@ -148,6 +150,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
 
     socket
     |> assign(:announcements_count, length(announcements))
+    |> assign(:scheduled_count, Enum.count(announcements, &(&1.status == :scheduled)))
+    |> assign(:live_count, Enum.count(announcements, &(display_state(&1) == "Live")))
     |> assign(:announcements_loaded?, true)
     |> stream(:announcements, announcements, reset: true)
   end
@@ -164,68 +168,64 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
     assigns = assign(assigns, :all_channels, @channels)
 
     ~H"""
-    <div class="p-6 lg:p-8 max-w-5xl mx-auto">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Announcements</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          Broadcast to merchants via banner, email, SMS, WhatsApp.
-        </p>
+    <div class="p-6 lg:p-8 max-w-7xl mx-auto">
+      <%!-- Page header --%>
+      <div class="mb-6 flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Announcements</h1>
+          <p class="text-sm text-gray-500 mt-1">
+            Broadcast to merchants via banner, email, SMS, WhatsApp
+          </p>
+        </div>
+        <div :if={@announcements_loaded?} class="flex items-center gap-2">
+          <.severity_pill label={"#{@scheduled_count} scheduled"} tone="amber" />
+          <.severity_pill label={"#{@live_count} live"} tone="green" />
+        </div>
       </div>
 
-      <.form
-        for={@announcement_form}
-        id="announcement-form"
-        phx-submit="create"
-        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8 space-y-4"
-      >
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Title</label>
-          <.input
-            field={@announcement_form[:title]}
-            id="announcement-title"
-            required
-            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Message</label>
-          <.input
-            field={@announcement_form[:body]}
-            type="textarea"
-            id="announcement-body"
-            rows="3"
-            required
-            class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Severity</label>
+      <div class="flex flex-col lg:flex-row gap-5 items-start">
+        <%!-- Compose card --%>
+        <.form
+          for={@announcement_form}
+          id="announcement-form"
+          phx-submit="create"
+          class="w-full lg:w-[430px] shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5"
+        >
+          <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            New announcement
+          </p>
+          <div class="mt-3">
+            <label for="announcement-title" class="block text-[13px] font-medium text-gray-700">
+              Title
+            </label>
             <.input
-              field={@announcement_form[:severity]}
-              type="select"
-              id="announcement-severity"
-              options={[{"Info", "info"}, {"Warning", "warning"}, {"Critical", "critical"}]}
-              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              field={@announcement_form[:title]}
+              id="announcement-title"
+              required
+              class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white"
             />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Audience</label>
+          <div class="mt-3">
+            <label for="announcement-body" class="block text-[13px] font-medium text-gray-700">
+              Message
+            </label>
             <.input
-              field={@announcement_form[:audience]}
-              type="select"
-              id="announcement-audience"
-              options={[{"All stores", "all"}, {"Active stores only", "active"}]}
-              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              field={@announcement_form[:body]}
+              type="textarea"
+              id="announcement-body"
+              rows="3"
+              required
+              class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white"
             />
           </div>
-        </div>
-        <div>
-          <span class="block text-sm font-medium text-gray-700 mb-1">Channels</span>
-          <div class="flex flex-wrap gap-4">
+
+          <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mt-4">
+            Channels
+          </p>
+          <div class="flex flex-wrap gap-1.5 mt-2">
             <label
               :for={c <- @all_channels}
-              class="inline-flex items-center gap-1.5 text-sm text-gray-700"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[9px] text-[12px] font-medium text-slate-600 bg-slate-50 ring-1 ring-inset ring-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
             >
               <input
                 id={"announcement-channel-#{c}"}
@@ -233,88 +233,169 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
                 name="announcement[channels][]"
                 value={c}
                 checked={channel_selected?(@announcement_form, c)}
+                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
               />
               {c |> to_string() |> String.capitalize()}
             </label>
           </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Publish at (UTC)</label>
-            <.input
-              field={@announcement_form[:publish_at]}
-              type="datetime-local"
-              id="announcement-publish-at"
-              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Expires at (UTC, optional)</label>
-            <.input
-              field={@announcement_form[:expires_at]}
-              type="datetime-local"
-              id="announcement-expires-at"
-              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-        <button
-          type="submit"
-          class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Schedule announcement
-        </button>
-      </.form>
 
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-              <th class="px-6 py-3">Title</th>
-              <th class="px-6 py-3">Audience</th>
-              <th class="px-6 py-3">State</th>
-              <th class="px-6 py-3"></th>
-            </tr>
-          </thead>
-          <tbody
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div>
+              <label for="announcement-severity" class="block text-[13px] font-medium text-gray-700">
+                Severity
+              </label>
+              <.input
+                field={@announcement_form[:severity]}
+                type="select"
+                id="announcement-severity"
+                options={[{"Info", "info"}, {"Warning", "warning"}, {"Critical", "critical"}]}
+                class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px]"
+              />
+            </div>
+            <div>
+              <label for="announcement-audience" class="block text-[13px] font-medium text-gray-700">
+                Audience
+              </label>
+              <.input
+                field={@announcement_form[:audience]}
+                type="select"
+                id="announcement-audience"
+                options={[{"All stores", "all"}, {"Active stores only", "active"}]}
+                class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px]"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <label for="announcement-publish-at" class="block text-[13px] font-medium text-gray-700">
+                Publish at (UTC)
+              </label>
+              <.input
+                field={@announcement_form[:publish_at]}
+                type="datetime-local"
+                id="announcement-publish-at"
+                class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px]"
+              />
+            </div>
+            <div>
+              <label for="announcement-expires-at" class="block text-[13px] font-medium text-gray-700">
+                Expires at (UTC)
+              </label>
+              <.input
+                field={@announcement_form[:expires_at]}
+                type="datetime-local"
+                id="announcement-expires-at"
+                class="mt-1 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[13px]"
+              />
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between gap-3">
+            <p class="text-[11px] text-gray-400">
+              Leave publish time blank to send now. Banner shows until it expires.
+            </p>
+            <button
+              type="submit"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors shrink-0"
+            >
+              <.icon name="hero-paper-airplane" class="size-3.5" /> Send
+            </button>
+          </div>
+        </.form>
+
+        <%!-- Timeline --%>
+        <div class="flex-1 min-w-0 w-full">
+          <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Recent broadcasts
+          </p>
+          <div
             id="platform-announcements"
             phx-update="stream"
             data-count={@announcements_count}
-            class="divide-y divide-gray-100"
+            class="flex flex-col gap-3"
           >
-            <tr :if={!@announcements_loaded?} id="platform-announcements-loading">
-              <td colspan="4" class="px-6 py-12 text-center text-gray-400">Loading…</td>
-            </tr>
-            <tr
+            <div
+              :if={!@announcements_loaded?}
+              id="platform-announcements-loading"
+              class="bg-white rounded-[14px] border border-gray-200 px-5 py-10 text-center text-sm text-gray-400"
+            >
+              Loading…
+            </div>
+            <div
               :if={@announcements_loaded? && @announcements_count == 0}
               id="platform-announcements-empty"
+              class="bg-white rounded-[14px] border border-dashed border-gray-200 px-5 py-10 text-center text-sm text-gray-400"
             >
-              <td colspan="4" class="px-6 py-12 text-center text-gray-400">No announcements yet</td>
-            </tr>
-            <tr
+              No announcements yet
+            </div>
+            <div
               :for={{id, a} <- @streams.announcements}
               id={id}
-              class="hover:bg-gray-50"
+              class={[
+                "bg-white rounded-[14px] border border-gray-200 shadow-sm px-5 py-4",
+                a.status == :canceled && "opacity-70"
+              ]}
             >
-              <td class="px-6 py-4 font-medium text-gray-900">{a.title}</td>
-              <td class="px-6 py-4 text-gray-600">{a.audience}</td>
-              <td class="px-6 py-4 text-gray-600">{display_state(a)}</td>
-              <td class="px-6 py-4 text-right">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <.severity_pill label={state_label(a)} tone={state_tone(a)} />
+                  <.severity_pill
+                    :if={a.severity == :warning}
+                    label="Warning"
+                    tone="amber"
+                  />
+                  <.severity_pill
+                    :if={a.severity == :critical}
+                    label="Critical"
+                    tone="red"
+                  />
+                </div>
                 <button
                   :if={a.status == :scheduled}
                   type="button"
                   phx-click="cancel"
                   phx-value-id={a.id}
-                  class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                  class="inline-flex px-3 py-1.5 rounded-lg text-[12px] font-semibold text-rose-700 bg-rose-50 ring-1 ring-inset ring-rose-600/20 hover:bg-rose-100 transition-colors"
                 >
                   Cancel
                 </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+              <p class="text-[13.5px] font-bold text-gray-900 mt-2.5">{a.title}</p>
+              <p class="text-[13px] text-gray-600 mt-0.5 line-clamp-2">{a.body}</p>
+              <div class="flex items-center gap-2 mt-2.5 flex-wrap">
+                <span
+                  :for={c <- a.channels}
+                  class="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md"
+                >
+                  {c |> to_string() |> String.capitalize()}
+                </span>
+                <span class="text-[11px] text-gray-400">{audience_label(a.audience)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     """
   end
+
+  defp state_label(a) do
+    case display_state(a) do
+      "Scheduled" -> "Scheduled · #{Calendar.strftime(a.publish_at, "%b %d, %H:%M")}"
+      "Live" -> "Live · #{Calendar.strftime(a.publish_at, "%b %d, %H:%M")}"
+      other -> other
+    end
+  end
+
+  defp state_tone(a) do
+    case display_state(a) do
+      "Scheduled" -> "amber"
+      "Live" -> "green"
+      _ -> "slate"
+    end
+  end
+
+  defp audience_label(:active), do: "Active stores only"
+  defp audience_label(_), do: "All stores"
 end
