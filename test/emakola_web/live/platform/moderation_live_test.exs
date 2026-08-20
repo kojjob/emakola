@@ -154,7 +154,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     refute has_element?(view, "#moderation-product-#{product.id}")
   end
 
-  test "the panel shows the product's moderation history", %{conn: conn, product: product} do
+  test "the panel shows the product's moderation history", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/platform/moderation")
 
     view
