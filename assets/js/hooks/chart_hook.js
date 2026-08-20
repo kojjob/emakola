@@ -40,6 +40,85 @@ const CHART_CONFIGS = {
     }
   }),
 
+  // Platform overview: GMV trend — emerald area, values in minor units.
+  "gmv-line": (data) => ({
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        borderColor: "rgba(16, 185, 129, 0.9)",
+        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].label,
+            label: (item) => `GHS ${(item.raw / 100).toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, maxTicksLimit: 8 } },
+        y: {
+          grid: { color: "rgba(0,0,0,0.05)" },
+          beginAtZero: true,
+          ticks: {
+            font: { size: 11 },
+            callback: (value) => `GHS ${(value / 100).toFixed(0)}`
+          }
+        }
+      }
+    }
+  }),
+
+  // Platform overview: new stores per week — blue bars, plain counts.
+  "count-bar": (data) => ({
+    type: "bar",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        backgroundColor: "rgba(59, 130, 246, 0.8)",
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 40
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].label,
+            label: (item) => `${item.raw}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: "rgba(0,0,0,0.05)" },
+          beginAtZero: true,
+          ticks: { font: { size: 11 }, stepSize: 1 }
+        }
+      }
+    }
+  }),
+
   "orders-line": (data) => ({
     type: "line",
     data: {
