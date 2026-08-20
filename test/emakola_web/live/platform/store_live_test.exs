@@ -223,6 +223,30 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert has_element?(view, "#store-panel #panel-directory-card", "Real Card Shop")
     end
 
+    test "preview storefront links are clickable and open a new tab", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(
+               view,
+               ~s(#panel-directory-card a[href="/s/#{store.slug}"][target="_blank"])
+             )
+
+      # Clickability is CSS — guard structurally against the inert wrapper.
+      refute has_element?(view, ".pointer-events-none #panel-directory-card")
+    end
+
+    test "preview hides the customer favorite button", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, ~s(#panel-directory-card [phx-click="toggle_favorite"]))
+    end
+
     test "directory preview renders the newest active product photo", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
       store = Factory.create_store!()

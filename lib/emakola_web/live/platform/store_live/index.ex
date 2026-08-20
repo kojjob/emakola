@@ -596,9 +596,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   Directory preview
                 </p>
                 <div class={["relative", !Store.live?(@selected) && "opacity-80"]}>
-                  <div class="pointer-events-none" aria-hidden="true">
-                    <.store_card id="panel-directory-card" store={@selected} />
-                  </div>
+                  <.store_card
+                    id="panel-directory-card"
+                    store={@selected}
+                    target="_blank"
+                    show_favorite={false}
+                  />
                   <span
                     :if={!Store.live?(@selected)}
                     class="absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-white"

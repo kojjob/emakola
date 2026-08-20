@@ -66,6 +66,10 @@ defmodule EmakolaWeb.StoresComponents do
   attr :store, :map, required: true
   attr :is_favorite, :boolean, default: false
   attr :variant, :atom, default: :default, values: [:default, :featured, :editorial, :compact]
+  # Admin embeds (the Directory Studio preview) open the storefront in a new
+  # tab and hide the customer-only favorite button.
+  attr :target, :string, default: nil
+  attr :show_favorite, :boolean, default: true
 
   def store_card(assigns) do
     ~H"""
@@ -78,6 +82,8 @@ defmodule EmakolaWeb.StoresComponents do
     >
       <a
         href={"/s/#{@store.slug}"}
+        target={@target}
+        rel={@target == "_blank" && "noopener"}
         class="relative block aspect-[16/10] overflow-hidden bg-slate-200"
         aria-label={"Visit #{@store.name}"}
       >
@@ -155,6 +161,8 @@ defmodule EmakolaWeb.StoresComponents do
           <div class="min-w-0">
             <a
               href={"/s/#{@store.slug}"}
+              target={@target}
+              rel={@target == "_blank" && "noopener"}
               class="line-clamp-1 text-lg font-black tracking-tight text-slate-900 transition hover:text-emerald-700"
             >
               {@store.name}
@@ -183,6 +191,7 @@ defmodule EmakolaWeb.StoresComponents do
           </div>
 
           <button
+            :if={@show_favorite}
             type="button"
             phx-click="toggle_favorite"
             phx-value-slug={@store.slug}
