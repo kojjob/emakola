@@ -66,7 +66,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
       <p :if={!@loaded} class="text-sm text-gray-500">Loading…</p>
 
       <div :if={@loaded}>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div class="flex flex-wrap gap-4 mb-8">
           <.metric_tile
             label="Total refunded"
             value={money(@total_refunded, "GHS")}
@@ -100,28 +100,41 @@ defmodule EmakolaWeb.Platform.RefundsLive do
         >
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+              <tr class="text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
                 <th class="px-6 py-3">Store</th>
                 <th class="px-6 py-3">Original</th>
                 <th class="px-6 py-3">Refunded</th>
                 <th class="px-6 py-3">Gateway</th>
-                <th class="px-6 py-3">Date</th>
+                <th class="px-6 py-3 text-right">Date</th>
               </tr>
             </thead>
             <tbody id="platform-refunds" phx-update="stream" class="divide-y divide-gray-100">
-              <tr :for={{id, p} <- @streams.refunds} id={id} class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-medium text-gray-900">{p.store && p.store.name}</td>
-                <td class="px-6 py-4 text-gray-600">{money(p.amount, p.currency)}</td>
-                <td class="px-6 py-4 font-semibold text-rose-600">
+              <tr
+                :for={{id, p} <- @streams.refunds}
+                id={id}
+                class="hover:bg-slate-50 transition-colors"
+              >
+                <td class="px-6 py-3.5">
+                  <div class="flex items-center gap-3">
+                    <.store_avatar
+                      :if={p.store}
+                      store={p.store}
+                      class="w-8 h-8 rounded-[9px] text-[13px]"
+                    />
+                    <p class="text-sm font-semibold text-gray-900">{p.store && p.store.name}</p>
+                  </div>
+                </td>
+                <td class="px-6 py-3.5 text-[13px] text-gray-500 tabular-nums">
+                  {money(p.amount, p.currency)}
+                </td>
+                <td class="px-6 py-3.5 text-[13px] font-bold text-rose-600 tabular-nums">
                   {money(p.refunded_amount, p.currency)}
                 </td>
-                <td class="px-6 py-4">
-                  <span class="inline-block rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                    {p.gateway}
-                  </span>
+                <td class="px-6 py-3.5">
+                  <.severity_pill label={gateway_label(p.gateway)} tone={gateway_tone(p.gateway)} />
                 </td>
-                <td class="px-6 py-4 font-mono text-xs text-gray-500 whitespace-nowrap">
-                  {Calendar.strftime(p.inserted_at, "%Y-%m-%d")}
+                <td class="px-6 py-3.5 text-right text-[13px] text-gray-500 whitespace-nowrap">
+                  {Calendar.strftime(p.inserted_at, "%b %d, %Y")}
                 </td>
               </tr>
             </tbody>
@@ -132,6 +145,12 @@ defmodule EmakolaWeb.Platform.RefundsLive do
     """
   end
 
+  defp gateway_label(gateway), do: gateway |> to_string() |> String.capitalize()
+
+  defp gateway_tone(:paystack), do: "blue"
+  defp gateway_tone(:hubtel), do: "green"
+  defp gateway_tone(_), do: "slate"
+
   attr :label, :string, required: true
   attr :value, :any, required: true
   attr :icon, :string, required: true
@@ -139,7 +158,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
 
   defp metric_tile(assigns) do
     ~H"""
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="w-full sm:w-[340px] rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <span class="text-sm font-medium text-gray-500">{@label}</span>
         <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @chip]}>
