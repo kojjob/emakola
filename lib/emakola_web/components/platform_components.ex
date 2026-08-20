@@ -111,6 +111,39 @@ defmodule EmakolaWeb.PlatformComponents do
     """
   end
 
+  @avatar_tints [
+    "bg-rose-100 text-rose-600",
+    "bg-amber-100 text-amber-600",
+    "bg-blue-100 text-blue-600",
+    "bg-emerald-100 text-emerald-600",
+    "bg-sky-100 text-sky-600",
+    "bg-violet-100 text-violet-600",
+    "bg-indigo-100 text-indigo-600",
+    "bg-green-100 text-green-700"
+  ]
+
+  @doc """
+  Deterministic tinted letter avatar for a store — the tint is hashed from
+  the store id so a store keeps its color everywhere it appears.
+  """
+  attr :store, :map, required: true
+  attr :class, :string, default: "w-14 h-14 rounded-[14px] text-[22px]"
+
+  def store_avatar(assigns) do
+    tint = Enum.at(@avatar_tints, :erlang.phash2(assigns.store.id, length(@avatar_tints)))
+    assigns = assign(assigns, :tint, tint)
+
+    ~H"""
+    <div class={[
+      "flex items-center justify-center font-bold shrink-0",
+      @tint,
+      @class
+    ]}>
+      {@store.name |> String.first() |> String.upcase()}
+    </div>
+    """
+  end
+
   @doc """
   Platform-side "nothing here yet" empty state — icon, title, optional
   description. Mirrors `AdminComponents.empty_state/1`'s API but is named
