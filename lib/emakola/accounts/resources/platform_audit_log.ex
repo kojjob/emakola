@@ -105,5 +105,24 @@ defmodule Emakola.Accounts.PlatformAuditLog do
       filter(expr(fragment("? ->> 'store_id' = ?", metadata, ^arg(:store_id))))
       prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
     end
+
+    read :list_for_product do
+      argument(:product_id, :string, allow_nil?: false)
+      filter(expr(fragment("? ->> 'product_id' = ?", metadata, ^arg(:product_id))))
+      prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
+    end
+
+    read :takedowns_for_store do
+      argument(:store_id, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          action == :product_taken_down and
+            fragment("? ->> 'store_id' = ?", metadata, ^arg(:store_id))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
+    end
   end
 end
