@@ -17,6 +17,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
   alias Emakola.Accounts.PlatformPermissions
+  alias Emakola.Stores.FeaturedRanking
   alias Emakola.Stores.Store
 
   @impl true
@@ -69,31 +70,33 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
   def handle_event("toggle_featured", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
-      update_directory_meta(socket, id, fn s -> %{featured: !Map.get(s, :featured, false)} end)
+      mutate_store(socket, id, fn store ->
+        if store.featured,
+          do: FeaturedRanking.unfeature(store),
+          else: FeaturedRanking.feature(store)
+      end)
     end)
   end
 
   def handle_event("toggle_verified", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
-      update_directory_meta(socket, id, fn s -> %{verified: !Map.get(s, :verified, false)} end)
+      mutate_store(socket, id, fn store ->
+        Emakola.Stores.update_store_directory_meta(
+          store,
+          %{verified: !Map.get(store, :verified, false)},
+          authorize?: false
+        )
+      end)
     end)
   end
 
-  def handle_event("adjust_rank", %{"id" => id, "dir" => dir}, socket)
+  def handle_event("move_rank", %{"id" => id, "dir" => dir}, socket)
       when dir in ["up", "down"] do
+    direction = if dir == "up", do: :up, else: :down
+
     authorized(socket, fn socket ->
-      update_directory_meta(socket, id, fn s -> %{featured_rank: adjust_rank(s, dir)} end)
+      mutate_store(socket, id, &FeaturedRanking.move(&1, direction))
     end)
-  end
-
-  defp adjust_rank(store, "up"), do: (store.featured_rank || 0) + 1
-
-  defp adjust_rank(store, "down") do
-    case store.featured_rank do
-      nil -> nil
-      rank when rank <= 1 -> nil
-      rank -> rank - 1
-    end
   end
 
   # Assigns are stale — re-check permission against a freshly reloaded user
@@ -113,12 +116,10 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     end
   end
 
-  defp update_directory_meta(socket, id, attrs_fn) do
+  defp mutate_store(socket, id, fun) do
     case Emakola.Stores.get_store(id, authorize?: false) do
       {:ok, store} ->
-        case Emakola.Stores.update_store_directory_meta(store, attrs_fn.(store),
-               authorize?: false
-             ) do
+        case fun.(store) do
           {:ok, _updated} ->
             {:noreply, load_stores(socket, socket.assigns.search)}
 
@@ -161,6 +162,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       (Enum.find(stores, &(&1.id == preferred_id)) || List.first(filtered))
       |> load_preview_image()
 
+    featured_position =
+      if selected && selected.featured, do: FeaturedRanking.position(selected), else: nil
+
     socket
     |> assign(:total_count, length(stores))
     |> assign(:featured_count, Enum.count(stores, &(&1.featured == true)))
@@ -168,6 +172,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     |> assign(:stores_count, length(filtered))
     |> assign(:stores_loaded?, true)
     |> assign(:selected, selected)
+    |> assign(:featured_position, featured_position)
     |> stream(:stores, Enum.map(filtered, &store_row(&1, selected)), reset: true)
   end
 
@@ -237,6 +242,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   defp humanize_status(status), do: status |> Atom.to_string() |> String.capitalize()
 
   defp status_tone(store), do: if(Store.live?(store), do: "green", else: "red")
+
+  defp position_label({position, total}), do: "##{position} of #{total}"
 
   defp filter_chip_classes(active?) do
     [
@@ -406,7 +413,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  <span :if={@selected.city}>{@selected.city}   · </span>
+                  <span :if={@selected.city}>{@selected.city}    · </span>
                   <span class="font-mono">{@selected.slug}</span>
                   · {@selected.currency || "GHS"} · Since {Calendar.strftime(
                     @selected.inserted_at,
@@ -511,42 +518,45 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                       </span>
                     </button>
                   </div>
-                  <div class="flex items-center gap-3.5 p-4">
+                  <div
+                    :if={@selected.featured && @featured_position}
+                    class="flex items-center gap-3.5 p-4"
+                  >
                     <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-100 text-slate-500 shrink-0">
                       <.icon name="hero-hashtag" class="size-[18px]" />
                     </span>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-semibold text-gray-900">Featured rank</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Order within featured stores</p>
+                      <p class="text-sm font-semibold text-gray-900">Featured order</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Position in the featured strip</p>
                     </div>
+                    <span
+                      id="panel-rank-value"
+                      class="text-sm font-semibold text-gray-900 tabular-nums shrink-0"
+                    >
+                      {position_label(@featured_position)}
+                    </span>
                     <div class="flex items-center rounded-[10px] ring-1 ring-inset ring-gray-200 overflow-hidden shrink-0">
                       <button
                         type="button"
-                        id="panel-rank-down"
-                        phx-click="adjust_rank"
-                        phx-value-id={@selected.id}
-                        phx-value-dir="down"
-                        aria-label="Decrease rank"
-                        class="flex w-8 h-8 items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <.icon name="hero-minus" class="size-3.5 text-slate-500" />
-                      </button>
-                      <span
-                        id="panel-rank-value"
-                        class="flex w-10 h-8 items-center justify-center text-sm font-semibold font-mono text-gray-900 border-x border-gray-100 tabular-nums"
-                      >
-                        {@selected.featured_rank || "—"}
-                      </span>
-                      <button
-                        type="button"
                         id="panel-rank-up"
-                        phx-click="adjust_rank"
+                        phx-click="move_rank"
                         phx-value-id={@selected.id}
                         phx-value-dir="up"
-                        aria-label="Increase rank"
+                        aria-label="Move up in the featured order"
                         class="flex w-8 h-8 items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer"
                       >
-                        <.icon name="hero-plus" class="size-3.5 text-slate-500" />
+                        <.icon name="hero-chevron-up" class="size-3.5 text-slate-500" />
+                      </button>
+                      <button
+                        type="button"
+                        id="panel-rank-down"
+                        phx-click="move_rank"
+                        phx-value-id={@selected.id}
+                        phx-value-dir="down"
+                        aria-label="Move down in the featured order"
+                        class="flex w-8 h-8 items-center justify-center border-l border-gray-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <.icon name="hero-chevron-down" class="size-3.5 text-slate-500" />
                       </button>
                     </div>
                   </div>

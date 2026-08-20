@@ -97,18 +97,20 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       refute reloaded.verified
     end
 
-    test "adjust_rank blocked when :manage_stores revoked after mount", %{conn: conn} do
+    test "move_rank blocked when :manage_stores revoked after mount", %{conn: conn} do
       {conn, user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
       store = Factory.create_store!(featured: true, featured_rank: 1)
+      other = Factory.create_store!(featured: true, featured_rank: 2)
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
       set_permissions!(user, [:manage_team])
 
-      html = render_click(view, "adjust_rank", %{"id" => store.id, "dir" => "up"})
+      html = render_click(view, "move_rank", %{"id" => store.id, "dir" => "down"})
 
       assert html =~ "don&#39;t have permission"
       assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, other.id, authorize?: false).featured_rank == 2
     end
   end
 
@@ -154,18 +156,38 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
   end
 
   describe "curation panel" do
-    test "featured toggle features the selected store", %{conn: conn} do
+    test "featured toggle features the selected store at the end of the order", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured: false)
+      _ranked = Factory.create_store!(featured: true, featured_rank: 1)
+      store = Factory.create_store!(featured: false, name: "Newly Featured")
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
+      view |> element("#store-#{store.id}") |> render_click()
       assert has_element?(view, "#panel-featured-toggle[aria-checked='false']")
 
       view |> element("#panel-featured-toggle") |> render_click()
 
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.featured
+      assert reloaded.featured_rank == 2
       assert has_element?(view, "#panel-featured-toggle[aria-checked='true']")
+    end
+
+    test "unfeaturing compacts the remaining order", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
+      third = Factory.create_store!(featured: true, featured_rank: 3)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{second.id}") |> render_click()
+      view |> element("#panel-featured-toggle") |> render_click()
+
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == nil
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, third.id, authorize?: false).featured_rank == 2
     end
 
     test "verified toggle verifies the selected store", %{conn: conn} do
@@ -227,55 +249,57 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     end
   end
 
-  describe "rank stepper" do
-    test "up from no rank sets rank 1", %{conn: conn} do
+  describe "featured order" do
+    test "panel shows the store's position in the featured order", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured: true, featured_rank: nil)
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      _second = Factory.create_store!(featured: true, featured_rank: 2)
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
-      assert has_element?(view, "#panel-rank-value", "—")
+      view |> element("#store-#{first.id}") |> render_click()
 
-      view |> element("#panel-rank-up") |> render_click()
-
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 1
-      assert has_element?(view, "#panel-rank-value", "1")
+      assert has_element?(view, "#panel-rank-value", "#1 of 2")
     end
 
-    test "up increments an existing rank", %{conn: conn} do
+    test "move down swaps the store with its neighbour", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured: true, featured_rank: 2)
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
-      view |> element("#panel-rank-up") |> render_click()
-
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 3
-      assert has_element?(view, "#panel-rank-value", "3")
-    end
-
-    test "down at rank 1 clears the rank", %{conn: conn} do
-      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured: true, featured_rank: 1)
-
-      {:ok, view, _html} = live(conn, "/platform/stores")
-
+      view |> element("#store-#{first.id}") |> render_click()
       view |> element("#panel-rank-down") |> render_click()
 
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == nil
-      assert has_element?(view, "#panel-rank-value", "—")
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 2
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == 1
+      assert has_element?(view, "#panel-rank-value", "#2 of 2")
     end
 
-    test "down decrements a rank above 1", %{conn: conn} do
+    test "move up promotes the store toward #1", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured: true, featured_rank: 3)
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
-      view |> element("#panel-rank-down") |> render_click()
+      view |> element("#store-#{second.id}") |> render_click()
+      view |> element("#panel-rank-up") |> render_click()
 
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 2
-      assert has_element?(view, "#panel-rank-value", "2")
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 2
+      assert has_element?(view, "#panel-rank-value", "#1 of 2")
+    end
+
+    test "rank controls are hidden for an unfeatured store", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!(featured: false)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#panel-rank-up")
+      refute has_element?(view, "#panel-rank-down")
     end
   end
 
