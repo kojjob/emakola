@@ -32,6 +32,27 @@ defmodule EmakolaWeb.Platform.OnboardingLiveTest do
       assert html =~ "Products"
     end
 
+    test "hero tiles summarize activation with stable ids", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Adinkra Cloth"})
+      Factory.create_product!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/onboarding")
+
+      assert has_element?(view, "#onboarding-total-stores", "1")
+      assert has_element?(view, "#onboarding-fully-set-up", "0")
+      assert has_element?(view, "#onboarding-first-orders", "0")
+    end
+
+    test "milestone cells expose their done state structurally", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Adinkra Cloth"})
+      Factory.create_product!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/onboarding")
+
+      assert has_element?(view, "[data-milestone='products'][data-done]")
+      refute has_element?(view, "[data-milestone='kyc'][data-done]")
+    end
+
     test "the incomplete-only filter hides fully-onboarded stores", %{conn: conn} do
       full = Factory.create_store!(%{name: "Complete Co"})
       Factory.create_product!(full)
