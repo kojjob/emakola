@@ -113,6 +113,23 @@ defmodule EmakolaWeb.Platform.AuditLogLiveTest do
     end
   end
 
+  describe "timeline treatment" do
+    test "entries carry a severity rail matching their action family", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+
+      {:ok, _} = PlatformAudit.log(:sign_in_failed, nil)
+      {:ok, _} = PlatformAudit.log(:invite_accepted, nil)
+      {:ok, _} = PlatformAudit.log(:sign_out, nil)
+
+      {:ok, view, _html} = live(conn, "/platform/audit-log")
+
+      assert has_element?(view, "#audit-entries[phx-update='stream']")
+      assert has_element?(view, "#audit-entries [data-severity='red']")
+      assert has_element?(view, "#audit-entries [data-severity='green']")
+      assert has_element?(view, "#audit-entries [data-severity='neutral']")
+    end
+  end
+
   describe "disconnected mount" do
     test "renders a loading shell without hitting the database", %{conn: conn} do
       {conn, _owner, _session} = setup_platform_staff(conn)
