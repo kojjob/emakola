@@ -31,39 +31,37 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
     ~H"""
     <nav
       :if={@categories != []}
-      class="border-b border-stone-200 bg-white py-4"
+      class="bg-white py-3.5"
       aria-label="Product categories"
     >
       <div
-        class="mx-auto flex max-w-[1280px] gap-4 overflow-x-auto px-4 sm:px-6 lg:gap-6 lg:px-8 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        class="mx-auto flex max-w-[1280px] gap-2.5 overflow-x-auto px-4 sm:px-6 lg:px-8 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         role="list"
       >
         <a
           :for={category <- @categories}
           href={store_path(@store.slug, "/category/#{category.slug}")}
-          class="group flex flex-shrink-0 flex-col items-center gap-1.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+          class="group flex flex-shrink-0 items-center gap-2.5 rounded-full border border-stone-200 bg-stone-50 py-1.5 pl-1.5 pr-4 hover:border-store-accent hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
           role="listitem"
         >
-          <div class="h-[68px] w-[68px] rounded-full bg-stone-200 p-[3px] group-hover:bg-store-accent group-focus-visible:bg-store-accent motion-safe:transition-[background-color,transform] motion-safe:group-hover:scale-105">
-            <% cover = Shared.category_image(category) || Map.get(@covers, category.id) %>
-            <%= if cover do %>
-              <.optimized_image
-                src={cover}
-                alt={category.name}
-                priority={:low}
-                class="h-full w-full rounded-full border-2 border-white object-cover"
-                width={62}
-                height={62}
-              />
-            <% else %>
-              <div class="flex h-full w-full items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-stone-50 to-stone-200">
-                <span class="text-lg font-semibold text-stone-500 [font-family:var(--dt-heading-font,inherit)]">
-                  {String.first(category.name)}
-                </span>
-              </div>
-            <% end %>
-          </div>
-          <span class="whitespace-nowrap text-center text-[0.6875rem] font-medium text-stone-600 group-hover:text-stone-900">
+          <% cover = Shared.category_image(category) || Map.get(@covers, category.id) %>
+          <%= if cover do %>
+            <.optimized_image
+              src={cover}
+              alt={category.name}
+              priority={:low}
+              class="h-9 w-9 rounded-full object-cover"
+              width={36}
+              height={36}
+            />
+          <% else %>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-stone-100 to-stone-200">
+              <span class="text-sm font-semibold text-stone-500 [font-family:var(--dt-heading-font,inherit)]">
+                {String.first(category.name)}
+              </span>
+            </span>
+          <% end %>
+          <span class="whitespace-nowrap text-[0.8125rem] font-bold text-stone-700 group-hover:text-stone-900">
             {category.name}
           </span>
         </a>
