@@ -16,7 +16,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
   import EmakolaWeb.Storefront.Path
 
   import EmakolaWeb.StorefrontComponents,
-    only: [image_placeholder: 1, bottom_nav: 1, optimized_image: 1]
+    only: [image_placeholder: 1, optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
   alias Emakola.Themes.Delivery
@@ -24,101 +24,21 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-[#FAFAF9]">
-      <%!-- Desktop Header Bar --%>
-      <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0]/80 transition-all">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-14 sm:h-16">
-            <a href={store_path(@store.slug, "/")} class="flex items-center gap-2.5 min-w-0">
-              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#B45309] to-[#D97706] flex items-center justify-center flex-shrink-0">
-                <span class="text-sm font-bold text-white">
-                  {String.first(@store.name)}
-                </span>
-              </div>
-              <div class="min-w-0">
-                <div class="text-[0.9375rem] font-semibold text-[#0F172A] truncate leading-tight">
-                  {@store.name}
-                </div>
-              </div>
-            </a>
-
-            <div class="flex items-center gap-1">
-              <a
-                href={store_path(@store.slug, "/products")}
-                class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
-                aria-label="Search products"
-              >
-                <svg
-                  class="w-5 h-5 text-[#475569]"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                  />
-                </svg>
-              </a>
-              <a
-                href={store_path(@store.slug, "/wishlist")}
-                class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors hidden sm:flex"
-                aria-label="Wishlist"
-              >
-                <svg
-                  class="w-5 h-5 text-[#475569]"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                  />
-                </svg>
-              </a>
-              <a
-                href={store_path(@store.slug, "/cart")}
-                class="relative p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
-                aria-label={"Shopping cart, #{@cart_count} items"}
-              >
-                <svg
-                  class="w-5 h-5 text-[#475569]"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                  />
-                </svg>
-                <span
-                  :if={@cart_count > 0}
-                  class="absolute top-1 right-1 min-w-[18px] h-[18px] bg-store-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
-                >
-                  {@cart_count}
-                </span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div class="min-h-screen bg-stone-50">
+      <Shared.market_nav
+        store={@store}
+        categories={assigns[:categories] || []}
+        cart_count={@cart_count}
+      />
 
       <%!-- Breadcrumb (desktop only) --%>
       <nav
         class="hidden lg:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4"
         aria-label="Breadcrumb"
       >
-        <ol class="flex items-center gap-2 text-sm text-[#94A3B8]">
+        <ol class="flex items-center gap-2 text-sm text-stone-400">
           <li>
-            <a href={store_path(@store.slug, "/")} class="hover:text-[#475569] transition-colors">
+            <a href={store_path(@store.slug, "/")} class="hover:text-stone-600 transition-colors">
               {@store.name}
             </a>
           </li>
@@ -136,7 +56,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <li>
             <a
               href={store_path(@store.slug, "/products")}
-              class="hover:text-[#475569] transition-colors"
+              class="hover:text-stone-600 transition-colors"
             >
               Products
             </a>
@@ -152,7 +72,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </li>
-          <li class="text-[#0F172A] font-medium truncate max-w-[200px]">{@product.title}</li>
+          <li class="text-stone-900 font-medium truncate max-w-[200px]">{@product.title}</li>
         </ol>
       </nav>
 
@@ -162,7 +82,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <%!-- ═══════════ Image Gallery Column ═══════════ --%>
           <div class="lg:sticky lg:top-20 lg:self-start">
             <%!-- Primary Image --%>
-            <div class="w-full aspect-[4/5] lg:aspect-[3/4] overflow-hidden bg-[#F1F5F9] lg:rounded-2xl">
+            <div class="w-full aspect-[4/5] lg:aspect-[3/4] overflow-hidden bg-stone-100 lg:rounded-2xl">
               <%= if Shared.current_image(@product, @current_image_index) do %>
                 <.optimized_image
                   src={Shared.current_image(@product, @current_image_index)}
@@ -196,7 +116,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                   "h-2 rounded-full border-none transition-all cursor-pointer",
                   if(idx == @current_image_index,
                     do: "w-6 bg-store-accent",
-                    else: "w-2 bg-[#CBD5E1] hover:bg-[#94A3B8]"
+                    else: "w-2 bg-stone-300 hover:bg-stone-400"
                   )
                 ]}
               />
@@ -214,8 +134,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 class={[
                   "aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer hover:opacity-100",
                   if(idx == @current_image_index,
-                    do: "border-[#B45309] opacity-100 ring-1 ring-[#B45309]/30",
-                    else: "border-transparent opacity-70 hover:border-[#CBD5E1]"
+                    do: "border-store-accent opacity-100 ring-1 ring-store-accent/30",
+                    else: "border-transparent opacity-70 hover:border-stone-300"
                   )
                 ]}
                 aria-label={"View image #{idx + 1}"}
@@ -233,11 +153,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <%!-- ═══════════ Product Info Column ═══════════ --%>
           <div class="bg-white lg:bg-transparent">
             <%!-- Product Header --%>
-            <section class="px-4 sm:px-6 lg:px-0 pt-5 lg:pt-2 pb-5 border-b border-[#E2E8F0] lg:border-none">
+            <section class="px-4 sm:px-6 lg:px-0 pt-5 lg:pt-2 pb-5 border-b border-stone-200 lg:border-none">
               <%!-- Badge — only for genuinely recent products --%>
               <span
                 :if={new_arrival?(@product)}
-                class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] text-[#92400E] text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-3"
+                class="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-3"
               >
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -246,7 +166,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
               </span>
 
               <%!-- Title --%>
-              <h1 class="text-2xl lg:text-3xl xl:text-[2rem] font-bold text-[#0F172A] leading-tight mb-2">
+              <h1 class="text-2xl lg:text-3xl xl:text-[2rem] font-bold text-stone-900 leading-tight mb-2">
                 {@product.title}
               </h1>
 
@@ -254,7 +174,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
               <%!-- Price --%>
               <div class="flex items-baseline gap-2.5 mb-3">
-                <p class="text-2xl lg:text-[1.75rem] font-bold text-[#0F172A] tabular-nums">
+                <p class="text-2xl lg:text-[1.75rem] font-bold text-stone-900 tabular-nums">
                   <%= if @selected_variant do %>
                     {Currency.format_price(@selected_variant.price, @store.currency)}
                   <% else %>
@@ -266,10 +186,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                   <% end %>
                 </p>
                 <%= if @selected_variant && @selected_variant.compare_at_price && @selected_variant.compare_at_price > @selected_variant.price do %>
-                  <p class="text-base text-[#94A3B8] line-through tabular-nums">
+                  <p class="text-base text-stone-400 line-through tabular-nums">
                     {Currency.format_price(@selected_variant.compare_at_price, @store.currency)}
                   </p>
-                  <span class="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-0.5 rounded-full">
+                  <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     Save {Currency.format_price(
                       @selected_variant.compare_at_price - @selected_variant.price,
                       @store.currency
@@ -284,7 +204,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
               </div>
 
               <%!-- Description --%>
-              <p :if={@product.description} class="text-[0.9375rem] text-[#475569] leading-relaxed">
+              <p :if={@product.description} class="text-[0.9375rem] text-stone-600 leading-relaxed">
                 {@product.description}
               </p>
             </section>
@@ -292,18 +212,18 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <%!-- Variant Selectors --%>
             <section
               :if={@option_types != []}
-              class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60 space-y-5"
+              class="px-4 sm:px-6 lg:px-0 py-5 border-b border-stone-200 lg:border-b lg:border-stone-200/60 space-y-5"
               aria-label="Product options"
             >
               <div :for={ot <- @option_types}>
-                <div class="text-sm font-semibold text-[#0F172A] mb-3 flex items-center gap-2">
+                <div class="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
                   <span>{ot.name}</span>
                   <%= if Map.get(@selected_options, ot.id) do %>
                     <% selected_ov =
                       Enum.find(ot.option_values, fn ov ->
                         ov.id == Map.get(@selected_options, ot.id)
                       end) %>
-                    <span :if={selected_ov} class="text-[#94A3B8] font-normal">
+                    <span :if={selected_ov} class="text-stone-400 font-normal">
                       — {selected_ov.value}
                     </span>
                   <% end %>
@@ -319,9 +239,9 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     class={[
                       "min-w-[52px] h-11 px-5 rounded-full text-sm font-medium flex items-center justify-center transition-all duration-200 cursor-pointer",
                       if(Map.get(@selected_options, ot.id) == ov.id,
-                        do: "bg-[#0F172A] text-white shadow-[0_2px_8px_rgba(15,23,42,0.25)]",
+                        do: "bg-stone-900 text-white shadow-md",
                         else:
-                          "bg-white text-[#0F172A] border-[1.5px] border-[#E2E8F0] hover:border-[#0F172A] hover:shadow-sm"
+                          "bg-white text-stone-900 border-[1.5px] border-stone-200 hover:border-stone-900 hover:shadow-sm"
                       )
                     ]}
                   >
@@ -333,17 +253,17 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
             <%!-- Quantity + Add to Bag --%>
             <section
-              class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60 space-y-4"
+              class="px-4 sm:px-6 lg:px-0 py-5 border-b border-stone-200 lg:border-b lg:border-stone-200/60 space-y-4"
               aria-label="Add to bag"
             >
               <%!-- Quantity stepper --%>
               <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-[#0F172A]">Quantity</span>
-                <div class="flex items-center border-[1.5px] border-[#E2E8F0] rounded-full overflow-hidden bg-white">
+                <span class="text-sm font-semibold text-stone-900">Quantity</span>
+                <div class="flex items-center border-[1.5px] border-stone-200 rounded-full overflow-hidden bg-white">
                   <button
                     phx-click="decrement_quantity"
                     disabled={@quantity <= 1}
-                    class="w-10 h-10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
+                    class="w-10 h-10 flex items-center justify-center text-stone-900 hover:bg-stone-50 transition-colors disabled:text-stone-300 disabled:cursor-not-allowed"
                     aria-label="Decrease quantity"
                   >
                     <svg
@@ -356,13 +276,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                       <path d="M4 8h8" />
                     </svg>
                   </button>
-                  <div class="w-10 h-10 flex items-center justify-center text-[0.9375rem] font-semibold text-[#0F172A] select-none border-x-[1.5px] border-[#E2E8F0]">
+                  <div class="w-10 h-10 flex items-center justify-center text-[0.9375rem] font-semibold text-stone-900 select-none border-x-[1.5px] border-stone-200">
                     {@quantity}
                   </div>
                   <button
                     phx-click="increment_quantity"
                     disabled={@quantity >= 10}
-                    class="w-10 h-10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
+                    class="w-10 h-10 flex items-center justify-center text-stone-900 hover:bg-stone-50 transition-colors disabled:text-stone-300 disabled:cursor-not-allowed"
                     aria-label="Increase quantity"
                   >
                     <svg
@@ -387,13 +307,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     not Emakola.Catalog.Variant.in_stock?(@selected_variant)
                 }
                 class={[
-                  "w-full h-[54px] rounded-full text-base font-semibold flex items-center justify-center gap-2.5 transition-all duration-300 group",
+                  "w-full h-[54px] rounded-xl text-base font-semibold flex items-center justify-center gap-2.5 transition-all duration-300 group",
                   if(
                     is_nil(@selected_variant) ||
                       not Emakola.Catalog.Variant.in_stock?(@selected_variant),
-                    do: "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed",
+                    do: "bg-stone-200 text-stone-400 cursor-not-allowed",
                     else:
-                      "bg-[#0F172A] text-white hover:bg-[#1E293B] hover:shadow-[0_4px_16px_rgba(15,23,42,0.3)] active:scale-[0.98] cursor-pointer"
+                      "bg-stone-900 text-white hover:bg-stone-700 hover:shadow-lg active:scale-[0.98] cursor-pointer"
                   )
                 ]}
               >
@@ -423,7 +343,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 href={Shared.whatsapp_link(@store, @product.title)}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-whatsapp hover:text-whatsapp hover:bg-whatsapp/5 transition-all duration-200 group"
+                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-stone-200 rounded-xl text-[0.9375rem] font-medium text-stone-900 hover:border-whatsapp hover:text-whatsapp hover:bg-whatsapp/5 transition-all duration-200 group"
               >
                 <svg
                   class="w-5 h-5 text-whatsapp group-hover:scale-110 transition-transform"
@@ -438,7 +358,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <%!-- SKU --%>
               <p
                 :if={@selected_variant && @selected_variant.sku}
-                class="text-center text-xs text-[#94A3B8] pt-0.5"
+                class="text-center text-xs text-stone-400 pt-0.5"
               >
                 SKU: {@selected_variant.sku}
               </p>
@@ -451,7 +371,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                  product, numbers no merchant had set. Now the delivery badge is
                  the store's own (absent when it has configured no zones) and
                  returns link where they always should have. --%>
-            <section class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60">
+            <section class="px-4 sm:px-6 lg:px-0 py-5 border-b border-stone-200 lg:border-b lg:border-stone-200/60">
               <div class="grid grid-cols-3 gap-3">
                 <.trust_badge
                   :if={Delivery.callout(assigns)}
@@ -475,11 +395,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
             <%!-- Accordion Sections --%>
             <div class="bg-white lg:bg-transparent">
-              <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+              <details class="group border-b border-stone-200 lg:border-stone-200/60">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-stone-900 cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
-                      class="w-5 h-5 text-[#94A3B8]"
+                      class="w-5 h-5 text-stone-400"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="1.5"
@@ -494,7 +414,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     Product Details
                   </div>
                   <svg
-                    class="w-5 h-5 text-[#94A3B8] transition-transform duration-300 group-open:rotate-180"
+                    class="w-5 h-5 text-stone-400 transition-transform duration-300 group-open:rotate-180"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="2"
@@ -507,16 +427,16 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     />
                   </svg>
                 </summary>
-                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
+                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-stone-600 leading-relaxed">
                   <p :if={@product.description}>{@product.description}</p>
                   <p :if={!@product.description}>No additional details available.</p>
                 </div>
               </details>
-              <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+              <details class="group border-b border-stone-200 lg:border-stone-200/60">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-stone-900 cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
-                      class="w-5 h-5 text-[#94A3B8]"
+                      class="w-5 h-5 text-stone-400"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="1.5"
@@ -531,7 +451,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     Shipping & Delivery
                   </div>
                   <svg
-                    class="w-5 h-5 text-[#94A3B8] transition-transform duration-300 group-open:rotate-180"
+                    class="w-5 h-5 text-stone-400 transition-transform duration-300 group-open:rotate-180"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="2"
@@ -544,7 +464,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     />
                   </svg>
                 </summary>
-                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
+                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-stone-600 leading-relaxed">
                   <p>
                     See our
                     <a
@@ -557,11 +477,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                   </p>
                 </div>
               </details>
-              <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+              <details class="group border-b border-stone-200 lg:border-stone-200/60">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-stone-900 cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
-                      class="w-5 h-5 text-[#94A3B8]"
+                      class="w-5 h-5 text-stone-400"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="1.5"
@@ -576,7 +496,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     Returns & Exchange
                   </div>
                   <svg
-                    class="w-5 h-5 text-[#94A3B8] transition-transform duration-300 group-open:rotate-180"
+                    class="w-5 h-5 text-stone-400 transition-transform duration-300 group-open:rotate-180"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="2"
@@ -589,7 +509,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     />
                   </svg>
                 </summary>
-                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
+                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-stone-600 leading-relaxed">
                   <p>
                     See our
                     <a
@@ -611,10 +531,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <section :if={@related_products != []} class="py-10 lg:py-16 bg-white mt-6 lg:mt-12">
         <div class="max-w-7xl mx-auto">
           <div class="flex items-center justify-between px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">
-            <h2 class="text-xl lg:text-2xl font-bold text-[#0F172A]">You May Also Like</h2>
+            <h2 class="text-xl lg:text-2xl font-bold text-stone-900">You May Also Like</h2>
             <a
               href={store_path(@store.slug, "/products")}
-              class="text-sm font-medium text-store-accent hover:text-[#92400E] transition-colors flex items-center gap-1"
+              class="text-sm font-medium text-store-accent hover:text-amber-800 transition-colors flex items-center gap-1"
             >
               View All
               <svg
@@ -634,9 +554,9 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <a
               :for={rp <- @related_products}
               href={store_path(@store.slug, "/products/#{rp.slug}")}
-              class="flex-[0_0_160px] snap-start bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-md transition-all duration-200 group"
+              class="flex-[0_0_160px] snap-start bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 group"
             >
-              <div class="w-full aspect-square bg-[#F1F5F9] overflow-hidden">
+              <div class="w-full aspect-square bg-stone-100 overflow-hidden">
                 <%= if Shared.first_image(rp) do %>
                   <.optimized_image
                     src={Shared.first_image(rp)}
@@ -650,10 +570,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 <% end %>
               </div>
               <div class="p-3">
-                <p class="text-sm font-medium text-[#0F172A] leading-tight mb-1 truncate">
+                <p class="text-sm font-medium text-stone-900 leading-tight mb-1 truncate">
                   {rp.title}
                 </p>
-                <p class="text-sm font-bold text-[#0F172A]">
+                <p class="text-sm font-bold text-stone-900">
                   {Currency.format_price_range(rp.min_price, rp.max_price, @store.currency)}
                 </p>
               </div>
@@ -665,9 +585,9 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <a
               :for={rp <- Enum.take(@related_products, 4)}
               href={store_path(@store.slug, "/products/#{rp.slug}")}
-              class="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-lg hover:border-[#CBD5E1] transition-all duration-300 group"
+              class="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg hover:border-stone-300 transition-all duration-300 group"
             >
-              <div class="w-full aspect-[3/4] bg-[#F1F5F9] overflow-hidden">
+              <div class="w-full aspect-[3/4] bg-stone-100 overflow-hidden">
                 <%= if Shared.first_image(rp) do %>
                   <.optimized_image
                     src={Shared.first_image(rp)}
@@ -681,10 +601,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 <% end %>
               </div>
               <div class="p-4">
-                <p class="text-[0.9375rem] font-medium text-[#0F172A] leading-tight mb-1.5 truncate">
+                <p class="text-[0.9375rem] font-medium text-stone-900 leading-tight mb-1.5 truncate">
                   {rp.title}
                 </p>
-                <p class="text-[0.9375rem] font-bold text-[#0F172A]">
+                <p class="text-[0.9375rem] font-bold text-stone-900">
                   {Currency.format_price_range(rp.min_price, rp.max_price, @store.currency)}
                 </p>
               </div>
@@ -714,9 +634,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <div class="h-16 sm:hidden"></div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Shared.footer
+      store={@store}
+      categories={assigns[:categories] || []}
+      theme={assigns[:theme] || %{}}
+    />
 
-    <.bottom_nav store_slug={@store.slug} active_tab={:home} cart_count={@cart_count} />
+    <Shared.market_bottom_nav store={@store} cart_count={@cart_count} />
     """
   end
 
@@ -739,7 +663,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
     ~H"""
     <%= cond do %>
       <% is_nil(@variant) -> %>
-        <span class="inline-flex items-center gap-1.5 text-sm text-[#94A3B8]">
+        <span class="inline-flex items-center gap-1.5 text-sm text-stone-400">
           <svg
             class="w-4 h-4"
             fill="none"
@@ -765,8 +689,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
           Only {@variant.stock_quantity} left — order soon!
         </span>
       <% true -> %>
-        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#059669]">
-          <span class="w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span> In Stock
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> In Stock
         </span>
     <% end %>
     """
@@ -779,17 +703,17 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
   defp trust_badge(assigns) do
     ~H"""
-    <div class="flex flex-col items-center text-center p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60">
+    <div class="flex flex-col items-center text-center p-3 rounded-xl bg-stone-50 border border-stone-200/60">
       <.trust_icon name={@icon} />
-      <span class="text-xs font-semibold text-[#0F172A] mt-1.5 leading-tight">{@title}</span>
+      <span class="text-xs font-semibold text-stone-900 mt-1.5 leading-tight">{@title}</span>
       <a
         :if={@href}
         href={@href}
-        class="text-[0.625rem] text-[#94A3B8] leading-tight mt-0.5 underline decoration-[#CBD5E1] underline-offset-2 hover:text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-store-accent rounded"
+        class="text-[0.625rem] text-stone-400 leading-tight mt-0.5 underline decoration-stone-300 underline-offset-2 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-store-accent rounded"
       >
         {@subtitle}
       </a>
-      <span :if={!@href} class="text-[0.625rem] text-[#94A3B8] leading-tight mt-0.5">
+      <span :if={!@href} class="text-[0.625rem] text-stone-400 leading-tight mt-0.5">
         {@subtitle}
       </span>
     </div>
