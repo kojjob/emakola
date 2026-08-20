@@ -419,12 +419,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  <span :if={@selected.city}>{@selected.city}       · </span>
-                  <span class="font-mono">{@selected.slug}</span>
-                  · {@selected.currency || "GHS"} · Since {Calendar.strftime(
-                    @selected.inserted_at,
-                    "%b %d, %Y"
-                  )}
+                  {if @selected.city, do: "#{@selected.city} · "}<span class="font-mono">{@selected.slug}</span> {"· #{@selected.currency || "GHS"} · Since #{Calendar.strftime(@selected.inserted_at, "%b %d, %Y")}"}
                 </p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
