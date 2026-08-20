@@ -30,12 +30,14 @@ defmodule Emakola.Themes.Market do
     ]
 
   def fonts,
-    do: ["https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"]
+    do: [
+      "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap"
+    ]
 
   def defaults do
     %{
       colors: %{primary: "#1C1917", accent: "#B45309", background: "#FAFAF9"},
-      fonts: %{heading: "Inter", body: "Inter"},
+      fonts: %{heading: "DM Sans", body: "DM Sans"},
       hero: %{
         image_url: "",
         images: [],
