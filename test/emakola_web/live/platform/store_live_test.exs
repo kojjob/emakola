@@ -192,6 +192,31 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert render(view) =~ "hidden from the public directory"
     end
 
+    test "directory preview renders the newest active product photo", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!()
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_image!(product, store, url: "https://s3.example.com/test/preview-photo.jpg")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(
+               view,
+               ~s(#store-panel img[src="https://s3.example.com/test/preview-photo.jpg"])
+             )
+    end
+
+    test "directory preview prefers the merchant-set cover image", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(cover_image_url: "https://s3.example.com/test/cover.jpg")
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_image!(product, store, url: "https://s3.example.com/test/product.jpg")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, ~s(#store-panel img[src="https://s3.example.com/test/cover.jpg"]))
+    end
+
     test "a live store's panel shows no hidden banner", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
       _store = Factory.create_store!()

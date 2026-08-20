@@ -157,7 +157,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       Keyword.get(opts, :select_id) ||
         (socket.assigns.selected && socket.assigns.selected.id)
 
-    selected = Enum.find(stores, &(&1.id == preferred_id)) || List.first(filtered)
+    selected =
+      (Enum.find(stores, &(&1.id == preferred_id)) || List.first(filtered))
+      |> load_preview_image()
 
     socket
     |> assign(:total_count, length(stores))
@@ -182,6 +184,30 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   end
 
   defp search_form(query), do: to_form(%{"search" => query})
+
+  # The public directory card falls back to the newest active product photo
+  # (:card_image_url aggregate) when the merchant hasn't set a cover image —
+  # load it for the selected store only, so the panel preview shows what the
+  # directory actually shows.
+  defp load_preview_image(nil), do: nil
+
+  defp load_preview_image(store) do
+    case Ash.load(store, :card_image_url, authorize?: false) do
+      {:ok, loaded} -> loaded
+      _ -> store
+    end
+  end
+
+  defp preview_image_url(store) do
+    cover = Map.get(store, :cover_image_url)
+    product_photo = Map.get(store, :card_image_url)
+
+    cond do
+      is_binary(cover) and cover != "" -> cover
+      is_binary(product_photo) and product_photo != "" -> product_photo
+      true -> nil
+    end
+  end
 
   @avatar_tints [
     "bg-rose-100 text-rose-600",
@@ -380,7 +406,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  <span :if={@selected.city}>{@selected.city}  · </span>
+                  <span :if={@selected.city}>{@selected.city}   · </span>
                   <span class="font-mono">{@selected.slug}</span>
                   · {@selected.currency || "GHS"} · Since {Calendar.strftime(
                     @selected.inserted_at,
@@ -543,14 +569,14 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 ]}>
                   <div class="h-28 relative flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50">
                     <img
-                      :if={@selected.cover_image_url}
-                      src={@selected.cover_image_url}
+                      :if={preview_image_url(@selected)}
+                      src={preview_image_url(@selected)}
                       alt=""
                       loading="lazy"
                       class="absolute inset-0 w-full h-full object-cover"
                     />
                     <.icon
-                      :if={!@selected.cover_image_url}
+                      :if={!preview_image_url(@selected)}
                       name="hero-photo"
                       class="size-7 text-slate-300"
                     />
