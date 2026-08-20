@@ -34,6 +34,17 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, "#stores-grid")
     end
 
+    test "directory cards keep their favorite button", %{conn: conn} do
+      Factory.create_store!(%{name: "Fave Guard Shop", slug: "fave-guard-shop"})
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      assert has_element?(
+               view,
+               ~s(#stores-grid [phx-click="toggle_favorite"][phx-value-slug="fave-guard-shop"])
+             )
+    end
+
     test "a store with no cover image shows its newest product photo", %{conn: conn} do
       store = Factory.create_store!(%{name: "Ama Provisions", slug: "ama-provisions"})
       product = Factory.create_product!(store, %{title: "Shito Jar"})
