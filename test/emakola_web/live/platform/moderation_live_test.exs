@@ -67,16 +67,16 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
 
     {:ok, view, _html} = live(conn, ~p"/platform/moderation")
 
+    view |> element("#moderation-product-#{product.id}") |> render_click()
+
+    assert has_element?(view, "#moderation-product-#{product.id}[data-selected]")
+    assert has_element?(view, "#moderation-panel", "Fake Bag")
+
     # The evidence image must fill its frame, not sit boxed inside it.
     assert has_element?(
              view,
              ~s(#moderation-panel img.object-cover[src="https://s3.example.com/test/evidence.jpg"])
            )
-
-    view |> element("#moderation-product-#{product.id}") |> render_click()
-
-    assert has_element?(view, "#moderation-product-#{product.id}[data-selected]")
-    assert has_element?(view, "#moderation-panel", "Fake Bag")
 
     view |> element("#moderation-product-#{other.id}") |> render_click()
 
