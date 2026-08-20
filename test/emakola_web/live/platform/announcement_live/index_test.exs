@@ -53,6 +53,27 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       assert_enqueued(worker: AnnouncementPublishWorker, args: %{"announcement_id" => ann.id})
     end
 
+    test "timeline entries show status, channels, and the message body", %{conn: conn} do
+      {:ok, ann} =
+        Notifications.create_announcement(
+          %{
+            title: "New payout schedule",
+            body: "Daily MoMo settlements start Monday.",
+            channels: [:banner, :email],
+            audience: :all,
+            publish_at: ~U[2026-09-01 06:00:00Z]
+          },
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/announcements")
+
+      assert has_element?(view, "#announcement-#{ann.id}", "Scheduled")
+      assert has_element?(view, "#announcement-#{ann.id}", "Banner")
+      assert has_element?(view, "#announcement-#{ann.id}", "Email")
+      assert has_element?(view, "#announcement-#{ann.id}", "Daily MoMo settlements start Monday.")
+    end
+
     test "canceling a scheduled announcement flips it to :canceled", %{conn: conn} do
       {:ok, ann} =
         Notifications.create_announcement(
