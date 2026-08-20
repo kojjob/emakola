@@ -20,6 +20,24 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       assert html =~ "Search products..."
     end
 
+    test "the overlay wears its own declared warm palette, not slate", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+
+      overlay_html = view |> element("#search-overlay") |> render()
+
+      # The component moduledoc declares cream/amber/stone tokens; the
+      # implementation had drifted into the cold slate hex family.
+      refute overlay_html =~ "#E2E8F0"
+      refute overlay_html =~ "#94A3B8"
+      refute overlay_html =~ "#64748B"
+      refute overlay_html =~ "#CBD5E1"
+      refute overlay_html =~ "text-slate-900"
+      assert overlay_html =~ "stone-"
+    end
+
     test "search overlay returns matching products in results", %{conn: conn, store: store} do
       product = Factory.create_product!(store, %{title: "Kente Cloth"})
       Factory.create_variant!(product, store, %{price: 15000, stock_quantity: 10})

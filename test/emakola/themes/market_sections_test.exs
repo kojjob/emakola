@@ -403,6 +403,67 @@ defmodule Emakola.Themes.MarketSectionsTest do
     end
   end
 
+  describe "mobile stall restyle" do
+    test "the nav carries the secure-checkout ribbon naming real rails" do
+      html = render_nav()
+
+      assert html =~ "Secure checkout"
+      assert html =~ "MTN MoMo"
+      assert html =~ "Telecel Cash"
+    end
+
+    test "the nav offers a thumb-width search pill on mobile" do
+      html = render_nav()
+
+      assert html =~ "Search this store"
+      assert html =~ ~s(href="/s/stall/products")
+    end
+
+    test "grid cards are price-first: the price reads before the title" do
+      html =
+        render_component(&Components.product_card/1, %{
+          product: component_product(),
+          store: @component_store
+        })
+
+      assert String.match?(html, ~r/GH₵ 45\.50.*Shea Butter/s)
+    end
+
+    test "grid cards carry a full-width labelled add button" do
+      html =
+        render_component(&Components.product_card/1, %{
+          product: component_product(),
+          store: @component_store
+        })
+
+      assert html =~ "Add to cart"
+      assert html =~ "w-full"
+    end
+
+    test "home chrome floats a WhatsApp button only for stores with a number" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
+
+      refute render_home(store) =~ "market-whatsapp-fab"
+
+      {:ok, with_whatsapp} =
+        store
+        |> Ash.Changeset.for_update(:update_settings, %{whatsapp_number: "233200000000"})
+        |> Ash.update(authorize?: false)
+
+      html = render_home(with_whatsapp)
+
+      assert html =~ "market-whatsapp-fab"
+      assert html =~ "wa.me/233200000000"
+    end
+
+    test "Market loads DM Sans, not Inter" do
+      [fonts_url] = Market.fonts()
+
+      assert fonts_url =~ "DM+Sans"
+      refute fonts_url =~ "Inter"
+    end
+  end
+
   describe "hero/1" do
     test "carries the page's h1, defaulting to the store name" do
       html = render_hero(@component_store)
