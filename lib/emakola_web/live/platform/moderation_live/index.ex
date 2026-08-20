@@ -44,6 +44,10 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
       |> assign(:selected, nil)
       |> assign(:history, [])
       |> assign(:history_actors, %{})
+      |> assign(:photo_index, 0)
+      |> assign(:queue_ids, [])
+      |> assign(:store_takedown_count, 0)
+      |> assign(:truncated?, false)
       |> stream(:products, [], dom_id: &"moderation-product-#{&1.id}")
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
@@ -66,6 +70,31 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
   def handle_event("select_product", %{"id" => id}, socket) do
     {:noreply, load(socket, select_id: id)}
   end
+
+  def handle_event("next_photo", _params, socket), do: {:noreply, shift_photo(socket, 1)}
+  def handle_event("prev_photo", _params, socket), do: {:noreply, shift_photo(socket, -1)}
+
+  # j/k walk the queue (pushed by the QueueKeys hook, which skips form fields).
+  def handle_event("queue_key", %{"key" => key}, socket) when key in ["j", "k"] do
+    ids = socket.assigns.queue_ids
+    current = socket.assigns.selected && socket.assigns.selected.id
+    index = current && Enum.find_index(ids, &(&1 == current))
+
+    if is_nil(index) do
+      {:noreply, socket}
+    else
+      delta = if key == "j", do: 1, else: -1
+      target = Enum.at(ids, index |> Kernel.+(delta) |> min(length(ids) - 1) |> max(0))
+
+      if target == current do
+        {:noreply, socket}
+      else
+        {:noreply, load(socket, select_id: target)}
+      end
+    end
+  end
+
+  def handle_event("queue_key", _params, socket), do: {:noreply, socket}
 
   def handle_event("confirm_takedown", %{"reason" => reason} = params, socket) do
     socket = assign(socket, :takedown_form, to_form(params))
@@ -107,6 +136,16 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
           )
       end
     end)
+  end
+
+  defp shift_photo(socket, delta) do
+    count = photo_count(socket.assigns.selected || %{})
+
+    if count > 1 do
+      assign(socket, :photo_index, Integer.mod(socket.assigns.photo_index + delta, count))
+    else
+      socket
+    end
   end
 
   defp run(socket, {:ok, _updated}, opts) do
@@ -165,24 +204,35 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
 
   defp load(socket, opts \\ []) do
     search = String.trim(socket.assigns.search)
+    limit = list_limit()
 
+    # Fetch one past the cap so truncation is detectable without a count query.
     products =
       case Catalog.list_products_for_moderation(%{search: search, moderation: nil},
-             authorize?: false
+             authorize?: false,
+             query: [limit: limit + 1]
            ) do
         {:ok, list} -> list
         _ -> []
       end
 
-    assign_products(socket, products, opts)
+    socket
+    |> assign(:truncated?, length(products) > limit)
+    |> assign_products(Enum.take(products, limit), opts)
   rescue
     exception ->
       Logger.error(
         "[platform.moderation_live] load loading products raised: #{Exception.message(exception)}"
       )
 
-      assign_products(socket, [], opts)
+      socket
+      |> assign(:truncated?, false)
+      |> assign_products([], opts)
   end
+
+  # Guards the unbounded-admin-list debt: real catalog volume should get
+  # pagination; until then the queue loads at most this many products.
+  defp list_limit, do: Application.get_env(:emakola, :platform_moderation_list_limit, 200)
 
   defp assign_products(socket, products, opts) do
     filtered = apply_filter(products, socket.assigns.filter)
@@ -195,13 +245,50 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
 
     socket
     |> assign(:product_ids, MapSet.new(filtered, & &1.id))
+    |> assign(:queue_ids, Enum.map(filtered, & &1.id))
     |> assign(:total_count, length(products))
     |> assign(:taken_down_count, Enum.count(products, &(&1.moderation_status == :taken_down)))
     |> assign(:products_count, length(filtered))
     |> assign(:products_loaded?, true)
+    |> assign(:photo_index, next_photo_index(socket, selected))
     |> assign(:selected, selected)
     |> assign_history(selected)
+    |> assign_store_signal(selected)
     |> stream(:products, Enum.map(filtered, &product_row(&1, selected)), reset: true)
+  end
+
+  # Keep the photo position across reloads of the same product (mutations
+  # reload the queue); reset it when the selection changes.
+  defp next_photo_index(socket, selected) do
+    previous = socket.assigns.selected
+
+    if selected && previous && selected.id == previous.id do
+      min(socket.assigns.photo_index, max(photo_count(selected) - 1, 0))
+    else
+      0
+    end
+  end
+
+  defp assign_store_signal(socket, nil), do: assign(socket, :store_takedown_count, 0)
+
+  defp assign_store_signal(socket, product) do
+    entries =
+      case PlatformAuditLog
+           |> Ash.Query.for_read(:takedowns_for_store, %{store_id: product.store_id})
+           |> Ash.read(authorize?: false) do
+        {:ok, list} -> list
+        _ -> []
+      end
+
+    count = Enum.count(entries, &(&1.metadata["product_id"] != product.id))
+    assign(socket, :store_takedown_count, count)
+  rescue
+    exception ->
+      Logger.error(
+        "[platform.moderation_live] assign_store_signal raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :store_takedown_count, 0)
   end
 
   defp apply_filter(products, :taken_down),
@@ -254,6 +341,13 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
   defp thumb(%{images: [%{url: url} | _]}) when is_binary(url), do: url
   defp thumb(_), do: nil
 
+  defp photo_at(%{images: images}, index) when is_list(images) and images != [] do
+    image = Enum.at(images, index) || List.first(images)
+    image && image.url
+  end
+
+  defp photo_at(_, _), do: nil
+
   defp photo_count(%{images: images}) when is_list(images), do: length(images)
   defp photo_count(_), do: 0
 
@@ -298,7 +392,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div id="moderation-studio" phx-hook="QueueKeys" class="p-6 lg:p-8 max-w-7xl mx-auto">
       <%!-- Page header --%>
       <div class="mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div>
@@ -426,6 +520,13 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
               </span>
             </div>
           </div>
+          <div
+            :if={@truncated?}
+            id="moderation-products-truncated"
+            class="px-4 py-3 border-t border-gray-100 text-[11px] text-gray-400 text-center shrink-0"
+          >
+            Showing the first {list_limit()} products — refine your search to see the rest.
+          </div>
         </div>
 
         <%!-- Case panel --%>
@@ -434,23 +535,47 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
             <%!-- Evidence image --%>
             <div class="h-60 rounded-[14px] bg-gradient-to-br from-slate-100 to-slate-50 relative overflow-hidden flex items-center justify-center">
               <img
-                :if={thumb(@selected)}
-                src={thumb(@selected)}
+                :if={photo_at(@selected, @photo_index)}
+                src={photo_at(@selected, @photo_index)}
                 alt=""
                 class="absolute inset-0 w-full h-full object-cover"
               />
-              <.icon :if={!thumb(@selected)} name="hero-photo" class="size-10 text-slate-300" />
+              <.icon
+                :if={!photo_at(@selected, @photo_index)}
+                name="hero-photo"
+                class="size-10 text-slate-300"
+              />
               <span
                 :if={taken_down?(@selected)}
                 class="absolute top-2.5 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white"
               >
                 <.icon name="hero-no-symbol" class="size-2.5" /> TAKEN DOWN
               </span>
+              <button
+                :if={photo_count(@selected) > 1}
+                type="button"
+                id="panel-photo-prev"
+                phx-click="prev_photo"
+                aria-label="Previous photo"
+                class="absolute left-2.5 top-1/2 -translate-y-1/2 flex w-8 h-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow hover:bg-white transition-colors cursor-pointer"
+              >
+                <.icon name="hero-chevron-left" class="size-4" />
+              </button>
+              <button
+                :if={photo_count(@selected) > 1}
+                type="button"
+                id="panel-photo-next"
+                phx-click="next_photo"
+                aria-label="Next photo"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 flex w-8 h-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow hover:bg-white transition-colors cursor-pointer"
+              >
+                <.icon name="hero-chevron-right" class="size-4" />
+              </button>
               <span
                 :if={photo_count(@selected) > 1}
-                class="absolute bottom-2.5 right-3 text-[11px] font-semibold text-slate-600 bg-white/85 px-2 py-0.5 rounded-full"
+                class="absolute bottom-2.5 right-3 text-[11px] font-semibold text-slate-600 bg-white/85 px-2 py-0.5 rounded-full tabular-nums"
               >
-                {photo_count(@selected)} photos
+                {"#{@photo_index + 1} of #{photo_count(@selected)} photos"}
               </span>
             </div>
 
@@ -468,6 +593,22 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
                   {"#{(@selected.store && @selected.store.name) || "Unknown store"}#{if price_label(@selected), do: " · #{price_label(@selected)}"} · Listed #{Calendar.strftime(@selected.inserted_at, "%b %d, %Y")}"}
+                </p>
+                <span
+                  :if={@store_takedown_count > 0}
+                  id="panel-repeat-offender"
+                  class="inline-block mt-2"
+                >
+                  <.severity_pill
+                    label={"#{@store_takedown_count} previous #{if @store_takedown_count == 1, do: "takedown", else: "takedowns"} on this store"}
+                    tone="amber"
+                  />
+                </span>
+                <p
+                  :if={@selected.description && @selected.description != ""}
+                  class="text-[13px] text-gray-600 mt-2.5 line-clamp-3"
+                >
+                  {@selected.description}
                 </p>
               </div>
               <a

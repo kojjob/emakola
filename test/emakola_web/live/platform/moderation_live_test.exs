@@ -164,6 +164,122 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     assert has_element?(view, "#panel-history", "Taken down")
   end
 
+  test "photo navigation cycles the evidence image", %{
+    conn: conn,
+    store: store,
+    product: product
+  } do
+    Factory.create_image!(product, store, %{
+      url: "https://s3.example.com/test/photo-one.jpg",
+      position: 0
+    })
+
+    Factory.create_image!(product, store, %{
+      url: "https://s3.example.com/test/photo-two.jpg",
+      position: 1
+    })
+
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    assert has_element?(view, ~s(#moderation-panel img[src*="photo-one.jpg"]))
+
+    view |> element("#panel-photo-next") |> render_click()
+
+    assert has_element?(view, ~s(#moderation-panel img[src*="photo-two.jpg"]))
+    assert has_element?(view, "#moderation-panel", "2 of 2")
+
+    view |> element("#panel-photo-next") |> render_click()
+    assert has_element?(view, ~s(#moderation-panel img[src*="photo-one.jpg"]))
+
+    view |> element("#panel-photo-prev") |> render_click()
+    assert has_element?(view, ~s(#moderation-panel img[src*="photo-two.jpg"]))
+  end
+
+  test "the panel shows the listing description", %{conn: conn, store: store} do
+    _p =
+      Factory.create_product!(store, %{
+        status: :active,
+        title: "Descriptive Listing",
+        description: "Genuine leather, imported original stock."
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    assert has_element?(view, "#moderation-panel", "Genuine leather, imported original stock.")
+  end
+
+  test "repeat-offender hint counts other takedowns on the same store", %{conn: conn} do
+    repeat_store = Factory.create_store!(%{name: "Repeat Co"})
+    bad = Factory.create_product!(repeat_store, %{status: :active, title: "Prior Bad Listing"})
+    {:ok, view0, _} = live(conn, ~p"/platform/moderation")
+    _ = view0
+
+    {:ok, _} = Catalog.take_down_product(bad, %{reason: "counterfeit"}, authorize?: false)
+
+    Emakola.Accounts.PlatformAudit.log(
+      :product_taken_down,
+      nil,
+      %{"product_id" => bad.id, "store_id" => repeat_store.id, "reason" => "counterfeit"}
+    )
+
+    under_review =
+      Factory.create_product!(repeat_store, %{status: :active, title: "Under Review Listing"})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    view |> element("#moderation-product-#{under_review.id}") |> render_click()
+
+    assert has_element?(view, "#panel-repeat-offender", "1")
+  end
+
+  test "a store without takedowns shows no repeat-offender hint", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    refute has_element?(view, "#panel-repeat-offender")
+  end
+
+  test "the queue truncates at the configured limit with a notice", %{conn: conn, store: store} do
+    Application.put_env(:emakola, :platform_moderation_list_limit, 2)
+    on_exit(fn -> Application.delete_env(:emakola, :platform_moderation_list_limit) end)
+
+    for n <- 1..2,
+        do: Factory.create_product!(store, %{status: :active, title: "Cap Listing #{n}"})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    assert has_element?(view, "#moderation-products[data-count='2']")
+    assert has_element?(view, "#moderation-products-truncated")
+  end
+
+  test "an uncapped queue shows no truncation notice", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    refute has_element?(view, "#moderation-products-truncated")
+  end
+
+  test "j and k walk the queue selection", %{conn: conn, store: store, product: product} do
+    newer = Factory.create_product!(store, %{status: :active, title: "Newer Listing"})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+
+    # Newest first: `newer` is selected by default at the top of the queue.
+    assert has_element?(view, "#moderation-product-#{newer.id}[data-selected]")
+
+    render_click(view, "queue_key", %{"key" => "j"})
+    assert has_element?(view, "#moderation-product-#{product.id}[data-selected]")
+
+    # j at the bottom clamps.
+    render_click(view, "queue_key", %{"key" => "j"})
+    assert has_element?(view, "#moderation-product-#{product.id}[data-selected]")
+
+    render_click(view, "queue_key", %{"key" => "k"})
+    assert has_element?(view, "#moderation-product-#{newer.id}[data-selected]")
+
+    # k at the top clamps.
+    render_click(view, "queue_key", %{"key" => "k"})
+    assert has_element?(view, "#moderation-product-#{newer.id}[data-selected]")
+  end
+
   test "forged events cannot reach a product outside the current filtered queue", %{
     conn: conn,
     store: store
