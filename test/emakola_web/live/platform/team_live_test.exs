@@ -71,7 +71,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       assert html =~ "Owner"
       assert html =~ "manage_stores"
       assert html =~ to_string(invite.email)
-      assert html =~ "Pending invites"
+      assert html =~ "Invites"
     end
   end
 
@@ -150,6 +150,19 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       view |> element("#edit-staff-#{staff.id}") |> render_click()
       refute has_element?(view, "#edit-is-owner")
+    end
+
+    test "selecting a member shows the Studio panel with security actions", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+
+      assert has_element?(view, "#team-panel", to_string(staff.email))
+      assert has_element?(view, "#team-panel #force-logout-#{staff.id}")
+      assert has_element?(view, "#team-panel #edit-permissions-form")
     end
   end
 
@@ -238,6 +251,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
       view |> element("#force-logout-#{staff.id}") |> render_click()
 
       assert {:ok, []} = Sessions.list_active_for_user(staff.id)
@@ -249,6 +263,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
       view |> element("#reset-totp-#{staff.id}") |> render_click()
 
       assert is_nil(reload_user!(staff).totp_secret)
@@ -262,6 +277,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
       view |> element("#deactivate-staff-#{staff.id}") |> render_click()
       assert has_element?(view, "#staff-#{staff.id}", "Deactivated")
       assert %DateTime{} = reload_user!(staff).deactivated_at
