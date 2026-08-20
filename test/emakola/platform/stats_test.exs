@@ -160,4 +160,33 @@ defmodule Emakola.Platform.StatsTest do
       assert length(results) >= 2
     end
   end
+
+  # ── time series for the platform overview charts ───────────────────
+
+  describe "time series" do
+    test "gmv_by_day/1 returns one filled bucket per day with today's GMV last" do
+      store = Factory.create_store!()
+
+      payment = Factory.create_payment!(store, %{amount: 10_000})
+
+      {:ok, _} =
+        payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update(authorize?: false)
+
+      %{labels: labels, values: values} = Stats.gmv_by_day(7)
+
+      assert length(labels) == 7
+      assert length(values) == 7
+      assert List.last(values) >= 10_000
+    end
+
+    test "new_stores_by_week/1 returns one bucket per week counting this week's stores" do
+      Factory.create_store!()
+
+      %{labels: labels, values: values} = Stats.new_stores_by_week(8)
+
+      assert length(labels) == 8
+      assert length(values) == 8
+      assert List.last(values) >= 1
+    end
+  end
 end

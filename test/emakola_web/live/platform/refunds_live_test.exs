@@ -53,5 +53,20 @@ defmodule EmakolaWeb.Platform.RefundsLiveTest do
       assert has_element?(view, "#refunds-#{payment.id}")
       refute has_element?(view, "#platform-refunds-empty")
     end
+
+    test "ledger rows show a capitalized gateway pill and a friendly date", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Kente Kingdom"})
+      payment = refunded!(store, 100_000)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
+
+      assert has_element?(view, "#refunds-#{payment.id}", "Paystack")
+
+      assert has_element?(
+               view,
+               "#refunds-#{payment.id}",
+               Calendar.strftime(payment.inserted_at, "%b %d, %Y")
+             )
+    end
   end
 end
