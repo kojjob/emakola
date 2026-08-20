@@ -2,7 +2,9 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
   @moduledoc """
   Permission gating for /platform/stores (requires :manage_stores),
   disconnected-mount loading shell, event re-authorisation after
-  permission revocation, and platform layout regressions: the logout
+  permission revocation, the Directory Studio split view (store
+  selection, curation panel toggles, rank stepper, quick filters,
+  suspended-store banner), and platform layout regressions: the logout
   link must issue DELETE /platform/session, the sidebar Stores link is
   permission-gated, and the user popover links to /platform/security.
   """
@@ -16,6 +18,10 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     user
     |> Ash.Changeset.for_update(:set_platform_permissions, %{platform_permissions: permissions})
     |> Ash.update!(authorize?: false)
+  end
+
+  defp suspend!(store) do
+    Emakola.Stores.suspend_store(store, %{reason: "test suspension"}, authorize?: false)
   end
 
   describe "permission gating" do
@@ -90,23 +96,315 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
       refute reloaded.verified
     end
-  end
 
-  describe "directory rank form" do
-    test "updates a store rank through its uniquely identified form", %{conn: conn} do
-      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
-      store = Factory.create_store!(featured_rank: nil)
+    test "move_rank blocked when :manage_stores revoked after mount", %{conn: conn} do
+      {conn, user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(featured: true, featured_rank: 1)
+      other = Factory.create_store!(featured: true, featured_rank: 2)
 
       {:ok, view, _html} = live(conn, "/platform/stores")
 
-      assert has_element?(view, "#store-rank-form-#{store.id}")
+      set_permissions!(user, [:manage_team])
 
-      view
-      |> form("#store-rank-form-#{store.id}", %{"value" => "3"})
-      |> render_change()
+      html = render_click(view, "move_rank", %{"id" => store.id, "dir" => "down"})
 
-      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 3
-      assert has_element?(view, "#store-rank-#{store.id}[value='3']")
+      assert html =~ "don&#39;t have permission"
+      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, other.id, authorize?: false).featured_rank == 2
+    end
+  end
+
+  describe "store selection" do
+    test "the only store is selected by default and the panel shows it", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(name: "Panel Default Shop")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-#{store.id}[data-selected]")
+      assert has_element?(view, "#store-panel", "Panel Default Shop")
+    end
+
+    test "clicking a row selects that store in the panel", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(name: "First Selectable")
+      second = Factory.create_store!(name: "Second Selectable")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{first.id}") |> render_click()
+
+      assert has_element?(view, "#store-#{first.id}[data-selected]")
+      refute has_element?(view, "#store-#{second.id}[data-selected]")
+      assert has_element?(view, "#store-panel", "First Selectable")
+
+      view |> element("#store-#{second.id}") |> render_click()
+
+      assert has_element?(view, "#store-#{second.id}[data-selected]")
+      refute has_element?(view, "#store-#{first.id}[data-selected]")
+      assert has_element?(view, "#store-panel", "Second Selectable")
+    end
+
+    test "an empty roster shows an empty state and no panel", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+
+      {:ok, view, html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#store-panel")
+      assert html =~ "No stores found"
+    end
+  end
+
+  describe "curation panel" do
+    test "featured toggle features the selected store at the end of the order", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _ranked = Factory.create_store!(featured: true, featured_rank: 1)
+      store = Factory.create_store!(featured: false, name: "Newly Featured")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{store.id}") |> render_click()
+      assert has_element?(view, "#panel-featured-toggle[aria-checked='false']")
+
+      view |> element("#panel-featured-toggle") |> render_click()
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.featured
+      assert reloaded.featured_rank == 2
+      assert has_element?(view, "#panel-featured-toggle[aria-checked='true']")
+    end
+
+    test "unfeaturing compacts the remaining order", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
+      third = Factory.create_store!(featured: true, featured_rank: 3)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{second.id}") |> render_click()
+      view |> element("#panel-featured-toggle") |> render_click()
+
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == nil
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, third.id, authorize?: false).featured_rank == 2
+    end
+
+    test "verified toggle verifies the selected store", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(verified: false)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#panel-verified-toggle") |> render_click()
+
+      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).verified
+      assert has_element?(view, "#panel-verified-toggle[aria-checked='true']")
+    end
+
+    test "a suspended store's panel explains it is hidden from the directory", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(name: "Hidden Shop")
+      {:ok, _suspended} = suspend!(store)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-panel", "Hidden Shop")
+      assert has_element?(view, "#panel-hidden-banner")
+      assert render(view) =~ "hidden from the public directory"
+    end
+
+    test "directory preview renders the real public store card", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!(name: "Real Card Shop")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-panel #panel-directory-card", "Real Card Shop")
+    end
+
+    test "directory preview renders the newest active product photo", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!()
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_image!(product, store, url: "https://s3.example.com/test/preview-photo.jpg")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(
+               view,
+               ~s(#store-panel img[src="https://s3.example.com/test/preview-photo.jpg"])
+             )
+    end
+
+    test "directory preview prefers the merchant-set cover image", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(cover_image_url: "https://s3.example.com/test/cover.jpg")
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_image!(product, store, url: "https://s3.example.com/test/product.jpg")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, ~s(#store-panel img[src="https://s3.example.com/test/cover.jpg"]))
+    end
+
+    test "a live store's panel shows no hidden banner", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#panel-hidden-banner")
+    end
+  end
+
+  describe "featured order" do
+    test "panel shows the store's position in the featured order", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      _second = Factory.create_store!(featured: true, featured_rank: 2)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{first.id}") |> render_click()
+
+      assert has_element?(view, "#panel-rank-value", "#1 of 2")
+    end
+
+    test "move down swaps the store with its neighbour", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{first.id}") |> render_click()
+      view |> element("#panel-rank-down") |> render_click()
+
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 2
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == 1
+      assert has_element?(view, "#panel-rank-value", "#2 of 2")
+    end
+
+    test "move up promotes the store toward #1", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      first = Factory.create_store!(featured: true, featured_rank: 1)
+      second = Factory.create_store!(featured: true, featured_rank: 2)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{second.id}") |> render_click()
+      view |> element("#panel-rank-up") |> render_click()
+
+      assert Ash.get!(Emakola.Stores.Store, second.id, authorize?: false).featured_rank == 1
+      assert Ash.get!(Emakola.Stores.Store, first.id, authorize?: false).featured_rank == 2
+      assert has_element?(view, "#panel-rank-value", "#1 of 2")
+    end
+
+    test "rank controls are hidden for an unfeatured store", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!(featured: false)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#panel-rank-up")
+      refute has_element?(view, "#panel-rank-down")
+    end
+  end
+
+  describe "quick filters" do
+    test "featured filter narrows the list to featured stores", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      featured = Factory.create_store!(featured: true)
+      plain = Factory.create_store!(featured: false)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#platform-stores[data-count='2']")
+
+      view |> element("#filter-featured") |> render_click()
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{featured.id}")
+      refute has_element?(view, "#store-#{plain.id}")
+    end
+
+    test "suspended filter shows only stores hidden from the directory", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      live_store = Factory.create_store!()
+      suspended = Factory.create_store!()
+      {:ok, _} = suspend!(suspended)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#filter-suspended") |> render_click()
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{suspended.id}")
+      refute has_element?(view, "#store-#{live_store.id}")
+    end
+
+    test "all filter restores the full list", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _featured = Factory.create_store!(featured: true)
+      _plain = Factory.create_store!(featured: false)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#filter-featured") |> render_click()
+      assert has_element?(view, "#platform-stores[data-count='1']")
+
+      view |> element("#filter-all") |> render_click()
+      assert has_element?(view, "#platform-stores[data-count='2']")
+    end
+  end
+
+  describe "list cap" do
+    test "the roster truncates at the configured limit with a notice", %{conn: conn} do
+      Application.put_env(:emakola, :platform_admin_store_limit, 2)
+      on_exit(fn -> Application.delete_env(:emakola, :platform_admin_store_limit) end)
+
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      for n <- 1..3, do: Factory.create_store!(name: "Cap Store #{n}")
+
+      {:ok, view, html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#platform-stores[data-count='2']")
+      assert has_element?(view, "#platform-stores-truncated")
+      assert html =~ "first 2 stores"
+    end
+
+    test "an uncapped roster shows no truncation notice", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#platform-stores-truncated")
+    end
+  end
+
+  describe "topbar search handoff" do
+    test "?q= seeds the store search", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      matching = Factory.create_store!(name: "Handoff Needle Shop", slug: "handoff-needle-shop")
+      other = Factory.create_store!(name: "Handoff Other", slug: "handoff-other")
+
+      {:ok, view, _html} = live(conn, "/platform/stores?q=Needle")
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{matching.id}")
+      refute has_element?(view, "#store-#{other.id}")
+      assert has_element?(view, "#platform-store-search[value='Needle']")
+    end
+
+    test "the platform topbar search submits to /platform/stores", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+
+      {:ok, _view, html} = live(conn, "/platform")
+
+      assert html =~ ~s(action="/platform/stores")
+      assert html =~ ~s(name="q")
     end
   end
 

@@ -226,3 +226,15 @@ window.addEventListener("toggle-sidebar", () => {
 applyStoredSidebarStates()
 // Re-apply after LiveView navigations, which can re-render either shell.
 window.addEventListener("phx:page-loading-stop", applyStoredSidebarStates)
+
+// ⌘K / Ctrl+K focuses the admin topbar search (marked data-global-search).
+window.addEventListener("keydown", e => {
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"){
+    const search = document.querySelector("[data-global-search]")
+    if(search){
+      e.preventDefault()
+      search.focus()
+      search.select()
+    }
+  }
+})
