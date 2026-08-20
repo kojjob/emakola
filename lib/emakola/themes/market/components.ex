@@ -69,10 +69,10 @@ defmodule Emakola.Themes.Market.Components do
       |> assign(:sold_out, Shared.sold_out?(assigns.product))
 
     ~H"""
-    <div class="group">
+    <div class="group flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white">
       <a
         href={store_path(@store.slug, "/products/#{@product.slug}")}
-        class="block relative aspect-[3/4] rounded-2xl overflow-hidden border border-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+        class="block relative aspect-square overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-inset"
       >
         <div
           class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200"
@@ -87,7 +87,7 @@ defmodule Emakola.Themes.Market.Components do
           src={@image}
           alt={@product.title}
           width={480}
-          height={640}
+          height={480}
           class="absolute inset-0 w-full h-full object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]"
         />
         <div :if={@sold_out} class="absolute inset-0 z-[5] bg-white/50" aria-hidden="true"></div>
@@ -97,16 +97,23 @@ defmodule Emakola.Themes.Market.Components do
         >
           Sold out
         </span>
-        <div class="absolute bottom-2.5 left-2.5 z-10">
-          <.price_chip product={@product} store={@store} />
-        </div>
       </a>
-      <div class="mt-3 flex items-center justify-between gap-2">
+      <div class="flex flex-1 flex-col gap-1 p-3">
+        <p class="text-[0.9375rem] font-bold leading-none tracking-tight tabular-nums text-stone-900">
+          {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
+          <s
+            :if={Shared.compare_at_price(@product)}
+            class="ml-0.5 text-[0.75em] font-medium text-stone-400 line-through"
+          >
+            <span class="sr-only">was</span>
+            {Currency.format_price(Shared.compare_at_price(@product), @store.currency)}
+          </s>
+        </p>
         <a
           href={store_path(@store.slug, "/products/#{@product.slug}")}
-          class="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+          class="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
         >
-          <h3 class="text-sm font-semibold text-stone-900 leading-snug truncate">
+          <h3 class="truncate text-[0.8125rem] font-medium leading-snug text-stone-600">
             {@product.title}
           </h3>
         </a>
@@ -115,38 +122,20 @@ defmodule Emakola.Themes.Market.Components do
           type="button"
           phx-click="add_to_cart"
           phx-value-product-id={@product.id}
-          class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-stone-900 text-white hover:bg-stone-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-95 cursor-pointer"
+          class="mt-1.5 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-900 px-3 text-[0.8125rem] font-bold leading-none text-white hover:bg-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-[0.98] cursor-pointer"
           aria-label={"Add #{@product.title} to cart"}
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
+          Add to cart
         </button>
         <button
           :if={@sold_out}
           type="button"
           disabled
           aria-disabled="true"
-          class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-stone-200 text-stone-400 cursor-not-allowed"
+          class="mt-1.5 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-200 px-3 text-[0.8125rem] font-bold leading-none text-stone-400 cursor-not-allowed"
           aria-label={"#{@product.title} is sold out"}
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
-          </svg>
+          Sold out
         </button>
       </div>
     </div>
