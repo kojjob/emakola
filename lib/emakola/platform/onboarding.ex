@@ -21,17 +21,17 @@ defmodule Emakola.Platform.Onboarding do
   @doc "Ordered milestone keys (display order)."
   def milestones, do: @milestones
 
-  @doc """
-  Returns `%{total_stores, funnel, stores}` where `funnel` maps each milestone
-  to the count of stores that completed it, and `stores` is a list of
-  `%{id, name, slug, milestones: %{...booleans}, completed}` sorted
-  least-complete first.
-  """
   @stalled_after_days 7
 
   @doc "Days of inactivity after which an incomplete store counts as stalled."
   def stalled_after_days, do: @stalled_after_days
 
+  @doc """
+  Returns `%{total_stores, funnel, stalled_count, stores}` where `funnel`
+  maps each milestone to the count of stores that completed it, and `stores`
+  is a list of `%{id, name, slug, milestones: %{...booleans}, completed,
+  idle_days, stalled?}` sorted least-complete first.
+  """
   def overview do
     stores = Ash.read!(Store, authorize?: false)
 
