@@ -359,6 +359,31 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     end
   end
 
+  describe "list cap" do
+    test "the roster truncates at the configured limit with a notice", %{conn: conn} do
+      Application.put_env(:emakola, :platform_admin_store_limit, 2)
+      on_exit(fn -> Application.delete_env(:emakola, :platform_admin_store_limit) end)
+
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      for n <- 1..3, do: Factory.create_store!(name: "Cap Store #{n}")
+
+      {:ok, view, html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#platform-stores[data-count='2']")
+      assert has_element?(view, "#platform-stores-truncated")
+      assert html =~ "first 2 stores"
+    end
+
+    test "an uncapped roster shows no truncation notice", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      refute has_element?(view, "#platform-stores-truncated")
+    end
+  end
+
   describe "topbar search handoff" do
     test "?q= seeds the store search", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])

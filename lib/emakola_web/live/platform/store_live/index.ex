@@ -38,6 +38,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       |> assign(:stores_count, 0)
       |> assign(:stores_loaded?, false)
       |> assign(:selected, nil)
+      |> assign(:truncated?, false)
       |> stream(:stores, [], dom_id: &"store-#{&1.id}")
 
     {:ok, socket}
@@ -151,22 +152,35 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
   defp load_stores(socket, query, opts \\ []) do
     search = if String.trim(query) == "", do: "", else: "%#{String.trim(query)}%"
+    limit = list_limit()
 
+    # Fetch one past the cap so truncation is detectable without a count query.
     stores =
-      case Emakola.Stores.list_stores_for_admin(search, authorize?: false) do
+      case Emakola.Stores.list_stores_for_admin(search,
+             authorize?: false,
+             query: [limit: limit + 1]
+           ) do
         {:ok, list} -> list
         _ -> []
       end
 
-    assign_stores(socket, stores, opts)
+    socket
+    |> assign(:truncated?, length(stores) > limit)
+    |> assign_stores(Enum.take(stores, limit), opts)
   rescue
     exception ->
       Logger.error(
         "[platform.store_live] load_stores loading stores raised: #{Exception.message(exception)}"
       )
 
-      assign_stores(socket, [], opts)
+      socket
+      |> assign(:truncated?, false)
+      |> assign_stores([], opts)
   end
+
+  # Guards the unbounded-admin-list debt: real merchant volume should get
+  # pagination; until then the page loads at most this many stores.
+  defp list_limit, do: Application.get_env(:emakola, :platform_admin_store_limit, 200)
 
   defp assign_stores(socket, stores, opts) do
     filtered = apply_filter(stores, socket.assigns.filter)
@@ -397,6 +411,13 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
               ]}>
               </span>
             </div>
+          </div>
+          <div
+            :if={@truncated?}
+            id="platform-stores-truncated"
+            class="px-4 py-3 border-t border-gray-100 text-[11px] text-gray-400 text-center shrink-0"
+          >
+            Showing the first {list_limit()} stores — refine your search to see the rest.
           </div>
         </div>
 
