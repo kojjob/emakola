@@ -214,6 +214,15 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert render(view) =~ "hidden from the public directory"
     end
 
+    test "directory preview renders the real public store card", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      _store = Factory.create_store!(name: "Real Card Shop")
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-panel #panel-directory-card", "Real Card Shop")
+    end
+
     test "directory preview renders the newest active product photo", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
       store = Factory.create_store!()

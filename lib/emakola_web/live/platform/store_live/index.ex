@@ -14,6 +14,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   use EmakolaWeb, :live_view
   require Logger
 
+  import EmakolaWeb.StoresComponents, only: [store_card: 1]
+
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
   alias Emakola.Accounts.PlatformPermissions
@@ -197,20 +199,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   defp load_preview_image(nil), do: nil
 
   defp load_preview_image(store) do
-    case Ash.load(store, :card_image_url, authorize?: false) do
+    case Ash.load(store, [:card_image_url, :product_count], authorize?: false) do
       {:ok, loaded} -> loaded
       _ -> store
-    end
-  end
-
-  defp preview_image_url(store) do
-    cover = Map.get(store, :cover_image_url)
-    product_photo = Map.get(store, :card_image_url)
-
-    cond do
-      is_binary(cover) and cover != "" -> cover
-      is_binary(product_photo) and product_photo != "" -> product_photo
-      true -> nil
     end
   end
 
@@ -413,7 +404,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  <span :if={@selected.city}>{@selected.city}    · </span>
+                  <span :if={@selected.city}>{@selected.city}     · </span>
                   <span class="font-mono">{@selected.slug}</span>
                   · {@selected.currency || "GHS"} · Since {Calendar.strftime(
                     @selected.inserted_at,
@@ -573,47 +564,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
                   Directory preview
                 </p>
-                <div class={[
-                  "border border-gray-200 rounded-[14px] overflow-hidden shadow-sm",
-                  !Store.live?(@selected) && "opacity-80"
-                ]}>
-                  <div class="h-28 relative flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50">
-                    <img
-                      :if={preview_image_url(@selected)}
-                      src={preview_image_url(@selected)}
-                      alt=""
-                      loading="lazy"
-                      class="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <.icon
-                      :if={!preview_image_url(@selected)}
-                      name="hero-photo"
-                      class="size-7 text-slate-300"
-                    />
-                    <span
-                      :if={!Store.live?(@selected)}
-                      class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-white"
-                    >
-                      <.icon name="hero-eye-slash" class="size-2.5" /> HIDDEN
-                    </span>
-                    <span
-                      :if={Store.live?(@selected) && @selected.featured}
-                      class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700"
-                    >
-                      <.icon name="hero-star-solid" class="size-2.5" /> FEATURED
-                    </span>
+                <div class={["relative", !Store.live?(@selected) && "opacity-80"]}>
+                  <div class="pointer-events-none" aria-hidden="true">
+                    <.store_card id="panel-directory-card" store={@selected} />
                   </div>
-                  <div class="px-4 pt-3 pb-4">
-                    <div class="flex items-center gap-1.5">
-                      <p class="text-sm font-bold text-gray-900 truncate">{@selected.name}</p>
-                      <.icon
-                        :if={@selected.verified}
-                        name="hero-check-badge"
-                        class="size-4 text-sky-600 shrink-0"
-                      />
-                    </div>
-                    <p :if={@selected.city} class="text-xs text-gray-400 mt-0.5">{@selected.city}</p>
-                  </div>
+                  <span
+                    :if={!Store.live?(@selected)}
+                    class="absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-white"
+                  >
+                    <.icon name="hero-eye-slash" class="size-2.5" /> HIDDEN
+                  </span>
                 </div>
                 <p class="text-[11px] text-gray-400 mt-2.5">
                   {if Store.live?(@selected),
