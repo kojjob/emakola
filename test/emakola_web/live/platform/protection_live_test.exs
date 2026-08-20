@@ -277,6 +277,94 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
     assert still_held.status == :held
   end
 
+  describe "studio layout" do
+    test "auto-selects the first frozen hold into the case panel on load", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :not_received, complaint_text: "Box never arrived"},
+          authorize?: false
+        )
+
+      {:ok, view, html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#protection-panel")
+      assert has_element?(view, "#frozen_holds-#{hold.id}[data-selected]")
+      assert html =~ "1 frozen"
+      assert html =~ "Box never arrived"
+      assert html =~ "recorded in the platform audit log"
+    end
+
+    test "clicking a stale queue row moves the selection into the panel", %{
+      conn: conn,
+      store: store
+    } do
+      frozen_hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          frozen_hold,
+          %{complaint_reason: :other, complaint_text: "Investigating"},
+          authorize?: false
+        )
+
+      stale_store = Factory.create_store!(%{name: "Tamale Weaves"})
+
+      stale_hold =
+        protected_hold!(stale_store, order_attrs: %{shipping_address: %{"phone" => "0209998888"}})
+
+      force_age!(stale_hold.id, days: 45)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#frozen_holds-#{frozen_hold.id}[data-selected]")
+
+      panel_html =
+        view
+        |> element("#stale_holds-#{stale_hold.id} [phx-click='select_hold']")
+        |> render_click()
+
+      assert has_element?(view, "#stale_holds-#{stale_hold.id}[data-selected]")
+      refute has_element?(view, "#frozen_holds-#{frozen_hold.id}[data-selected]")
+      assert panel_html =~ "Tamale Weaves"
+      assert panel_html =~ "8888"
+    end
+
+    test "a forged select_hold outside the queue leaves the panel unchanged", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :other, complaint_text: "On file"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      outside_hold = protected_hold!(Factory.create_store!(%{name: "Outside Store"}))
+      render_hook(view, "select_hold", %{"id" => outside_hold.id})
+
+      assert has_element?(view, "#frozen_holds-#{hold.id}[data-selected]")
+      refute render(view) =~ "Outside Store"
+    end
+
+    test "shows a rich empty state when no holds need a decision", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#protection-panel")
+      assert html =~ "All money is moving"
+    end
+  end
+
   test "refund buyer refuses a second click once the return is already approved, and calls RefundService zero times",
        %{conn: conn, store: store} do
     hold = protected_hold!(store)
