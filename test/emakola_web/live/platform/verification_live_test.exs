@@ -75,6 +75,134 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
       {conn, _u, _s} = setup_platform_staff(conn, permissions: [:view_audit_log])
       assert {:error, {:redirect, %{to: "/platform"}}} = live(conn, ~p"/platform/verifications")
     end
+
+    test "the first submission is selected and the panel shows the case", %{
+      conn: conn,
+      verification: verification
+    } do
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      assert has_element?(view, "#verification-#{verification.id}[data-selected]")
+      assert has_element?(view, "#verification-panel", "Kente Trades Ltd")
+      assert has_element?(view, "#verification-panel", "Ghana Card")
+      assert has_element?(view, ~s(#verification-panel img[src="https://signed.example/doc"]))
+    end
+
+    test "clicking a row switches the panel", %{conn: conn, verification: verification} do
+      other_store = Factory.create_store!(%{name: "Basket Co"})
+
+      {:ok, other} =
+        Stores.submit_store_verification(
+          %{
+            store_id: other_store.id,
+            business_name: "Ayine Weaving Co",
+            id_type: :passport,
+            id_number: "G-2",
+            id_document_key: "verifications/#{other_store.id}/id.png"
+          },
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      view |> element("#verification-#{verification.id}") |> render_click()
+
+      assert has_element?(view, "#verification-#{verification.id}[data-selected]")
+      assert has_element?(view, "#verification-panel", "Kente Trades Ltd")
+
+      view |> element("#verification-#{other.id}") |> render_click()
+
+      assert has_element?(view, "#verification-#{other.id}[data-selected]")
+      refute has_element?(view, "#verification-#{verification.id}[data-selected]")
+      assert has_element?(view, "#verification-panel", "Ayine Weaving Co")
+    end
+
+    test "a filter with no submissions hides the panel", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      view |> element("#verification-filter-approved") |> render_click()
+
+      refute has_element?(view, "#verification-panel")
+      assert has_element?(view, "#platform-verifications-empty")
+    end
+
+    test "approve from the panel awards verified, audits, and enqueues", %{
+      conn: conn,
+      user: user,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      view |> element("#panel-approve") |> render_click()
+
+      assert {:ok, %{status: :approved}} =
+               Stores.get_store_verification(store.id, authorize?: false)
+
+      assert {:ok, %{verified: true}} = Stores.get_store(store.id, authorize?: false)
+      assert has_element?(view, "#verification-panel", "Approved")
+
+      assert [entry] = verification_audit(store.id)
+      assert entry.action == :verification_approved
+      assert entry.actor_id == user.id
+
+      assert_enqueued(
+        worker: Worker,
+        args: %{"store_id" => store.id, "event" => "verification_approved"}
+      )
+    end
+
+    test "inline reject requires a reason and records it", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      assert has_element?(view, "#verification-reject-form")
+
+      view |> form("#verification-reject-form", reason: "") |> render_submit()
+      assert has_element?(view, "#flash-error", "A reason is required")
+
+      view |> form("#verification-reject-form", reason: "Blurry ID") |> render_submit()
+
+      assert {:ok, %{status: :rejected, review_reason: "Blurry ID"}} =
+               Stores.get_store_verification(store.id, authorize?: false)
+
+      assert {:ok, %{verified: false}} = Stores.get_store(store.id, authorize?: false)
+      assert has_element?(view, "#panel-review-banner", "Blurry ID")
+      refute has_element?(view, "#verification-reject-form")
+    end
+
+    test "j and k walk the queue selection", %{conn: conn, verification: verification} do
+      other_store = Factory.create_store!(%{name: "Newer Co"})
+
+      {:ok, newer} =
+        Stores.submit_store_verification(
+          %{
+            store_id: other_store.id,
+            business_name: "Newer Ventures",
+            id_type: :voter_id,
+            id_number: "V-3",
+            id_document_key: "verifications/#{other_store.id}/id.png"
+          },
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+
+      # Oldest-first queue: `verification` sits at the top and is selected.
+      assert has_element?(view, "#verification-#{verification.id}[data-selected]")
+
+      render_click(view, "queue_key", %{"key" => "j"})
+      assert has_element?(view, "#verification-#{newer.id}[data-selected]")
+
+      # j at the bottom clamps.
+      render_click(view, "queue_key", %{"key" => "j"})
+      assert has_element?(view, "#verification-#{newer.id}[data-selected]")
+
+      render_click(view, "queue_key", %{"key" => "k"})
+      assert has_element?(view, "#verification-#{verification.id}[data-selected]")
+
+      # k at the top clamps.
+      render_click(view, "queue_key", %{"key" => "k"})
+      assert has_element?(view, "#verification-#{verification.id}[data-selected]")
+    end
   end
 
   describe "Show" do
