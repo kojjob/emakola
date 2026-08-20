@@ -56,11 +56,11 @@ defmodule EmakolaWeb.SearchComponents do
 
       <%!-- Search panel: full-screen on mobile, centered dropdown on desktop --%>
       <div class="relative h-full sm:h-auto sm:max-w-xl sm:mx-auto sm:mt-20">
-        <div class="h-full sm:h-auto bg-[#FAFAF9] sm:rounded-[20px] sm:shadow-2xl sm:border sm:border-[#E2E8F0] flex flex-col sm:max-h-[70vh]">
+        <div class="h-full sm:h-auto bg-stone-50 sm:rounded-[20px] sm:shadow-2xl sm:border sm:border-stone-200 flex flex-col sm:max-h-[70vh]">
           <%!-- Search input header --%>
-          <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-[#E2E8F0] bg-white sm:rounded-t-[20px]">
+          <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-stone-200 bg-white sm:rounded-t-[20px]">
             <svg
-              class="w-5 h-5 text-[#94A3B8] flex-shrink-0"
+              class="w-5 h-5 text-stone-400 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -82,12 +82,12 @@ defmodule EmakolaWeb.SearchComponents do
               phx-debounce="300"
               autocomplete="off"
               autofocus
-              class="flex-1 text-[0.9375rem] text-slate-900 placeholder:text-[#94A3B8] bg-transparent border-none focus:outline-none focus:ring-0"
+              class="flex-1 text-[0.9375rem] text-stone-900 placeholder:text-stone-400 bg-transparent border-none focus:outline-none focus:ring-0"
             />
             <button
               type="button"
               phx-click={hide_search()}
-              class="p-1.5 rounded-lg hover:bg-[#F1F5F9] transition-colors text-[#64748B]"
+              class="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-500"
               aria-label="Close search"
             >
               <svg
@@ -113,9 +113,9 @@ defmodule EmakolaWeb.SearchComponents do
 
             <%!-- Empty state: no query entered --%>
             <div :if={!@searching && @search_query == ""} class="py-12 px-4 text-center">
-              <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center border border-[#E2E8F0] mb-3">
+              <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center border border-stone-200 mb-3">
                 <svg
-                  class="w-7 h-7 text-[#94A3B8]"
+                  class="w-7 h-7 text-stone-400"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="1.5"
@@ -128,7 +128,7 @@ defmodule EmakolaWeb.SearchComponents do
                   />
                 </svg>
               </div>
-              <p class="text-sm font-medium text-[#64748B]">
+              <p class="text-sm font-medium text-stone-500">
                 Search for products by name
               </p>
             </div>
@@ -138,9 +138,9 @@ defmodule EmakolaWeb.SearchComponents do
               :if={!@searching && @search_query != "" && @search_results == []}
               class="py-12 px-4 text-center"
             >
-              <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center border border-[#E2E8F0] mb-3">
+              <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center border border-stone-200 mb-3">
                 <svg
-                  class="w-7 h-7 text-[#94A3B8]"
+                  class="w-7 h-7 text-stone-400"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="1.5"
@@ -153,10 +153,10 @@ defmodule EmakolaWeb.SearchComponents do
                   />
                 </svg>
               </div>
-              <p class="text-sm font-semibold text-slate-900 mb-1">
+              <p class="text-sm font-semibold text-stone-900 mb-1">
                 No results found
               </p>
-              <p class="text-xs text-[#64748B]">
+              <p class="text-xs text-stone-500">
                 Try a different search term
               </p>
             </div>
@@ -168,7 +168,7 @@ defmodule EmakolaWeb.SearchComponents do
                 href={store_path(@store.slug, "/products/#{product.slug}")}
                 class="flex items-center gap-3.5 px-4 sm:px-5 py-3 hover:bg-white transition-colors"
               >
-                <div class="w-12 h-12 rounded-xl bg-[#F1F5F9] flex-shrink-0 overflow-hidden border border-[#E2E8F0]">
+                <div class="w-12 h-12 rounded-xl bg-stone-100 flex-shrink-0 overflow-hidden border border-stone-200">
                   <img
                     :if={first_image(product)}
                     src={first_image(product)}
@@ -181,7 +181,7 @@ defmodule EmakolaWeb.SearchComponents do
                     class="w-full h-full flex items-center justify-center"
                   >
                     <svg
-                      class="w-5 h-5 text-[#94A3B8]"
+                      class="w-5 h-5 text-stone-400"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="1.5"
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.SearchComponents do
                   </div>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-slate-900 truncate">
+                  <p class="text-sm font-semibold text-stone-900 truncate">
                     {product.title}
                   </p>
                   <p class="text-xs font-medium text-store-accent">
@@ -204,7 +204,7 @@ defmodule EmakolaWeb.SearchComponents do
                   </p>
                 </div>
                 <svg
-                  class="w-4 h-4 text-[#CBD5E1] flex-shrink-0"
+                  class="w-4 h-4 text-stone-300 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
@@ -217,11 +217,11 @@ defmodule EmakolaWeb.SearchComponents do
               <%!-- View all results link --%>
               <div
                 :if={@total_results > @max_results}
-                class="px-4 sm:px-5 py-3 border-t border-[#E2E8F0]"
+                class="px-4 sm:px-5 py-3 border-t border-stone-200"
               >
                 <a
                   href={store_path(@store.slug, "/products?q=#{URI.encode_www_form(@search_query)}")}
-                  class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-[#E2E8F0] text-sm font-semibold text-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
+                  class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-stone-200 text-sm font-semibold text-stone-900 hover:bg-stone-50 hover:border-stone-300 transition-all"
                 >
                   View all {@total_results} results
                   <svg
@@ -253,10 +253,10 @@ defmodule EmakolaWeb.SearchComponents do
   def search_skeleton(assigns) do
     ~H"""
     <div class="flex items-center gap-3.5 animate-pulse">
-      <div class="w-12 h-12 rounded-xl bg-[#E2E8F0]"></div>
+      <div class="w-12 h-12 rounded-xl bg-stone-200"></div>
       <div class="flex-1 space-y-2">
-        <div class="h-3.5 bg-[#E2E8F0] rounded-full w-3/4"></div>
-        <div class="h-3 bg-[#E2E8F0] rounded-full w-1/3"></div>
+        <div class="h-3.5 bg-stone-200 rounded-full w-3/4"></div>
+        <div class="h-3 bg-stone-200 rounded-full w-1/3"></div>
       </div>
     </div>
     """
