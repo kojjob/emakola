@@ -40,14 +40,29 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       |> assign(:selected, nil)
       |> stream(:stores, [], dom_id: &"store-#{&1.id}")
 
+    {:ok, socket}
+  end
+
+  # All loading happens here, once per navigation (mount stays query-free so
+  # the disconnected render is a pure loading shell). The platform topbar
+  # search is a plain GET form handing off ?q= — seed the in-page search
+  # from it before loading.
+  @impl true
+  def handle_params(params, _uri, socket) do
     socket =
-      if connected?(socket) do
-        load_stores(socket, "")
-      else
-        socket
+      case params["q"] do
+        q when is_binary(q) and q != "" ->
+          socket |> assign(:search, q) |> assign(:search_form, search_form(q))
+
+        _ ->
+          socket
       end
 
-    {:ok, socket}
+    if connected?(socket) do
+      {:noreply, load_stores(socket, socket.assigns.search)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -404,7 +419,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  <span :if={@selected.city}>{@selected.city}     · </span>
+                  <span :if={@selected.city}>{@selected.city}       · </span>
                   <span class="font-mono">{@selected.slug}</span>
                   · {@selected.currency || "GHS"} · Since {Calendar.strftime(
                     @selected.inserted_at,

@@ -350,8 +350,8 @@
         </svg>
       </button>
 
-      <%!-- Search --%>
-      <div class="flex-1 max-w-lg relative">
+      <%!-- Search — plain GET handoff to the stores page (⌘K focuses it) --%>
+      <form action="/platform/stores" method="get" class="flex-1 max-w-lg relative">
         <svg
           class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
           fill="none"
@@ -367,6 +367,8 @@
         </svg>
         <input
           type="search"
+          name="q"
+          data-global-search
           placeholder="Search stores, merchants..."
           class="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition-all"
           aria-label="Search"
@@ -374,7 +376,7 @@
         <kbd class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200 font-mono">
           ⌘K
         </kbd>
-      </div>
+      </form>
 
       <div class="flex-1"></div>
 

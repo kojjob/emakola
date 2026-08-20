@@ -359,6 +359,30 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     end
   end
 
+  describe "topbar search handoff" do
+    test "?q= seeds the store search", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      matching = Factory.create_store!(name: "Handoff Needle Shop", slug: "handoff-needle-shop")
+      other = Factory.create_store!(name: "Handoff Other", slug: "handoff-other")
+
+      {:ok, view, _html} = live(conn, "/platform/stores?q=Needle")
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{matching.id}")
+      refute has_element?(view, "#store-#{other.id}")
+      assert has_element?(view, "#platform-store-search[value='Needle']")
+    end
+
+    test "the platform topbar search submits to /platform/stores", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+
+      {:ok, _view, html} = live(conn, "/platform")
+
+      assert html =~ ~s(action="/platform/stores")
+      assert html =~ ~s(name="q")
+    end
+  end
+
   describe "streamed directory" do
     test "search resets the store stream", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
