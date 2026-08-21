@@ -592,13 +592,16 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Filter Bar --%>
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-control p-1">
-          <.filter_button
-            :for={status <- [:all, :in_stock, :low_stock, :out_of_stock]}
-            status={status}
-            current={@status_filter}
-          />
-        </div>
+        <.filter_tabs
+          id="inventory-filter-tabs"
+          current={@status_filter}
+          tabs={[
+            %{key: :all, label: "All", count: @stats.total},
+            %{key: :in_stock, label: "In Stock", count: @stats.in_stock},
+            %{key: :low_stock, label: "Low Stock", count: @stats.low_stock},
+            %{key: :out_of_stock, label: "Out of Stock", count: @stats.out_of_stock}
+          ]}
+        />
         <div class="flex-1 w-full sm:w-auto">
           <.form
             for={@search_form}
@@ -670,15 +673,24 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   :for={variant <- @variants}
                   class="hover:bg-slate-50 transition-colors"
                 >
-                  <td class="px-4 py-3.5 text-slate-700 font-medium">
-                    {product_title(variant)}
-                    <span
-                      :if={variant.supplier_id}
-                      class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                      title={dropship_label(variant)}
-                    >
-                      Dropshipped
-                    </span>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-3">
+                      <.product_thumb
+                        url={variant_image_url(variant)}
+                        alt={product_title(variant)}
+                        class="w-9 h-9"
+                      />
+                      <div class="min-w-0">
+                        <span class="text-slate-700 font-medium">{product_title(variant)}</span>
+                        <span
+                          :if={variant.supplier_id}
+                          class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                          title={dropship_label(variant)}
+                        >
+                          Dropshipped
+                        </span>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-4 py-3.5 font-mono text-xs text-slate-500">
                     {variant.sku || "--"}
@@ -748,14 +760,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         </button>
                       </.form>
                     <% else %>
-                      <button
-                        phx-click="start_edit"
-                        phx-value-id={variant.id}
-                        class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
-                        title="Click to edit stock"
-                      >
-                        {variant.stock_quantity}
-                      </button>
+                      <div class="flex items-center gap-2.5">
+                        <button
+                          phx-click="start_edit"
+                          phx-value-id={variant.id}
+                          class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
+                          title="Click to edit stock"
+                        >
+                          {variant.stock_quantity}
+                        </button>
+                        <.stock_meter quantity={variant.stock_quantity} />
+                      </div>
                       <.location_breakdown
                         :if={@multi_location?}
                         entries={breakdown_entries(variant, @levels_by_variant, @locations)}
@@ -845,26 +860,33 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <div class="md:hidden space-y-3">
           <.admin_card :for={variant <- @variants} padding={:none} class="p-4">
             <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p class="text-sm font-medium text-slate-800">
-                  {product_title(variant)}
-                  <span
-                    :if={variant.supplier_id}
-                    class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                  >
-                    Dropshipped
-                  </span>
-                </p>
-                <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+              <div class="flex items-center gap-3 min-w-0">
+                <.product_thumb
+                  url={variant_image_url(variant)}
+                  alt={product_title(variant)}
+                  class="w-10 h-10"
+                />
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-slate-800">
+                    {product_title(variant)}
+                    <span
+                      :if={variant.supplier_id}
+                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                    >
+                      Dropshipped
+                    </span>
+                  </p>
+                  <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+                </div>
               </div>
               <.stock_status_badge quantity={variant.stock_quantity} />
             </div>
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-slate-600">
+                <div class="flex items-center gap-2 text-sm text-slate-600">
                   <span class="text-slate-400">Stock:</span>
-                  <span class="font-mono font-semibold">{variant.stock_quantity}</span>
-                </p>
+                  <.stock_meter quantity={variant.stock_quantity} />
+                </div>
                 <.location_breakdown
                   :if={@multi_location?}
                   entries={breakdown_entries(variant, @levels_by_variant, @locations)}
@@ -1003,29 +1025,6 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   defp dropship_label(%{supplier: %{name: name}}) when is_binary(name), do: "Supplier: #{name}"
   defp dropship_label(_), do: "Dropshipped"
-
-  # ── Components ──
-
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-
-  defp filter_button(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-700"
-        )
-      ]}
-    >
-      {filter_label(@status)}
-    </button>
-    """
-  end
 
   # ── Data Loading ──
 
@@ -1303,10 +1302,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   defp product_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp product_title(_), do: "Unknown Product"
 
-  defp filter_label(:all), do: "All"
-  defp filter_label(:in_stock), do: "In Stock"
-  defp filter_label(:low_stock), do: "Low Stock"
-  defp filter_label(:out_of_stock), do: "Out of Stock"
+  defp variant_image_url(%{product: %{images: [%{thumbnail_url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(%{product: %{images: [%{url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(_), do: nil
 
   defp find_variant(variants, id) do
     Enum.find(variants, &(&1.id == id))

@@ -16,6 +16,46 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     {:ok, conn: conn, store: store, merchant: merchant}
   end
 
+  describe "InventoryLive redesign" do
+    test "filter tabs carry stock-band counts", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Kente Scarf"})
+      Factory.create_variant!(product, store, %{stock_quantity: 15, sku: "IN-1"})
+      Factory.create_variant!(product, store, %{stock_quantity: 4, sku: "LOW-1"})
+      Factory.create_variant!(product, store, %{stock_quantity: 0, sku: "OUT-1"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=in_stock]", "1")
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=low_stock]", "1")
+
+      assert has_element?(
+               view,
+               "#inventory-filter-tabs button[phx-value-status=out_of_stock]",
+               "1"
+             )
+    end
+
+    test "rows render a stock meter beside the quantity", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Shea Butter"})
+      Factory.create_variant!(product, store, %{stock_quantity: 4, sku: "SHEA-1"})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "bg-amber-500"
+    end
+
+    test "rows lead with a product thumbnail", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Bolga Basket"})
+      Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "BOL-1"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      # No image uploaded yet, so the thumb falls back to the photo icon.
+      assert has_element?(view, "tbody span.hero-photo")
+    end
+  end
+
   describe "InventoryLive page rendering" do
     test "renders page with stat cards", %{conn: conn, store: store} do
       product = Factory.create_product!(store, %{title: "Test Product"})

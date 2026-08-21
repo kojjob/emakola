@@ -330,7 +330,7 @@ defmodule Emakola.Catalog.Variant do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
 
-      prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
+      prepare(build(sort: [stock_quantity: :asc], load: [:supplier, product: [:images]]))
     end
 
     read :by_stock_range do
