@@ -53,6 +53,46 @@ defmodule EmakolaWeb.Platform.OnboardingLiveTest do
       refute has_element?(view, "[data-milestone='kyc'][data-done]")
     end
 
+    test "hero tiles include the stalled count and funnel rows carry drop-offs", %{conn: conn} do
+      with_product = Factory.create_store!(%{name: "Has Products"})
+      Factory.create_product!(with_product)
+      _bare = Factory.create_store!(%{name: "Bare Store"})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/onboarding")
+
+      assert has_element?(view, "#onboarding-stalled", "0")
+      # Two live stores, one with products — the products step dropped one
+      assert has_element?(view, "[data-funnel-step='products'][data-drop='1']")
+    end
+
+    test "stalled stores wear an idle pill and the stalled filter finds them", %{conn: conn} do
+      fresh = Factory.create_store!(%{name: "Fresh Store"})
+      Factory.create_product!(fresh)
+
+      stalled = Factory.create_store!(%{name: "Stalled Store"})
+      aged_at = DateTime.add(DateTime.utc_now(), -12, :day)
+
+      import Ecto.Query, only: [from: 2]
+
+      Emakola.Repo.update_all(
+        from(s in "stores", where: s.id == type(^stalled.id, Ecto.UUID)),
+        set: [inserted_at: aged_at]
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/onboarding")
+
+      assert has_element?(view, "#onboarding-store-#{stalled.id} [data-idle-days]")
+      refute has_element?(view, "#onboarding-store-#{fresh.id} [data-idle-days]")
+
+      html =
+        view
+        |> element("button[phx-click='set_filter'][phx-value-filter='stalled']")
+        |> render_click()
+
+      assert html =~ "Stalled Store"
+      refute html =~ "Fresh Store"
+    end
+
     test "the incomplete-only filter hides fully-onboarded stores", %{conn: conn} do
       full = Factory.create_store!(%{name: "Complete Co"})
       Factory.create_product!(full)
@@ -81,7 +121,11 @@ defmodule EmakolaWeb.Platform.OnboardingLiveTest do
       {:ok, view, html} = live(conn, ~p"/platform/onboarding")
       assert html =~ "Complete Co"
 
-      html = view |> element("button[phx-click='toggle_incomplete']") |> render_click()
+      html =
+        view
+        |> element("button[phx-click='set_filter'][phx-value-filter='incomplete']")
+        |> render_click()
+
       refute html =~ "Complete Co"
     end
   end
