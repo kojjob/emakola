@@ -250,6 +250,43 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       </div>
 
       <%= if @order do %>
+        <%!-- Order journey — where this order stands, readable by shape and
+              colour alone. Cancelled/refunded orders end on their own node. --%>
+        <.admin_card padding={:none} class="p-5" id="order-timeline">
+          <div class="flex items-center overflow-x-auto">
+            <%= for {step, idx} <- Enum.with_index(journey_steps(@order.status)) do %>
+              <div
+                :if={idx > 0}
+                class={[
+                  "flex-1 h-0.5 min-w-6",
+                  if(step.state in [:done, :current, :ended],
+                    do: "bg-emerald-500",
+                    else: "bg-slate-200"
+                  )
+                ]}
+              />
+              <div
+                class="flex flex-col items-center gap-1.5 px-2"
+                data-step={step.step}
+                data-state={step.state}
+              >
+                <div class={[
+                  "w-9 h-9 rounded-full flex items-center justify-center",
+                  journey_node_class(step.state)
+                ]}>
+                  <.icon name={step.icon} class="size-4" />
+                </div>
+                <span class={[
+                  "text-[11px] font-semibold whitespace-nowrap",
+                  if(step.state == :todo, do: "text-slate-400", else: "text-slate-700")
+                ]}>
+                  {step.label}
+                </span>
+              </div>
+            <% end %>
+          </div>
+        </.admin_card>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <%!-- Main Column --%>
           <div class="lg:col-span-2 space-y-6">
@@ -343,7 +380,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                       <tr :for={item <- @order.line_items}>
-                        <td class="px-5 py-3 text-slate-800 font-medium">{item.product_title}</td>
+                        <td class="px-5 py-3">
+                          <div class="flex items-center gap-3">
+                            <.product_thumb
+                              url={line_item_image_url(item)}
+                              alt={item.product_title}
+                              class="w-9 h-9"
+                            />
+                            <span class="text-slate-800 font-medium">{item.product_title}</span>
+                          </div>
+                        </td>
                         <td class="px-5 py-3 text-slate-500 font-mono text-xs">
                           {item.variant_sku || "-"}
                         </td>
@@ -610,10 +656,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               </h2>
               <div class="space-y-2">
                 <div class="flex items-center justify-between text-sm">
-                  <span class="text-slate-500">Gateway</span>
-                  <span class="font-medium text-slate-800 capitalize">
-                    {to_string(@payment.gateway)}
-                  </span>
+                  <span class="text-slate-500">Paid with</span>
+                  <.payment_rail_chip id="payment-rail-chip" rail={payment_rail(@payment)} />
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Status</span>
@@ -913,6 +957,92 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     """
   end
 
+  # ── Order journey ──
+
+  @journey [
+    {:pending, "Placed", "hero-shopping-bag"},
+    {:confirmed, "Confirmed", "hero-check-circle"},
+    {:processing, "Processing", "hero-cog-6-tooth"},
+    {:shipped, "Shipped", "hero-truck"},
+    {:delivered, "Delivered", "hero-home"}
+  ]
+
+  defp journey_steps(:cancelled) do
+    [
+      %{step: :pending, label: "Placed", icon: "hero-shopping-bag", state: :done},
+      %{step: :cancelled, label: "Cancelled", icon: "hero-x-circle", state: :ended}
+    ]
+  end
+
+  defp journey_steps(:refunded) do
+    [
+      %{step: :pending, label: "Placed", icon: "hero-shopping-bag", state: :done},
+      %{step: :refunded, label: "Refunded", icon: "hero-banknotes", state: :ended}
+    ]
+  end
+
+  defp journey_steps(status) do
+    current = Enum.find_index(@journey, fn {step, _, _} -> step == status end) || 0
+
+    @journey
+    |> Enum.with_index()
+    |> Enum.map(fn {{step, label, icon}, idx} ->
+      state =
+        cond do
+          idx < current -> :done
+          idx == current -> :current
+          true -> :todo
+        end
+
+      %{step: step, label: label, icon: icon, state: state}
+    end)
+  end
+
+  defp journey_node_class(:done), do: "bg-emerald-500 text-white"
+  defp journey_node_class(:current), do: "bg-primary text-white ring-4 ring-emerald-100"
+  defp journey_node_class(:todo), do: "bg-slate-100 text-slate-400"
+
+  defp journey_node_class(:ended),
+    do: "bg-red-500 text-white ring-4 ring-red-100"
+
+  # ── Payment rail ──
+
+  # The rail is read from the gateway's stored charge data: Paystack keeps
+  # channel + authorization.bank ("MTN", "Telecel", "AirtelTigo"); Hubtel's
+  # webhook stores neither, so its payments fall back to the gateway chip.
+  defp payment_rail(payment) do
+    gateway_response = payment.gateway_response || %{}
+
+    channel =
+      gateway_response["channel"] || get_in(gateway_response, ["authorization", "channel"])
+
+    cond do
+      channel == "card" -> :card
+      channel == "mobile_money" -> momo_rail(get_in(gateway_response, ["authorization", "bank"]))
+      true -> payment.gateway
+    end
+  end
+
+  defp momo_rail(bank) do
+    bank = String.downcase(to_string(bank))
+
+    cond do
+      bank =~ "mtn" -> :mtn_momo
+      bank =~ "telecel" or bank =~ "vodafone" -> :telecel_cash
+      bank =~ "airtel" or bank =~ "tigo" -> :airteltigo
+      true -> :mobile_money
+    end
+  end
+
+  # ── Line item image ──
+
+  defp line_item_image_url(item) do
+    case item.variant do
+      %{product: %{images: [image | _]}} -> image.thumbnail_url || image.url
+      _ -> nil
+    end
+  end
+
   # ── Data Loading ──
 
   # Matched against the known list rather than converted: String.to_atom/1 on
@@ -955,7 +1085,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             nil
 
           {:ok, order} ->
-            Ash.load!(order, [:line_items, :customer, :margin], authorize?: false)
+            Ash.load!(
+              order,
+              [:customer, :margin, line_items: [variant: [product: [:images]]]],
+              authorize?: false
+            )
 
           _ ->
             nil
