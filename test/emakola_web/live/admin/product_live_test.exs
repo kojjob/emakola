@@ -53,6 +53,74 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "ProductLive.Index redesign (authenticated)" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "renders KPI tiles with store-wide status counts", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store)
+
+      {:ok, view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "Total products"
+      assert has_element?(view, "#stat-products-total", "3")
+      assert has_element?(view, "#stat-products-active", "2")
+      assert has_element?(view, "#stat-products-draft", "1")
+      assert has_element?(view, "#stat-products-archived", "0")
+    end
+
+    test "filter tabs carry store-wide counts", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store)
+      Factory.create_product!(store, %{status: :archived})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=active]", "1")
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=archived]", "1")
+    end
+
+    test "tab counts stay store-wide while the list filters", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{title: "Kente Scarf", status: :active})
+      Factory.create_product!(store, %{title: "Draft Basket"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      view
+      |> element("#products-filter-tabs button[phx-value-status=active]")
+      |> render_click()
+
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=all]", "2")
+      assert render(view) =~ "Kente Scarf"
+      refute render(view) =~ "Draft Basket"
+    end
+
+    test "product rows render a stock meter from variant stock", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Bolga Basket", status: :active})
+      Factory.create_variant!(product, store, %{stock_quantity: 5, price: 1000})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "bg-amber-500"
+      assert html =~ ~r|>\s*5\s*</span>|
+    end
+
+    test "out-of-stock products read Out in the stock meter", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Shea Butter", status: :active})
+      Factory.create_variant!(product, store, %{stock_quantity: 0, price: 1000})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "Out"
+      assert html =~ "bg-red-500"
+    end
+  end
+
   describe "ProductLive.Form (unauthenticated)" do
     test "redirects to login when not authenticated", %{conn: conn} do
       assert {:error, {:live_redirect, %{to: "/auth/login"}}} =

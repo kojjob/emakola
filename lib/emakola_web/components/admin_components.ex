@@ -276,6 +276,141 @@ defmodule EmakolaWeb.AdminComponents do
   end
 
   # ─────────────────────────────────────────────────────────────────────
+  # filter_tabs/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the unified segmented filter-tab group with per-tab counts.
+
+  Each tab is `%{key: atom, label: String.t(), count: integer | nil}` —
+  counts are store-wide, and a nil count renders no chip. Clicking a tab
+  pushes `event` (default `"filter_status"`) with `phx-value-status` set
+  to the tab key.
+
+  ## Examples
+
+      <.filter_tabs
+        tabs={[%{key: :all, label: "All", count: 24}, %{key: :active, label: "Active", count: 18}]}
+        current={@status_filter}
+      />
+  """
+  attr :tabs, :list, required: true
+  attr :current, :atom, required: true
+  attr :event, :string, default: "filter_status"
+  attr :id, :string, default: nil
+
+  def filter_tabs(assigns) do
+    ~H"""
+    <div id={@id} class="flex gap-1 bg-slate-100 rounded-control p-1 overflow-x-auto">
+      <button
+        :for={tab <- @tabs}
+        phx-click={@event}
+        phx-value-status={tab.key}
+        class={[
+          "inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg",
+          "transition-colors whitespace-nowrap cursor-pointer",
+          if(tab.key == @current,
+            do: "bg-white text-slate-900 shadow-sm",
+            else: "text-slate-500 hover:text-slate-700"
+          )
+        ]}
+      >
+        {tab.label}
+        <span
+          :if={tab.count && tab.count > 0}
+          class={[
+            "tab-count text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums",
+            if(tab.key == @current,
+              do: "bg-primary-soft text-primary-hover",
+              else: "bg-slate-200 text-slate-500"
+            )
+          ]}
+        >
+          {tab.count}
+        </span>
+      </button>
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # stock_meter/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a small stock-level meter with the quantity beside it — color
+  reads before text (out = red, under 10 = amber, healthy = emerald), so
+  stock health scans without reading numbers.
+
+  ## Examples
+
+      <.stock_meter quantity={14} />
+      <.stock_meter quantity={0} />
+  """
+  attr :quantity, :integer, required: true
+  attr :max, :integer, default: 20
+
+  def stock_meter(assigns) do
+    {fill, text} =
+      cond do
+        assigns.quantity == 0 -> {"bg-red-500", "text-red-600"}
+        assigns.quantity < 10 -> {"bg-amber-500", "text-amber-700"}
+        true -> {"bg-emerald-500", "text-slate-700"}
+      end
+
+    pct = min(100, round(assigns.quantity / max(assigns.max, 1) * 100))
+
+    assigns = assign(assigns, fill_class: fill, text_class: text, pct: pct)
+
+    ~H"""
+    <span class="inline-flex items-center gap-2">
+      <span class="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden shrink-0">
+        <span class={["block h-full rounded-full", @fill_class]} style={"width: #{@pct}%"}></span>
+      </span>
+      <span class={["font-mono text-xs font-semibold tabular-nums", @text_class]}>
+        <%= if @quantity == 0 do %>
+          Out
+        <% else %>
+          {@quantity}
+        <% end %>
+      </span>
+    </span>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # product_thumb/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a product thumbnail — the image when a URL exists, else a photo
+  placeholder. Products lead with their picture everywhere in the admin.
+
+  ## Examples
+
+      <.product_thumb url={image_url} alt={product.title} />
+      <.product_thumb url={nil} alt={product.title} class="w-12 h-12" />
+  """
+  attr :url, :string, required: true
+  attr :alt, :string, required: true
+  attr :class, :string, default: "w-11 h-11"
+
+  def product_thumb(assigns) do
+    ~H"""
+    <div class={[
+      "rounded-[10px] bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden",
+      @class
+    ]}>
+      <%= if @url do %>
+        <img src={@url} alt={@alt} class="w-full h-full object-cover" loading="lazy" />
+      <% else %>
+        <.icon name="hero-photo" class="size-5 text-slate-400" />
+      <% end %>
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
   # status_badge/1
   # ─────────────────────────────────────────────────────────────────────
 
@@ -307,12 +442,14 @@ defmodule EmakolaWeb.AdminComponents do
       assigns
       |> assign(:status_atom, status_atom)
       |> assign(:color_classes, color)
+      |> assign(:icon_name, status_icon(assigns.variant, status_atom))
 
     ~H"""
     <span class={[
-      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize",
+      "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize",
       @color_classes
     ]}>
+      <.icon :if={@icon_name} name={@icon_name} class="size-3.5 shrink-0" />
       {humanise(@status_atom)}
     </span>
     """
@@ -452,6 +589,26 @@ defmodule EmakolaWeb.AdminComponents do
 
   # ── Default ────────────────────────────────────────────────────────
   defp status_color(_variant, _status), do: "bg-slate-50 text-slate-700"
+
+  # ── Status icons ───────────────────────────────────────────────────
+  # Every known status carries a glyph so state reads by shape as well as
+  # color — many merchants scan icons faster than they read labels.
+  defp status_icon(:delivery, status), do: status_icon(:order, status)
+
+  defp status_icon(_variant, :pending), do: "hero-clock"
+  defp status_icon(_variant, :confirmed), do: "hero-check"
+  defp status_icon(_variant, :processing), do: "hero-arrow-path"
+  defp status_icon(_variant, :shipped), do: "hero-truck"
+  defp status_icon(_variant, :delivered), do: "hero-check-circle"
+  defp status_icon(_variant, :cancelled), do: "hero-x-mark"
+  defp status_icon(_variant, :refunded), do: "hero-arrow-uturn-left"
+  defp status_icon(_variant, :success), do: "hero-check"
+  defp status_icon(_variant, :failed), do: "hero-x-mark"
+  defp status_icon(_variant, :active), do: "hero-check"
+  defp status_icon(_variant, :published), do: "hero-check"
+  defp status_icon(_variant, :draft), do: "hero-pencil"
+  defp status_icon(_variant, :archived), do: "hero-archive-box"
+  defp status_icon(_variant, _status), do: nil
 
   defp humanise(atom) when is_atom(atom), do: atom |> Atom.to_string() |> String.replace("_", " ")
   defp humanise(other), do: to_string(other)

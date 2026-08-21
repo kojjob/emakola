@@ -5,6 +5,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Ash.Query
   require Logger
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
@@ -33,6 +34,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         statuses: @statuses
       )
       |> load_orders()
+      |> load_order_stats()
 
     {:ok, socket}
   end
@@ -87,11 +89,45 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header title="Orders" subtitle="Manage and track all customer orders" />
 
+      <%!-- KPI tiles (store-wide, independent of search/filter) --%>
+      <div id="order-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="stat-orders-today">
+          <.stat_card label="Orders today" value={to_string(@order_stats.today)}>
+            <:icon><.icon name="hero-shopping-bag" class="size-[18px] text-emerald-600" /></:icon>
+          </.stat_card>
+        </div>
+        <div id="stat-orders-pending">
+          <.stat_card
+            label="Pending"
+            value={to_string(@order_stats.status_counts.pending)}
+            icon_bg="bg-amber-50"
+          >
+            <:icon><.icon name="hero-clock" class="size-[18px] text-amber-600" /></:icon>
+          </.stat_card>
+        </div>
+        <div id="stat-orders-revenue">
+          <.stat_card label="Revenue (7 days)" value={format_price(@order_stats.revenue_7d, "GHS")}>
+            <:icon><.icon name="hero-banknotes" class="size-[18px] text-emerald-600" /></:icon>
+          </.stat_card>
+        </div>
+        <div id="stat-orders-delivered">
+          <.stat_card label="Delivered (30 days)" value={to_string(@order_stats.delivered_30d)}>
+            <:icon><.icon name="hero-check-circle" class="size-[18px] text-emerald-600" /></:icon>
+          </.stat_card>
+        </div>
+      </div>
+
       <%!-- Status Filter Tabs --%>
       <div class="flex flex-wrap items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-control p-1 overflow-x-auto">
-          <.status_tab :for={status <- @statuses} status={status} current={@status_filter} />
-        </div>
+        <.filter_tabs
+          id="orders-filter-tabs"
+          current={@status_filter}
+          tabs={
+            Enum.map(@statuses, fn status ->
+              %{key: status, label: status_label(status), count: tab_count(@order_stats, status)}
+            end)
+          }
+        />
 
         <%!-- Search --%>
         <.form
@@ -270,29 +306,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     """
   end
 
-  # ── Components ──
-
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-
-  defp status_tab(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-700"
-        )
-      ]}
-    >
-      {status_label(@status)}
-    </button>
-    """
-  end
-
   # ── Data Loading ──
 
   defp load_orders(socket) do
@@ -328,6 +341,94 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
     assign(socket, orders: orders, orders_limit: limit, more_orders?: more?)
   end
+
+  # Store-wide KPI numbers and per-status counts. Deliberately independent
+  # of the search/filter so the tiles and tab chips stay stable while the
+  # list narrows.
+  defp load_order_stats(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, order_stats: empty_order_stats())
+  end
+
+  defp load_order_stats(socket) do
+    store_id = socket.assigns.store_id
+    now = DateTime.utc_now()
+    start_of_today = %{now | hour: 0, minute: 0, second: 0, microsecond: {0, 6}}
+    seven_days_ago = DateTime.add(now, -7, :day)
+    thirty_days_ago = DateTime.add(now, -30, :day)
+
+    status_counts =
+      Map.new(@statuses -- [:all], fn status ->
+        {status, count_orders(store_id, status: status)}
+      end)
+
+    revenue_7d =
+      admin_orders_query(store_id)
+      |> Ash.Query.filter(
+        inserted_at >= ^seven_days_ago and status not in [:cancelled, :refunded]
+      )
+      |> Ash.sum(:total, authorize?: false)
+      |> case do
+        {:ok, sum} when is_integer(sum) -> sum
+        _ -> 0
+      end
+
+    assign(socket,
+      order_stats: %{
+        status_counts: status_counts,
+        all: status_counts |> Map.values() |> Enum.sum(),
+        today: count_orders(store_id, inserted_after: start_of_today),
+        revenue_7d: revenue_7d,
+        delivered_30d: count_orders(store_id, status: :delivered, inserted_after: thirty_days_ago)
+      }
+    )
+  rescue
+    exception ->
+      Logger.error("[order_live.index] load_order_stats raised: #{Exception.message(exception)}")
+
+      assign(socket, order_stats: empty_order_stats())
+  end
+
+  defp empty_order_stats do
+    %{
+      status_counts: Map.new(@statuses -- [:all], &{&1, 0}),
+      all: 0,
+      today: 0,
+      revenue_7d: 0,
+      delivered_30d: 0
+    }
+  end
+
+  defp count_orders(store_id, opts) do
+    query = admin_orders_query(store_id)
+
+    query =
+      case Keyword.get(opts, :status) do
+        nil -> query
+        status -> Ash.Query.filter(query, status == ^status)
+      end
+
+    query =
+      case Keyword.get(opts, :inserted_after) do
+        nil -> query
+        cutoff -> Ash.Query.filter(query, inserted_at >= ^cutoff)
+      end
+
+    case Ash.count(query, authorize?: false) do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  end
+
+  defp admin_orders_query(store_id) do
+    Ash.Query.for_read(Emakola.Orders.Order, :list_admin, %{
+      store_id: store_id,
+      status: nil,
+      search: nil
+    })
+  end
+
+  defp tab_count(order_stats, :all), do: order_stats.all
+  defp tab_count(order_stats, status), do: Map.get(order_stats.status_counts, status, 0)
 
   # ── Helpers ──
 
