@@ -432,6 +432,17 @@ defmodule EmakolaWeb.AdminComponentsTest do
       refute html =~ "tab-count"
     end
 
+    test "omits the count chip at zero" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: [%{key: :archived, label: "Archived", count: 0}],
+          current: :all
+        })
+
+      assert html =~ "Archived"
+      refute html =~ "tab-count"
+    end
+
     test "accepts a custom event name" do
       html =
         render_component(&AdminComponents.filter_tabs/1, %{

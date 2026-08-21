@@ -317,7 +317,7 @@ defmodule EmakolaWeb.AdminComponents do
       >
         {tab.label}
         <span
-          :if={tab.count}
+          :if={tab.count && tab.count > 0}
           class={[
             "tab-count text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums",
             if(tab.key == @current,
