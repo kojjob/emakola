@@ -298,6 +298,26 @@ defmodule Emakola.Content.Post do
       end)
     end
 
+    # Platform marketing blog (makola.io/blog) — posts with nil store_id.
+    # Scoped reads so merchant store posts can never leak onto the apex.
+    read :list_platform_published do
+      filter(expr(is_nil(store_id) and status == :published and type == :blog_post))
+
+      prepare(build(sort: [published_at: :desc]))
+    end
+
+    read :get_platform_by_slug do
+      get?(true)
+      argument(:slug, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          is_nil(store_id) and slug == ^arg(:slug) and status == :published and
+            type == :blog_post
+        )
+      )
+    end
+
     read :get_by_slug do
       argument(:slug, :string, allow_nil?: false)
       argument(:store_id, :uuid)
