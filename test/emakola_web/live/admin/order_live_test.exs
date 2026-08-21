@@ -160,6 +160,92 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     end
   end
 
+  describe "OrderLive.Show redesign" do
+    test "order journey timeline marks done, current and upcoming steps", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-timeline [data-step='confirmed'][data-state='done']")
+      assert has_element?(view, "#order-timeline [data-step='processing'][data-state='current']")
+      assert has_element?(view, "#order-timeline [data-step='shipped'][data-state='todo']")
+      assert has_element?(view, "#order-timeline", "Delivered")
+    end
+
+    test "a cancelled order shows a cancelled end on the timeline", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :cancelled)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-timeline [data-step='cancelled']")
+    end
+
+    test "an MTN mobile money payment shows the MTN MoMo rail chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+
+      create_paid_payment!(store, order, %{
+        "channel" => "mobile_money",
+        "authorization" => %{"channel" => "mobile_money", "bank" => "MTN"}
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "MTN MoMo")
+    end
+
+    test "a card payment shows the card rail chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+      create_paid_payment!(store, order, %{"channel" => "card"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "Card")
+    end
+
+    test "a hubtel payment without channel data shows the Hubtel chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+
+      Emakola.Factory.create_payment!(store, %{order_id: order.id, gateway: :hubtel})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "Hubtel")
+    end
+
+    test "line items lead with the product image", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      image = create_line_item_with_image!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "img[src='#{image.url}']")
+    end
+  end
+
   describe "OrderLive.Show" do
     test "renders order detail page", %{conn: conn, store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
@@ -741,6 +827,30 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     Emakola.Payments.ProtectionHold
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
     |> Ash.create!(authorize?: false)
+  end
+
+  defp create_paid_payment!(store, order, gateway_response) do
+    store
+    |> Emakola.Factory.create_payment!(%{order_id: order.id})
+    |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp create_line_item_with_image!(store, order) do
+    product = Emakola.Factory.create_product!(store, %{title: "Kente Scarf"})
+    variant = Emakola.Factory.create_variant!(product, store)
+    image = Emakola.Factory.create_image!(product, store)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: store.id,
+      variant_id: variant.id,
+      quantity: 1
+    })
+    |> Ash.create!(authorize?: false)
+
+    image
   end
 
   defp transition_to_status(order, :pending), do: order
