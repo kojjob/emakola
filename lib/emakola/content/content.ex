@@ -19,6 +19,8 @@ defmodule Emakola.Content do
       define(:list_posts_by_store, action: :list_by_store, args: [:store_id])
       define(:list_posts_admin, action: :list_admin, args: [:store_id])
       define(:list_published_posts, action: :list_published)
+      define(:list_platform_published_posts, action: :list_platform_published)
+      define(:get_platform_post_by_slug, action: :get_platform_by_slug, args: [:slug])
       define(:get_post_by_slug, action: :get_by_slug, args: [:slug])
       define(:get_post_for_admin, action: :get_for_admin, args: [:id, :store_id])
       define(:increment_post_views, action: :increment_views)
