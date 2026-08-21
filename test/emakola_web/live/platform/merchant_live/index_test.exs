@@ -120,6 +120,31 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
     end
   end
 
+  describe "studio layout" do
+    test "opening the page auto-selects the first merchant into the panel", %{conn: conn} do
+      first_merchant = Factory.create_merchant!(%{name: "Efua First", email: "efua@example.com"})
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+
+      assert has_element?(view, "#merchant-panel", "Efua First")
+      assert has_element?(view, "#merchant-#{first_merchant.id}[data-selected]")
+    end
+
+    test "clicking a queue row moves the selection", %{conn: conn} do
+      _first = Factory.create_merchant!(%{name: "Akos Alpha", email: "akos@example.com"})
+      second = Factory.create_merchant!(%{name: "Yaw Beta", email: "yawbeta@example.com"})
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+
+      view |> element("#merchant-#{second.id} button") |> render_click()
+
+      assert has_element?(view, "#merchant-panel", "Yaw Beta")
+      assert has_element?(view, "#merchant-#{second.id}[data-selected]")
+    end
+  end
+
   describe "drill-down drawer" do
     test "selecting a merchant loads their stores and roles", %{conn: conn} do
       m = Factory.create_merchant!(%{name: "Esi Owl", email: "esi@example.com"})
