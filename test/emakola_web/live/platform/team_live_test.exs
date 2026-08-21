@@ -101,6 +101,40 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
     end
   end
 
+  describe "second-pass polish" do
+    test "queue rows carry a 2FA pill and invites a countdown", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+      invite = Factory.create_platform_invite!(permissions: [:manage_merchants])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      # Staff created without TOTP wear an explicit 2FA-off pill in the queue
+      assert has_element?(view, "#staff-#{staff.id} [data-twofa='off']")
+      # Invites show a countdown, not just raw dates
+      assert has_element?(view, "#invite-#{invite.id}", "Expires in")
+    end
+
+    test "permissions render as toggle cards with a granted state", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+
+      assert has_element?(
+               view,
+               "#edit-permissions-form label[data-permission='manage_stores'][data-granted]"
+             )
+
+      refute has_element?(
+               view,
+               "#edit-permissions-form label[data-permission='manage_billing'][data-granted]"
+             )
+    end
+  end
+
   describe "edit permissions" do
     test "owner edits a staff member's permissions via the modal", %{conn: conn} do
       {conn, _owner, _session} = setup_platform_staff(conn)
