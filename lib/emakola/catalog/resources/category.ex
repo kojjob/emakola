@@ -82,6 +82,17 @@ defmodule Emakola.Catalog.Category do
     has_many :children, Emakola.Catalog.Category do
       destination_attribute(:parent_id)
     end
+
+    has_many :products, Emakola.Catalog.Product do
+      destination_attribute(:category_id)
+      public?(true)
+    end
+  end
+
+  aggregates do
+    count :product_count, :products do
+      public?(true)
+    end
   end
 
   identities do

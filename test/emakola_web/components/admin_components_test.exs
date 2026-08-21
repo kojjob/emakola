@@ -482,6 +482,29 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
       refute html =~ "hero-"
     end
+
+    test "supports a return variant with icons" do
+      requested =
+        render_component(&AdminComponents.status_badge/1, %{status: :requested, variant: :return})
+
+      approved =
+        render_component(&AdminComponents.status_badge/1, %{status: :approved, variant: :return})
+
+      denied =
+        render_component(&AdminComponents.status_badge/1, %{status: :denied, variant: :return})
+
+      refunded =
+        render_component(&AdminComponents.status_badge/1, %{status: :refunded, variant: :return})
+
+      assert requested =~ "warning"
+      assert requested =~ "hero-clock"
+      assert approved =~ "success-soft"
+      assert approved =~ "hero-check"
+      assert denied =~ "danger"
+      assert denied =~ "hero-x-mark"
+      assert refunded =~ "info"
+      assert refunded =~ "hero-arrow-uturn-left"
+    end
   end
 
   describe "stock_meter/1" do

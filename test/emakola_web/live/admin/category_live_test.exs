@@ -21,6 +21,37 @@ defmodule EmakolaWeb.Admin.CategoryLiveTest do
     %{conn: conn, merchant: merchant, store: store}
   end
 
+  describe "CategoryLive redesign" do
+    test "KPI tiles count categories, main groups and organized products", %{
+      conn: conn,
+      store: store
+    } do
+      fashion = Factory.create_category!(store, %{name: "Fashion"})
+      _beauty = Factory.create_category!(store, %{name: "Beauty"})
+      _kente = Factory.create_category!(store, %{name: "Kente", parent_id: fashion.id})
+      Factory.create_product!(store, %{category_id: fashion.id})
+      Factory.create_product!(store, %{category_id: fashion.id})
+      Factory.create_product!(store)
+
+      {:ok, view, html} = live(conn, ~p"/admin/categories")
+
+      assert has_element?(view, "#stat-categories-total", "3")
+      assert has_element?(view, "#stat-categories-main", "2")
+      assert has_element?(view, "#stat-categories-products", "2")
+      assert html =~ "1 uncategorized"
+    end
+
+    test "category cards show their product count", %{conn: conn, store: store} do
+      fashion = Factory.create_category!(store, %{name: "Fashion"})
+      Factory.create_product!(store, %{category_id: fashion.id})
+      Factory.create_product!(store, %{category_id: fashion.id})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/categories")
+
+      assert has_element?(view, "#category-#{fashion.id}", "2 products")
+    end
+  end
+
   describe "tenant isolation" do
     test "a crafted delete event cannot delete another store's category", %{
       conn: conn
