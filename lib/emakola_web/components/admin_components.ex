@@ -432,7 +432,7 @@ defmodule EmakolaWeb.AdminComponents do
       <.status_badge status="pending" variant={:payment} />
   """
   attr :status, :any, required: true
-  attr :variant, :atom, default: :order, values: [:order, :payment, :delivery, :product]
+  attr :variant, :atom, default: :order, values: [:order, :payment, :delivery, :product, :return]
 
   def status_badge(assigns) do
     status_atom = normalise_status(assigns.status)
@@ -587,6 +587,12 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_color(:product, :draft), do: "bg-slate-100 text-slate-700"
   defp status_color(:product, :archived), do: "bg-slate-200 text-slate-600"
 
+  # ── Return statuses ────────────────────────────────────────────────
+  defp status_color(:return, :requested), do: "bg-warning-soft text-warning"
+  defp status_color(:return, :approved), do: "bg-success-soft text-success"
+  defp status_color(:return, :denied), do: "bg-danger-soft text-danger"
+  defp status_color(:return, :refunded), do: "bg-info-soft text-info"
+
   # ── Default ────────────────────────────────────────────────────────
   defp status_color(_variant, _status), do: "bg-slate-50 text-slate-700"
 
@@ -608,6 +614,9 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_icon(_variant, :published), do: "hero-check"
   defp status_icon(_variant, :draft), do: "hero-pencil"
   defp status_icon(_variant, :archived), do: "hero-archive-box"
+  defp status_icon(_variant, :requested), do: "hero-clock"
+  defp status_icon(_variant, :approved), do: "hero-check"
+  defp status_icon(_variant, :denied), do: "hero-x-mark"
   defp status_icon(_variant, _status), do: nil
 
   defp humanise(atom) when is_atom(atom), do: atom |> Atom.to_string() |> String.replace("_", " ")
