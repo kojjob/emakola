@@ -32,13 +32,13 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       </div>
     <% else %>
       <%!-- Desktop Table (hidden on mobile) --%>
-      <div class="hidden md:block bg-white rounded-lg overflow-hidden">
+      <div class="hidden md:block bg-surface rounded-card border border-border shadow-sm overflow-hidden">
         <table class="w-full">
           <thead>
-            <tr class="border-b border-slate-100 text-left text-xs font-mono uppercase tracking-wider text-slate-500">
+            <tr class="border-b border-slate-200 bg-slate-50/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
               <th class="px-4 py-3">Product</th>
               <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Category</th>
+              <th class="px-4 py-3">Stock</th>
               <th class="px-4 py-3 text-right">Variants</th>
               <th class="px-4 py-3 text-right">Price</th>
               <th class="px-4 py-3"></th>
@@ -47,29 +47,26 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           <tbody>
             <tr
               :for={product <- @products}
-              class="border-b border-slate-100/50 hover:bg-slate-200/30 transition-colors"
+              class="border-b border-slate-100/50 hover:bg-slate-50 transition-colors"
             >
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <%= if first_image_url(product) do %>
-                      <img
-                        src={first_image_url(product)}
-                        alt={product.title}
-                        class="w-full h-full object-cover"
-                      />
-                    <% else %>
-                      <.icon name="hero-photo" class="size-5 text-slate-500/40" />
-                    <% end %>
+                  <.product_thumb url={first_image_url(product)} alt={product.title} />
+                  <div class="min-w-0">
+                    <p class="font-semibold text-sm text-slate-900 truncate max-w-[220px]">
+                      {product.title}
+                    </p>
+                    <p class="text-xs text-slate-400 truncate">
+                      {category_name(product.category_id, @categories)}
+                    </p>
                   </div>
-                  <span class="font-medium text-sm truncate max-w-[200px]">{product.title}</span>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <.status_badge status={product.status} variant={:product} />
               </td>
-              <td class="px-4 py-3 text-sm text-slate-500">
-                {category_name(product.category_id, @categories)}
+              <td class="px-4 py-3">
+                <.stock_meter quantity={total_stock(product)} />
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
                 {variant_count(product)} variants
@@ -131,24 +128,14 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       <div class="md:hidden space-y-3">
         <div
           :for={product <- @products}
-          class="bg-white rounded-lg p-4 space-y-3"
+          class="bg-surface rounded-card border border-border shadow-sm p-4 space-y-3"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <%= if first_image_url(product) do %>
-                  <img
-                    src={first_image_url(product)}
-                    alt={product.title}
-                    class="w-full h-full object-cover"
-                  />
-                <% else %>
-                  <.icon name="hero-photo" class="size-6 text-slate-500/40" />
-                <% end %>
-              </div>
+              <.product_thumb url={first_image_url(product)} alt={product.title} class="w-12 h-12" />
               <div class="min-w-0">
-                <p class="font-medium text-sm truncate">{product.title}</p>
-                <p class="text-xs text-slate-500">
+                <p class="font-semibold text-sm text-slate-900 truncate">{product.title}</p>
+                <p class="text-xs text-slate-400">
                   {category_name(product.category_id, @categories)}
                 </p>
               </div>
@@ -156,9 +143,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             <.status_badge status={product.status} variant={:product} />
           </div>
           <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500 font-mono">
-              {variant_count(product)} variants
-            </span>
+            <.stock_meter quantity={total_stock(product)} />
             <span class="font-mono font-medium">{price_range(product)}</span>
           </div>
           <div class="flex gap-2">
@@ -643,28 +628,6 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
     """
   end
 
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-  attr :label, :string, required: true
-
-  def status_tab(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-900"
-        )
-      ]}
-    >
-      {@label}
-    </button>
-    """
-  end
-
   # ── Display helpers (moved with the markup that uses them) ──
 
   defp sorted_variants(product), do: Shared.sorted_variants(product)
@@ -674,6 +637,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
   defp variant_count(product) do
     Map.get(product, :variant_count, 0)
+  end
+
+  # A product with no variants has a nil sum — read that as no stock.
+  defp total_stock(product) do
+    Map.get(product, :total_stock) || 0
   end
 
   defp price_range(product) do

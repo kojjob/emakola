@@ -180,6 +180,10 @@ defmodule Emakola.Catalog.Product do
   aggregates do
     count(:variant_count, :variants)
 
+    sum :total_stock, :variants, :stock_quantity do
+      public?(true)
+    end
+
     min :min_price, :variants, :price do
       public?(true)
     end
@@ -496,7 +500,10 @@ defmodule Emakola.Catalog.Product do
       )
 
       prepare(
-        build(sort: [inserted_at: :desc], load: [:variant_count, :min_price, :max_price, :images])
+        build(
+          sort: [inserted_at: :desc],
+          load: [:variant_count, :min_price, :max_price, :total_stock, :images]
+        )
       )
     end
 

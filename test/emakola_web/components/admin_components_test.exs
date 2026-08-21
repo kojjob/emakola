@@ -384,4 +384,135 @@ defmodule EmakolaWeb.AdminComponentsTest do
       refute html =~ ~s|href=|
     end
   end
+
+  describe "filter_tabs/1" do
+    defp tabs_fixture do
+      [
+        %{key: :all, label: "All", count: 8},
+        %{key: :active, label: "Active", count: 5},
+        %{key: :draft, label: "Draft", count: nil}
+      ]
+    end
+
+    test "renders a button per tab with label, count, and filter event" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :all
+        })
+
+      assert html =~ "All"
+      assert html =~ "Active"
+      assert html =~ ~s|phx-click="filter_status"|
+      assert html =~ ~s|phx-value-status="active"|
+      assert html =~ ~r|>\s*8\s*<|
+      assert html =~ ~r|>\s*5\s*<|
+    end
+
+    test "marks only the current tab as active" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :active
+        })
+
+      [_, all_button, active_button | _] = String.split(html, "<button")
+      refute all_button =~ "bg-white"
+      assert active_button =~ "bg-white"
+    end
+
+    test "omits the count chip when count is nil" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: [%{key: :draft, label: "Draft", count: nil}],
+          current: :all
+        })
+
+      assert html =~ "Draft"
+      refute html =~ "tab-count"
+    end
+
+    test "accepts a custom event name" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :all,
+          event: "filter_stock"
+        })
+
+      assert html =~ ~s|phx-click="filter_stock"|
+    end
+  end
+
+  describe "status_badge/1 icons" do
+    test "order statuses carry a status icon in the pill" do
+      pending = render_component(&AdminComponents.status_badge/1, %{status: :pending})
+      shipped = render_component(&AdminComponents.status_badge/1, %{status: :shipped})
+      cancelled = render_component(&AdminComponents.status_badge/1, %{status: :cancelled})
+
+      assert pending =~ "hero-clock"
+      assert shipped =~ "hero-truck"
+      assert cancelled =~ "hero-x-mark"
+    end
+
+    test "product statuses carry a status icon in the pill" do
+      active =
+        render_component(&AdminComponents.status_badge/1, %{status: :active, variant: :product})
+
+      draft =
+        render_component(&AdminComponents.status_badge/1, %{status: :draft, variant: :product})
+
+      assert active =~ "hero-check"
+      assert draft =~ "hero-pencil"
+    end
+
+    test "unknown statuses render without an icon" do
+      html = render_component(&AdminComponents.status_badge/1, %{status: :mystery})
+
+      refute html =~ "hero-"
+    end
+  end
+
+  describe "stock_meter/1" do
+    test "renders Out in danger colors at zero stock" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 0})
+
+      assert html =~ "Out"
+      assert html =~ "bg-red-500"
+    end
+
+    test "renders amber when stock is low" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 4})
+
+      assert html =~ ~r|>\s*4\s*<|
+      assert html =~ "bg-amber-500"
+    end
+
+    test "renders emerald when stock is healthy" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 15})
+
+      assert html =~ ~r|>\s*15\s*<|
+      assert html =~ "bg-emerald-500"
+    end
+  end
+
+  describe "product_thumb/1" do
+    test "renders the image when a url is given" do
+      html =
+        render_component(&AdminComponents.product_thumb/1, %{
+          url: "https://cdn.example.com/kente.jpg",
+          alt: "Kente Scarf"
+        })
+
+      assert html =~ ~s|src="https://cdn.example.com/kente.jpg"|
+      assert html =~ ~s|alt="Kente Scarf"|
+    end
+
+    test "falls back to a photo icon without a url" do
+      html = render_component(&AdminComponents.product_thumb/1, %{url: nil, alt: "Kente"})
+
+      refute html =~ "<img"
+      assert html =~ "hero-photo"
+    end
+  end
 end

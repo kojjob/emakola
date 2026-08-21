@@ -103,6 +103,63 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     end
   end
 
+  describe "OrderLive.Index redesign" do
+    test "renders KPI tiles for today, pending, revenue and delivered", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending, total: 10_000)
+      create_order!(store.id, customer.id, :pending, total: 10_000)
+      create_order!(store.id, customer.id, :delivered, total: 30_000)
+      create_order!(store.id, customer.id, :cancelled, total: 99_900)
+
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Orders today"
+      assert has_element?(view, "#stat-orders-today", "4")
+      assert has_element?(view, "#stat-orders-pending", "2")
+      # Cancelled money never counts as revenue.
+      assert has_element?(view, "#stat-orders-revenue", "GH₵ 500")
+      assert has_element?(view, "#stat-orders-delivered", "1")
+    end
+
+    test "filter tabs carry store-wide status counts", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending)
+      create_order!(store.id, customer.id, :pending)
+      create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=pending]", "2")
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=delivered]", "1")
+    end
+
+    test "tab counts stay store-wide while the list filters", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      pending = create_order!(store.id, customer.id, :pending)
+      delivered = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      view
+      |> element("#orders-filter-tabs button[phx-value-status=pending]")
+      |> render_click()
+
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "2")
+      assert render(view) =~ pending.order_number
+      refute render(view) =~ delivered.order_number
+    end
+  end
+
   describe "OrderLive.Show" do
     test "renders order detail page", %{conn: conn, store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
