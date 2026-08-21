@@ -15,13 +15,6 @@ defmodule EmakolaWeb.Platform.BillingLive do
 
   alias Emakola.Billing
 
-  @stat_colors %{
-    "blue" => "bg-blue-50 text-blue-600",
-    "emerald" => "bg-emerald-50 text-emerald-600",
-    "violet" => "bg-violet-50 text-violet-600",
-    "amber" => "bg-amber-50 text-amber-600"
-  }
-
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -151,20 +144,25 @@ defmodule EmakolaWeb.Platform.BillingLive do
       <div :if={@loaded} class="space-y-8">
         <%!-- Stat strip --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <.stat label="MRR" value={format_usd(@stats.mrr_cents)} icon="payments" color="emerald" />
-          <.stat
+          <.stat_tile
+            label="MRR"
+            value={format_usd(@stats.mrr_cents)}
+            icon="payments"
+            color="emerald"
+          />
+          <.stat_tile
             label="Active subscriptions"
             value={@stats.active_subscriptions}
             icon="autorenew"
             color="blue"
           />
-          <.stat
+          <.stat_tile
             label="Active plans"
             value={@stats.active_plans}
             icon="workspace_premium"
             color="violet"
           />
-          <.stat
+          <.stat_tile
             label="Needs attention"
             value={@stats.needs_attention}
             icon="warning"
@@ -327,28 +325,6 @@ defmodule EmakolaWeb.Platform.BillingLive do
           </div>
         </section>
       </div>
-    </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :color, :string, required: true
-
-  defp stat(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :color_class,
-        Map.get(@stat_colors, assigns.color, "bg-gray-50 text-gray-600")
-      )
-
-    ~H"""
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>{@icon}</span>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums mt-3">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
     </div>
     """
   end

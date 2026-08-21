@@ -112,6 +112,17 @@ defmodule EmakolaWeb.Platform.PaymentLiveTest do
       assert has_element?(view, "#recent-refunds > tr[id^='refunds-']")
     end
 
+    test "the hero charts daily GMV and the strip counts failures", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/payments")
+
+      assert has_element?(
+               view,
+               "canvas#payments-gmv-chart[phx-hook='ChartHook'][data-chart-type='gmv-line']"
+             )
+
+      assert has_element?(view, "#payments-failed-count", "1")
+    end
+
     test "shows gateway labels", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/platform/payments")
 
