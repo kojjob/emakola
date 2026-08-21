@@ -388,6 +388,10 @@ defmodule EmakolaWeb.Router do
     live "/shops/:region", ShopsLive
     live "/sell-online/:region", SellOnlineLive
     live "/docs", Docs.DocsLive
+    # Platform marketing blog — merchant-acquisition SEO content (nil store_id
+    # posts). Store subdomain /blog stays the storefront blog via the catch-all.
+    live "/blog", PlatformBlogLive
+    live "/blog/:post_slug", PlatformPostLive
     live "/about", Company.AboutLive
     live "/careers", Company.CareersLive
     live "/press", Company.PressLive

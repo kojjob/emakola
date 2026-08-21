@@ -167,6 +167,7 @@ defmodule EmakolaWeb.LandingComponents do
           </.footer_column>
 
           <.footer_column title="Resources">
+            <:link href="/blog">Blog</:link>
             <:link href="/contact">Help Center</:link>
             <:link href="/docs">Developer Docs</:link>
             <:link href="/stores">Browse stores</:link>
