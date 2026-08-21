@@ -85,4 +85,74 @@ defmodule Emakola.Platform.OnboardingTest do
     assert Enum.find_index(ids, &(&1 == bare.id)) <
              Enum.find_index(ids, &(&1 == full.id))
   end
+
+  describe "activity and stalling" do
+    test "a fresh store has idle_days 0 and is not stalled" do
+      Factory.create_store!()
+
+      [row] = Onboarding.overview().stores
+
+      assert row.idle_days == 0
+      assert row.stalled? == false
+    end
+
+    test "an incomplete store with no activity for 7+ days is stalled" do
+      old_store = Factory.create_store!()
+
+      aged_at = DateTime.add(DateTime.utc_now(), -10, :day)
+
+      import Ecto.Query, only: [from: 2]
+
+      Emakola.Repo.update_all(
+        from(s in "stores", where: s.id == type(^old_store.id, Ecto.UUID)),
+        set: [inserted_at: aged_at]
+      )
+
+      [row] = Onboarding.overview().stores
+
+      assert row.idle_days >= 10
+      assert row.stalled? == true
+    end
+
+    test "recent product activity resets the idle clock" do
+      old_store = Factory.create_store!()
+
+      aged_at = DateTime.add(DateTime.utc_now(), -10, :day)
+
+      import Ecto.Query, only: [from: 2]
+
+      Emakola.Repo.update_all(
+        from(s in "stores", where: s.id == type(^old_store.id, Ecto.UUID)),
+        set: [inserted_at: aged_at]
+      )
+
+      Factory.create_product!(old_store)
+
+      [row] = Onboarding.overview().stores
+
+      assert row.idle_days == 0
+      assert row.stalled? == false
+    end
+
+    test "a fully-onboarded store never counts as stalled" do
+      full = Factory.create_store!() |> onboard_fully!()
+
+      aged_at = DateTime.add(DateTime.utc_now(), -30, :day)
+
+      import Ecto.Query, only: [from: 2]
+
+      for table <- ["stores"] do
+        Emakola.Repo.update_all(
+          from(row in table, where: row.id == type(^full.id, Ecto.UUID)),
+          set: [inserted_at: aged_at]
+        )
+      end
+
+      overview = Onboarding.overview()
+      full_row = Enum.find(overview.stores, &(&1.id == full.id))
+
+      assert full_row.stalled? == false
+      assert overview.stalled_count == Enum.count(overview.stores, & &1.stalled?)
+    end
+  end
 end

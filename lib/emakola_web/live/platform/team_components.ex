@@ -169,11 +169,16 @@ defmodule EmakolaWeb.Platform.TeamComponents do
         >
           Deactivated
         </span>
-        <.icon
-          :if={SecretStorage.totp_configured?(user)}
-          name="hero-shield-check"
-          class="size-3.5 text-green-600 shrink-0"
-        />
+        <span :if={SecretStorage.totp_configured?(user)} data-twofa="on" class="shrink-0">
+          <.icon name="hero-shield-check" class="size-3.5 text-green-600" />
+        </span>
+        <span
+          :if={!SecretStorage.totp_configured?(user)}
+          data-twofa="off"
+          class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-600/20 shrink-0"
+        >
+          2FA OFF
+        </span>
       </div>
 
       <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em]">
@@ -193,9 +198,18 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             {invite.email}
           </p>
           <p class="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
-            {"Invited #{Calendar.strftime(invite.inserted_at, "%b %d")} · expires #{Calendar.strftime(invite.expires_at, "%b %d")}"}
+            {"Invited #{Calendar.strftime(invite.inserted_at, "%b %d")}"}
           </p>
         </div>
+        <span class={[
+          "inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ring-1 ring-inset",
+          if(invite_days_left(invite) <= 2,
+            do: "bg-rose-50 text-rose-600 ring-rose-600/20",
+            else: "bg-amber-50 text-amber-700 ring-amber-600/20"
+          )
+        ]}>
+          {"Expires in #{invite_days_left(invite)}d"}
+        </span>
         <button
           type="button"
           id={"resend-invite-#{invite.id}"}
@@ -312,13 +326,17 @@ defmodule EmakolaWeb.Platform.TeamComponents do
         Permissions
       </p>
       <.form for={@form} id="edit-permissions-form" phx-submit="save_permissions">
-        <div class="border border-gray-200 rounded-xl overflow-hidden grid grid-cols-1 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <label
-            :for={{perm, index} <- Enum.with_index(@all_permissions)}
+            :for={perm <- @all_permissions}
+            data-permission={perm}
+            data-granted={permission_selected?(@form, perm)}
             class={[
-              "flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors",
-              index < length(@all_permissions) - 2 && "border-b border-gray-100",
-              rem(index, 2) == 0 && "sm:border-r sm:border-r-gray-100"
+              "flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer transition-colors ring-1 ring-inset",
+              if(permission_selected?(@form, perm),
+                do: "bg-blue-50/70 ring-blue-200 hover:bg-blue-50",
+                else: "bg-white ring-gray-200 hover:bg-slate-50"
+              )
             ]}
           >
             <input
@@ -366,6 +384,13 @@ defmodule EmakolaWeb.Platform.TeamComponents do
 
   defp selected?(nil, _user), do: false
   defp selected?(edit_user, user), do: edit_user.id == user.id
+
+  defp invite_days_left(invite) do
+    invite.expires_at
+    |> DateTime.to_date()
+    |> Date.diff(Date.utc_today())
+    |> max(0)
+  end
 
   defp avatar_tint(user) do
     Enum.at(@avatar_tints, :erlang.phash2(user.id, length(@avatar_tints)))

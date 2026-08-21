@@ -19,7 +19,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
   alias Emakola.Accounts.PlatformAuditLog
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Notifications.Workers.StoreStatusNotificationWorker
+  alias Emakola.Platform.StoreCaseFile
   alias Emakola.Stores
+
+  @milestone_labels [
+    products: "Products",
+    live: "Storefront live",
+    payout: "Payout",
+    kyc: "KYC",
+    first_order: "First order"
+  ]
 
   @reason_required ~w(suspend block)
   @actions ~w(suspend block archive)
@@ -35,6 +44,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
       |> assign(:action_form, to_form(%{"reason" => ""}))
       |> assign(:store, nil)
       |> assign(:owner, nil)
+      |> assign(:case_file, nil)
       |> assign(:history, [])
       |> assign(:history_actors, %{})
       |> assign(:not_found, false)
@@ -166,6 +176,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
         socket
         |> assign(:store, store)
         |> assign(:owner, find_owner(store))
+        |> assign(:case_file, StoreCaseFile.load(store))
         |> load_history(store.id)
 
       {:error, _} ->
@@ -259,8 +270,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
               </span>
             </div>
             <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-              <span class="font-mono">{@store.slug}</span> {"· #{Map.get(@store, :currency) || "GHS"} · Since #{Calendar.strftime(@store.inserted_at, "%b %d, %Y")}"}
+              <span class="font-mono">{@store.slug}</span> {"· #{Map.get(@store, :currency) || "GHS"} · Since #{Calendar.strftime(@store.inserted_at, "%b %d, %Y")} · Owner #{(@owner && to_string(Map.get(@owner, :name) || Map.get(@owner, :email))) || "—"}"}
             </p>
+          </div>
+          <div :if={@case_file && @case_file.product_photo_urls != []} class="flex gap-1.5 shrink-0">
+            <img
+              :for={photo_url <- @case_file.product_photo_urls}
+              src={photo_url}
+              alt=""
+              class="w-12 h-12 rounded-[10px] object-cover ring-1 ring-inset ring-gray-200"
+            />
           </div>
           <a
             href={"/s/#{@store.slug}"}
@@ -289,117 +308,256 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
           </div>
         </div>
 
-        <%!-- Detail cards --%>
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Owner</span>
-              <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                <.icon name="hero-user" class="size-5" />
-              </span>
-            </div>
-            <p class="mt-3 text-sm font-semibold text-gray-900 truncate">
-              {(@owner && (Map.get(@owner, :name) || Map.get(@owner, :email))) || "—"}
-            </p>
-            <p :if={@owner && Map.get(@owner, :email)} class="text-xs text-gray-500 truncate">
-              {@owner.email}
-            </p>
-          </div>
+        <%!-- Health tiles --%>
+        <div :if={@case_file} class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
           <.stat_tile
             label="Products"
             value={Map.get(@store, :product_count) || 0}
             icon="inventory_2"
             color="violet"
           />
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Created</span>
-              <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <.icon name="hero-calendar" class="size-5" />
-              </span>
+          <.stat_tile
+            id="store-orders-count"
+            label="Orders"
+            value={@case_file.orders_count}
+            icon="shopping_bag"
+            color="emerald"
+          />
+          <.stat_tile
+            id="store-gmv"
+            label="GMV"
+            value={format_gmv(@case_file.gmv)}
+            icon="payments"
+            color="amber"
+          />
+          <.stat_tile
+            id="store-holds-count"
+            label="Protection holds"
+            value={@case_file.holds_count}
+            icon="verified_user"
+            color="rose"
+          />
+          <.stat_tile
+            id="store-refunds-count"
+            label="Refunds"
+            value={@case_file.refunds_count}
+            icon="undo"
+            color="slate"
+          />
+        </div>
+
+        <div :if={@case_file} class="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr] items-start">
+          <div class="min-w-0 space-y-6">
+            <%!-- Onboarding checklist --%>
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[15px] font-bold text-gray-900">Onboarding checklist</h2>
+                <.severity_pill label={"#{@case_file.completed} of 5"} tone="blue" />
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div
+                  :for={{milestone_key, milestone_label} <- milestone_labels()}
+                  data-milestone={milestone_key}
+                  data-done={@case_file.milestones[milestone_key]}
+                  class={[
+                    "flex flex-col items-center gap-2 rounded-xl px-2 py-3.5 text-center",
+                    if(@case_file.milestones[milestone_key],
+                      do: "border border-emerald-100 bg-emerald-50/60",
+                      else: "border border-dashed border-gray-200 bg-slate-50"
+                    )
+                  ]}
+                >
+                  <.icon
+                    :if={@case_file.milestones[milestone_key]}
+                    name="hero-check-circle"
+                    class="size-5 text-emerald-500"
+                  />
+                  <span
+                    :if={!@case_file.milestones[milestone_key]}
+                    class="size-5 rounded-full border-2 border-gray-300"
+                  >
+                  </span>
+                  <span class={[
+                    "text-[12px] font-semibold leading-tight",
+                    if(@case_file.milestones[milestone_key],
+                      do: "text-emerald-800",
+                      else: "text-gray-400"
+                    )
+                  ]}>
+                    {milestone_label}
+                  </span>
+                </div>
+              </div>
             </div>
-            <p class="mt-3 text-sm font-semibold text-gray-900">
-              {Calendar.strftime(@store.inserted_at, "%b %d, %Y")}
-            </p>
-            <p class="text-xs text-gray-500">{Map.get(@store, :currency, "GHS")}</p>
-          </div>
-        </div>
 
-        <%!-- Lifecycle actions --%>
-        <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Lifecycle</p>
-          <p class="text-xs text-gray-400 mt-0.5">
-            Actions notify the merchant and are recorded in the audit log.
-          </p>
-          <div class="mt-3 flex items-center gap-2 flex-wrap">
-            <button
-              :if={@store.status == :active}
-              type="button"
-              phx-click="open_action_modal"
-              phx-value-action="suspend"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100 transition-colors"
-            >
-              <.icon name="hero-pause-circle" class="size-4" /> Suspend
-            </button>
-            <button
-              :if={@store.status in [:active, :suspended]}
-              type="button"
-              phx-click="open_action_modal"
-              phx-value-action="block"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20 hover:bg-rose-100 transition-colors"
-            >
-              <.icon name="hero-no-symbol" class="size-4" /> Block
-            </button>
-            <button
-              :if={@store.status != :active}
-              type="button"
-              phx-click="reactivate"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 hover:bg-green-100 transition-colors"
-            >
-              <.icon name="hero-arrow-path" class="size-4" /> Reactivate
-            </button>
-            <button
-              :if={@store.status != :archived}
-              type="button"
-              phx-click="open_action_modal"
-              phx-value-action="archive"
-              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20 hover:bg-slate-200 transition-colors"
-            >
-              <.icon name="hero-archive-box" class="size-4" /> Archive
-            </button>
-          </div>
-        </div>
+            <%!-- Directory presence --%>
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[15px] font-bold text-gray-900">Directory presence</h2>
+                <.link
+                  navigate={~p"/platform/stores"}
+                  class="text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  Open Directory Studio &rarr;
+                </.link>
+              </div>
+              <div class="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+                <div>
+                  <p class="text-xs font-medium text-gray-500">Directory views</p>
+                  <p class="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+                    {Map.get(@store, :view_count) || 0}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-gray-500 mb-1.5">Featured</p>
+                  <.severity_pill
+                    label={if Map.get(@store, :featured), do: "Featured", else: "Not featured"}
+                    tone={if Map.get(@store, :featured), do: "amber", else: "slate"}
+                  />
+                </div>
+              </div>
+            </div>
 
-        <%!-- Lifecycle history --%>
-        <div class="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div class="px-5 py-4 border-b border-gray-100">
-            <h2 class="text-sm font-semibold text-gray-900">Lifecycle history</h2>
+            <%!-- Recent orders --%>
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="px-5 py-4 border-b border-gray-100">
+                <h2 class="text-[15px] font-bold text-gray-900">Recent orders</h2>
+              </div>
+              <div id="store-recent-orders">
+                <p
+                  :if={@case_file.recent_orders == []}
+                  class="px-5 py-8 text-center text-sm text-gray-400"
+                >
+                  No orders yet.
+                </p>
+                <div
+                  :for={order <- @case_file.recent_orders}
+                  class="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-b-0"
+                >
+                  <span class="font-mono text-[13px] font-semibold text-gray-900">
+                    {order.order_number}
+                  </span>
+                  <span class="text-xs text-gray-400">
+                    {Calendar.strftime(order.inserted_at, "%b %d, %Y")}
+                  </span>
+                  <span class="flex-1"></span>
+                  <.severity_pill
+                    label={order_status_label(order.status)}
+                    tone={order_status_tone(order.status)}
+                  />
+                  <span class="font-mono text-[13px] font-bold text-gray-900 tabular-nums">
+                    {format_gmv(order.total || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <p :if={@history == []} class="px-5 py-8 text-center text-sm text-gray-400">
-            No lifecycle events yet.
-          </p>
-          <div
-            :for={entry <- @history}
-            class="px-5 py-4 flex items-start gap-3.5 border-b border-gray-100 last:border-b-0"
-          >
-            <span class={[
-              "flex h-9 w-9 items-center justify-center rounded-[10px] shrink-0",
-              history_chip_class(entry.action)
-            ]}>
-              <.icon name={history_icon(entry.action)} class="size-[18px]" />
-            </span>
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-gray-900">{history_label(entry.action)}</p>
-              <p :if={entry.metadata["reason"]} class="text-[13px] text-gray-600">
-                {entry.metadata["reason"]}
+
+          <div class="min-w-0 space-y-6">
+            <%!-- Lifecycle actions --%>
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                Lifecycle
               </p>
               <p class="text-xs text-gray-400 mt-0.5">
-                {Map.get(@history_actors, entry.actor_id, "system")}
+                Actions notify the merchant and are recorded in the audit log.
               </p>
+              <div class="mt-3 flex items-center gap-2 flex-wrap">
+                <button
+                  :if={@store.status == :active}
+                  type="button"
+                  phx-click="open_action_modal"
+                  phx-value-action="suspend"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100 transition-colors"
+                >
+                  <.icon name="hero-pause-circle" class="size-4" /> Suspend
+                </button>
+                <button
+                  :if={@store.status in [:active, :suspended]}
+                  type="button"
+                  phx-click="open_action_modal"
+                  phx-value-action="block"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20 hover:bg-rose-100 transition-colors"
+                >
+                  <.icon name="hero-no-symbol" class="size-4" /> Block
+                </button>
+                <button
+                  :if={@store.status != :active}
+                  type="button"
+                  phx-click="reactivate"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 hover:bg-green-100 transition-colors"
+                >
+                  <.icon name="hero-arrow-path" class="size-4" /> Reactivate
+                </button>
+                <button
+                  :if={@store.status != :archived}
+                  type="button"
+                  phx-click="open_action_modal"
+                  phx-value-action="archive"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20 hover:bg-slate-200 transition-colors"
+                >
+                  <.icon name="hero-archive-box" class="size-4" /> Archive
+                </button>
+              </div>
             </div>
-            <p class="text-xs text-gray-400 whitespace-nowrap shrink-0">
-              {Calendar.strftime(entry.inserted_at, "%b %d, %Y %H:%M")}
-            </p>
+
+            <%!-- Lifecycle history (severity timeline) --%>
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 class="text-[15px] font-bold text-gray-900 mb-4">Lifecycle history</h2>
+              <p :if={@history == []} class="py-4 text-center text-sm text-gray-400">
+                No lifecycle events yet.
+              </p>
+              <ol id="store-lifecycle-history">
+                <li
+                  :for={entry <- @history}
+                  data-severity={history_severity(entry.action)}
+                  class="relative flex gap-3.5 pb-5 last:pb-0"
+                >
+                  <div class="flex flex-col items-center">
+                    <span class={[
+                      "mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-white shrink-0",
+                      history_dot_class(entry.action)
+                    ]}>
+                    </span>
+                    <span class="w-px flex-1 bg-gray-100"></span>
+                  </div>
+                  <div class="min-w-0 flex-1 -mt-0.5">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <.severity_pill
+                        label={history_label(entry.action)}
+                        tone={history_tone(entry.action)}
+                      />
+                      <span class="font-mono text-[11px] text-gray-400">
+                        {Calendar.strftime(entry.inserted_at, "%b %d, %Y %H:%M")}
+                      </span>
+                    </div>
+                    <p :if={entry.metadata["reason"]} class="mt-1 text-[13px] text-gray-600">
+                      {entry.metadata["reason"]}
+                    </p>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {to_string(Map.get(@history_actors, entry.actor_id, "system"))}
+                    </p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <%!-- Verification --%>
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between">
+                <h2 class="text-[15px] font-bold text-gray-900">Verification</h2>
+                <.severity_pill
+                  label={verification_label(@case_file.verification_status)}
+                  tone={verification_tone(@case_file.verification_status)}
+                />
+              </div>
+              <.link
+                navigate={~p"/platform/verifications"}
+                class="mt-2 inline-block text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+              >
+                Open Verification Studio &rarr;
+              </.link>
+            </div>
           </div>
         </div>
       </div>
@@ -478,17 +636,48 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
   defp history_label(action),
     do: action |> Atom.to_string() |> String.replace("_", " ") |> String.capitalize()
 
-  defp history_icon(:store_suspended), do: "hero-pause-circle"
-  defp history_icon(:store_blocked), do: "hero-no-symbol"
-  defp history_icon(:store_reactivated), do: "hero-arrow-path"
-  defp history_icon(:store_archived), do: "hero-archive-box"
-  defp history_icon(_), do: "hero-pencil-square"
+  defp history_severity(:store_suspended), do: "amber"
+  defp history_severity(:store_blocked), do: "red"
+  defp history_severity(:store_reactivated), do: "green"
+  defp history_severity(_), do: "neutral"
 
-  defp history_chip_class(:store_suspended), do: "bg-amber-100 text-amber-600"
-  defp history_chip_class(:store_blocked), do: "bg-rose-100 text-rose-600"
-  defp history_chip_class(:store_reactivated), do: "bg-green-100 text-green-700"
-  defp history_chip_class(:store_archived), do: "bg-slate-100 text-slate-500"
-  defp history_chip_class(_), do: "bg-slate-100 text-slate-500"
+  # severity_pill has no "neutral" tone — the neutral family wears slate.
+  defp history_tone(action) do
+    case history_severity(action) do
+      "neutral" -> "slate"
+      family -> family
+    end
+  end
+
+  defp history_dot_class(action) do
+    case history_severity(action) do
+      "amber" -> "bg-amber-500"
+      "red" -> "bg-rose-500"
+      "green" -> "bg-emerald-500"
+      "neutral" -> "bg-gray-300"
+    end
+  end
+
+  defp milestone_labels, do: @milestone_labels
+
+  defp format_gmv(amount_minor) when is_integer(amount_minor), do: "GHS #{div(amount_minor, 100)}"
+  defp format_gmv(_), do: "GHS 0"
+
+  defp order_status_label(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
+
+  defp order_status_tone(status) when status in [:paid, :completed, :delivered], do: "green"
+  defp order_status_tone(:pending), do: "amber"
+  defp order_status_tone(status) when status in [:cancelled, :refunded], do: "red"
+  defp order_status_tone(_), do: "slate"
+
+  defp verification_label(nil), do: "Not submitted"
+  defp verification_label(status), do: status |> to_string() |> String.capitalize()
+
+  defp verification_tone(:approved), do: "green"
+  defp verification_tone(:pending), do: "amber"
+  defp verification_tone(:rejected), do: "red"
+  defp verification_tone(_), do: "slate"
 
   defp modal_icon("suspend"), do: "hero-pause-circle"
   defp modal_icon("block"), do: "hero-no-symbol"
