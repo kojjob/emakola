@@ -79,13 +79,23 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     |> assign(:loaded, true)
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
+    |> assign(:fees_trend, FinanceStats.platform_fees_by_day(30))
     |> assign(:finance_store_ids, MapSet.new(store_rows, & &1.store.id))
     |> assign(:finance_store_count, length(store_rows))
+    |> assign_worklist_readiness(store_rows)
     |> assign(:payout_group_count, length(payout_groups))
     |> assign(:remediation_count, length(remediation_rows))
     |> stream(:store_rows, store_rows, reset: true)
     |> stream(:payout_groups, payout_groups, reset: true)
     |> stream(:remediation_rows, remediation_rows, reset: true, dom_id: &remediation_dom_id/1)
+  end
+
+  defp assign_worklist_readiness(socket, store_rows) do
+    payable_rows = Enum.filter(store_rows, &(&1.outstanding_owed > 0))
+
+    socket
+    |> assign(:payouts_ready_count, Enum.count(payable_rows, & &1.payouts_ready?))
+    |> assign(:payouts_blocked_count, Enum.count(payable_rows, &(!&1.payouts_ready?)))
   end
 
   defp remediation_dom_id(%{split: split}), do: "remediation-row-#{split.id}"
@@ -148,6 +158,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     socket
     |> assign(:finance_store_ids, MapSet.new(rows, & &1.store.id))
     |> assign(:finance_store_count, length(rows))
+    |> assign_worklist_readiness(rows)
     |> stream(:store_rows, rows, reset: true)
   end
 
@@ -285,7 +296,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     <div class="p-6 lg:p-8 max-w-7xl mx-auto">
       <.page_header
         title="Finance"
-        subtitle="Platform revenue &amp; merchant payout balances across all stores"
+        subtitle="Platform revenue & merchant payout balances across all stores"
       />
 
       <%= if @loaded == false do %>
@@ -297,49 +308,81 @@ defmodule EmakolaWeb.Platform.FinanceLive do
         </div>
         <span class="sr-only">Loading finance data…</span>
       <% else %>
-        <%!-- ── Revenue stat strip ─────────────────────────────────────── --%>
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <.stat_tile
-            label="Platform fees collected"
-            value={Currency.format_price(@stats.fees)}
-            icon="account_balance_wallet"
-            color="emerald"
-          />
-          <.stat_tile
-            label="GMV"
-            value={Currency.format_price(@stats.gmv)}
-            icon="trending_up"
-            color="blue"
-          />
-          <.stat_tile
-            label="Effective take rate"
-            value={format_rate(@take_rate)}
-            icon="percent"
-            color="violet"
-          />
-          <.stat_tile
-            label="Outstanding payouts"
-            value={Currency.format_price(@stats.outstanding)}
-            icon="payments"
-            color="amber"
-          />
-          <.stat_tile
-            id="remediation-count"
-            label="Unreclaimable releases"
-            value={@remediation_count}
-            icon="flag"
-            color="rose"
-          />
+        <%!-- ── Revenue hero: fees trend + stacked tiles ───────────────── --%>
+        <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 mb-8 items-stretch">
+          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h2 class="text-[13px] font-bold text-gray-900">
+                  Platform fees collected · last 30 days
+                </h2>
+                <p class="mt-1 text-2xl font-bold text-gray-900 tabular-nums">
+                  {Currency.format_price(@stats.fees)}
+                </p>
+              </div>
+              <.severity_pill label={"Take rate #{format_rate(@take_rate)}"} tone="emerald" />
+            </div>
+            <div class="flex-1 min-h-36 mt-3">
+              <canvas
+                id="fees-trend-chart"
+                phx-hook="ChartHook"
+                phx-update="ignore"
+                data-chart-type="gmv-line"
+                data-chart-data={Jason.encode!(@fees_trend)}
+              >
+              </canvas>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <.stat_tile
+              label="GMV"
+              value={Currency.format_price(@stats.gmv)}
+              icon="trending_up"
+              color="blue"
+            />
+            <.stat_tile
+              label="Outstanding payouts"
+              value={Currency.format_price(@stats.outstanding)}
+              icon="payments"
+              color="amber"
+            />
+            <.stat_tile
+              label="Recent payouts"
+              value={@payout_group_count}
+              icon="account_balance_wallet"
+              color="emerald"
+            />
+            <.stat_tile
+              id="remediation-count"
+              label="Unreclaimable releases"
+              value={@remediation_count}
+              icon="flag"
+              color="rose"
+            />
+          </div>
         </div>
 
         <%!-- ── Per-store breakdown ────────────────────────────────────── --%>
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900">By store</h2>
-            <p class="text-xs text-gray-400 mt-0.5">
-              Sorted by outstanding balance — the manual-payout worklist. Click a store to see
-              its gateway vs. ledger breakdown.
-            </p>
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">Payout worklist</h2>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sorted by outstanding balance. Click a store to see its gateway vs. ledger
+                breakdown.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="payouts-ready-count">
+                <.severity_pill label={"#{@payouts_ready_count} ready"} tone="green" />
+              </span>
+              <span id="payouts-blocked-count">
+                <.severity_pill
+                  label={"#{@payouts_blocked_count} blocked · no payout destination"}
+                  tone="amber"
+                />
+              </span>
+            </div>
           </div>
           <.platform_empty_state
             :if={@finance_store_count == 0}
@@ -427,7 +470,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   class="bg-gray-50"
                 >
                   <td colspan="5" class="px-6 py-4 text-sm text-gray-600">
-                    <div class="flex flex-wrap gap-6">
+                    <div class="flex flex-wrap items-center gap-6">
                       <div>
                         <span class="text-xs uppercase tracking-wide text-gray-400">
                           Gateway (legacy)
@@ -444,6 +487,13 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                           {Currency.format_price(row.internal_owed)}
                         </p>
                       </div>
+                      <div class="flex-1"></div>
+                      <.link
+                        navigate={~p"/platform/stores/#{row.store.id}"}
+                        class="text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        Open store case file &rarr;
+                      </.link>
                     </div>
                   </td>
                 </tr>
@@ -497,7 +547,14 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                 </tr>
                 <tr :for={payout <- group.payouts} class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                    {(payout.store && payout.store.name) || "—"}
+                    <span class="flex items-center gap-2.5">
+                      <.store_avatar
+                        :if={payout.store}
+                        store={payout.store}
+                        class="w-8 h-8 rounded-[9px] text-[13px]"
+                      />
+                      {(payout.store && payout.store.name) || "—"}
+                    </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-900">
                     {Currency.format_price(payout.amount)}

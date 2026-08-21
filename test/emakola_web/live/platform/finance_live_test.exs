@@ -85,6 +85,49 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       assert html =~ "GH₵"
     end
 
+    test "the hero charts daily fees and the subtitle escapes cleanly", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
+
+      assert has_element?(
+               view,
+               "canvas#fees-trend-chart[phx-hook='ChartHook'][data-chart-type='gmv-line']"
+             )
+
+      # The subtitle used to hand HEEx a pre-escaped "&amp;", which
+      # double-escaped into a literal "&amp;" on screen.
+      refute html =~ "&amp;amp;"
+    end
+
+    test "the worklist header counts ready and blocked stores", %{conn: conn} do
+      blocked_store = Factory.create_store!(%{name: "Blocked Stall"})
+      success_payment!(blocked_store, %{amount: 30_000})
+
+      ready_store = Factory.create_store!(%{name: "Ready Stall"})
+      success_payment!(ready_store, %{amount: 20_000})
+      momo_account!(ready_store)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      assert has_element?(view, "#payouts-ready-count", "1 ready")
+      assert has_element?(view, "#payouts-blocked-count", "1 blocked")
+    end
+
+    test "an expanded breakdown links into the store case file", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Case Linked"})
+      success_payment!(store, %{amount: 15_000})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      view
+      |> element("button[phx-click='toggle_store_breakdown'][phx-value-store_id='#{store.id}']")
+      |> render_click()
+
+      assert has_element?(
+               view,
+               "#store-breakdown-#{store.id} a[href='/platform/stores/#{store.id}']"
+             )
+    end
+
     test "renders a per-store row with fees, outstanding and payout readiness", %{conn: conn} do
       owed_store = Factory.create_store!(%{name: "Owed Kingdom"})
       success_payment!(owed_store, %{amount: 80_000})

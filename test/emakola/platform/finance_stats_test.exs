@@ -254,4 +254,29 @@ defmodule Emakola.Platform.FinanceStatsTest do
       assert FinanceStats.remediation_splits() == []
     end
   end
+
+  describe "platform_fees_by_day/1" do
+    test "buckets settled fees per day, oldest first, gaps filled" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+      payment |> platform_fee_split!(200) |> settle!()
+
+      series = FinanceStats.platform_fees_by_day(7)
+
+      assert length(series.labels) == 7
+      assert length(series.values) == 7
+      assert List.last(series.values) == 200
+      assert Enum.sum(series.values) == 200
+    end
+
+    test "pending splits stay out of the series" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+      _pending = platform_fee_split!(payment, 300)
+
+      series = FinanceStats.platform_fees_by_day(7)
+
+      assert Enum.sum(series.values) == 0
+    end
+  end
 end
