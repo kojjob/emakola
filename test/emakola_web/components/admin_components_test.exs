@@ -507,6 +507,33 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "payment_rail_chip/1" do
+    test "MTN MoMo wears the brand yellow" do
+      html = render_component(&AdminComponents.payment_rail_chip/1, %{rail: :mtn_momo})
+
+      assert html =~ "MTN MoMo"
+      assert html =~ "FFCC08"
+    end
+
+    test "Telecel Cash wears the brand red" do
+      html = render_component(&AdminComponents.payment_rail_chip/1, %{rail: :telecel_cash})
+
+      assert html =~ "Telecel Cash"
+      assert html =~ "E60000"
+    end
+
+    test "AT Money, card, Hubtel and Paystack each get their own chip" do
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :airteltigo}) =~
+               "AT Money"
+
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :card}) =~ "Card"
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :hubtel}) =~ "Hubtel"
+
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :paystack}) =~
+               "Paystack"
+    end
+  end
+
   describe "stock_meter/1" do
     test "renders Out in danger colors at zero stock" do
       html = render_component(&AdminComponents.stock_meter/1, %{quantity: 0})

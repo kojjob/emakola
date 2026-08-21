@@ -411,6 +411,59 @@ defmodule EmakolaWeb.AdminComponents do
   end
 
   # ─────────────────────────────────────────────────────────────────────
+  # payment_rail_chip/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a payment rail chip in the rail's brand colour, so merchants
+  recognize how they were paid by colour before reading a word.
+
+  ## Examples
+
+      <.payment_rail_chip rail={:mtn_momo} />
+      <.payment_rail_chip id="payment-rail-chip" rail={:hubtel} />
+  """
+  attr :rail, :atom,
+    required: true,
+    values: [:mtn_momo, :telecel_cash, :airteltigo, :mobile_money, :card, :hubtel, :paystack]
+
+  attr :id, :string, default: nil
+
+  def payment_rail_chip(assigns) do
+    ~H"""
+    <span
+      id={@id}
+      class={[
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap",
+        rail_chip_class(@rail)
+      ]}
+    >
+      <.icon name={rail_chip_icon(@rail)} class="size-3.5 shrink-0" />
+      {rail_chip_label(@rail)}
+    </span>
+    """
+  end
+
+  defp rail_chip_class(:mtn_momo), do: "bg-[#FFCC08] text-slate-900"
+  defp rail_chip_class(:telecel_cash), do: "bg-[#E60000] text-white"
+  defp rail_chip_class(:airteltigo), do: "bg-blue-600 text-white"
+  defp rail_chip_class(:mobile_money), do: "bg-emerald-600 text-white"
+  defp rail_chip_class(:card), do: "bg-slate-800 text-white"
+  defp rail_chip_class(:hubtel), do: "bg-teal-600 text-white"
+  defp rail_chip_class(:paystack), do: "bg-sky-600 text-white"
+
+  defp rail_chip_label(:mtn_momo), do: "MTN MoMo"
+  defp rail_chip_label(:telecel_cash), do: "Telecel Cash"
+  defp rail_chip_label(:airteltigo), do: "AT Money"
+  defp rail_chip_label(:mobile_money), do: "Mobile Money"
+  defp rail_chip_label(:card), do: "Card"
+  defp rail_chip_label(:hubtel), do: "Hubtel"
+  defp rail_chip_label(:paystack), do: "Paystack"
+
+  defp rail_chip_icon(:card), do: "hero-credit-card"
+  defp rail_chip_icon(_rail), do: "hero-device-phone-mobile"
+
+  # ─────────────────────────────────────────────────────────────────────
   # status_badge/1
   # ─────────────────────────────────────────────────────────────────────
 
