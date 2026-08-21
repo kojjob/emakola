@@ -39,6 +39,27 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
     end
   end
 
+  describe "market theme chrome" do
+    test "the detail page wears Market's own header, footer, and warm palette", %{conn: conn} do
+      store = create_store!(%{slug: "chrome-shop"})
+      product = create_product!(store, %{title: "Chrome Bowl"})
+      create_variant!(product, store, %{price: 4500, track_inventory: false, stock_quantity: 0})
+      activate!(product)
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+      # Market's banner nav: secure-checkout ribbon + mobile search pill
+      assert html =~ "Secure checkout"
+      assert html =~ "Search this store"
+      # Market's own footer, not Atelier's
+      assert html =~ "bg-stone-900"
+      refute html =~ "#111111"
+      # Warm stone palette — the PDP's cold slate ink is gone (the shared
+      # search modal still carries its own palette; out of theme scope)
+      refute html =~ "#0F172A"
+    end
+  end
+
   describe "add_to_cart stock gate" do
     test "records a privacy-safe product-view opportunity signal", %{conn: conn} do
       store = create_store!(%{slug: "signal-shop"})

@@ -66,21 +66,85 @@ defmodule Emakola.Themes.Market.Sections.Hero do
 
     ~H"""
     <section
-      class="relative overflow-hidden border-b border-stone-200 bg-stone-50"
+      class="relative overflow-hidden bg-white"
       aria-labelledby="market-hero-heading"
     >
       <span
         :if={!@image}
-        class="pointer-events-none absolute -right-6 top-1/2 hidden -translate-y-1/2 select-none text-[15rem] font-bold leading-none text-stone-200 [font-family:var(--dt-heading-font,inherit)] sm:block lg:text-[20rem]"
+        class="pointer-events-none absolute -right-6 top-1/2 hidden -translate-y-1/2 select-none text-[15rem] font-bold leading-none text-stone-100 [font-family:var(--dt-heading-font,inherit)] sm:block lg:text-[20rem]"
         aria-hidden="true"
       >
         {String.first(@store.name)}
       </span>
-      <div class={[
-        "relative mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16",
-        @image && "grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12"
-      ]}>
-        <div class="max-w-2xl">
+      <div class="relative mx-auto max-w-[1280px] px-4 pt-4 sm:px-6 sm:pt-5 lg:px-8">
+        <%!-- Photo band: text overlays the image on a legibility gradient --%>
+        <div :if={@image} class="relative overflow-hidden rounded-[22px]">
+          <.optimized_image
+            src={@image}
+            alt={(@hero_product && @hero_product.title) || "#{@store.name} storefront"}
+            priority={:high}
+            width={1280}
+            height={480}
+            class="h-[300px] w-full object-cover sm:h-[360px] lg:h-[420px]"
+          />
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/30 to-transparent sm:bg-gradient-to-r sm:from-stone-900/80 sm:via-stone-900/35 sm:to-transparent"
+            aria-hidden="true"
+          >
+          </div>
+          <div class="absolute inset-x-5 bottom-5 flex flex-col gap-3 sm:inset-x-8 sm:bottom-1/2 sm:max-w-md sm:translate-y-1/2 sm:gap-4">
+            <p
+              :if={@custom_headline}
+              class="text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-white/70"
+            >
+              {@store.name}
+            </p>
+            <h1
+              id="market-hero-heading"
+              class="text-3xl font-bold leading-[1.08] tracking-tight text-white [font-family:var(--dt-heading-font,inherit)] sm:text-4xl lg:text-5xl"
+            >
+              {@headline}
+            </h1>
+            <p :if={@subheadline} class="text-sm leading-relaxed text-white/85 sm:text-base">
+              {@subheadline}
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <a
+                href={store_path(@store.slug, "/products")}
+                class="flex min-h-11 items-center gap-2 rounded-xl bg-store-accent px-6 text-[0.9375rem] font-bold leading-none text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white motion-safe:transition-opacity motion-safe:active:scale-[0.98]"
+              >
+                {@cta_label}
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </a>
+              <span
+                :if={@hero_product}
+                class="rounded-xl bg-white/95 px-3.5 py-2.5 text-[0.8125rem] font-bold leading-none tabular-nums text-stone-900"
+              >
+                {EmakolaWeb.Helpers.Currency.format_price_range(
+                  @hero_product.min_price,
+                  @hero_product.max_price,
+                  @store.currency
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Photo-optional: a finished typographic composition on warm stone --%>
+        <div :if={!@image} class="max-w-2xl py-8 sm:py-12 lg:py-14">
           <p
             :if={@custom_headline}
             class="mb-3 text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-stone-500"
@@ -101,61 +165,24 @@ defmodule Emakola.Themes.Market.Sections.Hero do
           </p>
           <a
             href={store_path(@store.slug, "/products")}
-            class="group mt-7 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50"
+            class="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-store-accent px-6 text-[0.9375rem] font-bold leading-none text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:scale-[0.98]"
           >
-            <span class={[
-              "flex items-center gap-2 bg-store-accent py-3.5 pl-6 pr-8",
-              "text-[0.9375rem] font-bold leading-none text-white",
-              "[clip-path:polygon(0_0,calc(100%_-_12px)_0,100%_12px,100%_100%,0_100%)]",
-              "motion-safe:transition-opacity group-hover:opacity-90 motion-safe:group-active:scale-[0.98]"
-            ]}>
-              {@cta_label}
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                />
-              </svg>
-            </span>
+            {@cta_label}
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
+            </svg>
           </a>
-        </div>
-        <div :if={@image} class="relative">
-          <div class="overflow-hidden rounded-[20px] border border-stone-200 bg-white">
-            <.optimized_image
-              src={@image}
-              alt={(@hero_product && @hero_product.title) || "#{@store.name} storefront"}
-              priority={:high}
-              width={640}
-              height={480}
-              class="aspect-[4/3] w-full object-cover"
-            />
-          </div>
-          <div
-            :if={@hero_product}
-            class="absolute -bottom-4 left-5 flex max-w-[15rem] items-center gap-3 rounded-full border border-stone-200 bg-white py-2 pl-2 pr-5 shadow-lg"
-          >
-            <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-store-accent/10 text-[0.6875rem] font-bold uppercase text-store-accent">
-              {String.first(@hero_product.title)}
-            </span>
-            <div class="min-w-0">
-              <p class="truncate text-xs font-semibold text-stone-900">{@hero_product.title}</p>
-              <p class="text-xs font-bold tabular-nums text-store-accent">
-                {EmakolaWeb.Helpers.Currency.format_price_range(
-                  @hero_product.min_price,
-                  @hero_product.max_price,
-                  @store.currency
-                )}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </section>

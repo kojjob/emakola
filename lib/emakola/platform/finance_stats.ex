@@ -105,6 +105,29 @@ defmodule Emakola.Platform.FinanceStats do
     Enum.map(splits, &%{split: &1, store: Map.get(stores, &1.recipient_store_id)})
   end
 
+  @doc """
+  Confirmed platform fees (minor units) per day, oldest first, gaps filled —
+  the finance hero's trend series. Same fee definition as
+  `total_platform_fees/0` (non-pending platform splits, reversals netted),
+  bucketed in Elixir like `Stats.gmv_by_day/1`.
+  """
+  def platform_fees_by_day(days \\ 30) do
+    today = Date.utc_today()
+    start_date = Date.add(today, -(days - 1))
+
+    fees_by_date =
+      platform_fee_splits()
+      |> Enum.group_by(&DateTime.to_date(&1.inserted_at))
+
+    buckets =
+      Enum.map(Date.range(start_date, today), fn date ->
+        daily_total = fees_by_date |> Map.get(date, []) |> Enum.map(&net_amount/1) |> Enum.sum()
+        {Calendar.strftime(date, "%b %d"), daily_total}
+      end)
+
+    %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
+  end
+
   # ── helpers ────────────────────────────────────────────────────────
 
   # Confirmed fee rows only — never :pending. Reversals are netted per row by
