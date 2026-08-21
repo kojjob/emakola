@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Platform.MerchantLive.Index do
   @moduledoc """
-  Platform directory of all merchants with a slide-over detail drawer.
+  Platform directory of all merchants — a Studio split view: the merchant
+  queue on the left (search + confirmed/unconfirmed filters), the selected
+  merchant's panel on the right (identity, impersonation, stores and roles).
 
   Mount is gated by RequirePermission (:manage_merchants). No DB queries are
   issued during the disconnected render — an empty stream and loading state
@@ -25,6 +27,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       |> assign(:filter, :all)
       |> assign(:selected_merchant, nil)
       |> assign(:merchant_ids, MapSet.new())
+      |> assign(:merchants_by_id, %{})
       |> assign(:merchants_count, 0)
       |> assign(:merchants_loaded?, false)
       |> assign(:stats, nil)
@@ -56,10 +59,33 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   end
 
   def handle_event("select_merchant", %{"id" => id}, socket) do
-    merchant =
-      if MapSet.member?(socket.assigns.merchant_ids, id), do: load_merchant_detail(id), else: nil
+    # Membership in the mounted queue is the guard — a forged id no-ops.
+    if MapSet.member?(socket.assigns.merchant_ids, id) do
+      previously_selected = socket.assigns.selected_merchant
 
-    {:noreply, assign(socket, :selected_merchant, merchant)}
+      socket =
+        socket
+        |> assign(:selected_merchant, load_merchant_detail(id))
+        |> refresh_queue_row(id)
+
+      socket =
+        if previously_selected && previously_selected.id != id do
+          refresh_queue_row(socket, previously_selected.id)
+        else
+          socket
+        end
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp refresh_queue_row(socket, merchant_id) do
+    case Map.get(socket.assigns.merchants_by_id, merchant_id) do
+      nil -> socket
+      merchant -> stream_insert(socket, :merchants, merchant)
+    end
   end
 
   # ── Data ───────────────────────────────────────────────
@@ -73,11 +99,30 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
     merchants = filtered(all, socket.assigns.search, socket.assigns.filter)
 
+    # Keep the current selection when it survives the filter; otherwise the
+    # first visible merchant, so the panel is never empty while rows exist.
+    previously_selected_id =
+      socket.assigns.selected_merchant && socket.assigns.selected_merchant.id
+
+    selected_merchant =
+      cond do
+        Enum.any?(merchants, &(&1.id == previously_selected_id)) ->
+          socket.assigns.selected_merchant
+
+        merchants != [] ->
+          load_merchant_detail(hd(merchants).id)
+
+        true ->
+          nil
+      end
+
     socket
     |> assign(:merchant_ids, MapSet.new(merchants, & &1.id))
+    |> assign(:merchants_by_id, Map.new(merchants, &{&1.id, &1}))
     |> assign(:merchants_count, length(merchants))
     |> assign(:merchants_loaded?, true)
     |> assign(:stats, compute_stats(all))
+    |> assign(:selected_merchant, selected_merchant)
     |> stream(:merchants, merchants, reset: true)
   rescue
     exception ->
@@ -87,9 +132,11 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
       socket
       |> assign(:merchant_ids, MapSet.new())
+      |> assign(:merchants_by_id, %{})
       |> assign(:merchants_count, 0)
       |> assign(:merchants_loaded?, true)
       |> assign(:stats, compute_stats([]))
+      |> assign(:selected_merchant, nil)
       |> stream(:merchants, [], reset: true)
   end
 
@@ -234,188 +281,185 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
           <p class="text-sm text-gray-400">Merchants will appear here as they sign up.</p>
         </div>
 
-        <%!-- Table --%>
+        <%!-- Studio split: merchant queue + case panel --%>
         <div
           :if={@stats.total > 0}
-          class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+          class="flex flex-col lg:flex-row bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden lg:min-h-[560px]"
         >
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                  <th class="px-6 py-3">Merchant</th>
-                  <th class="px-6 py-3">Business</th>
-                  <th class="px-6 py-3">Stores</th>
-                  <th class="px-6 py-3">Status</th>
-                  <th class="px-6 py-3">Joined</th>
-                </tr>
-              </thead>
-              <tbody
-                id="platform-merchants"
-                phx-update="stream"
-                data-count={@merchants_count}
-                class="divide-y divide-gray-100"
+          <div class="w-full lg:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100 max-h-96 lg:max-h-none overflow-y-auto p-2">
+            <div id="platform-merchants" phx-update="stream" data-count={@merchants_count}>
+              <div
+                :if={@merchants_count == 0}
+                id="platform-merchants-empty"
+                class="px-3 py-10 text-center text-sm text-gray-400"
               >
-                <tr :if={@merchants_count == 0} id="platform-merchants-empty">
-                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
-                    No merchants match your filters
-                  </td>
-                </tr>
-                <tr
-                  :for={{id, m} <- @streams.merchants}
-                  id={id}
-                  class="hover:bg-gray-50 transition-colors cursor-pointer"
-                  phx-click={
-                    JS.push("select_merchant", value: %{id: m.id}) |> show_modal("merchant-drawer")
-                  }
+                No merchants match your filters
+              </div>
+              <div
+                :for={{id, m} <- @streams.merchants}
+                id={id}
+                data-selected={@selected_merchant && @selected_merchant.id == m.id}
+                class={[
+                  "rounded-[10px] transition-colors",
+                  if(@selected_merchant && @selected_merchant.id == m.id,
+                    do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                    else: "hover:bg-slate-50"
+                  )
+                ]}
+              >
+                <button
+                  type="button"
+                  phx-click="select_merchant"
+                  phx-value-id={m.id}
+                  class="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
                 >
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0 overflow-hidden">
-                        <img
-                          :if={m.avatar_url}
-                          src={m.avatar_url}
-                          alt=""
-                          class="w-full h-full object-cover"
-                        />
-                        <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
-                      </div>
-                      <div class="min-w-0">
-                        <p class="font-medium text-gray-900 truncate">{m.name || "—"}</p>
-                        <p class="text-xs text-gray-400 truncate">{m.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-gray-600">{m.business_name || "—"}</td>
-                  <td class="px-6 py-4">
-                    <span
-                      :if={store_count(m) > 0}
-                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
-                    >
-                      {store_count(m)} {if store_count(m) == 1, do: "store", else: "stores"}
+                  <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0 overflow-hidden">
+                    <img
+                      :if={m.avatar_url}
+                      src={m.avatar_url}
+                      alt=""
+                      class="w-full h-full object-cover"
+                    />
+                    <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
+                  </div>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-[13.5px] font-semibold text-gray-900 leading-tight truncate">
+                      {m.name || "—"}
                     </span>
-                    <span :if={store_count(m) == 0} class="text-xs text-gray-400">—</span>
-                  </td>
-                  <td class="px-6 py-4">
+                    <span class="block text-[11px] text-gray-400 leading-tight truncate mt-0.5">
+                      {m.email}
+                    </span>
+                  </span>
+                  <span class="flex flex-col items-end gap-1 shrink-0">
                     <span class={[
-                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium",
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold",
                       if(confirmed?(m),
                         do: "bg-green-100 text-green-700",
                         else: "bg-amber-100 text-amber-700"
                       )
                     ]}>
-                      <span class={[
-                        "w-1.5 h-1.5 rounded-full",
-                        if(confirmed?(m), do: "bg-green-500", else: "bg-amber-500")
-                      ]}>
-                      </span>
                       {if confirmed?(m), do: "Confirmed", else: "Pending"}
                     </span>
-                  </td>
-                  <td class="px-6 py-4 text-sm text-gray-500">
-                    {Calendar.strftime(m.inserted_at, "%b %d, %Y")}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <span
+                      :if={store_count(m) > 0}
+                      class="inline-flex px-1.5 py-px rounded text-[10px] font-medium bg-slate-100 text-slate-500"
+                    >
+                      {store_count(m)} {if store_count(m) == 1, do: "store", else: "stores"}
+                    </span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="merchant-panel" class="flex-1 min-w-0 overflow-y-auto p-6 lg:p-7">
+            <.platform_empty_state
+              :if={is_nil(@selected_merchant)}
+              icon="hero-user-group"
+              title="No merchant selected"
+              description="Choose a merchant from the list."
+            />
+            <div :if={@selected_merchant} class="space-y-6 max-w-2xl">
+              <% m = @selected_merchant %>
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold shrink-0 overflow-hidden">
+                  <img
+                    :if={m.avatar_url}
+                    src={m.avatar_url}
+                    alt=""
+                    class="w-full h-full object-cover"
+                  />
+                  <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-lg font-semibold text-gray-900 truncate">{m.name || "—"}</h3>
+                  <p class="text-sm text-gray-500 truncate">{m.email}</p>
+                  <span class={[
+                    "inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-xs font-medium",
+                    if(confirmed?(m),
+                      do: "bg-green-100 text-green-700",
+                      else: "bg-amber-100 text-amber-700"
+                    )
+                  ]}>
+                    {if confirmed?(m), do: "Confirmed", else: "Pending"}
+                  </span>
+                </div>
+              </div>
+
+              <.form
+                :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+                for={%{}}
+                action={~p"/platform/impersonate/#{m.id}"}
+                method="post"
+              >
+                <button
+                  type="submit"
+                  class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Log in as this merchant
+                </button>
+              </.form>
+
+              <dl class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <dt class="text-gray-400">Business</dt>
+                  <dd class="text-gray-900">{m.business_name || "—"}</dd>
+                </div>
+                <div>
+                  <dt class="text-gray-400">Phone</dt>
+                  <dd class="text-gray-900">{m.phone || "—"}</dd>
+                </div>
+                <div>
+                  <dt class="text-gray-400">Joined</dt>
+                  <dd class="text-gray-900">{Calendar.strftime(m.inserted_at, "%b %d, %Y")}</dd>
+                </div>
+                <div>
+                  <dt class="text-gray-400">Stores</dt>
+                  <dd class="text-gray-900">{length(m.store_memberships)}</dd>
+                </div>
+              </dl>
+
+              <div>
+                <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Stores
+                </h4>
+                <div :if={m.store_memberships == []} class="text-sm text-gray-400">
+                  This merchant has no stores yet.
+                </div>
+                <ul class="space-y-2">
+                  <li
+                    :for={sm <- m.store_memberships}
+                    class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100"
+                  >
+                    <div class="min-w-0">
+                      <p class="font-medium text-gray-900 truncate">{sm.store.name}</p>
+                      <p class="text-xs text-gray-400 font-mono truncate">{sm.store.slug}</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class={[
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide",
+                        role_class(sm.role)
+                      ]}>
+                        {sm.role}
+                      </span>
+                      <a
+                        href={"/s/#{sm.store.slug}"}
+                        target="_blank"
+                        class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-0.5"
+                      >
+                        View
+                        <span class="material-symbols-outlined" style="font-size: 13px;">
+                          open_in_new
+                        </span>
+                      </a>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <%!-- Detail drawer (always rendered, nil-safe) --%>
-      <.modal id="merchant-drawer" kind={:slide_over} title="Merchant">
-        <div :if={@selected_merchant} class="space-y-6">
-          <% m = @selected_merchant %>
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold shrink-0 overflow-hidden">
-              <img :if={m.avatar_url} src={m.avatar_url} alt="" class="w-full h-full object-cover" />
-              <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-lg font-semibold text-gray-900 truncate">{m.name || "—"}</h3>
-              <p class="text-sm text-gray-500 truncate">{m.email}</p>
-              <span class={[
-                "inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-xs font-medium",
-                if(confirmed?(m),
-                  do: "bg-green-100 text-green-700",
-                  else: "bg-amber-100 text-amber-700"
-                )
-              ]}>
-                {if confirmed?(m), do: "Confirmed", else: "Pending"}
-              </span>
-            </div>
-          </div>
-
-          <.form
-            :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
-            for={%{}}
-            action={~p"/platform/impersonate/#{m.id}"}
-            method="post"
-          >
-            <button
-              type="submit"
-              class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-            >
-              Log in as this merchant
-            </button>
-          </.form>
-
-          <dl class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt class="text-gray-400">Business</dt>
-              <dd class="text-gray-900">{m.business_name || "—"}</dd>
-            </div>
-            <div>
-              <dt class="text-gray-400">Phone</dt>
-              <dd class="text-gray-900">{m.phone || "—"}</dd>
-            </div>
-            <div>
-              <dt class="text-gray-400">Joined</dt>
-              <dd class="text-gray-900">{Calendar.strftime(m.inserted_at, "%b %d, %Y")}</dd>
-            </div>
-            <div>
-              <dt class="text-gray-400">Stores</dt>
-              <dd class="text-gray-900">{length(m.store_memberships)}</dd>
-            </div>
-          </dl>
-
-          <div>
-            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Stores</h4>
-            <div :if={m.store_memberships == []} class="text-sm text-gray-400">
-              This merchant has no stores yet.
-            </div>
-            <ul class="space-y-2">
-              <li
-                :for={sm <- m.store_memberships}
-                class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100"
-              >
-                <div class="min-w-0">
-                  <p class="font-medium text-gray-900 truncate">{sm.store.name}</p>
-                  <p class="text-xs text-gray-400 font-mono truncate">{sm.store.slug}</p>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class={[
-                    "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide",
-                    role_class(sm.role)
-                  ]}>
-                    {sm.role}
-                  </span>
-                  <a
-                    href={"/s/#{sm.store.slug}"}
-                    target="_blank"
-                    class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-0.5"
-                  >
-                    View
-                    <span class="material-symbols-outlined" style="font-size: 13px;">
-                      open_in_new
-                    </span>
-                  </a>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </.modal>
     </div>
     """
   end
