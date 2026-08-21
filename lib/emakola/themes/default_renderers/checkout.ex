@@ -734,7 +734,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         Processing...
                       </span>
                     <% else %>
-                      Place Order -- {Currency.format_price(@order_total, @store.currency)}
+                      {"Place Order · #{Currency.format_price(@order_total, @store.currency)}"}
                     <% end %>
                   </button>
 
@@ -884,30 +884,27 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                     id="buyer-protection-badge"
                     class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
                   >
-                    <span aria-hidden="true">🛡</span>
+                    <svg
+                      class="w-4 h-4 shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                      />
+                    </svg>
                     <span>Protected by Makola — payment held until you confirm delivery.</span>
                   </div>
 
                   <%!-- Trust Badges --%>
+                  <%!-- Honest trust row: real payment facts and the store's own
+                       policies — never guarantees no merchant wrote. --%>
                   <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-stone-100">
-                    <div class="flex flex-col items-center gap-1.5 text-center">
-                      <svg
-                        class="w-5 h-5 text-stone-400"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-                        />
-                      </svg>
-                      <p class="text-xs text-stone-500 leading-tight">
-                        <span class="font-semibold text-stone-700 block">Free</span>Returns
-                      </p>
-                    </div>
                     <div class="flex flex-col items-center gap-1.5 text-center">
                       <svg
                         class="w-5 h-5 text-stone-400"
@@ -937,13 +934,35 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         <path
                           stroke-linecap="round"
                           stroke-linejoin="round"
-                          d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                          d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
                         />
                       </svg>
                       <p class="text-xs text-stone-500 leading-tight">
-                        <span class="font-semibold text-stone-700 block">100%</span>Authentic
+                        <span class="font-semibold text-stone-700 block">MoMo</span>&amp; Cards
                       </p>
                     </div>
+                    <.link
+                      navigate={store_path(@store.slug, "/policies#returns")}
+                      class="flex flex-col items-center gap-1.5 text-center rounded focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none"
+                    >
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                        />
+                      </svg>
+                      <p class="text-xs text-stone-500 leading-tight underline decoration-stone-300 underline-offset-2">
+                        <span class="font-semibold text-stone-700 block no-underline">Returns</span>
+                        Store policy
+                      </p>
+                    </.link>
                   </div>
                 </div>
               </div>
