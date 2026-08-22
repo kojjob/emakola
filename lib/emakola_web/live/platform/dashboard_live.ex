@@ -94,7 +94,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
 
       <%!-- Trend charts --%>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
           <h2 class="text-[13px] font-bold text-gray-900">GMV — last 30 days</h2>
           <div class="h-48 mt-3">
             <canvas
@@ -107,7 +107,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
             </canvas>
           </div>
         </div>
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
           <h2 class="text-[13px] font-bold text-gray-900">New stores — last 8 weeks</h2>
           <div class="h-48 mt-3">
             <canvas

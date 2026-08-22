@@ -6,6 +6,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   use Phoenix.Component
 
   import EmakolaWeb.AdminComponents, only: [admin_card: 1, stat_card: 1]
+  import EmakolaWeb.CoreComponents, only: [icon: 1]
 
   attr :total_revenue, :integer, required: true
   attr :revenue_change, :float, default: nil
@@ -27,28 +28,32 @@ defmodule EmakolaWeb.DashboardMetricComponents do
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <.kpi_card
         label="Revenue"
-        icon="payments"
+        icon="hero-banknotes"
+        tone={:primary}
         value={format_money(@total_revenue)}
         loading={@loading}
         change={@revenue_change}
       />
       <.kpi_card
         label="Orders"
-        icon="shopping_cart"
+        icon="hero-shopping-bag"
+        tone={:info}
         value={Integer.to_string(@order_count)}
         loading={@loading}
         change={@orders_change}
       />
       <.kpi_card
         label="Customers"
-        icon="group"
+        icon="hero-users"
+        tone={:info}
         value={Integer.to_string(@customer_count)}
         loading={@loading}
         change={@customers_change}
       />
       <.kpi_card
         label="Avg Order"
-        icon="trending_up"
+        icon="hero-arrow-trending-up"
+        tone={:neutral}
         value={format_money(@avg_order_value)}
         loading={@loading}
         change={@aov_change}
@@ -62,13 +67,12 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   attr :value, :string, required: true
   attr :change, :float, default: nil
   attr :loading, :boolean, default: false
+  attr :tone, :atom, default: :neutral
 
   defp kpi_card(%{loading: true} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="">
-      <:icon>
-        <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
-      </:icon>
+    <.stat_card label={@label} value="" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
       <:delta>
         <div class="mt-2 h-7 w-24 rounded bg-slate-200 animate-pulse" aria-hidden="true"></div>
         <span class="sr-only">Loading {@label}</span>
@@ -79,10 +83,8 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   defp kpi_card(assigns) do
     ~H"""
-    <.stat_card label={@label} value={@value}>
-      <:icon>
-        <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
-      </:icon>
+    <.stat_card label={@label} value={@value} tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
       <:delta>
         <.change_indicator change={@change} />
       </:delta>
@@ -101,7 +103,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   defp change_indicator(%{change: change} = assigns) when change >= 0 do
     ~H"""
     <div class="flex items-center gap-1 mt-2">
-      <span class="material-symbols-outlined text-sm text-green-600">arrow_upward</span>
+      <.icon name="hero-arrow-up" class="size-3.5 text-green-600" />
       <span class="text-xs font-medium text-green-600">{abs(@change)}%</span>
       <span class="text-xs text-slate-400">vs prev period</span>
     </div>
@@ -111,7 +113,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   defp change_indicator(assigns) do
     ~H"""
     <div class="flex items-center gap-1 mt-2">
-      <span class="material-symbols-outlined text-sm text-red-600">arrow_downward</span>
+      <.icon name="hero-arrow-down" class="size-3.5 text-red-600" />
       <span class="text-xs font-medium text-red-600">{abs(@change)}%</span>
       <span class="text-xs text-slate-400">vs prev period</span>
     </div>
@@ -128,7 +130,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
     ~H"""
     <.admin_card padding={:none} class="p-5">
       <div class="flex items-center gap-2 mb-4">
-        <span class="material-symbols-outlined text-xl text-primary">analytics</span>
+        <.icon name="hero-chart-bar" class="size-5 text-primary" />
         <h3 class="text-base font-bold text-slate-800">{@title}</h3>
       </div>
       <div class={@height}>

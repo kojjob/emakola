@@ -83,7 +83,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
       <% else %>
         <%!-- ── Hero: GMV trend + stat tiles ───────────────────────────── --%>
         <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 mb-8 items-stretch">
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
+          <div class="rounded-card border border-border bg-surface p-5 shadow-sm flex flex-col">
             <div class="flex items-start justify-between gap-3 flex-wrap">
               <div>
                 <h2 class="text-[13px] font-bold text-gray-900">GMV · last 30 days</h2>

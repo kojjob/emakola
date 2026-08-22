@@ -107,7 +107,7 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
 
         <div :if={@overview.total > 0} class="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <%!-- Top source IPs leaderboard --%>
-          <div class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div class="lg:col-span-2 rounded-card border border-border bg-surface p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-gray-700 mb-4">Top source IPs</h2>
             <div :if={@overview.top_ips == []} class="text-sm text-gray-400">No IP data</div>
             <div class="space-y-3">
@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
           </div>
 
           <%!-- Recent events timeline --%>
-          <div class="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+          <div class="lg:col-span-3 rounded-card border border-border bg-surface shadow-sm p-6">
             <h2 class="text-sm font-semibold text-gray-700 mb-4">Recent events</h2>
             <ol id="recent-security-events">
               <li
