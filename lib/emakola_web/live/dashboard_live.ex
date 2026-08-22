@@ -29,7 +29,9 @@ defmodule EmakolaWeb.DashboardLive do
         page_title: "Dashboard",
         store_id: store_id,
         period: "week",
-        periods: @periods
+        periods: @periods,
+        greeting: DashboardHelpers.greeting_for_hour(DateTime.utc_now().hour),
+        merchant_name: merchant_first_name(socket)
       )
       |> assign_setup_checklist()
 
@@ -112,6 +114,17 @@ defmodule EmakolaWeb.DashboardLive do
     |> push_event("chart-data:top-products-chart", %{data: socket.assigns.top_products_chart})
   end
 
+  # First name only — the greeting is a hello, not an address label.
+  defp merchant_first_name(socket) do
+    case socket.assigns[:current_merchant] do
+      %{name: name} when is_binary(name) ->
+        name |> to_string() |> String.split(" ", parts: 2) |> List.first()
+
+      _ ->
+        nil
+    end
+  end
+
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do
       %{id: id} -> id
@@ -170,10 +183,22 @@ defmodule EmakolaWeb.DashboardLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6 pb-8">
-      <.dashboard_header period={@period} periods={@periods} />
+      <.dashboard_header
+        period={@period}
+        periods={@periods}
+        greeting={@greeting}
+        merchant_name={@merchant_name}
+      />
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
       <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
+
+      <%!-- What needs doing, before any chart --%>
+      <.work_queue
+        pending_orders={@pending_orders}
+        sold_out_count={@sold_out_count}
+        open_returns={@open_returns}
+      />
 
       <.kpi_cards
         loading={@loading}
@@ -224,6 +249,8 @@ defmodule EmakolaWeb.DashboardLive do
           />
         </div>
       </section>
+
+      <.best_sellers_panel best_sellers={@best_sellers} />
 
       <.recent_orders_table recent_orders={@recent_orders} />
     </div>

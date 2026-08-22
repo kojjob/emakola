@@ -165,4 +165,67 @@ defmodule Emakola.Dashboard.Stats do
 
     %{labels: labels, values: values}
   end
+
+  @doc """
+  Returns the best-selling products in the range as
+  `[%{title:, quantity:, image_url:}]`, most sold first.
+
+  Grouped by `variant_id` rather than the denormalized `product_title` so each
+  row can carry its product photo — merchants recognize their stock by picture
+  before they read the name. Custom line items (no variant) are excluded:
+  there is no product record behind them to show.
+  """
+  def best_sellers(store_id, from, to, limit \\ 4) do
+    query =
+      from li in Emakola.Orders.LineItem,
+        where:
+          li.store_id == ^store_id and
+            li.inserted_at >= ^from and
+            li.inserted_at < ^to and
+            not is_nil(li.variant_id),
+        group_by: li.variant_id,
+        order_by: [desc: sum(li.quantity)],
+        limit: ^limit,
+        select: {li.variant_id, sum(li.quantity)}
+
+    results = Emakola.Repo.all(query)
+    products = variant_products(Enum.map(results, fn {variant_id, _} -> variant_id end))
+
+    Enum.map(results, fn {variant_id, quantity} ->
+      product = Map.get(products, variant_id, %{title: "Product", image_url: nil})
+
+      %{
+        title: product.title,
+        quantity: to_integer(quantity),
+        image_url: product.image_url
+      }
+    end)
+  end
+
+  defp to_integer(%Decimal{} = value), do: Decimal.to_integer(value)
+  defp to_integer(value), do: value || 0
+
+  defp variant_products([]), do: %{}
+
+  defp variant_products(variant_ids) do
+    case Emakola.Catalog.Variant
+         |> Ash.Query.filter(id in ^variant_ids)
+         |> Ash.Query.load(product: [:images])
+         |> Ash.read(authorize?: false) do
+      {:ok, variants} ->
+        Map.new(variants, fn variant ->
+          {variant.id,
+           %{
+             title: variant.product && variant.product.title,
+             image_url: first_image_url(variant.product)
+           }}
+        end)
+
+      _ ->
+        %{}
+    end
+  end
+
+  defp first_image_url(%{images: [image | _]}), do: image.thumbnail_url || image.url
+  defp first_image_url(_product), do: nil
 end
