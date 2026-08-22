@@ -28,8 +28,22 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           title="No products found"
           description="Try adjusting your search or filters"
         />
+        <%!-- Photo first: a merchant who reads slowly can point a camera long
+              before they can fill a form. The snap flow only exists when the
+              AI key is set, so fall back to the form as the primary. --%>
         <.empty_state
-          :if={@search_query == "" and @status_filter == :all}
+          :if={@search_query == "" and @status_filter == :all and EmakolaWeb.AiGate.enabled?()}
+          icon="hero-camera"
+          title="Add your first product"
+          description="Add pictures of what you sell"
+          action_label="Snap a photo"
+          action_path="/admin/products/snap"
+          secondary_label="Add photos"
+          secondary_path="/admin/products/new"
+          show_tour
+        />
+        <.empty_state
+          :if={@search_query == "" and @status_filter == :all and not EmakolaWeb.AiGate.enabled?()}
           icon="hero-camera"
           title="Add your first product"
           description="Add pictures of what you sell"

@@ -299,6 +299,8 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         icon="hero-arrow-uturn-left"
         title="No returns yet"
         description="Requests will show here if they come"
+        action_label="Set your return rules"
+        action_path={~p"/admin/content/pages"}
       />
 
       <div class={[

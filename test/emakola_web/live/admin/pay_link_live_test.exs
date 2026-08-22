@@ -11,6 +11,14 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
     %{conn: conn, user: user, store: store}
   end
 
+  test "a merchant with no pay links is told what one is for, in a few words", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/admin/pay-links")
+
+    assert has_element?(view, "#pay-links-empty", "Make a pay link")
+    assert has_element?(view, "#pay-links-empty", "Sell in one message")
+    assert has_element?(view, "#pay-links-empty button", "Make a pay link")
+  end
+
   test "lists links with funnel columns and empty state", %{conn: conn, store: store} do
     {:ok, _view, html} = live(conn, "/admin/pay-links")
     assert html =~ "Pay Links"

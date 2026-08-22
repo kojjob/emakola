@@ -22,6 +22,8 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
       assert html =~ "No returns yet"
       assert html =~ "Requests will show here if they come"
+      # Nothing to review is exactly when to write the policy.
+      assert html =~ "Set your return rules"
     end
 
     test "a filter that matches nothing still says so", %{conn: conn, store: store} do

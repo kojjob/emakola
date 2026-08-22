@@ -335,9 +335,12 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
         <%= if @links == [] do %>
           <.empty_state
+            id="pay-links-empty"
             icon="hero-link"
-            title="No pay links yet"
-            description="Create a pay link to share a custom deal or a catalog item over WhatsApp."
+            title="Make a pay link"
+            description="Sell in one message"
+            action_label="Make a pay link"
+            action_event="open_create"
           />
         <% else %>
           <div class="overflow-x-auto">

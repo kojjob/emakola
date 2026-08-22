@@ -575,13 +575,22 @@ defmodule EmakolaWeb.AdminComponents do
   attr :secondary_label, :string, default: nil
   attr :secondary_path, :string, default: nil
 
+  attr :action_event, :string,
+    default: nil,
+    doc: "Use instead of action_path when the action opens a modal rather than navigating."
+
+  attr :id, :string, default: nil
+
   attr :show_tour, :boolean,
     default: false,
     doc: "Adds a link to the visual tour — for merchants who have nothing yet."
 
   def empty_state(assigns) do
     ~H"""
-    <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-surface border border-dashed border-border rounded-card">
+    <div
+      id={@id}
+      class="flex flex-col items-center justify-center text-center py-16 px-6 bg-surface border border-dashed border-border rounded-card"
+    >
       <div class="w-16 h-16 rounded-card bg-surface-subtle flex items-center justify-center mb-4">
         <.icon name={@icon} class="w-8 h-8 text-slate-400" />
       </div>
@@ -596,6 +605,15 @@ defmodule EmakolaWeb.AdminComponents do
         >
           {@action_label}
         </.link>
+        <%!-- Some first actions open a modal rather than navigating. --%>
+        <button
+          :if={@action_label && @action_event && !@action_path}
+          type="button"
+          phx-click={@action_event}
+          class={primary_action_classes()}
+        >
+          {@action_label}
+        </button>
         <.link
           :if={@secondary_label && @secondary_path}
           href={@secondary_path}
