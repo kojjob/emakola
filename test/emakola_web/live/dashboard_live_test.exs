@@ -189,6 +189,90 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "Twi greeting" do
+    test "greets by time of day" do
+      # Ghana runs on GMT year-round, so UTC hours are local hours.
+      assert EmakolaWeb.DashboardHelpers.greeting_for_hour(6) == "Maakye"
+      assert EmakolaWeb.DashboardHelpers.greeting_for_hour(11) == "Maakye"
+      assert EmakolaWeb.DashboardHelpers.greeting_for_hour(13) == "Maaha"
+      assert EmakolaWeb.DashboardHelpers.greeting_for_hour(19) == "Maadwo"
+      assert EmakolaWeb.DashboardHelpers.greeting_for_hour(2) == "Maadwo"
+    end
+  end
+
+  describe "Dashboard redesign" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "greets the merchant by name in Twi", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#dashboard-greeting")
+    end
+
+    test "the work queue lists what needs doing, with counts and one-tap actions", %{
+      conn: conn,
+      store: store
+    } do
+      customer = Factory.create_customer!(store)
+
+      Factory.create_order!(store, %{
+        customer_id: customer.id,
+        total: 10_000,
+        subtotal: 10_000
+      })
+
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_variant!(product, store, price: 5_000, stock_quantity: 0)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#work-queue-orders a[href='/admin/orders']")
+      assert has_element?(view, "#work-queue-orders", "1")
+      assert has_element?(view, "#work-queue-stock a[href='/admin/inventory']")
+    end
+
+    test "rows with nothing to do are hidden, and an all-clear takes their place", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      refute has_element?(view, "#work-queue-orders")
+      refute has_element?(view, "#work-queue-stock")
+      refute has_element?(view, "#work-queue-returns")
+      assert has_element?(view, "#work-queue-all-clear")
+    end
+
+    test "best sellers lead with the product photo", %{conn: conn, store: store} do
+      customer = Factory.create_customer!(store)
+      product = Factory.create_product!(store, status: :active, title: "Kente Scarf")
+      variant = Factory.create_variant!(product, store, price: 15_000, stock_quantity: 5)
+      image = Factory.create_image!(product, store)
+
+      order =
+        Factory.create_order!(store, %{
+          customer_id: customer.id,
+          total: 15_000,
+          subtotal: 15_000,
+          status: :confirmed
+        })
+
+      Emakola.Orders.LineItem
+      |> Ash.Changeset.for_create(:create, %{
+        order_id: order.id,
+        store_id: store.id,
+        variant_id: variant.id,
+        quantity: 3
+      })
+      |> Ash.create!(authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#best-sellers img[src='#{image.url}']")
+      assert has_element?(view, "#best-sellers", "Kente Scarf")
+    end
+  end
+
   describe "multi-tenant isolation" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)

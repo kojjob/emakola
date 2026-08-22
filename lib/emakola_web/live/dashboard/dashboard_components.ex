@@ -7,15 +7,20 @@ defmodule EmakolaWeb.DashboardComponents do
   use Phoenix.Component
 
   import EmakolaWeb.AdminComponents, only: [admin_card: 1, status_badge: 1]
+  import EmakolaWeb.CoreComponents, only: [icon: 1]
 
   attr :period, :string, required: true
   attr :periods, :list, required: true
+  attr :greeting, :string, default: "Maakye"
+  attr :merchant_name, :string, default: nil
 
   def dashboard_header(assigns) do
     ~H"""
     <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+        <h1 id="dashboard-greeting" class="text-2xl sm:text-3xl font-bold text-slate-900">
+          {@greeting}<span :if={@merchant_name}>, {@merchant_name}</span>
+        </h1>
         <p class="text-sm text-slate-500 mt-1">Your store at a glance</p>
       </div>
 
@@ -62,6 +67,135 @@ defmodule EmakolaWeb.DashboardComponents do
   defp period_label("month"), do: "30 Days"
   defp period_label("all"), do: "All Time"
   defp period_label(other), do: other
+
+  @doc """
+  "Do these now" — the day's work as a short list of actions, each with a
+  count and a one-tap button to the page that resolves it.
+
+  A merchant who reads slowly should not have to interpret four charts to
+  learn what to do next. Rows with nothing to do disappear rather than
+  showing a zero, so the list only ever contains real work; when it empties,
+  an all-clear takes its place.
+  """
+  attr :pending_orders, :integer, required: true
+  attr :sold_out_count, :integer, required: true
+  attr :open_returns, :integer, required: true
+
+  def work_queue(assigns) do
+    ~H"""
+    <.admin_card padding={:none} class="p-5">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Do these now</h2>
+
+      <div class="divide-y divide-slate-100">
+        <.work_queue_row
+          :if={@pending_orders > 0}
+          id="work-queue-orders"
+          icon="hero-shopping-bag"
+          icon_class="bg-warning-soft text-warning"
+          label="Confirm new orders"
+          count={@pending_orders}
+          action="Confirm"
+          href="/admin/orders"
+        />
+        <.work_queue_row
+          :if={@sold_out_count > 0}
+          id="work-queue-stock"
+          icon="hero-cube"
+          icon_class="bg-danger-soft text-danger"
+          label="Restock sold-out items"
+          count={@sold_out_count}
+          action="Restock"
+          href="/admin/inventory"
+        />
+        <.work_queue_row
+          :if={@open_returns > 0}
+          id="work-queue-returns"
+          icon="hero-arrow-uturn-left"
+          icon_class="bg-info-soft text-info"
+          label="Review return requests"
+          count={@open_returns}
+          action="Review"
+          href="/admin/returns"
+        />
+      </div>
+
+      <div
+        :if={@pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0}
+        id="work-queue-all-clear"
+        class="flex items-center gap-3 py-2"
+      >
+        <div class="w-10 h-10 rounded-full bg-success-soft flex items-center justify-center shrink-0">
+          <.icon name="hero-check" class="size-5 text-success" />
+        </div>
+        <p class="text-sm font-medium text-slate-700">Nothing to do — nice work</p>
+      </div>
+    </.admin_card>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :icon, :string, required: true
+  attr :icon_class, :string, required: true
+  attr :label, :string, required: true
+  attr :count, :integer, required: true
+  attr :action, :string, required: true
+  attr :href, :string, required: true
+
+  defp work_queue_row(assigns) do
+    ~H"""
+    <div id={@id} class="flex items-center gap-3 py-3">
+      <div class={["w-10 h-10 rounded-full flex items-center justify-center shrink-0", @icon_class]}>
+        <.icon name={@icon} class="size-5" />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-slate-900 truncate">{@label}</p>
+        <p class="text-xs text-slate-500 tabular-nums">{@count} waiting</p>
+      </div>
+      <.link
+        navigate={@href}
+        class="shrink-0 inline-flex items-center px-3 py-1.5 rounded-control bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition-colors"
+      >
+        {@action}
+      </.link>
+    </div>
+    """
+  end
+
+  @doc """
+  Best sellers as photo cards — merchants recognize their own stock by
+  picture faster than by name.
+  """
+  attr :best_sellers, :list, required: true
+
+  def best_sellers_panel(assigns) do
+    ~H"""
+    <.admin_card :if={@best_sellers != []} id="best-sellers" padding={:none} class="p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Best sellers</h2>
+        <.link navigate="/admin/products" class="text-xs font-semibold text-primary hover:underline">
+          See all
+        </.link>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div :for={product <- @best_sellers} class="min-w-0">
+          <div class="aspect-square rounded-card bg-slate-100 overflow-hidden flex items-center justify-center">
+            <img
+              :if={product.image_url}
+              src={product.image_url}
+              alt={product.title}
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <.icon :if={!product.image_url} name="hero-photo" class="size-6 text-slate-400" />
+          </div>
+          <p class="mt-2 text-sm font-medium text-slate-900 truncate">{product.title}</p>
+          <p class="text-xs text-slate-500 tabular-nums">{product.quantity} sold</p>
+        </div>
+      </div>
+    </.admin_card>
+    """
+  end
 
   attr :pending_orders, :integer, required: true
   attr :low_stock_count, :integer, required: true

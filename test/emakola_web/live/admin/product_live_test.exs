@@ -14,6 +14,52 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "first day" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "a store with no products is told what to do, not that nothing was found", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      assert has_element?(view, "#product-empty-state", "Add your first product")
+
+      # One obvious thing to do — the artboard's rule. The tour lives on
+      # Customers, where there is no action to take yet.
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']") or
+               has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+
+      refute has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
+    end
+
+    test "the camera is offered as the first way in when AI is on", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      # Photo-first beats form-first for a merchant who reads slowly — and the
+      # snap flow only exists when the AI key is configured.
+      if EmakolaWeb.AiGate.enabled?() do
+        assert has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+      else
+        refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+      end
+    end
+
+    test "a search that matches nothing still says so", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{title: "Kente Scarf"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      html =
+        view
+        |> form("#product-search-form", %{"search" => "zzzznothing"})
+        |> render_change()
+
+      assert html =~ "No products found"
+      refute html =~ "Add your first product"
+    end
+  end
+
   describe "ProductLive.Index (authenticated)" do
     setup %{conn: conn} do
       {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)

@@ -112,17 +112,24 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
-          <.icon name="hero-users" class="size-12 mx-auto text-slate-300 mb-3" />
-          <p class="text-slate-600 font-medium">No customers found</p>
-          <p class="text-sm text-slate-400 mt-1">
-            <%= if @search_query != "" do %>
-              Try adjusting your search
-            <% else %>
-              Customers will appear here once they place orders
-            <% end %>
-          </p>
-        </div>
+        <%!-- A store with no customers yet is waiting, not broken; a search
+              that matched nothing needs to say it was the search. --%>
+        <.empty_state
+          :if={@search_query != ""}
+          icon="hero-users"
+          title="No customers found"
+          description="Try adjusting your search"
+        />
+        <.empty_state
+          :if={@search_query == ""}
+          icon="hero-users"
+          tone={:info}
+          title="No customers yet"
+          description="They appear when someone buys"
+          secondary_label="See how selling works"
+          secondary_path="/how-it-works/tour"
+          secondary_icon="hero-play-circle"
+        />
       <% else %>
         <%!-- Desktop Table --%>
         <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">

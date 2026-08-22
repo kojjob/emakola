@@ -2,6 +2,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   @moduledoc "Data loading, metric computation, and chart generation for the merchant admin dashboard."
 
   alias Emakola.AsyncSandbox
+  alias Emakola.Dashboard.Stats
 
   @doc """
   Returns a map with all dashboard data for the given store and period.
@@ -49,6 +50,10 @@ defmodule EmakolaWeb.DashboardHelpers do
           AsyncSandbox.run_async(fn -> build_top_products_chart(store_id, day_start, day_end) end),
         pending_orders: AsyncSandbox.run_async(fn -> count_pending_orders(store_id) end),
         low_stock: AsyncSandbox.run_async(fn -> count_low_stock(store_id) end),
+        sold_out: AsyncSandbox.run_async(fn -> count_sold_out(store_id) end),
+        open_returns: AsyncSandbox.run_async(fn -> count_open_returns(store_id) end),
+        best_sellers:
+          AsyncSandbox.run_async(fn -> Stats.best_sellers(store_id, day_start, day_end) end),
         failed_payments:
           AsyncSandbox.run_async(fn -> count_failed_payments(store_id, day_start, day_end) end),
         recent_orders: AsyncSandbox.run_async(fn -> load_recent_orders(store_id) end)
@@ -86,10 +91,23 @@ defmodule EmakolaWeb.DashboardHelpers do
       top_products_chart: results.top_products,
       pending_orders: results.pending_orders,
       low_stock_count: results.low_stock,
+      sold_out_count: results.sold_out,
+      open_returns: results.open_returns,
+      best_sellers: results.best_sellers,
       failed_payments: results.failed_payments,
       recent_orders: results.recent_orders
     }
   end
+
+  @doc """
+  Returns the Twi greeting for an hour of the day.
+
+  Ghana keeps GMT year-round, so the UTC hour is the merchant's local hour
+  and no timezone database is needed.
+  """
+  def greeting_for_hour(hour) when hour >= 5 and hour < 12, do: "Maakye"
+  def greeting_for_hour(hour) when hour >= 12 and hour < 17, do: "Maaha"
+  def greeting_for_hour(_hour), do: "Maadwo"
 
   defp prev_period_tasks("all", _store_id, _prev_start, _prev_end), do: []
 
@@ -141,6 +159,9 @@ defmodule EmakolaWeb.DashboardHelpers do
       top_products_chart: %{labels: [], values: []},
       pending_orders: 0,
       low_stock_count: 0,
+      sold_out_count: 0,
+      open_returns: 0,
+      best_sellers: [],
       failed_payments: 0,
       recent_orders: []
     }
@@ -234,6 +255,26 @@ defmodule EmakolaWeb.DashboardHelpers do
       |> Ash.count(authorize?: false)
 
     count
+  end
+
+  # "Sold out" is the low-stock read with a threshold of 1 — stock_quantity < 1
+  # on an inventory-tracked variant. It is the urgent half of low stock: those
+  # products cannot be bought at all right now.
+  defp count_sold_out(store_id) do
+    {:ok, count} =
+      Emakola.Catalog.Variant
+      |> Ash.Query.for_read(:low_stock, %{threshold: 1, store_id: store_id})
+      |> Ash.count(authorize?: false)
+
+    count
+  end
+
+  defp count_open_returns(store_id) do
+    store_id
+    |> Emakola.Orders.list_returns_by_store!(authorize?: false)
+    |> Enum.count(&(&1.status == :requested))
+  rescue
+    _ -> 0
   end
 
   defp count_failed_payments(store_id, from, to) do

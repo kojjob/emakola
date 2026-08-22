@@ -16,6 +16,31 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     {:ok, conn: conn, store: store, merchant: merchant}
   end
 
+  describe "first day" do
+    test "a store with no returns is reassured, not alarmed", %{conn: conn} do
+      {:ok, _html_view, html} = live(conn, ~p"/admin/returns")
+
+      # Positive framing: no returns is good news for a merchant, not a gap.
+      assert html =~ "No returns — great job"
+      assert html =~ "Requests will show here if they come"
+      assert html =~ "Set your return rules"
+    end
+
+    test "a filter that matches nothing still says so", %{conn: conn, store: store} do
+      create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html =
+        view
+        |> element("#returns-filter-tabs button[phx-value-status='denied']")
+        |> render_click()
+
+      assert html =~ "No returns found"
+      refute html =~ "No returns yet"
+    end
+  end
+
   describe "ReturnLive redesign" do
     test "KPI tiles show open, approved and refunded totals", %{conn: conn, store: store} do
       create_return!(store)
@@ -77,8 +102,10 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     test "displays empty state when no returns exist", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/returns")
 
-      assert html =~ "No returns found"
-      assert html =~ "Return requests from customers will appear here"
+      # A store that has never had a return sees first-day copy rather than
+      # "not found" — see the "first day" describe block.
+      assert html =~ "No returns — great job"
+      assert html =~ "Requests will show here if they come"
     end
 
     test "displays status filter tabs", %{conn: conn} do

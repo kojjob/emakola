@@ -30,7 +30,9 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     test "displays empty state when no orders", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      assert html =~ "No orders found"
+      # A store that has never had an order gets first-day guidance rather
+      # than "not found" — see the "first day" describe block.
+      assert html =~ "Your orders will show here"
     end
 
     test "caps the order list at 50 rows", %{conn: conn, store: store, customer: customer} do
@@ -157,6 +159,36 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "2")
       assert render(view) =~ pending.order_number
       refute render(view) =~ delivered.order_number
+    end
+  end
+
+  describe "first day" do
+    test "a store with no orders is told how to get one", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Your orders will show here"
+      assert html =~ "Share your store to get the first one"
+      # A real WhatsApp share, prefilled with the store's own link — the way
+      # these merchants actually send a shop to a customer.
+      assert has_element?(view, "a[href^='https://wa.me/?text=']", "Share on WhatsApp")
+    end
+
+    test "a filter that matches nothing still says so", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      html =
+        view
+        |> element("#orders-filter-tabs button[phx-value-status='delivered']")
+        |> render_click()
+
+      assert html =~ "No orders found"
+      refute html =~ "Your orders will show here"
     end
   end
 

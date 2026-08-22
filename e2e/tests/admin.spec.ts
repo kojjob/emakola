@@ -12,7 +12,9 @@ test.describe("Admin Dashboard & Navigation", () => {
   });
 
   test("dashboard shows metrics", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    // The dashboard's h1 is a time-of-day greeting, so pin the element rather
+    // than its text.
+    await expect(page.locator("#dashboard-greeting")).toBeVisible();
     await expect(page.getByRole("main").getByText("Revenue").first()).toBeVisible();
     await expect(page.getByRole("main").getByText("Orders").first()).toBeVisible();
     await expect(page.getByRole("main").getByText("Customers").first()).toBeVisible();

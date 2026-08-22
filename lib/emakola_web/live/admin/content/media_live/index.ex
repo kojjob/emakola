@@ -112,28 +112,25 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
         </div>
       </div>
 
-      <div
-        :if={@filtered_media == []}
-        class="bg-white rounded-2xl shadow-sm p-12 text-center"
-      >
-        <svg
-          class="w-12 h-12 text-slate-300 mx-auto mb-3"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-          />
-        </svg>
-        <p class="text-sm text-slate-500">No media files yet.</p>
-        <p class="text-xs text-slate-400 mt-1">
-          Upload images, videos, and audio when creating posts.
-        </p>
-      </div>
+      <%!-- A filter that matched nothing is not the same as an empty library:
+            the first is about the filter, the second is the merchant's day one. --%>
+      <.empty_state
+        :if={@filtered_media == [] and @filter_type != :all}
+        icon="hero-photo"
+        title="No media found"
+        description="Try another type"
+      />
+      <.empty_state
+        :if={@filtered_media == [] and @filter_type == :all}
+        id="media-empty"
+        icon="hero-photo"
+        tone={:primary}
+        title="Good photos sell more"
+        description="Add pictures of what you make"
+        action_label="Add photos"
+        action_icon="hero-arrow-up-tray"
+        action_path={~p"/admin/products/new"}
+      />
     </div>
     """
   end
