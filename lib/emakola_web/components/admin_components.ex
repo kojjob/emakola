@@ -187,15 +187,16 @@ defmodule EmakolaWeb.AdminComponents do
   """
   attr :label, :string, required: true
   attr :value, :string, required: true
-  attr :icon_bg, :string, default: "bg-primary-soft"
   attr :id, :string, default: nil
 
-  attr :tint, :atom,
-    default: :none,
-    values: [:none, :primary, :info, :warning, :danger, :neutral],
-    doc: "Soft card wash. Defaults to the plain white card, so existing callers are unchanged."
-
-  attr :icon_size, :atom, default: :sm, values: [:sm, :lg]
+  attr :tone, :atom,
+    default: :neutral,
+    values: [:primary, :info, :warning, :danger, :neutral],
+    doc: """
+    The tile's meaning-colour. One attribute drives the card wash, the icon
+    tile and the icon colour together, so tiles cannot drift apart page by
+    page — pass the tone, not three classes.
+    """
 
   slot :icon
   slot :delta
@@ -205,16 +206,17 @@ defmodule EmakolaWeb.AdminComponents do
     <.admin_card
       id={@id}
       padding={:none}
-      class={"p-5 hover:shadow-md transition-shadow #{tint_bg(@tint)}"}
+      class={"p-5 hover:shadow-md transition-shadow #{tone_wash(@tone)}"}
     >
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-start justify-between gap-3 mb-3">
         <span class="text-sm font-medium text-slate-500">{@label}</span>
+        <%!-- The icon slot inherits text-white, so call sites pass a bare
+              <.icon> with no colour of their own. --%>
         <div
           :if={@icon != []}
           class={[
-            "rounded-control flex items-center justify-center",
-            if(@icon_size == :lg, do: "w-14 h-14", else: "w-9 h-9"),
-            @icon_bg
+            "w-14 h-14 rounded-control flex items-center justify-center shrink-0 text-white",
+            tone_tile(@tone)
           ]}
         >
           {render_slot(@icon)}
@@ -226,12 +228,17 @@ defmodule EmakolaWeb.AdminComponents do
     """
   end
 
-  defp tint_bg(:primary), do: "bg-gradient-to-br from-primary-soft to-surface"
-  defp tint_bg(:info), do: "bg-gradient-to-br from-info-soft to-surface"
-  defp tint_bg(:warning), do: "bg-gradient-to-br from-warning-soft to-surface"
-  defp tint_bg(:danger), do: "bg-gradient-to-br from-danger-soft to-surface"
-  defp tint_bg(:neutral), do: "bg-gradient-to-br from-slate-100 to-surface"
-  defp tint_bg(_none), do: ""
+  defp tone_wash(:primary), do: "bg-gradient-to-br from-primary-soft to-surface"
+  defp tone_wash(:info), do: "bg-gradient-to-br from-info-soft to-surface"
+  defp tone_wash(:warning), do: "bg-gradient-to-br from-warning-soft to-surface"
+  defp tone_wash(:danger), do: "bg-gradient-to-br from-danger-soft to-surface"
+  defp tone_wash(_neutral), do: "bg-gradient-to-br from-slate-100 to-surface"
+
+  defp tone_tile(:primary), do: "bg-primary"
+  defp tone_tile(:info), do: "bg-info"
+  defp tone_tile(:warning), do: "bg-warning"
+  defp tone_tile(:danger), do: "bg-danger"
+  defp tone_tile(_neutral), do: "bg-slate-500"
 
   # ─────────────────────────────────────────────────────────────────────
   # table_toolbar/1

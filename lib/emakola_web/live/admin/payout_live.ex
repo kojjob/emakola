@@ -243,7 +243,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                 label="Accrued balance"
                 icon="hero-banknotes"
                 icon_class="text-emerald-600"
-                icon_bg="bg-emerald-50"
                 state={:loading}
               />
             </div>
@@ -252,7 +251,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                 label="Held by Buyer Protection"
                 icon="hero-lock-closed"
                 icon_class="text-amber-600"
-                icon_bg="bg-amber-50"
                 state={:loading}
               />
             </div>
@@ -261,7 +259,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                 label="Legacy outstanding"
                 icon="hero-clock"
                 icon_class="text-slate-600"
-                icon_bg="bg-slate-100"
                 state={:loading}
               />
             </div>
@@ -275,7 +272,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                   label="Accrued balance"
                   icon="hero-banknotes"
                   icon_class="text-emerald-600"
-                  icon_bg="bg-emerald-50"
                   state={:failed}
                 />
               </div>
@@ -284,7 +280,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                   label="Held by Buyer Protection"
                   icon="hero-lock-closed"
                   icon_class="text-amber-600"
-                  icon_bg="bg-amber-50"
                   state={:failed}
                 />
               </div>
@@ -293,7 +288,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
                   label="Legacy outstanding"
                   icon="hero-clock"
                   icon_class="text-slate-600"
-                  icon_bg="bg-slate-100"
                   state={:failed}
                 />
               </div>
@@ -311,7 +305,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
               value={Currency.format_price(money.accrued, @currency)}
               icon="hero-banknotes"
               icon_class="text-emerald-600"
-              icon_bg="bg-emerald-50"
             />
             <div
               :if={money.nudge?}
@@ -326,7 +319,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
               value={Currency.format_price(money.held, @currency)}
               icon="hero-lock-closed"
               icon_class="text-amber-600"
-              icon_bg="bg-amber-50"
             />
           </div>
           <div id="payout-tile-legacy">
@@ -335,7 +327,6 @@ defmodule EmakolaWeb.Admin.PayoutLive do
               value={Currency.format_price(money.legacy, @currency)}
               icon="hero-clock"
               icon_class="text-slate-600"
-              icon_bg="bg-slate-100"
             />
           </div>
         </div>
@@ -481,13 +472,13 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   attr :value, :string, default: nil
   attr :icon, :string, required: true
   attr :icon_class, :string, required: true
-  attr :icon_bg, :string, required: true
+  attr :tone, :atom, default: :neutral
   attr :state, :atom, default: :ok, values: [:ok, :loading, :failed]
 
   defp money_tile(%{state: :loading} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
       <:delta>
         <div class="mt-2 h-7 w-24 animate-pulse rounded bg-slate-200" aria-hidden="true"></div>
         <span class="sr-only">Loading {@label}</span>
@@ -498,16 +489,16 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
   defp money_tile(%{state: :failed} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="—" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="—" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end
 
   defp money_tile(assigns) do
     ~H"""
-    <.stat_card label={@label} value={@value} icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value={@value} tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end

@@ -75,30 +75,26 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         <.stat_card
           label="Total Customers"
           value={Integer.to_string(@total_customers)}
-          icon_bg="bg-emerald-50"
         >
-          <:icon><.icon name="hero-users" class="size-[18px] text-emerald-600" /></:icon>
+          <:icon><.icon name="hero-users" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="Active"
           value={Integer.to_string(@total_customers)}
-          icon_bg="bg-violet-50"
         >
-          <:icon><.icon name="hero-check-circle" class="size-[18px] text-violet-600" /></:icon>
+          <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="New This Month"
           value={Integer.to_string(@new_this_month)}
-          icon_bg="bg-amber-50"
         >
-          <:icon><.icon name="hero-user-plus" class="size-[18px] text-amber-600" /></:icon>
+          <:icon><.icon name="hero-user-plus" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="Avg. Order Value"
           value={calculate_avg_order_value(@customers)}
-          icon_bg="bg-rose-50"
         >
-          <:icon><.icon name="hero-currency-dollar" class="size-[18px] text-rose-600" /></:icon>
+          <:icon><.icon name="hero-currency-dollar" class="size-7" /></:icon>
         </.stat_card>
       </div>
 

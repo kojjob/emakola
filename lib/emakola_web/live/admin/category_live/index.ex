@@ -275,26 +275,24 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       <%!-- KPI tiles (store-wide) --%>
       <div id="category-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div id="stat-categories-total">
-          <.stat_card label="Total categories" value={to_string(length(@all_categories))}>
-            <:icon><.icon name="hero-folder" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card label="Total categories" value={to_string(length(@all_categories))} tone={:info}>
+            <:icon><.icon name="hero-folder" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-categories-main">
           <.stat_card
             label="Main groups"
             value={to_string(length(@category_tree))}
-            icon_bg="bg-blue-50"
           >
-            <:icon><.icon name="hero-squares-2x2" class="size-[18px] text-blue-600" /></:icon>
+            <:icon><.icon name="hero-squares-2x2" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-categories-products">
           <.stat_card
             label="Products organized"
             value={to_string(@category_stats.organized)}
-            icon_bg="bg-slate-100"
           >
-            <:icon><.icon name="hero-cube" class="size-[18px] text-slate-600" /></:icon>
+            <:icon><.icon name="hero-cube" class="size-7" /></:icon>
             <:delta>
               <p :if={@category_stats.uncategorized > 0} class="text-xs text-slate-400 mt-1">
                 {@category_stats.uncategorized} uncategorized
@@ -303,8 +301,8 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
           </.stat_card>
         </div>
         <div id="stat-categories-top">
-          <.stat_card label="Most stocked" value={@category_stats.top_name}>
-            <:icon><.icon name="hero-star" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card label="Most stocked" value={@category_stats.top_name} tone={:primary}>
+            <:icon><.icon name="hero-star" class="size-7" /></:icon>
             <:delta>
               <p :if={@category_stats.top_count > 0} class="text-xs text-slate-400 mt-1">
                 {@category_stats.top_count} products

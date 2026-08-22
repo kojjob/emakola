@@ -92,27 +92,35 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
       <%!-- KPI tiles (store-wide, independent of search/filter) --%>
       <div id="order-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div id="stat-orders-today">
-          <.stat_card label="Orders today" value={to_string(@order_stats.today)}>
-            <:icon><.icon name="hero-shopping-bag" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card label="Orders today" value={to_string(@order_stats.today)} tone={:info}>
+            <:icon><.icon name="hero-shopping-bag" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-orders-pending">
           <.stat_card
             label="Pending"
             value={to_string(@order_stats.status_counts.pending)}
-            icon_bg="bg-amber-50"
+            tone={:warning}
           >
-            <:icon><.icon name="hero-clock" class="size-[18px] text-amber-600" /></:icon>
+            <:icon><.icon name="hero-clock" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-orders-revenue">
-          <.stat_card label="Revenue (7 days)" value={format_price(@order_stats.revenue_7d, "GHS")}>
-            <:icon><.icon name="hero-banknotes" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card
+            label="Revenue (7 days)"
+            value={format_price(@order_stats.revenue_7d, "GHS")}
+            tone={:primary}
+          >
+            <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-orders-delivered">
-          <.stat_card label="Delivered (30 days)" value={to_string(@order_stats.delivered_30d)}>
-            <:icon><.icon name="hero-check-circle" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card
+            label="Delivered (30 days)"
+            value={to_string(@order_stats.delivered_30d)}
+            tone={:primary}
+          >
+            <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
           </.stat_card>
         </div>
       </div>

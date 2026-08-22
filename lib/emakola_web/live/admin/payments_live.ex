@@ -102,33 +102,27 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
           id="stat-payments-volume"
           label="Money in"
           value={format_price(@summary.total_volume, "GHS")}
-          tint={:primary}
-          icon_bg="bg-primary"
-          icon_size={:lg}
+          tone={:primary}
         >
-          <:icon><.icon name="hero-banknotes" class="size-7 text-white" /></:icon>
+          <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
         </.stat_card>
 
         <.stat_card
           id="stat-payments-count"
           label="Payments"
           value={Integer.to_string(@summary.transaction_count)}
-          tint={:info}
-          icon_bg="bg-info"
-          icon_size={:lg}
+          tone={:info}
         >
-          <:icon><.icon name="hero-credit-card" class="size-7 text-white" /></:icon>
+          <:icon><.icon name="hero-credit-card" class="size-7" /></:icon>
         </.stat_card>
 
         <.stat_card
           id="stat-payments-rate"
           label="Went through"
           value={"#{@summary.success_rate}%"}
-          tint={:info}
-          icon_bg="bg-info"
-          icon_size={:lg}
+          tone={:info}
         >
-          <:icon><.icon name="hero-chart-bar" class="size-7 text-white" /></:icon>
+          <:icon><.icon name="hero-chart-bar" class="size-7" /></:icon>
           <:delta>
             <p class="text-sm text-slate-500 mt-1">{@summary.success_count} paid</p>
           </:delta>
@@ -138,11 +132,9 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
           id="stat-payments-failed"
           label="Did not go through"
           value={Integer.to_string(@summary.failed_count)}
-          tint={:danger}
-          icon_bg="bg-danger"
-          icon_size={:lg}
+          tone={:danger}
         >
-          <:icon><.icon name="hero-exclamation-triangle" class="size-7 text-white" /></:icon>
+          <:icon><.icon name="hero-exclamation-triangle" class="size-7" /></:icon>
           <:delta>
             <p class="text-sm text-slate-500 mt-1">{@summary.pending_count} still waiting</p>
           </:delta>
@@ -152,11 +144,9 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
           id="stat-payments-refunded"
           label="Sent back"
           value={format_price(@summary.refunded_total, "GHS")}
-          tint={:neutral}
-          icon_bg="bg-slate-500"
-          icon_size={:lg}
+          tone={:neutral}
         >
-          <:icon><.icon name="hero-arrow-uturn-left" class="size-7 text-white" /></:icon>
+          <:icon><.icon name="hero-arrow-uturn-left" class="size-7" /></:icon>
         </.stat_card>
       </div>
 
