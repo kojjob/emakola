@@ -4,9 +4,15 @@ defmodule Emakola.Content.PlatformBlogSeeder do
   store_id) merchant-acquisition content. Bodies live as HTML files in
   priv/platform_blog/, keyed by slug.
 
-  Idempotent: a post whose slug already exists (any status) is returned
-  untouched, so re-running never duplicates or overwrites edits made in
-  the meantime.
+  Idempotent, and the files are the source of truth: re-running never
+  duplicates, and refreshes an existing post's content from its file.
+  Platform posts have no admin editor (`list_admin` is store-scoped), so
+  this is the only way to correct what is already published — a seeder
+  that skipped existing posts would make every correction a no-op.
+
+  Identity and engagement survive a refresh: title and slug are the
+  lookup key and stay put (rename = a new post, by design), as do
+  `published_at` and `view_count`.
   """
 
   require Ash.Query
@@ -61,7 +67,7 @@ defmodule Emakola.Content.PlatformBlogSeeder do
 
     case existing_post(slug) do
       nil -> create_and_publish(entry, slug)
-      post -> post
+      post -> refresh(post, entry, slug)
     end
   end
 
@@ -71,8 +77,21 @@ defmodule Emakola.Content.PlatformBlogSeeder do
     |> Ash.read_first!(authorize?: false)
   end
 
+  defp refresh(post, entry, slug) do
+    post
+    |> Ash.Changeset.for_update(:update, %{
+      body: read_body(slug),
+      excerpt: entry.excerpt,
+      seo_title: entry.seo_title,
+      seo_description: entry.seo_description,
+      featured_image_url: "/images/blog/#{slug}.jpg",
+      tags: entry.tags
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
   defp create_and_publish(entry, slug) do
-    body = File.read!(Path.join(body_dir(), "#{slug}.html"))
+    body = read_body(slug)
 
     Emakola.Content.Post
     |> Ash.Changeset.for_create(:create, %{
@@ -90,6 +109,8 @@ defmodule Emakola.Content.PlatformBlogSeeder do
     |> Ash.Changeset.for_update(:publish, %{})
     |> Ash.update!(authorize?: false)
   end
+
+  defp read_body(slug), do: File.read!(Path.join(body_dir(), "#{slug}.html"))
 
   defp body_dir, do: Path.join(:code.priv_dir(:emakola), "platform_blog")
 
