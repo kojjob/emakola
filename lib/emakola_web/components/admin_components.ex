@@ -543,7 +543,10 @@ defmodule EmakolaWeb.AdminComponents do
       <.status_badge status="pending" variant={:payment} />
   """
   attr :status, :any, required: true
-  attr :variant, :atom, default: :order, values: [:order, :payment, :delivery, :product, :return]
+
+  attr :variant, :atom,
+    default: :order,
+    values: [:order, :payment, :delivery, :product, :return, :payout]
 
   def status_badge(assigns) do
     status_atom = normalise_status(assigns.status)
@@ -766,6 +769,16 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_color(:payment, :failed), do: "bg-danger-soft text-danger"
   defp status_color(:payment, :refunded), do: "bg-slate-50 text-slate-600"
 
+  # ── Payout statuses ────────────────────────────────────────────────
+  # Money that left the platform. `:paid` is the good end state, so it reads
+  # green — without this variant it fell to the neutral catch-all and a sent
+  # payout looked the same as a stalled one.
+  defp status_color(:payout, :pending), do: "bg-warning-soft text-warning"
+  defp status_color(:payout, :processing), do: "bg-info-soft text-info"
+  defp status_color(:payout, :paid), do: "bg-success-soft text-success"
+  defp status_color(:payout, :failed), do: "bg-danger-soft text-danger"
+  defp status_color(:payout, :reversed), do: "bg-slate-50 text-slate-600"
+
   # ── Delivery statuses (alias of order) ─────────────────────────────
   defp status_color(:delivery, status), do: status_color(:order, status)
 
@@ -788,6 +801,10 @@ defmodule EmakolaWeb.AdminComponents do
   # Every known status carries a glyph so state reads by shape as well as
   # color — many merchants scan icons faster than they read labels.
   defp status_icon(:delivery, status), do: status_icon(:order, status)
+
+  # Variant-pinned, and deliberately above the `_variant` clauses below: a
+  # generic `:paid` icon added later would otherwise shadow this one.
+  defp status_icon(:payout, :paid), do: "hero-paper-airplane"
 
   defp status_icon(_variant, :pending), do: "hero-clock"
   defp status_icon(_variant, :confirmed), do: "hero-check"
