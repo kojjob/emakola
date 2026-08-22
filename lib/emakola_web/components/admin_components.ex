@@ -572,6 +572,12 @@ defmodule EmakolaWeb.AdminComponents do
   attr :description, :string, default: nil
   attr :action_label, :string, default: nil
   attr :action_path, :string, default: nil
+  attr :secondary_label, :string, default: nil
+  attr :secondary_path, :string, default: nil
+
+  attr :show_tour, :boolean,
+    default: false,
+    doc: "Adds a link to the visual tour — for merchants who have nothing yet."
 
   def empty_state(assigns) do
     ~H"""
@@ -581,12 +587,33 @@ defmodule EmakolaWeb.AdminComponents do
       </div>
       <h3 class="text-base font-semibold text-text">{@title}</h3>
       <p :if={@description} class="text-sm text-text-muted mt-1 max-w-md">{@description}</p>
+
+      <div class="flex flex-wrap items-center justify-center gap-3 mt-5">
+        <.link
+          :if={@action_label && @action_path}
+          href={@action_path}
+          class={primary_action_classes()}
+        >
+          {@action_label}
+        </.link>
+        <.link
+          :if={@secondary_label && @secondary_path}
+          href={@secondary_path}
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-sm font-semibold rounded-control text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+        >
+          {@secondary_label}
+        </.link>
+      </div>
+
+      <%!-- The tour is the explainer for merchants who read slowly: pictures,
+            not paragraphs. It only belongs on a genuinely empty page, never on
+            a search that happened to match nothing. --%>
       <.link
-        :if={@action_label && @action_path}
-        href={@action_path}
-        class={["mt-5", primary_action_classes()]}
+        :if={@show_tour}
+        href="/how-it-works/tour"
+        class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
       >
-        {@action_label}
+        <.icon name="hero-play-circle" class="size-4" /> See how selling works
       </.link>
     </div>
     """

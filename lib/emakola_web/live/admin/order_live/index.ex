@@ -165,14 +165,22 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
       <%!-- Orders --%>
       <%= if @orders == [] do %>
+        <%!-- A merchant who has never had an order needs directions; one whose
+              filter matched nothing needs to know the filter is why. --%>
         <.empty_state
+          :if={@search_query != "" or @status_filter != :all}
           icon="hero-shopping-bag"
           title="No orders found"
-          description={
-            if @search_query != "" or @status_filter != :all,
-              do: "Try adjusting your search or filters",
-              else: "Orders will appear here when customers place them"
-          }
+          description="Try adjusting your search or filters"
+        />
+        <.empty_state
+          :if={@search_query == "" and @status_filter == :all}
+          icon="hero-shopping-bag"
+          title="Your orders will show here"
+          description="Share your store link to get the first one"
+          action_label="Share your store"
+          action_path={~p"/admin/settings"}
+          show_tour
         />
       <% else %>
         <%!-- Desktop Table --%>

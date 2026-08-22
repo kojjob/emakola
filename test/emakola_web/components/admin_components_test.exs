@@ -507,6 +507,40 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "empty_state/1 first-day guidance" do
+    test "offers a second way in when one is given" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Add your first product",
+          action_label: "Snap a photo",
+          action_path: "/admin/products/snap",
+          secondary_label: "Add photos",
+          secondary_path: "/admin/products/new"
+        })
+
+      assert html =~ "Snap a photo"
+      assert html =~ "Add photos"
+      assert html =~ "/admin/products/new"
+    end
+
+    test "points a stuck merchant at the visual tour" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Your orders will show here",
+          show_tour: true
+        })
+
+      assert html =~ "See how selling works"
+      assert html =~ "/how-it-works/tour"
+    end
+
+    test "stays quiet when no extras are asked for" do
+      html = render_component(&AdminComponents.empty_state/1, %{title: "No orders found"})
+
+      refute html =~ "See how selling works"
+    end
+  end
+
   describe "payment_rail_chip/1" do
     test "MTN MoMo wears the brand yellow" do
       html = render_component(&AdminComponents.payment_rail_chip/1, %{rail: :mtn_momo})

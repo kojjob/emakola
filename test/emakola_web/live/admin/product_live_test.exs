@@ -14,6 +14,35 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "first day" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "a store with no products is told what to do, not that nothing was found", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      assert has_element?(view, "#product-empty-state", "Add your first product")
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']")
+      assert has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
+    end
+
+    test "a search that matches nothing still says so", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{title: "Kente Scarf"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      html =
+        view
+        |> form("#product-search-form", %{"search" => "zzzznothing"})
+        |> render_change()
+
+      assert html =~ "No products found"
+      refute html =~ "Add your first product"
+    end
+  end
+
   describe "ProductLive.Index (authenticated)" do
     setup %{conn: conn} do
       {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)

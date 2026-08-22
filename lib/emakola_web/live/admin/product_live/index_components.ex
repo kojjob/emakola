@@ -19,16 +19,24 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   def product_list(assigns) do
     ~H"""
     <%= if @products == [] do %>
-      <div id="product-empty-state" class="text-center py-16 bg-white rounded-lg">
-        <.icon name="hero-cube" class="size-12 mx-auto text-slate-500/30 mb-3" />
-        <p class="text-slate-500 font-medium">No products found</p>
-        <p class="text-sm text-slate-500/60 mt-1">
-          <%= if @search_query != "" or @status_filter != :all do %>
-            Try adjusting your search or filters
-          <% else %>
-            Get started by adding your first product
-          <% end %>
-        </p>
+      <%!-- A brand-new merchant gets directions and a photo-first way in; a
+            search that matched nothing gets told it was the search. --%>
+      <div id="product-empty-state">
+        <.empty_state
+          :if={@search_query != "" or @status_filter != :all}
+          icon="hero-cube"
+          title="No products found"
+          description="Try adjusting your search or filters"
+        />
+        <.empty_state
+          :if={@search_query == "" and @status_filter == :all}
+          icon="hero-camera"
+          title="Add your first product"
+          description="Add pictures of what you sell"
+          action_label="Add a product"
+          action_path="/admin/products/new"
+          show_tour
+        />
       </div>
     <% else %>
       <%!-- Desktop Table (hidden on mobile) --%>
