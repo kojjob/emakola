@@ -188,18 +188,34 @@ defmodule EmakolaWeb.AdminComponents do
   attr :label, :string, required: true
   attr :value, :string, required: true
   attr :icon_bg, :string, default: "bg-primary-soft"
+  attr :id, :string, default: nil
+
+  attr :tint, :atom,
+    default: :none,
+    values: [:none, :primary, :info, :warning, :danger, :neutral],
+    doc: "Soft card wash. Defaults to the plain white card, so existing callers are unchanged."
+
+  attr :icon_size, :atom, default: :sm, values: [:sm, :lg]
 
   slot :icon
   slot :delta
 
   def stat_card(assigns) do
     ~H"""
-    <.admin_card padding={:none} class="p-5 hover:shadow-md transition-shadow">
+    <.admin_card
+      id={@id}
+      padding={:none}
+      class={"p-5 hover:shadow-md transition-shadow #{tint_bg(@tint)}"}
+    >
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-medium text-slate-500">{@label}</span>
         <div
           :if={@icon != []}
-          class={["w-9 h-9 rounded-control flex items-center justify-center", @icon_bg]}
+          class={[
+            "rounded-control flex items-center justify-center",
+            if(@icon_size == :lg, do: "w-14 h-14", else: "w-9 h-9"),
+            @icon_bg
+          ]}
         >
           {render_slot(@icon)}
         </div>
@@ -209,6 +225,13 @@ defmodule EmakolaWeb.AdminComponents do
     </.admin_card>
     """
   end
+
+  defp tint_bg(:primary), do: "bg-gradient-to-br from-primary-soft to-surface"
+  defp tint_bg(:info), do: "bg-gradient-to-br from-info-soft to-surface"
+  defp tint_bg(:warning), do: "bg-gradient-to-br from-warning-soft to-surface"
+  defp tint_bg(:danger), do: "bg-gradient-to-br from-danger-soft to-surface"
+  defp tint_bg(:neutral), do: "bg-gradient-to-br from-slate-100 to-surface"
+  defp tint_bg(_none), do: ""
 
   # ─────────────────────────────────────────────────────────────────────
   # table_toolbar/1
@@ -295,9 +318,13 @@ defmodule EmakolaWeb.AdminComponents do
       />
   """
   attr :tabs, :list, required: true
-  attr :current, :atom, required: true
+  attr :current, :any, required: true
   attr :event, :string, default: "filter_status"
   attr :id, :string, default: nil
+
+  attr :param, :string,
+    default: "status",
+    doc: "phx-value-* name. Defaults to status; date ranges pass \"range\"."
 
   def filter_tabs(assigns) do
     ~H"""
@@ -305,7 +332,7 @@ defmodule EmakolaWeb.AdminComponents do
       <button
         :for={tab <- @tabs}
         phx-click={@event}
-        phx-value-status={tab.key}
+        {%{("phx-value-" <> @param) => tab.key}}
         class={[
           "inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg",
           "transition-colors whitespace-nowrap cursor-pointer",
