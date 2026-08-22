@@ -25,7 +25,10 @@ setup("authenticate as merchant", async ({ page }) => {
   await page.getByRole("button", { name: "Sign In" }).click();
 
   await page.waitForURL("**/dashboard", { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  // The dashboard's h1 is a time-of-day greeting, so pin the element rather
+  // than its text. This setup gates every other spec — a stale locator here
+  // fails the whole suite, not one test.
+  await expect(page.locator("#dashboard-greeting")).toBeVisible();
 
   await page.context().storageState({ path: MERCHANT_STORAGE_STATE });
 });
