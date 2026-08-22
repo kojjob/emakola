@@ -301,7 +301,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
       <%= if @loaded == false do %>
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8" aria-hidden="true">
-          <div :for={_tile <- 1..5} class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div :for={_tile <- 1..5} class="rounded-card border border-border bg-surface p-5 shadow-sm">
             <div class="h-4 w-24 rounded bg-gray-200 animate-pulse"></div>
             <div class="mt-4 h-8 w-28 rounded bg-gray-200 animate-pulse"></div>
           </div>
@@ -310,7 +310,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       <% else %>
         <%!-- ── Revenue hero: fees trend + stacked tiles ───────────────── --%>
         <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 mb-8 items-stretch">
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col">
+          <div class="rounded-card border border-border bg-surface p-5 shadow-sm flex flex-col">
             <div class="flex items-start justify-between gap-3 flex-wrap">
               <div>
                 <h2 class="text-[13px] font-bold text-gray-900">

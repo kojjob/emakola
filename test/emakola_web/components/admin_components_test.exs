@@ -252,18 +252,36 @@ defmodule EmakolaWeb.AdminComponentsTest do
       assert html =~ "tabular-nums"
     end
 
-    test "renders icon slot inside a coloured chip" do
+    test "one tone drives the card wash, the icon tile and the icon colour" do
       assigns = %{}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.stat_card label="Low Stock" value="3" icon_bg="bg-amber-50">
+        <AdminComponents.stat_card label="Low Stock" value="3" tone={:warning}>
           <:icon><span data-test="icon">!</span></:icon>
         </AdminComponents.stat_card>
         """)
 
       assert html =~ ~s|data-test="icon"|
-      assert html =~ "bg-amber-50"
+      # Call sites pass a tone, never three separate classes — that is what
+      # keeps tiles identical from page to page.
+      assert html =~ "from-warning-soft"
+      assert html =~ "bg-warning"
+      assert html =~ "text-white"
+    end
+
+    test "tiles default to the neutral tone rather than an untinted card" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Total" value="7">
+          <:icon><span data-test="icon">#</span></:icon>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ "from-slate-100"
+      assert html =~ "bg-slate-500"
     end
 
     test "omits the icon chip when no icon slot is given" do

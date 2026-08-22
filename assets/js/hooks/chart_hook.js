@@ -1,7 +1,75 @@
 import { Chart, registerables } from "chart.js"
 Chart.register(...registerables)
 
+// Semantic status colours, mirroring the design tokens in assets/css/app.css
+// (--color-success / -warning / -danger / slate-500). Chart.js cannot read CSS
+// custom properties, so these are duplicated here — keep them in step.
+const STATUS_COLORS = ["#059669", "#D97706", "#DC2626", "#64748B"]
+
+// Payment providers. Two today (Paystack, Hubtel); extend positionally.
+const PROVIDER_COLORS = ["#059669", "#2563EB", "#D97706", "#64748B"]
+
 const CHART_CONFIGS = {
+  // Payments: one bar per status, each carrying its own meaning-colour.
+  // Unlike count-bar, the colour is positional — the labels arrive in a
+  // fixed order (paid / waiting / failed / sent back).
+  "status-bar": (data) => ({
+    type: "bar",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        backgroundColor: STATUS_COLORS,
+        borderRadius: 8,
+        borderSkipped: false,
+        maxBarThickness: 64
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(0,0,0,0.05)" },
+          ticks: { font: { size: 11 }, precision: 0 }
+        }
+      }
+    }
+  }),
+
+  // Payments: volume split by provider. The total and legend are rendered as
+  // markup around the canvas, so the ring itself carries no text.
+  "provider-donut": (data) => ({
+    type: "doughnut",
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        backgroundColor: PROVIDER_COLORS,
+        borderWidth: 0,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "68%",
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => `${item.label}: GHS ${(item.raw / 100).toFixed(2)}`
+          }
+        }
+      }
+    }
+  }),
+
   "revenue-bar": (data) => ({
     type: "bar",
     data: {

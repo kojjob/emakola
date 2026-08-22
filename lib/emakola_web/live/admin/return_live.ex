@@ -258,10 +258,10 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       <%!-- KPI tiles --%>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div id="stat-returns-open">
-          <.stat_card label="Open requests" value={@return_stats.open} />
+          <.stat_card label="Open requests" value={@return_stats.open} tone={:warning} />
         </div>
         <div id="stat-returns-approved">
-          <.stat_card label="Approved, awaiting refund" value={@return_stats.approved} />
+          <.stat_card label="Approved, awaiting refund" value={@return_stats.approved} tone={:info} />
         </div>
         <div id="stat-returns-refunded">
           <.stat_card

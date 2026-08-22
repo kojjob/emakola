@@ -218,7 +218,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Total earned"
                 icon="hero-banknotes"
                 icon_class="text-sky-600"
-                icon_bg="bg-sky-50"
                 state={:loading}
               />
             </div>
@@ -227,7 +226,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="This month"
                 icon="hero-calendar"
                 icon_class="text-blue-600"
-                icon_bg="bg-blue-50"
                 state={:loading}
               />
             </div>
@@ -236,7 +234,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Payable now"
                 icon="hero-clock"
                 icon_class="text-emerald-600"
-                icon_bg="bg-emerald-50"
                 state={:loading}
               />
             </div>
@@ -245,7 +242,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Paid out"
                 icon="hero-check-circle"
                 icon_class="text-slate-600"
-                icon_bg="bg-slate-100"
                 state={:loading}
               />
             </div>
@@ -259,7 +255,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Total earned"
                   icon="hero-banknotes"
                   icon_class="text-sky-600"
-                  icon_bg="bg-sky-50"
                   state={:failed}
                 />
               </div>
@@ -268,7 +263,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="This month"
                   icon="hero-calendar"
                   icon_class="text-blue-600"
-                  icon_bg="bg-blue-50"
                   state={:failed}
                 />
               </div>
@@ -277,7 +271,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Payable now"
                   icon="hero-clock"
                   icon_class="text-emerald-600"
-                  icon_bg="bg-emerald-50"
                   state={:failed}
                 />
               </div>
@@ -286,7 +279,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Paid out"
                   icon="hero-check-circle"
                   icon_class="text-slate-600"
-                  icon_bg="bg-slate-100"
                   state={:failed}
                 />
               </div>
@@ -304,7 +296,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.total_earned, @currency)}
               icon="hero-banknotes"
               icon_class="text-sky-600"
-              icon_bg="bg-sky-50"
             />
           </div>
           <div id="earnings-tile-month">
@@ -313,7 +304,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.this_month, @currency)}
               icon="hero-calendar"
               icon_class="text-blue-600"
-              icon_bg="bg-blue-50"
             />
           </div>
           <div id="earnings-tile-payable">
@@ -322,7 +312,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.payable_now, @currency)}
               icon="hero-clock"
               icon_class="text-emerald-600"
-              icon_bg="bg-emerald-50"
             />
           </div>
           <div id="earnings-tile-paid-out">
@@ -331,7 +320,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.paid_out, @currency)}
               icon="hero-check-circle"
               icon_class="text-slate-600"
-              icon_bg="bg-slate-100"
             />
           </div>
         </div>
@@ -411,13 +399,13 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   attr :value, :string, default: nil
   attr :icon, :string, required: true
   attr :icon_class, :string, required: true
-  attr :icon_bg, :string, required: true
+  attr :tone, :atom, default: :neutral
   attr :state, :atom, default: :ok, values: [:ok, :loading, :failed]
 
   defp money_tile(%{state: :loading} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
       <:delta>
         <div class="mt-2 h-7 w-24 animate-pulse rounded bg-slate-200" aria-hidden="true"></div>
         <span class="sr-only">Loading {@label}</span>
@@ -428,16 +416,16 @@ defmodule EmakolaWeb.Admin.EarningsLive do
 
   defp money_tile(%{state: :failed} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="—" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="—" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end
 
   defp money_tile(assigns) do
     ~H"""
-    <.stat_card label={@label} value={@value} icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value={@value} tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end

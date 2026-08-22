@@ -250,7 +250,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
 
       <div
         :if={is_nil(@store) and not @not_found}
-        class="mt-6 rounded-2xl border border-gray-200 bg-white p-12 text-center text-sm text-gray-400"
+        class="mt-6 rounded-card border border-border bg-surface p-12 text-center text-sm text-gray-400"
       >
         Loading store…
       </div>
@@ -349,7 +349,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
         <div :if={@case_file} class="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr] items-start">
           <div class="min-w-0 space-y-6">
             <%!-- Onboarding checklist --%>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
               <div class="flex items-center justify-between">
                 <h2 class="text-[15px] font-bold text-gray-900">Onboarding checklist</h2>
                 <.severity_pill label={"#{@case_file.completed} of 5"} tone="blue" />
@@ -391,7 +391,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
             </div>
 
             <%!-- Directory presence --%>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
               <div class="flex items-center justify-between">
                 <h2 class="text-[15px] font-bold text-gray-900">Directory presence</h2>
                 <.link
@@ -419,7 +419,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
             </div>
 
             <%!-- Recent orders --%>
-            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div class="rounded-card border border-border bg-surface shadow-sm overflow-hidden">
               <div class="px-5 py-4 border-b border-gray-100">
                 <h2 class="text-[15px] font-bold text-gray-900">Recent orders</h2>
               </div>
@@ -455,7 +455,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
 
           <div class="min-w-0 space-y-6">
             <%!-- Lifecycle actions --%>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
               <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 Lifecycle
               </p>
@@ -502,7 +502,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
             </div>
 
             <%!-- Lifecycle history (severity timeline) --%>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
               <h2 class="text-[15px] font-bold text-gray-900 mb-4">Lifecycle history</h2>
               <p :if={@history == []} class="py-4 text-center text-sm text-gray-400">
                 No lifecycle events yet.
@@ -543,7 +543,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
             </div>
 
             <%!-- Verification --%>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="rounded-card border border-border bg-surface p-5 shadow-sm">
               <div class="flex items-center justify-between">
                 <h2 class="text-[15px] font-bold text-gray-900">Verification</h2>
                 <.severity_pill

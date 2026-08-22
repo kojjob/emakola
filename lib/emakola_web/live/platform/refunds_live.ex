@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
         <div
           :if={!@refunds_empty?}
           id="platform-refunds-table"
-          class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+          class="rounded-card border border-border bg-surface shadow-sm overflow-hidden"
         >
           <table class="w-full text-sm">
             <thead>
@@ -158,7 +158,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
 
   defp metric_tile(assigns) do
     ~H"""
-    <div class="w-full sm:w-[340px] rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="w-full sm:w-[340px] rounded-card border border-border bg-surface p-5 shadow-sm">
       <div class="flex items-center justify-between">
         <span class="text-sm font-medium text-gray-500">{@label}</span>
         <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @chip]}>

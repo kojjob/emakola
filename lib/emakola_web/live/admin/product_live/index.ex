@@ -475,28 +475,28 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           <.stat_card
             label="Total products"
             value={to_string(@product_stats.all)}
-            icon_bg="bg-slate-100"
+            tone={:info}
           >
-            <:icon><.icon name="hero-cube" class="size-[18px] text-slate-600" /></:icon>
+            <:icon><.icon name="hero-cube" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-products-active">
-          <.stat_card label="Active" value={to_string(@product_stats.active)}>
-            <:icon><.icon name="hero-check-circle" class="size-[18px] text-emerald-600" /></:icon>
+          <.stat_card label="Active" value={to_string(@product_stats.active)} tone={:primary}>
+            <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-products-draft">
-          <.stat_card label="Draft" value={to_string(@product_stats.draft)} icon_bg="bg-slate-100">
-            <:icon><.icon name="hero-pencil" class="size-[18px] text-slate-500" /></:icon>
+          <.stat_card label="Draft" value={to_string(@product_stats.draft)}>
+            <:icon><.icon name="hero-pencil" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-products-archived">
           <.stat_card
             label="Archived"
             value={to_string(@product_stats.archived)}
-            icon_bg="bg-slate-100"
+            tone={:neutral}
           >
-            <:icon><.icon name="hero-archive-box" class="size-[18px] text-slate-500" /></:icon>
+            <:icon><.icon name="hero-archive-box" class="size-7" /></:icon>
           </.stat_card>
         </div>
       </div>

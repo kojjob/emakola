@@ -312,14 +312,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
         <.stat_card
           label="Active Links"
           value={to_string(count_by_status(@links, :active))}
-          icon_bg="bg-emerald-50"
         >
           <:icon><.icon name="hero-link" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
         </.stat_card>
-        <.stat_card label="Opened" value={to_string(total_opened(@links))} icon_bg="bg-violet-50">
+        <.stat_card label="Opened" value={to_string(total_opened(@links))}>
           <:icon><.icon name="hero-eye" class="w-[18px] h-[18px] text-violet-600" /></:icon>
         </.stat_card>
-        <.stat_card label="Paid" value={to_string(total_paid(@links))} icon_bg="bg-amber-50">
+        <.stat_card label="Paid" value={to_string(total_paid(@links))}>
           <:icon><.icon name="hero-banknotes" class="w-[18px] h-[18px] text-amber-600" /></:icon>
         </.stat_card>
       </div>

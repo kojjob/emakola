@@ -26,6 +26,23 @@ defmodule EmakolaWeb.AdminDesignConsistencyTest do
     end
   end
 
+  test "no admin page styles its own stat tiles" do
+    # The tile's look lives in stat_card and is chosen with one `tone`. A page
+    # that passes its own icon_bg — or colours the icon inside the slot — is
+    # how five pages ended up with five different tiles.
+    offenders =
+      "lib/emakola_web/live/**/*.ex"
+      |> Path.wildcard()
+      |> Enum.filter(fn file ->
+        source = File.read!(file)
+        String.contains?(source, "stat_card") and String.contains?(source, ~s(icon_bg=))
+      end)
+
+    assert offenders == [],
+           "these pages style their own stat tiles instead of passing a tone: " <>
+             inspect(offenders)
+  end
+
   test "the Stitch token system stays dead" do
     hits =
       Path.wildcard("lib/**/*.{ex,heex}")
