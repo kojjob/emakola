@@ -286,17 +286,20 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         }
       />
 
-      <%!-- Returns list --%>
-      <div
-        :if={@returns == []}
-        class="bg-surface rounded-card border border-border shadow-sm p-12 text-center"
-      >
-        <div class="mx-auto w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <.icon name="hero-arrow-uturn-left" class="size-7 text-slate-400" />
-        </div>
-        <h3 class="text-lg font-semibold text-slate-700">No returns found</h3>
-        <p class="text-sm text-slate-500 mt-1">Return requests from customers will appear here</p>
-      </div>
+      <%!-- No returns at all is good news, not a failed search — say so. A
+            narrowed filter that matched nothing says it was the filter. --%>
+      <.empty_state
+        :if={@returns == [] and @status_filter != "all"}
+        icon="hero-arrow-uturn-left"
+        title="No returns found"
+        description="Try another filter"
+      />
+      <.empty_state
+        :if={@returns == [] and @status_filter == "all"}
+        icon="hero-arrow-uturn-left"
+        title="No returns yet"
+        description="Requests will show here if they come"
+      />
 
       <div class={[
         "grid grid-cols-1 gap-6 items-start",

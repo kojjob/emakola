@@ -43,6 +43,27 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
       assert html =~ "Manage your customer base"
     end
 
+    test "a store with no customers is told when they will appear", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/customers")
+
+      assert html =~ "No customers yet"
+      assert html =~ "They appear when someone buys"
+    end
+
+    test "a search that matches nothing still says so", %{conn: conn, store: store} do
+      Factory.create_customer!(store, %{name: "Ama Mensah"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/customers")
+
+      html =
+        view
+        |> form("#customer-search-form", %{"search" => "zzzznothing"})
+        |> render_change()
+
+      assert html =~ "No customers found"
+      refute html =~ "No customers yet"
+    end
+
     test "caps the customer list at 100", %{conn: conn, store: store} do
       for i <- 1..101 do
         Factory.create_customer!(store, email: "bulk#{i}@example.com")
