@@ -189,26 +189,41 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   defp format_accrual_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
   defp format_accrual_date(_), do: "—"
 
+  defp role_icon(:merchant), do: "hero-shopping-bag"
+  defp role_icon(:wholesaler), do: "hero-building-storefront"
+  defp role_icon(:dropshipper), do: "hero-truck"
+  defp role_icon(:credit_partner), do: "hero-credit-card"
+
+  # Slice colours, positional, mirroring PROVIDER_COLORS in
+  # assets/js/hooks/chart_hook.js — a source's card wears the colour of its
+  # slice, so the ring and the cards read as one picture. Chart.js cannot read
+  # CSS custom properties, which is why the two lists are kept in step by hand.
+  @slice_tiles ["bg-emerald-500", "bg-blue-600", "bg-amber-500", "bg-slate-500"]
+
+  defp slice_tile(index), do: Enum.at(@slice_tiles, rem(index, length(@slice_tiles)))
+
+  defp source_chart(by_role) do
+    %{
+      labels: Enum.map(by_role, &role_title(&1.role)),
+      values: Enum.map(by_role, & &1.total)
+    }
+  end
+
+  # The ring's centre sums the same rows the ring draws, so the total can never
+  # disagree with the slices around it.
+  defp source_total(by_role), do: by_role |> Enum.map(& &1.total) |> Enum.sum()
+
   # ── Render ──────────────────────────────────────────────────────
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="earnings-page" class="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <header class="overflow-hidden rounded-3xl bg-slate-950 px-6 py-8 text-white shadow-xl sm:px-10">
-        <div class="max-w-2xl">
-          <span class="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-            <.icon name="hero-banknotes" class="size-4" /> Earnings
-          </span>
-          <h1 class="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Every cedi, traced to its source
-          </h1>
-          <p class="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-            Your own sales, resold stock, dropship margin, credit repayments —
-            see exactly where your earnings came from.
-          </p>
-        </div>
-      </header>
+    <div id="earnings-page" class="max-w-[1600px] mx-auto space-y-6 px-4 py-8 sm:px-6">
+      <.admin_page_header
+        title="Every cedi, traced to its source"
+        subtitle="Your own sales, resold stock, dropship margin, credit repayments."
+        icon="hero-banknotes"
+      />
 
       <.async_result :let={earnings} assign={@earnings}>
         <:loading>
@@ -218,6 +233,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Total earned"
                 icon="hero-banknotes"
                 icon_class="text-sky-600"
+                tone={:accent}
                 state={:loading}
               />
             </div>
@@ -226,6 +242,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="This month"
                 icon="hero-calendar"
                 icon_class="text-blue-600"
+                tone={:info}
                 state={:loading}
               />
             </div>
@@ -234,6 +251,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Payable now"
                 icon="hero-clock"
                 icon_class="text-emerald-600"
+                tone={:success}
                 state={:loading}
               />
             </div>
@@ -242,6 +260,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 label="Paid out"
                 icon="hero-check-circle"
                 icon_class="text-slate-600"
+                tone={:cyan}
                 state={:loading}
               />
             </div>
@@ -255,6 +274,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Total earned"
                   icon="hero-banknotes"
                   icon_class="text-sky-600"
+                  tone={:accent}
                   state={:failed}
                 />
               </div>
@@ -263,6 +283,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="This month"
                   icon="hero-calendar"
                   icon_class="text-blue-600"
+                  tone={:info}
                   state={:failed}
                 />
               </div>
@@ -271,6 +292,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Payable now"
                   icon="hero-clock"
                   icon_class="text-emerald-600"
+                  tone={:success}
                   state={:failed}
                 />
               </div>
@@ -279,6 +301,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                   label="Paid out"
                   icon="hero-check-circle"
                   icon_class="text-slate-600"
+                  tone={:cyan}
                   state={:failed}
                 />
               </div>
@@ -296,6 +319,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.total_earned, @currency)}
               icon="hero-banknotes"
               icon_class="text-sky-600"
+              tone={:accent}
+              footnote="Everything you have earned"
             />
           </div>
           <div id="earnings-tile-month">
@@ -304,6 +329,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.this_month, @currency)}
               icon="hero-calendar"
               icon_class="text-blue-600"
+              tone={:info}
+              footnote="Since the month started"
             />
           </div>
           <div id="earnings-tile-payable">
@@ -312,6 +339,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.payable_now, @currency)}
               icon="hero-clock"
               icon_class="text-emerald-600"
+              tone={:success}
+              footnote="Ready to be paid out"
             />
           </div>
           <div id="earnings-tile-paid-out">
@@ -320,6 +349,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               value={Currency.format_price(earnings.paid_out, @currency)}
               icon="hero-check-circle"
               icon_class="text-slate-600"
+              tone={:cyan}
+              footnote="Already sent to you"
             />
           </div>
         </div>
@@ -334,40 +365,94 @@ defmodule EmakolaWeb.Admin.EarningsLive do
           />
         </div>
 
+        <%!-- The ring answers "where did my money come from" before a word is
+              read; each source card is painted in its own slice colour so the
+              two halves are one picture. --%>
         <div
           :if={earnings.by_role != []}
-          id="earnings-by-source"
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          class="grid grid-cols-1 gap-4 lg:grid-cols-3 items-start"
         >
-          <div
-            :for={group <- earnings.by_role}
-            id={"earnings-source-#{group.role}"}
-            class="rounded-2xl border border-slate-200 bg-white p-5"
-          >
-            <h3 class="text-sm font-semibold text-slate-700">{role_title(group.role)}</h3>
-            <p class="mt-1 text-xl font-bold text-slate-900">
-              {Currency.format_price(group.total, @currency)}
-            </p>
-            <div :if={group.sources != []} class="mt-3 space-y-1 border-t border-slate-100 pt-3">
-              <div :for={source <- group.sources} class="flex items-center justify-between text-sm">
-                <span class="text-slate-600">{source.source_name}</span>
-                <span class="font-medium text-slate-800">
-                  {Currency.format_price(source.total, @currency)}
-                </span>
+          <.admin_card padding={:none} class="p-5">
+            <div class="mb-4 flex items-center gap-2">
+              <.icon name="hero-chart-pie" class="size-5 text-primary" />
+              <h2 class="text-base font-bold text-slate-800">Where it came from</h2>
+            </div>
+            <div class="relative h-56">
+              <canvas
+                id="earnings-source-chart"
+                phx-hook="ChartHook"
+                phx-update="ignore"
+                data-chart-type="provider-donut"
+                data-chart-data={Jason.encode!(source_chart(earnings.by_role))}
+                class="h-full w-full"
+              />
+              <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <p class="text-2xl font-bold tabular-nums text-slate-900">
+                  {Currency.format_price(source_total(earnings.by_role), @currency)}
+                </p>
+                <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Total
+                </p>
               </div>
             </div>
+          </.admin_card>
+
+          <%!-- auto-fit, not a fixed 2-up: most merchants have exactly one
+                source ("Your sales"), and a fixed two-column grid left that
+                lone card as a short box beside a tall ring with a third of the
+                row empty. auto-fit lets one card take the full span and two sit
+                side by side. --%>
+          <div
+            id="earnings-by-source"
+            class="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr gap-4 h-full lg:col-span-2"
+          >
+            <.admin_card
+              :for={{group, index} <- Enum.with_index(earnings.by_role)}
+              id={"earnings-source-#{group.role}"}
+              padding={:none}
+              class="p-5"
+            >
+              <div class="flex items-start gap-4">
+                <div class={[
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-control text-white",
+                  slice_tile(index)
+                ]}>
+                  <.icon name={role_icon(group.role)} class="size-7" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-sm font-semibold text-slate-700">{role_title(group.role)}</h3>
+                  <p class="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                    {Currency.format_price(group.total, @currency)}
+                  </p>
+                </div>
+              </div>
+              <div :if={group.sources != []} class="mt-3 space-y-1 border-t border-slate-100 pt-3">
+                <div
+                  :for={source <- group.sources}
+                  class="flex items-center justify-between text-sm"
+                >
+                  <span class="text-slate-600">{source.source_name}</span>
+                  <span class="font-medium tabular-nums text-slate-800">
+                    {Currency.format_price(source.total, @currency)}
+                  </span>
+                </div>
+              </div>
+            </.admin_card>
           </div>
         </div>
 
         <div :if={earnings.feed != []} id="earnings-feed">
-          <h2 class="mb-3 text-sm font-semibold text-slate-700">Recent accruals</h2>
-          <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div class="mb-3 flex items-center gap-2">
+            <.icon name="hero-clock" class="size-5 text-primary" />
+            <h2 class="text-base font-bold text-slate-800">Recent accruals</h2>
+          </div>
+          <div class="overflow-x-auto rounded-card border border-border bg-surface shadow-sm">
             <table class="min-w-full divide-y divide-slate-100">
               <thead>
                 <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-400">
-                  <th class="px-4 py-2">Date</th>
-                  <th class="px-4 py-2">Source</th>
-                  <th class="px-4 py-2">Net</th>
+                  <th class="px-4 py-3">Date</th>
+                  <th class="px-4 py-3">Source</th>
+                  <th class="px-4 py-3">Net</th>
                 </tr>
               </thead>
               <tbody>
@@ -400,6 +485,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   attr :icon, :string, required: true
   attr :icon_class, :string, required: true
   attr :tone, :atom, default: :neutral
+  attr :footnote, :string, default: nil
   attr :state, :atom, default: :ok, values: [:ok, :loading, :failed]
 
   defp money_tile(%{state: :loading} = assigns) do
@@ -426,6 +512,9 @@ defmodule EmakolaWeb.Admin.EarningsLive do
     ~H"""
     <.stat_card label={@label} value={@value} tone={@tone}>
       <:icon><.icon name={@icon} class="size-7" /></:icon>
+      <:delta :if={@footnote}>
+        <p class="text-sm text-slate-500">{@footnote}</p>
+      </:delta>
     </.stat_card>
     """
   end

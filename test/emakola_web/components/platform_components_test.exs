@@ -56,7 +56,11 @@ defmodule EmakolaWeb.PlatformComponentsTest do
         <PlatformComponents.stat_tile label="Failures" value={1} color="rose" icon="error" />
         """)
 
-      assert emerald =~ "from-primary-soft"
+      # "emerald" maps to :success, NOT :primary — primary is the admin's
+      # violet now, and routing the green vocabulary there would repaint every
+      # green platform tile violet and leave the platform admin with no green.
+      assert emerald =~ "from-emerald-50"
+      assert emerald =~ "bg-emerald-500"
       assert rose =~ "from-danger-soft"
     end
 

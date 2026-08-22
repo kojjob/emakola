@@ -173,6 +173,43 @@ defmodule EmakolaWeb.Admin.EarningsLiveTest do
     end
   end
 
+  # (c2) — the page reads like the rest of the admin
+  describe "earnings picture — visual treatment" do
+    test "the page uses the admin's full-width container", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/earnings")
+
+      # Every other admin page is max-w-[1600px]; earnings sat at max-w-6xl and
+      # read as a different product.
+      assert html =~ "max-w-[1600px]"
+    end
+
+    test "each money tile carries its own hue, so the row is readable without reading",
+         %{conn: conn, store: store} do
+      payment = Factory.create_payment!(store, %{amount: 10_000})
+      settled!(store, payment, %{role: :merchant, amount: 10_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      assert view |> element("#earnings-tile-total") |> render() =~ "bg-violet-600"
+      assert view |> element("#earnings-tile-payable") |> render() =~ "bg-emerald-500"
+      assert view |> element("#earnings-tile-month") |> render() =~ "bg-info"
+    end
+
+    test "where the money came from is drawn as a ring, not only listed", %{
+      conn: conn,
+      store: store
+    } do
+      payment = Factory.create_payment!(store, %{amount: 10_000})
+      settled!(store, payment, %{role: :merchant, amount: 10_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      assert has_element?(view, "#earnings-source-chart[data-chart-type='provider-donut']")
+    end
+  end
+
   # (d) — the resale card names the source store
   describe "earnings picture — by-source cards" do
     test "the resale card names the source store", %{conn: conn, store: store} do

@@ -41,14 +41,26 @@ defmodule EmakolaWeb.AdminComponents do
   attr :action_path, :string, default: nil
   attr :action_event, :string, default: nil
 
+  attr :icon, :string,
+    default: nil,
+    doc: "Renders a tinted badge beside the title, as the reference dashboard does."
+
   slot :inner_block
 
   def admin_page_header(assigns) do
     ~H"""
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 pt-2">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-text">{@title}</h1>
-        <p :if={@subtitle} class="text-sm text-text-muted mt-1">{@subtitle}</p>
+      <div class="flex items-center gap-4">
+        <div
+          :if={@icon}
+          class="w-14 h-14 rounded-card bg-primary flex items-center justify-center shrink-0 shadow-sm"
+        >
+          <.icon name={@icon} class="size-7 text-white" />
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-text">{@title}</h1>
+          <p :if={@subtitle} class="text-sm text-text-muted mt-1">{@subtitle}</p>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
@@ -191,11 +203,14 @@ defmodule EmakolaWeb.AdminComponents do
 
   attr :tone, :atom,
     default: :neutral,
-    values: [:primary, :info, :warning, :danger, :neutral],
+    values: [:primary, :accent, :success, :info, :warning, :danger, :cyan, :neutral],
     doc: """
     The tile's meaning-colour. One attribute drives the card wash, the icon
     tile and the icon colour together, so tiles cannot drift apart page by
     page — pass the tone, not three classes.
+
+    A row of tiles should read as a row of distinct hues, the way the
+    payment-dashboard reference does — violet, green, blue, red, cyan.
     """
 
   slot :icon
@@ -206,7 +221,7 @@ defmodule EmakolaWeb.AdminComponents do
     <.admin_card
       id={@id}
       padding={:none}
-      class={"p-5 hover:shadow-md transition-shadow #{tone_wash(@tone)}"}
+      class={"p-5 h-full min-h-48 flex flex-col hover:shadow-md transition-shadow #{tone_wash(@tone)}"}
     >
       <div class="flex items-start justify-between gap-3 mb-3">
         <span class="text-sm font-medium text-slate-500">{@label}</span>
@@ -223,21 +238,30 @@ defmodule EmakolaWeb.AdminComponents do
         </div>
       </div>
       <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
-      {render_slot(@delta)}
+      <%!-- mt-auto floors the footnote, so a row of tiles lines up on both
+            edges even when one label wraps to two lines and its neighbour
+            has no footnote at all. --%>
+      <div :if={@delta != []} class="mt-auto pt-2">{render_slot(@delta)}</div>
     </.admin_card>
     """
   end
 
   defp tone_wash(:primary), do: "bg-gradient-to-br from-primary-soft to-surface"
+  defp tone_wash(:accent), do: "bg-gradient-to-br from-violet-50 to-surface"
+  defp tone_wash(:success), do: "bg-gradient-to-br from-emerald-50 to-surface"
   defp tone_wash(:info), do: "bg-gradient-to-br from-info-soft to-surface"
   defp tone_wash(:warning), do: "bg-gradient-to-br from-warning-soft to-surface"
   defp tone_wash(:danger), do: "bg-gradient-to-br from-danger-soft to-surface"
+  defp tone_wash(:cyan), do: "bg-gradient-to-br from-cyan-50 to-surface"
   defp tone_wash(_neutral), do: "bg-gradient-to-br from-slate-100 to-surface"
 
   defp tone_tile(:primary), do: "bg-primary"
+  defp tone_tile(:accent), do: "bg-violet-600"
+  defp tone_tile(:success), do: "bg-emerald-500"
   defp tone_tile(:info), do: "bg-info"
   defp tone_tile(:warning), do: "bg-warning"
   defp tone_tile(:danger), do: "bg-danger"
+  defp tone_tile(:cyan), do: "bg-cyan-500"
   defp tone_tile(_neutral), do: "bg-slate-500"
 
   # ─────────────────────────────────────────────────────────────────────

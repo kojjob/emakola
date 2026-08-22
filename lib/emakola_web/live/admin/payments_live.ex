@@ -77,7 +77,11 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Payments" subtitle="Track and reconcile all payment transactions" />
+      <.admin_page_header
+        title="Payments"
+        subtitle="Track and reconcile all payment transactions"
+        icon="hero-credit-card"
+      />
 
       <%!-- Date range + refresh --%>
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -102,18 +106,24 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
           id="stat-payments-volume"
           label="Money in"
           value={format_price(@summary.total_volume, "GHS")}
-          tone={:primary}
+          tone={:accent}
         >
           <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">From payments that went through</p>
+          </:delta>
         </.stat_card>
 
         <.stat_card
           id="stat-payments-count"
           label="Payments"
           value={Integer.to_string(@summary.transaction_count)}
-          tone={:info}
+          tone={:success}
         >
           <:icon><.icon name="hero-credit-card" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">{@summary.success_count} went through</p>
+          </:delta>
         </.stat_card>
 
         <.stat_card
@@ -124,7 +134,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         >
           <:icon><.icon name="hero-chart-bar" class="size-7" /></:icon>
           <:delta>
-            <p class="text-sm text-slate-500 mt-1">{@summary.success_count} paid</p>
+            <p class="text-sm text-slate-500">Payment health</p>
           </:delta>
         </.stat_card>
 
@@ -136,7 +146,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         >
           <:icon><.icon name="hero-exclamation-triangle" class="size-7" /></:icon>
           <:delta>
-            <p class="text-sm text-slate-500 mt-1">{@summary.pending_count} still waiting</p>
+            <p class="text-sm text-slate-500">{@summary.pending_count} still waiting</p>
           </:delta>
         </.stat_card>
 
@@ -144,9 +154,12 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
           id="stat-payments-refunded"
           label="Sent back"
           value={format_price(@summary.refunded_total, "GHS")}
-          tone={:neutral}
+          tone={:cyan}
         >
           <:icon><.icon name="hero-arrow-uturn-left" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Money returned to buyers</p>
+          </:delta>
         </.stat_card>
       </div>
 
@@ -154,7 +167,10 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="lg:col-span-2">
           <.admin_card padding={:none} class="p-5">
-            <h2 class="text-base font-bold text-slate-800 mb-4">Money over time</h2>
+            <div class="flex items-center gap-2 mb-4">
+              <.icon name="hero-arrow-trending-up" class="size-5 text-primary" />
+              <h2 class="text-base font-bold text-slate-800">Money over time</h2>
+            </div>
             <div class="h-64">
               <canvas
                 id="payments-volume-chart"
@@ -169,7 +185,10 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         </div>
 
         <.admin_card padding={:none} class="p-5">
-          <h2 class="text-base font-bold text-slate-800 mb-4">How they ended</h2>
+          <div class="flex items-center gap-2 mb-4">
+            <.icon name="hero-chart-bar" class="size-5 text-primary" />
+            <h2 class="text-base font-bold text-slate-800">How they ended</h2>
+          </div>
           <div class="h-64">
             <canvas
               id="payments-status-chart"
@@ -186,7 +205,10 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
       <%!-- Provider ring: the total sits in the middle as markup, with the
             legend beside it carrying each provider's amount. --%>
       <.admin_card :if={@providers != []} padding={:none} class="p-5">
-        <h2 class="text-base font-bold text-slate-800 mb-4">Who processed the money</h2>
+        <div class="flex items-center gap-2 mb-4">
+          <.icon name="hero-chart-pie" class="size-5 text-primary" />
+          <h2 class="text-base font-bold text-slate-800">Who processed the money</h2>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
           <div class="relative h-56">
             <canvas

@@ -493,86 +493,42 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Inventory" subtitle="Monitor stock levels and manage inventory" />
+      <.admin_page_header
+        title="Inventory"
+        subtitle="Monitor stock levels and manage inventory"
+        icon="hero-archive-box"
+      />
 
-      <%!-- Stat Cards --%>
+      <%!-- Stat Cards: one hue per stock state, so the row can be read from
+            across the shop without reading the labels. --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} tone={:info}>
-          <:icon>
-            <svg
-              class="w-5 h-5 text-slate-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} tone={:accent}>
+          <:icon><.icon name="hero-archive-box" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Everything you sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="In Stock"
-          value={Integer.to_string(@stats.in_stock)}
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="In Stock" value={Integer.to_string(@stats.in_stock)} tone={:success}>
+          <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Ready to sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="Low Stock"
-          value={Integer.to_string(@stats.low_stock)}
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Low Stock" value={Integer.to_string(@stats.low_stock)} tone={:warning}>
+          <:icon><.icon name="hero-exclamation-triangle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Order more soon</p>
+          </:delta>
         </.stat_card>
         <.stat_card
           label="Out of Stock"
           value={Integer.to_string(@stats.out_of_stock)}
+          tone={:danger}
         >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-              />
-            </svg>
-          </:icon>
+          <:icon><.icon name="hero-x-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Add stock now</p>
+          </:delta>
         </.stat_card>
       </div>
 

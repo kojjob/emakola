@@ -270,6 +270,37 @@ defmodule EmakolaWeb.AdminComponentsTest do
       assert html =~ "text-white"
     end
 
+    test "a tile fills its grid row so a row of tiles is one height" do
+      # In the reference dashboard every tile in the row is the same box, whether
+      # or not it carries a footnote. A grid stretches its items, but only if the
+      # card itself is told to fill — otherwise the one with a delta is taller.
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Money in" value="GHS 2,450.00" />
+        """)
+
+      assert html =~ "h-full"
+      assert html =~ "flex-col"
+    end
+
+    test "the footnote sits at the bottom, level across tiles" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Went through" value="57%">
+          <:delta><span data-test="delta">4 paid</span></:delta>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ ~s|data-test="delta"|
+      # mt-auto pushes the footnote to the card's floor, so the footnotes line up
+      # even when one tile's value wraps to two lines and its neighbour's doesn't.
+      assert html =~ "mt-auto"
+    end
+
     test "tiles default to the neutral tone rather than an untinted card" do
       assigns = %{}
 

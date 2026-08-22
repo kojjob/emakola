@@ -254,28 +254,28 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     ~H"""
     <div id="categories-page" class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Categories</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Organize your products into groups
-          </p>
-        </div>
-        <button
+      <.admin_page_header
+        title="Categories"
+        subtitle="Organize your products into groups"
+        icon="hero-folder"
+      >
+        <.admin_button
           phx-click={show_modal("category-modal")}
           phx-value-action="add"
-          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold
-                 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
-                 shadow-sm w-full sm:w-auto justify-center"
+          class="w-full sm:w-auto"
         >
-          <span class="material-symbols-outlined text-lg">add</span> Add Category
-        </button>
-      </div>
+          <.icon name="hero-plus" class="size-5" /> Add Category
+        </.admin_button>
+      </.admin_page_header>
 
       <%!-- KPI tiles (store-wide) --%>
       <div id="category-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div id="stat-categories-total">
-          <.stat_card label="Total categories" value={to_string(length(@all_categories))} tone={:info}>
+          <.stat_card
+            label="Total categories"
+            value={to_string(length(@all_categories))}
+            tone={:accent}
+          >
             <:icon><.icon name="hero-folder" class="size-7" /></:icon>
           </.stat_card>
         </div>
@@ -283,6 +283,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
           <.stat_card
             label="Main groups"
             value={to_string(length(@category_tree))}
+            tone={:success}
           >
             <:icon><.icon name="hero-squares-2x2" class="size-7" /></:icon>
           </.stat_card>
@@ -291,17 +292,18 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
           <.stat_card
             label="Products organized"
             value={to_string(@category_stats.organized)}
+            tone={:cyan}
           >
             <:icon><.icon name="hero-cube" class="size-7" /></:icon>
             <:delta>
-              <p :if={@category_stats.uncategorized > 0} class="text-xs text-slate-400 mt-1">
+              <p :if={@category_stats.uncategorized > 0} class="text-sm text-slate-500">
                 {@category_stats.uncategorized} uncategorized
               </p>
             </:delta>
           </.stat_card>
         </div>
         <div id="stat-categories-top">
-          <.stat_card label="Most stocked" value={@category_stats.top_name} tone={:primary}>
+          <.stat_card label="Most stocked" value={@category_stats.top_name} tone={:warning}>
             <:icon><.icon name="hero-star" class="size-7" /></:icon>
             <:delta>
               <p :if={@category_stats.top_count > 0} class="text-xs text-slate-400 mt-1">
