@@ -581,6 +581,15 @@ defmodule EmakolaWeb.AdminComponents do
 
   attr :id, :string, default: nil
 
+  attr :tone, :atom,
+    default: :neutral,
+    values: [:neutral, :primary, :info, :accent, :warning, :success],
+    doc: "Tints the icon circle. A picture in colour, not a grey square."
+
+  attr :action_icon, :string, default: nil
+  attr :secondary_icon, :string, default: nil
+  attr :external, :boolean, default: false, doc: "Primary action leaves the app (e.g. wa.me)."
+
   attr :show_tour, :boolean,
     default: false,
     doc: "Adds a link to the visual tour — for merchants who have nothing yet."
@@ -591,18 +600,25 @@ defmodule EmakolaWeb.AdminComponents do
       id={@id}
       class="flex flex-col items-center justify-center text-center py-16 px-6 bg-surface border border-dashed border-border rounded-card"
     >
-      <div class="w-16 h-16 rounded-card bg-surface-subtle flex items-center justify-center mb-4">
-        <.icon name={@icon} class="w-8 h-8 text-slate-400" />
+      <%!-- The picture: a tinted circle, coloured for the page it fronts. --%>
+      <div class={[
+        "w-20 h-20 rounded-full flex items-center justify-center mb-4",
+        tone_bg(@tone)
+      ]}>
+        <.icon name={@icon} class={["w-9 h-9", tone_fg(@tone)]} />
       </div>
-      <h3 class="text-base font-semibold text-text">{@title}</h3>
-      <p :if={@description} class="text-sm text-text-muted mt-1 max-w-md">{@description}</p>
+      <h3 class="text-lg font-bold text-text">{@title}</h3>
+      <p :if={@description} class="text-sm text-text-muted mt-1 max-w-xs">{@description}</p>
 
       <div class="flex flex-wrap items-center justify-center gap-3 mt-5">
         <.link
           :if={@action_label && @action_path}
           href={@action_path}
+          target={if @external, do: "_blank"}
+          rel={if @external, do: "noopener noreferrer"}
           class={primary_action_classes()}
         >
+          <.icon :if={@action_icon} name={@action_icon} class="size-5 shrink-0" />
           {@action_label}
         </.link>
         <%!-- Some first actions open a modal rather than navigating. --%>
@@ -612,13 +628,15 @@ defmodule EmakolaWeb.AdminComponents do
           phx-click={@action_event}
           class={primary_action_classes()}
         >
+          <.icon :if={@action_icon} name={@action_icon} class="size-5 shrink-0" />
           {@action_label}
         </button>
         <.link
           :if={@secondary_label && @secondary_path}
           href={@secondary_path}
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-sm font-semibold rounded-control text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-border bg-surface text-sm font-semibold rounded-control text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
         >
+          <.icon :if={@secondary_icon} name={@secondary_icon} class="size-5 shrink-0" />
           {@secondary_label}
         </.link>
       </div>
@@ -640,6 +658,20 @@ defmodule EmakolaWeb.AdminComponents do
   # ─────────────────────────────────────────────────────────────────────
   # Internals
   # ─────────────────────────────────────────────────────────────────────
+
+  defp tone_bg(:primary), do: "bg-primary-soft"
+  defp tone_bg(:info), do: "bg-info-soft"
+  defp tone_bg(:accent), do: "bg-violet-50"
+  defp tone_bg(:warning), do: "bg-warning-soft"
+  defp tone_bg(:success), do: "bg-success-soft"
+  defp tone_bg(_), do: "bg-surface-subtle"
+
+  defp tone_fg(:primary), do: "text-primary"
+  defp tone_fg(:info), do: "text-info"
+  defp tone_fg(:accent), do: "text-violet-600"
+  defp tone_fg(:warning), do: "text-warning"
+  defp tone_fg(:success), do: "text-success"
+  defp tone_fg(_), do: "text-slate-400"
 
   defp primary_action_classes,
     do:

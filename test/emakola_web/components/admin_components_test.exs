@@ -507,6 +507,50 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "empty_state/1 first-day visual language" do
+    # The FirstDay artboard's rule: a picture, a short line, and one big
+    # button. A grey icon on a grey square is not a picture, and a bare word
+    # is not a big button — both matter more than the copy for a merchant
+    # who reads slowly.
+    test "the icon sits in a tinted circle, coloured by tone" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "No customers yet",
+          icon: "hero-users",
+          tone: :info
+        })
+
+      assert html =~ "rounded-full"
+      assert html =~ "bg-info-soft"
+      assert html =~ "text-info"
+    end
+
+    test "the primary button carries its own icon" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Add your first product",
+          action_label: "Snap a photo",
+          action_path: "/admin/products/snap",
+          action_icon: "hero-camera"
+        })
+
+      assert html =~ "hero-camera"
+      assert html =~ "Snap a photo"
+    end
+
+    test "an informational action renders as an outline button, not a bare link" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "No returns — great job",
+          secondary_label: "Set your return rules",
+          secondary_path: "/admin/content/pages"
+        })
+
+      assert html =~ "Set your return rules"
+      assert html =~ "border"
+    end
+  end
+
   describe "empty_state/1 first-day guidance" do
     test "offers a second way in when one is given" do
       html =

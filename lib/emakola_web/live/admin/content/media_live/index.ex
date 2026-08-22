@@ -124,9 +124,11 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
         :if={@filtered_media == [] and @filter_type == :all}
         id="media-empty"
         icon="hero-photo"
-        title="Drop photos here"
-        description="Good photos sell more"
-        action_label="Add your first product"
+        tone={:primary}
+        title="Good photos sell more"
+        description="Add pictures of what you make"
+        action_label="Add photos"
+        action_icon="hero-arrow-up-tray"
         action_path={~p"/admin/products/new"}
       />
     </div>

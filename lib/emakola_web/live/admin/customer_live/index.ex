@@ -123,8 +123,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         <.empty_state
           :if={@search_query == ""}
           icon="hero-users"
+          tone={:info}
           title="No customers yet"
           description="They appear when someone buys"
+          secondary_label="See how selling works"
+          secondary_path="/how-it-works/tour"
+          secondary_icon="hero-play-circle"
         />
       <% else %>
         <%!-- Desktop Table --%>

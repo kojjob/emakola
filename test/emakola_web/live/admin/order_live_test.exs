@@ -164,10 +164,13 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
   describe "first day" do
     test "a store with no orders is told how to get one", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
 
       assert html =~ "Your orders will show here"
-      assert html =~ "/how-it-works/tour"
+      assert html =~ "Share your store to get the first one"
+      # A real WhatsApp share, prefilled with the store's own link — the way
+      # these merchants actually send a shop to a customer.
+      assert has_element?(view, "a[href^='https://wa.me/?text=']", "Share on WhatsApp")
     end
 
     test "a filter that matches nothing still says so", %{

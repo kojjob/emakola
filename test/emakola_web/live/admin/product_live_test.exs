@@ -24,8 +24,13 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 
       assert has_element?(view, "#product-empty-state", "Add your first product")
-      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']")
-      assert has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
+
+      # One obvious thing to do — the artboard's rule. The tour lives on
+      # Customers, where there is no action to take yet.
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']") or
+               has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+
+      refute has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
     end
 
     test "the camera is offered as the first way in when AI is on", %{conn: conn} do

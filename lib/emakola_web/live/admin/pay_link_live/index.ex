@@ -337,9 +337,11 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
           <.empty_state
             id="pay-links-empty"
             icon="hero-link"
-            title="Make a pay link"
-            description="Sell in one message"
+            tone={:accent}
+            title="Sell in one message"
+            description="Make a link, send it, get paid"
             action_label="Make a pay link"
+            action_icon="hero-plus"
             action_event="open_create"
           />
         <% else %>

@@ -20,9 +20,9 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     test "a store with no returns is reassured, not alarmed", %{conn: conn} do
       {:ok, _html_view, html} = live(conn, ~p"/admin/returns")
 
-      assert html =~ "No returns yet"
+      # Positive framing: no returns is good news for a merchant, not a gap.
+      assert html =~ "No returns — great job"
       assert html =~ "Requests will show here if they come"
-      # Nothing to review is exactly when to write the policy.
       assert html =~ "Set your return rules"
     end
 
@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
       # A store that has never had a return sees first-day copy rather than
       # "not found" — see the "first day" describe block.
-      assert html =~ "No returns yet"
+      assert html =~ "No returns — great job"
       assert html =~ "Requests will show here if they come"
     end
 

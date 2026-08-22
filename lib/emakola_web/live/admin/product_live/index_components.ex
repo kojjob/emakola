@@ -34,22 +34,22 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
         <.empty_state
           :if={@search_query == "" and @status_filter == :all and EmakolaWeb.AiGate.enabled?()}
           icon="hero-camera"
+          tone={:warning}
           title="Add your first product"
-          description="Add pictures of what you sell"
+          description="Take a photo — Makola writes the listing"
           action_label="Snap a photo"
+          action_icon="hero-camera"
           action_path="/admin/products/snap"
-          secondary_label="Add photos"
-          secondary_path="/admin/products/new"
-          show_tour
         />
         <.empty_state
           :if={@search_query == "" and @status_filter == :all and not EmakolaWeb.AiGate.enabled?()}
           icon="hero-camera"
+          tone={:warning}
           title="Add your first product"
           description="Add pictures of what you sell"
           action_label="Add a product"
+          action_icon="hero-plus"
           action_path="/admin/products/new"
-          show_tour
         />
       </div>
     <% else %>

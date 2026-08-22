@@ -294,13 +294,15 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         title="No returns found"
         description="Try another filter"
       />
+      <%!-- No returns is good news; say so rather than framing it as a gap. --%>
       <.empty_state
         :if={@returns == [] and @status_filter == "all"}
-        icon="hero-arrow-uturn-left"
-        title="No returns yet"
+        icon="hero-check-circle"
+        tone={:success}
+        title="No returns — great job"
         description="Requests will show here if they come"
-        action_label="Set your return rules"
-        action_path={~p"/admin/content/pages"}
+        secondary_label="Set your return rules"
+        secondary_path={~p"/admin/content/pages"}
       />
 
       <div class={[

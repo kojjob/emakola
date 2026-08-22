@@ -173,14 +173,19 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           title="No orders found"
           description="Try adjusting your search or filters"
         />
+        <%!-- The share opens WhatsApp with the merchant's own store link
+              already in the message — how these merchants actually send a
+              shop to a customer. --%>
         <.empty_state
           :if={@search_query == "" and @status_filter == :all}
           icon="hero-shopping-bag"
+          tone={:accent}
           title="Your orders will show here"
-          description="Share your store link to get the first one"
-          action_label="Share your store"
-          action_path={~p"/admin/settings"}
-          show_tour
+          description="Share your store to get the first one"
+          action_label="Share on WhatsApp"
+          action_icon="hero-chat-bubble-oval-left-ellipsis"
+          action_path={whatsapp_store_share_url(@current_store)}
+          external
         />
       <% else %>
         <%!-- Desktop Table --%>
@@ -446,6 +451,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
       _ -> nil
     end
   end
+
+  # wa.me with no number opens WhatsApp's own share sheet, so the merchant
+  # picks the recipient. Falls back to a bare share when the store has not
+  # resolved (the page still renders for a merchant mid-onboarding).
+  defp whatsapp_store_share_url(%{slug: slug, name: name}) when is_binary(slug) do
+    EmakolaWeb.StorefrontComponents.whatsapp_share_url(
+      "#{EmakolaWeb.Endpoint.url()}#{EmakolaWeb.Storefront.Path.store_path(slug, "/")}",
+      "Shop #{name} on Makola"
+    )
+  end
+
+  defp whatsapp_store_share_url(_store), do: "https://wa.me/?text="
 
   defp status_label(:all), do: "All"
   defp status_label(:pending), do: "Pending"
