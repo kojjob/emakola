@@ -152,7 +152,9 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
     test "can enable buyer protection from the General tab", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, ~p"/admin/settings")
 
-      assert html =~ "Buyer Protection"
+      # Copy is deliberately plainer than "Buyer Protection" — these
+      # merchants read slowly; the control still writes the same field.
+      assert html =~ "Hold money until it arrives"
 
       view
       |> form("#general-form", %{store: %{buyer_protection_enabled: "true"}})
@@ -165,7 +167,7 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
     test "can enable digital downloads from the General tab", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, ~p"/admin/settings")
 
-      assert html =~ "Digital downloads"
+      assert html =~ "Things they download"
 
       assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).enabled_product_types ==
                [:physical]

@@ -543,12 +543,15 @@ defmodule EmakolaWeb.CoreComponents do
           >
             <div class="flex h-full flex-col">
               <%!-- Header --%>
-              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
                 <div class="flex items-center gap-3">
-                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
-                    {@icon}
-                  </span>
-                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                  <div
+                    :if={@icon}
+                    class="w-11 h-11 rounded-control bg-primary-soft flex items-center justify-center shrink-0"
+                  >
+                    <.modal_icon name={@icon} class={@icon_class} />
+                  </div>
+                  <h2 id={"#{@id}-title"} class="text-xl font-bold text-slate-900">{@title}</h2>
                 </div>
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
@@ -581,12 +584,15 @@ defmodule EmakolaWeb.CoreComponents do
               phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
             >
               <%!-- Header --%>
-              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
                 <div class="flex items-center gap-3">
-                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
-                    {@icon}
-                  </span>
-                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                  <div
+                    :if={@icon}
+                    class="w-11 h-11 rounded-control bg-primary-soft flex items-center justify-center shrink-0"
+                  >
+                    <.modal_icon name={@icon} class={@icon_class} />
+                  </div>
+                  <h2 id={"#{@id}-title"} class="text-xl font-bold text-slate-900">{@title}</h2>
                 </div>
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
@@ -673,10 +679,32 @@ defmodule EmakolaWeb.CoreComponents do
     """
   end
 
-  defp modal_size_class(:sm), do: "max-w-md"
-  defp modal_size_class(:md), do: "max-w-lg"
-  defp modal_size_class(:lg), do: "max-w-2xl"
-  defp modal_size_class(:xl), do: "max-w-4xl"
+  # Modal headers take either icon family: `hero-*` renders through the
+  # sprite, anything else is a Material Symbols ligature. Call sites across
+  # the admin still speak both, and a modal is the wrong place to force a
+  # migration — the fallback keeps every existing dialog rendering.
+  attr :name, :string, required: true
+  attr :class, :string, default: nil
+
+  defp modal_icon(%{name: "hero-" <> _} = assigns) do
+    ~H"""
+    <.icon name={@name} class={["size-6", @class]} />
+    """
+  end
+
+  defp modal_icon(assigns) do
+    ~H"""
+    <span class={["material-symbols-outlined text-2xl", @class]}>{@name}</span>
+    """
+  end
+
+  # Widths from the approved modal canvas — every step larger than before. A
+  # dialog carrying a decision about money or a customer's order needs room
+  # for the thing it is deciding about, not just for its own buttons.
+  defp modal_size_class(:sm), do: "max-w-lg"
+  defp modal_size_class(:md), do: "max-w-2xl"
+  defp modal_size_class(:lg), do: "max-w-[860px]"
+  defp modal_size_class(:xl), do: "max-w-[1240px]"
 
   ## JS Commands
 

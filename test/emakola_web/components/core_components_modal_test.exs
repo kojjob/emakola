@@ -28,12 +28,31 @@ defmodule EmakolaWeb.CoreComponentsModalTest do
       assert html =~ "aria-modal=\"true\""
     end
 
+    # Sizes come from the approved modal canvas. Every step is bigger than
+    # it was: a dialog that asks a merchant to destroy an order should not
+    # be a 448px slip of paper.
+    test "the header icon sits in a tinted tile, not a bare glyph" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="iconed" title="Cancel this order?" icon="hero-exclamation-triangle">
+          <p>Content</p>
+        </CoreComponents.modal>
+        """)
+
+      assert html =~ "hero-exclamation-triangle"
+      # The tile, not a loose 20px symbol beside the title.
+      assert html =~ "rounded-control"
+      refute html =~ "material-symbols-outlined"
+    end
+
     test "renders modal with different sizes" do
       for {size, expected_class} <- [
-            {:sm, "max-w-md"},
-            {:md, "max-w-lg"},
-            {:lg, "max-w-2xl"},
-            {:xl, "max-w-4xl"}
+            {:sm, "max-w-lg"},
+            {:md, "max-w-2xl"},
+            {:lg, "max-w-[860px]"},
+            {:xl, "max-w-[1240px]"}
           ] do
         assigns = %{size: size}
 
