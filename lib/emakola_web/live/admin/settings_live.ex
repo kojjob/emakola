@@ -7,7 +7,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
   require Logger
 
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
+
   alias EmakolaWeb.AddressComponents
+  alias EmakolaWeb.QR
 
   @ghana_regions [
     "Greater Accra",
@@ -291,6 +294,32 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
+      <%!-- The stall sign. First card on the tab because it is the one control
+            here that needs no reading at all. --%>
+      <.admin_card id="store-qr-sign" class="print-sheet">
+        <.qr_panel
+          id="store-qr"
+          svg={QR.store_svg(@store)}
+          title="My shop code"
+          hint="Print it. Buyers scan it."
+          caption="Scan to open my shop"
+          url={QR.store_url(@store)}
+        >
+          <:actions>
+            <.admin_button
+              variant={:secondary}
+              size={:sm}
+              phx-click={JS.dispatch("copy-to-clipboard", detail: %{text: QR.store_url(@store)})}
+            >
+              Copy link
+            </.admin_button>
+            <.admin_button id="store-qr-print" size={:sm} phx-click={JS.dispatch("makola:print")}>
+              Print sign
+            </.admin_button>
+          </:actions>
+        </.qr_panel>
+      </.admin_card>
+
       <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
         <.form

@@ -24,6 +24,29 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
       assert html =~ store.name
     end
 
+    test "shows the store's own QR code on the General tab", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      # The merchant's permanent "my shop" code — for a sticker on the stall, the
+      # packaging, or just their phone screen. It lives on the first tab because
+      # a merchant who reads poorly should not have to navigate to find it.
+      assert has_element?(view, "#store-qr svg")
+    end
+
+    test "the store QR encodes the store's canonical home", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      # The visible URL beside the code is built from the same helper that builds
+      # the QR payload, so what the merchant reads and what a phone scans agree.
+      assert has_element?(view, "#store-qr-url[value='#{EmakolaWeb.QR.store_url(store)}']")
+    end
+
+    test "the store QR can be printed as a stall sign", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      assert has_element?(view, "#store-qr-print")
+    end
+
     test "renders tab navigation", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/settings")
 

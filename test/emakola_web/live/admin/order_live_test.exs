@@ -278,6 +278,45 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     end
   end
 
+  describe "OrderLive.Show packing slip QR" do
+    test "the order carries a QR of its tracking page", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      # Printed onto the slip that goes in the parcel: the buyer scans it to
+      # track, instead of typing an order number into a URL they were told over
+      # the phone. In Phase 2 the same square is what the merchant scans at
+      # handoff to jump straight to this order.
+      assert has_element?(view, "#order-qr svg")
+    end
+
+    test "the packing slip can be printed", %{conn: conn, store: store, customer: customer} do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#packing-slip-print")
+      assert has_element?(view, "#packing-slip", order.order_number)
+    end
+
+    test "the QR payload is the store-scoped tracking URL", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#packing-slip", EmakolaWeb.QR.order_tracking_url(store, order))
+    end
+  end
+
   describe "OrderLive.Show" do
     test "renders order detail page", %{conn: conn, store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
