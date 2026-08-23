@@ -17,10 +17,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
   require Ash.Query
 
+  import EmakolaWeb.QRComponents, only: [qr_code: 1]
+
   alias Emakola.Orders.PayLink
   alias Emakola.Orders.SusuLifecycle
   alias Emakola.Orders.SusuPlan
   alias EmakolaWeb.Helpers.Currency
+  alias EmakolaWeb.QR
 
   @impl true
   def mount(_params, _session, socket) do
@@ -577,7 +580,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
           </div>
 
           <div :if={@created_link}>
-            <p class="text-sm text-slate-600 mb-3">Share this link with your buyer:</p>
+            <.qr_code
+              id="pay-link-qr"
+              svg={QR.pay_link_svg(@created_link)}
+              caption="Buyer scans to pay"
+              class="mb-4"
+            />
+            <p class="text-sm text-slate-600 mb-3">Or share this link with your buyer:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"
@@ -613,7 +622,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
           </div>
 
           <div :if={@created_susu_plan}>
-            <p class="text-sm text-slate-600 mb-3">Share this susu plan with your buyer:</p>
+            <.qr_code
+              id="susu-plan-qr"
+              svg={QR.susu_svg(@created_susu_plan)}
+              caption="Buyer scans to pay bit by bit"
+              class="mb-4"
+            />
+            <p class="text-sm text-slate-600 mb-3">Or share this susu plan with your buyer:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"
@@ -1453,7 +1468,9 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     end
   end
 
-  defp share_url(link), do: "#{EmakolaWeb.Endpoint.url()}/pay/#{link.code}"
+  # One definition of the payload, so the printed QR and the pasted link
+  # can never drift apart.
+  defp share_url(link), do: QR.pay_link_url(link)
 
   defp whatsapp_share_url(link, store, item_variants) do
     text =
@@ -1482,7 +1499,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     "#{Currency.format_price(contributed, currency || "GHS")} / #{Currency.format_price(total, currency || "GHS")}"
   end
 
-  defp susu_share_url(plan), do: "#{EmakolaWeb.Endpoint.url()}/susu/#{plan.code}"
+  defp susu_share_url(plan), do: QR.susu_url(plan)
 
   defp susu_whatsapp_share_url(plan, store, item_variants) do
     text =

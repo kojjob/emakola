@@ -55,6 +55,42 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
     assert html =~ "wa.me"
   end
 
+  test "the created pay link is shown as a QR the buyer can scan on the spot", %{conn: conn} do
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    view |> element("button", "New pay link") |> render_click()
+
+    view
+    |> form("#pay-link-create-form", %{
+      "pay_link" => %{"type" => "custom", "title" => "Kente", "amount_ghs" => "250"}
+    })
+    |> render_submit()
+
+    # The link + Copy + WhatsApp row serves a buyer who is elsewhere. The QR
+    # serves the buyer standing at the stall: nothing to type, nothing to read.
+    assert has_element?(view, "#pay-link-qr svg")
+  end
+
+  test "the created susu plan is shown as a QR", %{conn: conn} do
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    view |> element("button", "New pay link") |> render_click()
+    view |> render_click("set_create_type", %{"type" => "susu"})
+
+    view
+    |> form("#susu-plan-create-form", %{
+      "susu_plan" => %{
+        "title" => "Fridge",
+        "total_amount_ghs" => "200",
+        "min_chunk_ghs" => "20",
+        "deadline" => Date.utc_today() |> Date.add(30) |> Date.to_iso8601()
+      }
+    })
+    |> render_submit()
+
+    assert has_element?(view, "#susu-plan-qr svg")
+  end
+
   test "the buyer protection override checkbox is hidden when the store setting is off",
        %{conn: conn} do
     {:ok, view, _} = live(conn, "/admin/pay-links")

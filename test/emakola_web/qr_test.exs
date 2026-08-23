@@ -18,6 +18,8 @@ defmodule EmakolaWeb.QRTest do
   """
   use ExUnit.Case, async: false
 
+  import Phoenix.HTML, only: [safe_to_string: 1]
+
   alias EmakolaWeb.QR
   alias EmakolaWeb.SEO.Canonical
 
@@ -99,20 +101,23 @@ defmodule EmakolaWeb.QRTest do
   end
 
   describe "SVG rendering" do
-    test "each renderer returns SVG markup", %{
+    test "each renderer returns already-safe SVG markup", %{
       store: store,
       pay_link: link,
       susu_plan: plan,
       order: order
     } do
-      for svg <- [
+      for safe <- [
             QR.pay_link_svg(link),
             QR.susu_svg(plan),
             QR.store_svg(store),
             QR.order_tracking_svg(store, order)
           ] do
-        assert is_binary(svg)
-        assert svg =~ "<svg"
+        # Safe HTML, not a bare string: templates interpolate it directly, so no
+        # call site has to reach for raw/1 and thereby vouch for markup it did
+        # not build.
+        assert {:safe, _} = safe
+        assert safe_to_string(safe) =~ "<svg"
       end
     end
 
@@ -120,7 +125,7 @@ defmodule EmakolaWeb.QRTest do
       # Scoped to the opening <svg> tag: the module's own <rect> cells each carry
       # width="1" height="1" in matrix units, which is unrelated to how the code
       # sizes on screen.
-      [root_tag] = Regex.run(~r/<svg [^>]*>/, QR.store_svg(store))
+      [root_tag] = Regex.run(~r/<svg [^>]*>/, safe_to_string(QR.store_svg(store)))
 
       # A QR has to render on a cheap phone screen and on a printed poster from
       # the same markup, so it sizes to its container via CSS rather than baking
@@ -131,11 +136,24 @@ defmodule EmakolaWeb.QRTest do
     end
 
     test "a CSS class can be applied for sizing at the call site", %{store: store} do
-      assert QR.store_svg(store, class: "w-40 h-40") =~ ~s(class="w-40 h-40")
+      assert safe_to_string(QR.store_svg(store, class: "w-40 h-40")) =~ ~s(class="w-40 h-40")
+    end
+
+    test "a class that could break out of the attribute is refused", %{store: store} do
+      # EQRCode interpolates :id and :class into the markup without escaping
+      # (EQRCode.SVG builds `key="val"` by hand), and this output is rendered
+      # with raw/1. Rejecting outright beats sanitising: every legitimate value
+      # is a CSS class list, so anything else is a caller bug worth surfacing.
+      assert_raise ArgumentError, fn ->
+        QR.store_svg(store, class: ~s|w-40" onload="steal()|)
+      end
+
+      assert_raise ArgumentError, fn -> QR.store_svg(store, id: ~s|x"><script>|) end
     end
 
     test "distinct payloads produce distinct markup", %{pay_link: link} do
-      refute QR.pay_link_svg(link) == QR.pay_link_svg(%{code: "PAYOTHER"})
+      refute safe_to_string(QR.pay_link_svg(link)) ==
+               safe_to_string(QR.pay_link_svg(%{code: "PAYOTHER"}))
     end
   end
 

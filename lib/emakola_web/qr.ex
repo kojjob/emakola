@@ -39,8 +39,16 @@ defmodule EmakolaWeb.QR do
 
   Markup is viewBox-scaled and carries no pixel dimensions, so one call renders
   correctly on a low-end phone and on a printed poster; size it with `:class` at
-  the call site. Output is safe for `Phoenix.HTML.raw/1` — EQRCode emits pure
-  geometry, and the payload never reaches the markup.
+  the call site.
+
+  Renderers return **already-safe HTML** (`t:Phoenix.HTML.safe/0`), so templates
+  interpolate them directly and no call site ever reaches for `raw/1`. That is
+  deliberate: marking markup safe is a claim that needs justifying, and this is
+  the only module positioned to justify it. It built the payload from an internal
+  identifier, EQRCode emits pure geometry, the payload never reaches the markup,
+  and `:id`/`:class` — the one place a caller's string *would* land in an
+  attribute — are validated below. Scattering `raw/1` across templates would
+  spread that claim to places that cannot make it.
   """
 
   alias EmakolaWeb.SEO.Canonical
@@ -75,28 +83,56 @@ defmodule EmakolaWeb.QR do
   # -- rendering --------------------------------------------------------------
 
   @doc "QR of a pay link's checkout URL."
-  @spec pay_link_svg(%{code: String.t()}, keyword()) :: String.t()
+  @spec pay_link_svg(%{code: String.t()}, keyword()) :: Phoenix.HTML.safe()
   def pay_link_svg(%{code: _} = link, opts \\ []), do: render(pay_link_url(link), opts)
 
   @doc "QR of a susu plan's buyer URL."
-  @spec susu_svg(%{code: String.t()}, keyword()) :: String.t()
+  @spec susu_svg(%{code: String.t()}, keyword()) :: Phoenix.HTML.safe()
   def susu_svg(%{code: _} = plan, opts \\ []), do: render(susu_url(plan), opts)
 
   @doc "QR of a store's home — the code a merchant prints for their stall."
-  @spec store_svg(%{slug: String.t()}, keyword()) :: String.t()
+  @spec store_svg(%{slug: String.t()}, keyword()) :: Phoenix.HTML.safe()
   def store_svg(%{slug: _} = store, opts \\ []), do: render(store_url(store), opts)
 
   @doc "QR of an order's tracking page — for the packing slip."
   @spec order_tracking_svg(%{slug: String.t()}, %{order_number: String.t()}, keyword()) ::
-          String.t()
+          Phoenix.HTML.safe()
   def order_tracking_svg(%{slug: _} = store, %{order_number: _} = order, opts \\ []) do
     render(order_tracking_url(store, order), opts)
   end
 
-  # Reached only via the builders above, so `url` is always one of ours.
+  # Reached only via the builders above, so `url` is always one of ours. See the
+  # moduledoc for why the safe-marking happens here and nowhere else.
   defp render(url, opts) when is_binary(url) and is_list(opts) do
     url
     |> EQRCode.encode()
-    |> EQRCode.svg(Keyword.merge(@svg_defaults, opts))
+    |> EQRCode.svg(Keyword.merge(@svg_defaults, validate_markup_opts(opts)))
+    |> Phoenix.HTML.raw()
+  end
+
+  # EQRCode writes :id and :class into the markup by hand (`key="val"`, no
+  # escaping), and callers render the result with raw/1 — so a value carrying a
+  # quote would break out of the attribute. Every legitimate value here is a CSS
+  # class list or a DOM id, so refusing anything else is both sufficient and
+  # louder than sanitising: a caller passing dynamic text gets an error rather
+  # than silently-mangled markup.
+  defp validate_markup_opts(opts) do
+    Enum.each([:id, :class], fn key ->
+      case Keyword.fetch(opts, key) do
+        {:ok, value} when is_binary(value) ->
+          unless value =~ ~r/^[A-Za-z0-9 _:\/\[\]\.-]*$/ do
+            raise ArgumentError,
+                  "QR #{key} must be a plain CSS token list, got: #{inspect(value)}"
+          end
+
+        {:ok, value} ->
+          raise ArgumentError, "QR #{key} must be a string, got: #{inspect(value)}"
+
+        :error ->
+          :ok
+      end
+    end)
+
+    opts
   end
 end
