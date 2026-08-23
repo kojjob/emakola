@@ -73,11 +73,16 @@ defmodule EmakolaWeb.Platform.RefundsLive do
   def render(assigns) do
     ~H"""
     <div class="p-6 lg:p-8 max-w-5xl mx-auto">
-      <div class="mb-6">
-        <h1 id="platform-refunds-title" class="text-2xl font-bold text-gray-900">Refunds</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          Refunded payments across all stores. Disputes &amp; chargebacks coming soon.
-        </p>
+      <div class="mb-6 flex items-center gap-4">
+        <div class="w-13 h-13 rounded-card bg-primary flex items-center justify-center shrink-0 shadow-sm">
+          <.icon name="hero-arrow-uturn-left" class="size-7 text-white" />
+        </div>
+        <div>
+          <h1 id="platform-refunds-title" class="text-2xl font-bold text-gray-900">Refunds</h1>
+          <p class="text-sm text-gray-500 mt-1">
+            Money sent back to buyers, across every store.
+          </p>
+        </div>
       </div>
 
       <p :if={!@loaded} class="text-sm text-gray-500">Loading…</p>

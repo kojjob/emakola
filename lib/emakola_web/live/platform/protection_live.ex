@@ -329,11 +329,16 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     ~H"""
     <div class="p-6 lg:p-8 max-w-7xl mx-auto">
       <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Buyer Protection</h1>
-          <p class="text-sm text-gray-500 mt-1">
-            Frozen holds (open complaints) and stale holds (30+ days, no auto-release timer) across all stores.
-          </p>
+        <div class="flex items-center gap-4">
+          <div class="w-13 h-13 rounded-card bg-primary flex items-center justify-center shrink-0 shadow-sm">
+            <.icon name="hero-shield-check" class="size-7 text-white" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Buyer Protection</h1>
+            <p class="text-sm text-gray-500 mt-1">
+              Frozen holds (open complaints) and stale holds (30+ days, no auto-release timer) across all stores.
+            </p>
+          </div>
         </div>
         <div class="flex items-center gap-2">
           <.severity_pill label={"#{@frozen_holds_count} frozen"} tone="rose" />
