@@ -71,6 +71,9 @@ defmodule EmakolaWeb.QR do
   @typedoc "An order, or anything carrying its number."
   @type order :: %{:order_number => String.t(), optional(any()) => any()}
 
+  @typedoc "A product, or anything carrying its slug."
+  @type product :: %{:slug => String.t(), optional(any()) => any()}
+
   @svg_defaults [viewbox: true]
 
   # -- payloads ---------------------------------------------------------------
@@ -98,6 +101,18 @@ defmodule EmakolaWeb.QR do
     Canonical.path(store, "/track/" <> number)
   end
 
+  @doc """
+  A product's page on its store — the code that goes on a shelf label.
+
+  Dual-use on purpose: a customer scanning the label reads about the item, and
+  the merchant scanning it reaches that item's stock.
+  """
+  @spec product_url(store(), product()) :: String.t()
+  def product_url(%{slug: store_slug} = store, %{slug: slug})
+      when is_binary(store_slug) and is_binary(slug) do
+    Canonical.product_url(store, %{slug: slug})
+  end
+
   # -- rendering --------------------------------------------------------------
 
   @doc "QR of a pay link's checkout URL."
@@ -116,6 +131,12 @@ defmodule EmakolaWeb.QR do
   @spec order_tracking_svg(store(), order(), keyword()) :: Phoenix.HTML.safe()
   def order_tracking_svg(%{slug: _} = store, %{order_number: _} = order, opts \\ []) do
     render(order_tracking_url(store, order), opts)
+  end
+
+  @doc "QR of a product's page — for a shelf label."
+  @spec product_svg(store(), product(), keyword()) :: Phoenix.HTML.safe()
+  def product_svg(%{slug: _} = store, %{slug: _} = product, opts \\ []) do
+    render(product_url(store, product), opts)
   end
 
   # Reached only via the builders above, so `url` is always one of ours. See the
