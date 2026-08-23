@@ -409,6 +409,21 @@ defmodule EmakolaWeb.Router do
       live "/pay/:code", Storefront.PayLinkLive
     end
 
+    # Device pairing — the phone half of scan-to-sign-in. Public because the
+    # phone is by definition not signed in yet; the token in the URL is the only
+    # credential, it is single-use, and it is worthless until the merchant
+    # confirms on their already-authenticated desktop. Apex-host scoped like the
+    # other code-bearing pages, so no store subdomain can shadow it.
+    live_session :device_pairing,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/pair/:token", PairLive
+    end
+
+    # The exchange itself. A controller, not a LiveView, because signing in
+    # means writing the session cookie.
+    get "/pair/:token/complete", PairController, :complete
+
     # Susu (lay-away) buyer pages — public bare-code face + signed "My susu"
     # progress face, both served by ONE LiveView. Same apex-host posture as
     # pay links above (this scope is host: @apex_hosts).
@@ -497,6 +512,7 @@ defmodule EmakolaWeb.Router do
 
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
+      live "/admin/pair-phone", Admin.PairPhoneLive
       live "/admin/verification", Admin.VerificationLive
       live "/admin/payouts", Admin.PayoutLive
       live "/admin/earnings", Admin.EarningsLive
