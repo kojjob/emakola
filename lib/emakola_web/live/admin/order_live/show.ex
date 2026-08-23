@@ -11,6 +11,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   require Logger
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
+
+  alias EmakolaWeb.QR
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -346,6 +349,32 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   Cancel Order
                 </button>
               </div>
+            </.admin_card>
+
+            <%!-- Packing slip. It goes in the parcel, so it sits with the work
+                  rather than above it — the order journey and the next action
+                  are what a merchant opens this page for. In Phase 2 this same
+                  square is what gets scanned at handoff to land back here. --%>
+            <.admin_card :if={@current_store} id="packing-slip" class="print-sheet">
+              <.qr_panel
+                id="order-qr"
+                svg={QR.order_tracking_svg(@current_store, @order)}
+                eyebrow={@current_store.name}
+                title={@order.order_number}
+                hint="Put this in the parcel. Buyers scan to track."
+                caption="Scan to track this order"
+                url={QR.order_tracking_url(@current_store, @order)}
+              >
+                <:actions>
+                  <.admin_button
+                    id="packing-slip-print"
+                    size={:sm}
+                    phx-click={JS.dispatch("makola:print")}
+                  >
+                    Print slip
+                  </.admin_button>
+                </:actions>
+              </.qr_panel>
             </.admin_card>
 
             <%!-- Line Items --%>
