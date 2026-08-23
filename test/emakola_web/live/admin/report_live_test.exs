@@ -1,11 +1,24 @@
 defmodule EmakolaWeb.Admin.ReportLiveTest do
   @moduledoc """
   LiveView tests for the admin reports page.
-  Tests page rendering, KPI sections, charts, and authentication.
+
+  The page shipped 1,035 lines with zero data access: hand-plotted SVG
+  coordinates, a "Sales by Channel" donut (Instagram 45% …), a conversion
+  rate, per-region conversion, and three "AI Insights" paragraphs — all
+  invented, all shown to real merchants.
+
+  Anything needing visit or session tracking is GONE rather than wired:
+  no such tracking exists in this codebase, so a conversion rate has no
+  denominator and channel share has no numerator. What remains is what
+  orders can actually answer.
   """
   use EmakolaWeb.ConnCase, async: true
 
+  use Emakola.LiveViewHelpers
+
   import Phoenix.LiveViewTest
+
+  alias Emakola.Factory
 
   describe "ReportLive.Index (unauthenticated)" do
     test "redirects to login when not authenticated", %{conn: conn} do
@@ -16,7 +29,7 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
   describe "ReportLive.Index (authenticated)" do
     setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
       %{conn: conn, merchant: merchant, store: store}
     end
 
@@ -24,87 +37,94 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/reports")
 
       assert html =~ "Reports"
-      assert html =~ "Detailed analytics and insights"
     end
 
-    test "renders KPI summary strip", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+    test "revenue and order count come from this store's orders", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 40_000)
+      Factory.create_order!(store, total: 25_000)
 
-      assert html =~ "Total Revenue"
-      assert html =~ "38,470"
-      assert html =~ "Orders"
-      assert html =~ "284"
-      assert html =~ "Avg. Order Value"
-      assert html =~ "135.46"
-      assert html =~ "Conversion Rate"
-      assert html =~ "4.12%"
-      assert html =~ "Returning Customers"
-      assert html =~ "34.2%"
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-revenue", "650.00")
+      assert has_element?(view, "#stat-reports-orders", "2")
     end
 
-    test "renders revenue trend chart", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+    test "average order value is derived, not stored", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 30_000)
+      Factory.create_order!(store, total: 10_000)
 
-      assert html =~ "Revenue Trend"
-      assert html =~ "Daily revenue"
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-aov", "200.00")
     end
 
-    test "renders sales by channel section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+    test "another store's orders never appear", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 40_000)
 
-      assert html =~ "Sales by Channel"
-      assert html =~ "Instagram"
-      assert html =~ "WhatsApp"
-      assert html =~ "2,787"
+      other = Factory.create_store!()
+      Factory.create_order!(other, total: 900_000)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-revenue", "400.00")
+      refute render(view) =~ "9,000.00"
     end
 
-    test "renders top products section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+    test "the range filter narrows what is counted", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 40_000)
+      old = Factory.create_order!(store, total: 90_000)
+      backdate!(old, -120)
 
-      assert html =~ "Top Products"
-      assert html =~ "Kente Wrap Dress"
-      assert html =~ "8,400"
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-revenue", "400.00")
+
+      html =
+        view
+        |> element("button[phx-click='set_date_range'][phx-value-range='12m']")
+        |> render_click()
+
+      assert html =~ "1,300.00"
     end
 
-    test "renders customer acquisition chart", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+    test "the revenue chart is a real chart fed by real rows", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 40_000)
 
-      assert html =~ "Customer Acquisition"
-      assert html =~ "128 new customers this month"
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#reports-revenue-chart[data-chart-type='gmv-line']")
     end
 
-    test "renders payment methods section", %{conn: conn} do
+    test "an empty store reports zeros, not a fabricated dashboard", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/reports")
 
-      assert html =~ "Payment Methods"
-      assert html =~ "MTN MoMo"
-      assert html =~ "Telecel Cash"
+      refute html =~ "38,470"
+      refute html =~ "135.46"
+      refute html =~ "284"
     end
 
-    test "renders order status breakdown", %{conn: conn} do
+    # There is no visit or session tracking in this codebase. A conversion
+    # rate has no denominator and channel share has no numerator, so these
+    # were removed rather than wired to something that looks similar.
+    test "no metric that needs visit tracking survives", %{conn: conn, store: store} do
+      Factory.create_order!(store, total: 40_000)
+
       {:ok, _view, html} = live(conn, ~p"/admin/reports")
 
-      assert html =~ "Order Status"
-      assert html =~ "Delivered"
-      assert html =~ "Shipped"
-      assert html =~ "Processing"
-    end
-
-    test "renders sales by region table", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
-
-      assert html =~ "Sales by Region"
-      assert html =~ "Greater Accra"
-      assert html =~ "Ashanti"
-      assert html =~ "Western"
-    end
-
-    test "renders AI insights section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
-
-      assert html =~ "AI Insights"
-      assert html =~ "Revenue is up 15.3%"
-      assert html =~ "Beaded Choker"
+      for invented <- [
+            "Conversion Rate",
+            "Sales by Channel",
+            "Instagram",
+            "TikTok",
+            "total visits",
+            "AI Insights",
+            "Kente Wrap Dress",
+            "Beaded Choker",
+            "128 new customers this month",
+            "Top source"
+          ] do
+        refute html =~ invented, "the page still renders #{invented}"
+      end
     end
 
     test "renders date range toggle buttons", %{conn: conn} do
@@ -112,39 +132,18 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
       assert html =~ "7D"
       assert html =~ "30D"
-      assert html =~ "90D"
       assert html =~ "12M"
-      assert html =~ "Custom"
     end
+  end
 
-    test "renders export buttons", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
-
-      assert html =~ "Export PDF"
-      assert html =~ "Export CSV"
-    end
-
-    test "handles date range toggle", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/reports")
-
-      html =
-        view
-        |> element("button[phx-click='set_date_range'][phx-value-range='7d']")
-        |> render_click()
-
-      # The 7D button should now have the active styling
-      assert html =~ "Reports"
-    end
-
-    test "handles compare toggle", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/reports")
-
-      html =
-        view
-        |> element("input[phx-click='toggle_compare']")
-        |> render_click()
-
-      assert html =~ "vs previous period"
-    end
+  # inserted_at is not writable through a normal action.
+  defp backdate!(order, days) do
+    order
+    |> Ash.Changeset.for_update(:update, %{})
+    |> Ash.Changeset.force_change_attribute(
+      :inserted_at,
+      DateTime.add(DateTime.utc_now(), days, :day)
+    )
+    |> Ash.update!(authorize?: false)
   end
 end
