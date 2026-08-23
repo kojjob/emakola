@@ -55,6 +55,22 @@ defmodule EmakolaWeb.QR do
 
   alias EmakolaWeb.SEO.Canonical
 
+  @typedoc """
+  Anything carrying a short public code — `Emakola.Orders.PayLink`,
+  `Emakola.Orders.SusuPlan`.
+
+  Open map types (`optional(any()) => any()`) rather than the closed
+  `%{code: String.t()}`, which means a map with *exactly* that key and so
+  matches no Ash struct at all.
+  """
+  @type coded :: %{:code => String.t(), optional(any()) => any()}
+
+  @typedoc "A store, or anything carrying its slug."
+  @type store :: %{:slug => String.t(), optional(any()) => any()}
+
+  @typedoc "An order, or anything carrying its number."
+  @type order :: %{:order_number => String.t(), optional(any()) => any()}
+
   @svg_defaults [viewbox: true]
 
   # -- payloads ---------------------------------------------------------------
@@ -64,19 +80,19 @@ defmodule EmakolaWeb.QR do
   # pasted link can never drift apart.
 
   @doc "Buyer-facing checkout URL for a pay link. Apex-only route."
-  @spec pay_link_url(%{code: String.t()}) :: String.t()
+  @spec pay_link_url(coded()) :: String.t()
   def pay_link_url(%{code: code}) when is_binary(code), do: Canonical.url("/pay/" <> code)
 
   @doc "Buyer-facing URL for a susu (lay-away) plan. Apex-only route."
-  @spec susu_url(%{code: String.t()}) :: String.t()
+  @spec susu_url(coded()) :: String.t()
   def susu_url(%{code: code}) when is_binary(code), do: Canonical.url("/susu/" <> code)
 
   @doc "A store's canonical home — the permanent \"my shop\" code."
-  @spec store_url(%{slug: String.t()}) :: String.t()
+  @spec store_url(store()) :: String.t()
   def store_url(%{slug: slug} = store) when is_binary(slug), do: Canonical.store_url(store)
 
   @doc "Order tracking URL, scoped to the store that owns the order."
-  @spec order_tracking_url(%{slug: String.t()}, %{order_number: String.t()}) :: String.t()
+  @spec order_tracking_url(store(), order()) :: String.t()
   def order_tracking_url(%{slug: slug} = store, %{order_number: number})
       when is_binary(slug) and is_binary(number) do
     Canonical.path(store, "/track/" <> number)
@@ -85,20 +101,19 @@ defmodule EmakolaWeb.QR do
   # -- rendering --------------------------------------------------------------
 
   @doc "QR of a pay link's checkout URL."
-  @spec pay_link_svg(%{code: String.t()}, keyword()) :: Phoenix.HTML.safe()
+  @spec pay_link_svg(coded(), keyword()) :: Phoenix.HTML.safe()
   def pay_link_svg(%{code: _} = link, opts \\ []), do: render(pay_link_url(link), opts)
 
   @doc "QR of a susu plan's buyer URL."
-  @spec susu_svg(%{code: String.t()}, keyword()) :: Phoenix.HTML.safe()
+  @spec susu_svg(coded(), keyword()) :: Phoenix.HTML.safe()
   def susu_svg(%{code: _} = plan, opts \\ []), do: render(susu_url(plan), opts)
 
   @doc "QR of a store's home — the code a merchant prints for their stall."
-  @spec store_svg(%{slug: String.t()}, keyword()) :: Phoenix.HTML.safe()
+  @spec store_svg(store(), keyword()) :: Phoenix.HTML.safe()
   def store_svg(%{slug: _} = store, opts \\ []), do: render(store_url(store), opts)
 
   @doc "QR of an order's tracking page — for the packing slip."
-  @spec order_tracking_svg(%{slug: String.t()}, %{order_number: String.t()}, keyword()) ::
-          Phoenix.HTML.safe()
+  @spec order_tracking_svg(store(), order(), keyword()) :: Phoenix.HTML.safe()
   def order_tracking_svg(%{slug: _} = store, %{order_number: _} = order, opts \\ []) do
     render(order_tracking_url(store, order), opts)
   end
