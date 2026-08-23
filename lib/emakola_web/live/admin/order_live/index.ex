@@ -31,12 +31,55 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         orders: [],
         orders_limit: @orders_per_page,
         more_orders?: false,
-        statuses: @statuses
+        statuses: @statuses,
+        scanner_open?: false,
+        scan_error: nil
       )
       |> load_orders()
       |> load_order_stats()
 
     {:ok, socket}
+  end
+
+  # -- Scanning a parcel ------------------------------------------------------
+  #
+  # A merchant holding a parcel should not have to read its order number aloud
+  # and type it into search. The camera reads the slip instead.
+
+  @impl true
+  def handle_event("open_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: true, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("close_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: false, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("scan_camera_unavailable", _params, socket) do
+    {:noreply, assign(socket, scan_error: "No camera. Type the order number instead.")}
+  end
+
+  # The decoded string is a claim about an identifier, never a destination. It
+  # is resolved by EmakolaWeb.QRScan against the store_id held in assigns — read
+  # here at handle-event time, never taken from the payload — so a sticker on a
+  # parcel cannot steer this session anywhere. A code for another store's order
+  # is reported exactly like an unreadable one, which is what keeps the scanner
+  # from being usable to probe the platform.
+  @impl true
+  def handle_event("qr_scanned", %{"value" => value}, socket) do
+    case EmakolaWeb.QRScan.resolve_order(value, socket.assigns.store_id) do
+      {:ok, order} ->
+        {:noreply, push_navigate(socket, to: ~p"/admin/orders/#{order.id}")}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket,
+           scanner_open?: false,
+           scan_error: "No order here matches that code."
+         )}
+    end
   end
 
   @impl true
@@ -92,6 +135,46 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         title="Orders"
         subtitle="Manage and track all customer orders"
       />
+
+      <%!-- Find an order by pointing at its parcel. Sits above search because
+            it is the path that needs no reading at all. --%>
+      <div>
+        <.admin_button
+          :if={!@scanner_open?}
+          id="scan-order-open"
+          variant={:secondary}
+          phx-click="open_scanner"
+        >
+          <.icon name="hero-qr-code" class="size-4" /> Scan a parcel
+        </.admin_button>
+
+        <.admin_card :if={@scanner_open?} id="order-scanner-card">
+          <div class="flex flex-col sm:flex-row items-center gap-5">
+            <div
+              id="order-scanner"
+              phx-hook="QRScanner"
+              data-decoder-url={~p"/assets/js/qr_decoder.js"}
+              class="w-56 h-56 shrink-0 rounded-card overflow-hidden bg-slate-900"
+            >
+              <video class="w-full h-full object-cover" muted playsinline></video>
+            </div>
+            <div class="min-w-0 text-center sm:text-left">
+              <h3 class="text-base font-bold text-slate-900">Point at the parcel</h3>
+              <p class="text-sm text-slate-600 mt-1">
+                Hold the code in the box. The order opens by itself.
+              </p>
+              <p :if={@scan_error} class="text-sm text-danger mt-2">{@scan_error}</p>
+              <.admin_button variant={:secondary} size={:sm} class="mt-4" phx-click="close_scanner">
+                Stop
+              </.admin_button>
+            </div>
+          </div>
+        </.admin_card>
+
+        <p :if={@scan_error && !@scanner_open?} id="scan-error" class="text-sm text-danger mt-2">
+          {@scan_error}
+        </p>
+      </div>
 
       <%!-- KPI tiles (store-wide, independent of search/filter) --%>
       <div id="order-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">

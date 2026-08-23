@@ -27,6 +27,76 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ order.order_number
     end
 
+    test "offers a scanner for finding an order from its parcel", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      # A merchant holding a parcel should not have to read its order number and
+      # type it into search. The button is the visual entry point; the panel
+      # only mounts the camera once opened.
+      assert has_element?(view, "#scan-order-open")
+      refute has_element?(view, "#order-scanner video")
+
+      render_click(view, "open_scanner", %{})
+      assert has_element?(view, "#order-scanner video")
+    end
+
+    test "a scanned slip navigates to that order", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      render_hook(view, "qr_scanned", %{"value" => EmakolaWeb.QR.order_tracking_url(store, order)})
+
+      assert_redirect(view, "/admin/orders/#{order.id}")
+    end
+
+    test "a scan for another store's order reports not found and stays put", %{conn: conn} do
+      other_store = Emakola.Factory.create_store!()
+      other_customer = Emakola.Factory.create_customer!(other_store)
+
+      other_order =
+        Emakola.Factory.create_order!(other_store, %{
+          customer_id: other_customer.id,
+          status: :processing
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{
+          "value" => EmakolaWeb.QR.order_tracking_url(other_store, other_order)
+        })
+
+      # Tenant isolation, and no hint that the order exists somewhere else.
+      assert html =~ "No order here matches that code"
+    end
+
+    test "a merchant with no working camera is told, not left staring", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "scan_camera_unavailable", %{})
+
+      assert html =~ "No camera"
+    end
+
+    test "a hostile payload never becomes a destination", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "qr_scanned", %{"value" => "https://evil.example/admin/orders"})
+
+      # The decoded string is read as an identifier claim, never followed. A
+      # sticker on a parcel cannot steer an authenticated merchant session.
+      assert html =~ "No order here matches that code"
+    end
+
     test "displays empty state when no orders", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
@@ -480,6 +550,47 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       # The cancel button has text "Cancel Order" inside the actions area
       # For a delivered order, the :if guard prevents it from rendering
       refute has_element?(view, "div.flex.flex-wrap.gap-3 button", "Cancel Order")
+    end
+
+    # A delivered or cancelled order has no next step, so every button in the
+    # card was guarded away and the merchant was left looking at a heading over
+    # empty space — which reads as a page that failed to load, not as "nothing
+    # to do here".
+    test "a finished order says so instead of showing an empty actions card", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order is done")
+    end
+
+    test "a cancelled order names its own end state", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :cancelled)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order was cancelled")
+    end
+
+    test "an order with a next step shows buttons, not the finished note", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      refute has_element?(view, "#order-actions-none")
+      assert has_element?(view, "div.flex.flex-wrap.gap-3 button", "Confirm Order")
     end
 
     test "displays shipping address when present", %{
