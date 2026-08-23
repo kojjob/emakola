@@ -89,12 +89,12 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="seo-dashboard" class="max-w-3xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold text-stone-900">SEO quick wins</h1>
-      <p class="mt-2 text-sm text-stone-600">
-        Fix content and accessibility gaps that make products harder to understand.
-        Useful, original detail matters more than filling every field.
-      </p>
+    <div id="seo-dashboard" class="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+      <.admin_page_header
+        icon="hero-magnifying-glass-circle"
+        title="SEO quick wins"
+        subtitle="Fix content gaps that make products harder to find and understand."
+      />
 
       <div
         :if={@ai_enabled}

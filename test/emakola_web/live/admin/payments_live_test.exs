@@ -126,6 +126,23 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
     end
   end
 
+  describe "range and table agree" do
+    # The tiles were range-scoped and the table was not, so "Money in GH₵ 0"
+    # sat directly above a table listing five payments from April.
+    test "a payment outside the range leaves the table too", %{conn: conn, store: store} do
+      recent = create_payment!(store, :success, amount: 40_000)
+      old = create_payment!(store, :success, amount: 90_000)
+      backdate!(old, -45)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payments")
+
+      table = view |> element("#payments-table") |> render()
+
+      assert table =~ recent.gateway_reference
+      refute table =~ old.gateway_reference
+    end
+  end
+
   describe "date range" do
     test "the range narrows what the tiles count", %{conn: conn, store: store} do
       recent = create_payment!(store, :success, amount: 40_000)

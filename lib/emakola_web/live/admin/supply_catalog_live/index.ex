@@ -95,13 +95,11 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-12">
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Browse Suppliers</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Products you can stock from suppliers across the network
-          </p>
-        </div>
+      <.admin_page_header
+        icon="hero-building-storefront"
+        title="Browse Suppliers"
+        subtitle="Products you can stock from suppliers across the network"
+      >
         <.form
           for={@search_form}
           id="supply-catalog-search-form"
@@ -114,10 +112,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
             value={@search}
             placeholder="Search products or suppliers…"
             phx-debounce="200"
-            class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+            class="w-full rounded-control border border-border px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </.form>
-      </div>
+      </.admin_page_header>
 
       <div :if={@loading} class="py-16 text-center text-sm text-slate-400">
         Loading catalog…

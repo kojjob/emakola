@@ -66,7 +66,11 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold text-stone-900">Your storefront address</h1>
+      <.admin_page_header
+        icon="hero-globe-alt"
+        title="Your storefront address"
+        subtitle="Give your shop a branded web address."
+      />
       <p class="mt-2 text-sm text-stone-600">
         Give your shop a branded web address. By default it sends visitors to your
         canonical store page so all your search-engine credit stays in one place.
