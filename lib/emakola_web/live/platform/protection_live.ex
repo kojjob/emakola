@@ -54,6 +54,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, false)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:frozen_holds_total, money(0, "GHS"))
+      |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
       |> assign(:holds_by_id, %{})
       |> assign(:selected_hold, nil)
@@ -279,6 +282,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     |> assign(:holds_loaded?, true)
     |> assign(:frozen_holds_count, length(frozen_holds))
     |> assign(:stale_holds_count, length(stale_holds))
+    |> assign(:frozen_holds_total, total_held(frozen_holds))
+    |> assign(:stale_holds_total, total_held(stale_holds))
+    |> assign(:oldest_hold_days, oldest_days(frozen_holds ++ stale_holds))
     |> assign(:hold_tenants, hold_tenants)
     |> assign(:holds_by_id, holds_by_id)
     |> assign(:selected_hold, selected_hold)
@@ -293,6 +299,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, true)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:frozen_holds_total, money(0, "GHS"))
+      |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
       |> assign(:holds_by_id, %{})
       |> assign(:selected_hold, nil)
@@ -330,6 +339,33 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
           <.severity_pill label={"#{@frozen_holds_count} frozen"} tone="rose" />
           <.severity_pill label={"#{@stale_holds_count} stale"} tone="amber" />
         </div>
+      </div>
+
+      <%!-- What the queue is actually sitting on. Counts alone never said how
+            much money was stuck. Same tiles as /platform, so the two pages
+            read as one product. --%>
+      <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <.stat_tile
+          id="protection-frozen-total"
+          label="Frozen by a complaint"
+          value={@frozen_holds_total}
+          icon="error"
+          color="rose"
+        />
+        <.stat_tile
+          id="protection-stale-total"
+          label="Stale, no timer"
+          value={@stale_holds_total}
+          icon="hourglass_empty"
+          color="amber"
+        />
+        <.stat_tile
+          id="protection-oldest"
+          label="Oldest waiting"
+          value={oldest_label(@oldest_hold_days)}
+          icon="flag"
+          color="slate"
+        />
       </div>
 
       <div class="flex flex-col lg:flex-row gap-5 items-start">
@@ -490,6 +526,30 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
               Open store &rarr;
             </.link>
 
+            <%!-- The whole hold, accounted for. The headline is `amount` and
+                  the release button pays `net`; without the fee on screen those
+                  read as two unexplained numbers for the same order. --%>
+            <div class="mt-4 grid grid-cols-3 rounded-xl border border-gray-200 overflow-hidden">
+              <div class="p-3.5 border-r border-gray-200">
+                <p class="text-[12px] font-semibold text-gray-500">Buyer paid</p>
+                <p class="text-[15px] font-bold text-gray-900 tabular-nums mt-1">
+                  {money(@selected_hold.amount, hold_currency(@selected_hold))}
+                </p>
+              </div>
+              <div class="p-3.5 border-r border-gray-200 bg-gray-50">
+                <p class="text-[12px] font-semibold text-gray-500">Makola's share</p>
+                <p class="text-[15px] font-bold text-gray-600 tabular-nums mt-1">
+                  {money(@selected_hold.fee, hold_currency(@selected_hold))}
+                </p>
+              </div>
+              <div class="p-3.5">
+                <p class="text-[12px] font-semibold text-gray-500">Merchant would get</p>
+                <p class="text-[15px] font-bold text-emerald-700 tabular-nums mt-1">
+                  {money(@selected_hold.net, hold_currency(@selected_hold))}
+                </p>
+              </div>
+            </div>
+
             <div
               :if={@selected_section == :frozen}
               class="mt-4 rounded-xl border border-rose-100 bg-rose-50 p-4"
@@ -592,6 +652,31 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       _ -> "GHS"
     end
   end
+
+  # Held money, summed PER CURRENCY. Adding GHS to NGN and labelling the
+  # result "GHS" is the bug this page's own currency test guards against;
+  # a mixed queue reads "GHS 400.00 · NGN 250.00".
+  defp total_held([]), do: money(0, "GHS")
+
+  defp total_held(holds) do
+    holds
+    |> Enum.group_by(&hold_currency/1, &(&1.amount || 0))
+    |> Enum.map(fn {currency, amounts} -> money(Enum.sum(amounts), currency) end)
+    |> Enum.sort()
+    |> Enum.join(" · ")
+  end
+
+  defp oldest_days([]), do: nil
+
+  defp oldest_days(holds) do
+    holds
+    |> Enum.map(&days_held/1)
+    |> Enum.max(fn -> nil end)
+  end
+
+  defp oldest_label(nil), do: "—"
+  defp oldest_label(1), do: "1 day"
+  defp oldest_label(days), do: "#{days} days"
 
   defp money(nil, currency), do: "#{currency} 0.00"
 

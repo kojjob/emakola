@@ -363,6 +363,62 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
       assert has_element?(view, "#protection-panel")
       assert html =~ "All money is moving"
     end
+
+    # The panel led with `amount` and put `net` on the release button, with
+    # `fee` rendered nowhere. Two different numbers for one hold, and nothing
+    # on screen accounting for the difference.
+    test "the panel accounts for the whole hold: paid, fee, and what the merchant gets", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store, %{amount: 25_000})
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :not_received, complaint_text: "Never arrived"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      panel = view |> element("#protection-panel") |> render()
+
+      assert panel =~ money_str(hold.amount)
+      assert panel =~ money_str(hold.fee)
+      assert panel =~ money_str(hold.net)
+      assert hold.fee + hold.net == hold.amount
+    end
+  end
+
+  describe "money at rest" do
+    # Staff had two counts and no idea how much money the queue was sitting on.
+    test "the header reports what is held, not only how many holds there are", %{
+      conn: conn,
+      store: store
+    } do
+      first = protected_hold!(store, %{amount: 25_000})
+      second = protected_hold!(store, %{amount: 15_000})
+
+      for hold <- [first, second] do
+        {:ok, _frozen} =
+          Payments.freeze_protection_hold(
+            hold,
+            %{complaint_reason: :other, complaint_text: "Looking into it"},
+            authorize?: false
+          )
+      end
+
+      {:ok, _view, html} = live(conn, ~p"/platform/protection")
+
+      assert html =~ money_str(40_000)
+    end
+  end
+
+  defp money_str(cents) do
+    major = cents |> div(100) |> Emakola.Money.group_thousands()
+    minor = cents |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")
+    "GHS #{major}.#{minor}"
   end
 
   test "refund buyer refuses a second click once the return is already approved, and calls RefundService zero times",

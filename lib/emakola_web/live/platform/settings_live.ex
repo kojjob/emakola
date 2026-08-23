@@ -291,6 +291,14 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   defp matches_filter?(flag, :enabled), do: flag.enabled
   defp matches_filter?(flag, :disabled), do: not flag.enabled
 
+  # Names the flag and the direction, so a mis-click on the wrong card is
+  # caught by reading the prompt rather than by the consequences.
+  defp toggle_confirm(%{enabled: true} = flag),
+    do: "Turn #{flag.name} off for every store now?"
+
+  defp toggle_confirm(flag),
+    do: "Turn #{flag.name} on for every store now?"
+
   defp compute_stats(flags) do
     %{
       total: length(flags),
@@ -482,10 +490,14 @@ defmodule EmakolaWeb.Platform.SettingsLive do
           >
             <div class="flex items-start justify-between gap-3">
               <h3 class="font-semibold text-gray-900 leading-tight">{flag.name}</h3>
+              <%!-- One click here changes what every merchant sees. Delete
+                    sits behind a modal; this was the more reachable control
+                    and had nothing. --%>
               <button
                 type="button"
                 phx-click="toggle"
                 phx-value-id={flag.id}
+                data-confirm={toggle_confirm(flag)}
                 role="switch"
                 aria-checked={to_string(flag.enabled)}
                 aria-label="Toggle flag"

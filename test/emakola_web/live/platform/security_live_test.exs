@@ -31,6 +31,16 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
 
       assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform/security")
     end
+
+    # The count existed only as a data-count attribute for tests to read; the
+    # person looking at their own sessions never saw it.
+    test "how many devices are signed in is shown, not just stamped for tests", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, "/platform/security")
+
+      assert has_element?(view, "#platform-security-session-count", "1 device")
+    end
   end
 
   describe "disconnected mount" do
