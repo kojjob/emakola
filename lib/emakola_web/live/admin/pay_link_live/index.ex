@@ -586,7 +586,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
               caption="Buyer scans to pay"
               class="mb-4"
             />
-            <p class="text-sm text-slate-600 mb-3">Or share this link with your buyer:</p>
+            <p class="text-sm text-slate-600 mb-3">Or send the link:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"
@@ -628,7 +628,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
               caption="Buyer scans to pay bit by bit"
               class="mb-4"
             />
-            <p class="text-sm text-slate-600 mb-3">Or share this susu plan with your buyer:</p>
+            <p class="text-sm text-slate-600 mb-3">Or send the link:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"

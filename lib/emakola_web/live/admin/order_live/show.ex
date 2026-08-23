@@ -11,7 +11,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   require Logger
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
-  import EmakolaWeb.QRComponents, only: [qr_code: 1]
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
 
   alias EmakolaWeb.QR
 
@@ -253,35 +253,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       </div>
 
       <%= if @order do %>
-        <%!-- Packing slip. Goes in the parcel: the buyer scans to track instead
-              of being told an order number over the phone. In Phase 2 this same
-              square is what the merchant scans at handoff to land on this order. --%>
-        <.admin_card :if={@current_store} id="packing-slip" class="print-sheet">
-          <div class="flex flex-col sm:flex-row items-center gap-6">
-            <.qr_code
-              id="order-qr"
-              svg={QR.order_tracking_svg(@current_store, @order)}
-              caption="Scan to track this order"
-              class="shrink-0"
-            />
-            <div class="flex-1 min-w-0 w-full text-center sm:text-left">
-              <p class="text-xs uppercase tracking-wide text-slate-400">{@current_store.name}</p>
-              <p class="text-lg font-bold text-slate-900 mt-0.5">{@order.order_number}</p>
-              <p class="text-xs text-slate-500 mt-2 break-all">
-                {QR.order_tracking_url(@current_store, @order)}
-              </p>
-              <.admin_button
-                id="packing-slip-print"
-                size={:sm}
-                phx-click={JS.dispatch("makola:print")}
-                class="mt-4 print:hidden"
-              >
-                Print slip
-              </.admin_button>
-            </div>
-          </div>
-        </.admin_card>
-
         <%!-- Order journey — where this order stands, readable by shape and
               colour alone. Cancelled/refunded orders end on their own node. --%>
         <.admin_card padding={:none} class="p-5" id="order-timeline">
@@ -378,6 +349,32 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   Cancel Order
                 </button>
               </div>
+            </.admin_card>
+
+            <%!-- Packing slip. It goes in the parcel, so it sits with the work
+                  rather than above it — the order journey and the next action
+                  are what a merchant opens this page for. In Phase 2 this same
+                  square is what gets scanned at handoff to land back here. --%>
+            <.admin_card :if={@current_store} id="packing-slip" class="print-sheet">
+              <.qr_panel
+                id="order-qr"
+                svg={QR.order_tracking_svg(@current_store, @order)}
+                eyebrow={@current_store.name}
+                title={@order.order_number}
+                hint="Put this in the parcel. Buyers scan to track."
+                caption="Scan to track this order"
+                url={QR.order_tracking_url(@current_store, @order)}
+              >
+                <:actions>
+                  <.admin_button
+                    id="packing-slip-print"
+                    size={:sm}
+                    phx-click={JS.dispatch("makola:print")}
+                  >
+                    Print slip
+                  </.admin_button>
+                </:actions>
+              </.qr_panel>
             </.admin_card>
 
             <%!-- Line Items --%>
