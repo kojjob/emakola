@@ -37,9 +37,11 @@ defmodule EmakolaWeb.QR do
 
   ## Rendering
 
-  Markup is viewBox-scaled and carries no pixel dimensions, so one call renders
-  correctly on a low-end phone and on a printed poster; size it with `:class` at
-  the call site.
+  Markup is viewBox-scaled and carries no pixel dimensions, so the same call
+  renders correctly on a low-end phone and on a printed poster — the containing
+  box decides the size. In practice that box is
+  `EmakolaWeb.QRComponents.qr_code/1`, which is where sizing lives; `:class` here
+  is for a caller rendering a code outside that component.
 
   Renderers return **already-safe HTML** (`t:Phoenix.HTML.safe/0`), so templates
   interpolate them directly and no call site ever reaches for `raw/1`. That is

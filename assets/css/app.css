@@ -794,31 +794,32 @@ html.high-contrast {
    on an order). Admin pages are dense — sidebar, header, cards — and none of
    that belongs on paper next to a QR a buyer has to scan.
 
-   A page marks the one block it wants printed with .print-sheet; everything
-   else on the page is hidden for print. `visibility` rather than `display`
-   deliberately: display:none on an ancestor would take the sheet down with it,
-   whereas visibility can be handed back to the sheet's own subtree.
+   A page marks the one block it wants printed with .print-sheet. Everything on
+   the page is then hidden for print EXCEPT the sheet, the sheet's own subtree,
+   and the sheet's ancestors — which must survive, or the sheet goes down with
+   them.
 
-   Wrapped in @layer components so Tailwind's own print: utilities (which set
-   `display`, a different property, from the utilities layer) still compose —
-   a control inside a sheet can carry print:hidden and stay off the paper. */
+   Hiding by `display` rather than `visibility` is deliberate: a hidden element
+   takes up no space, so the sheet lands at the top of page 1 by ordinary flow.
+   The obvious alternative — keep everything laid out with `visibility: hidden`
+   and drag the sheet up with `position: absolute` — resolves against the
+   nearest positioned ancestor rather than the page, and admin layouts are full
+   of `relative` wrappers. That yields blank leading pages. No positioning here,
+   so there is nothing to resolve against.
+
+   Wrapped in @layer components so Tailwind's own print: utilities still
+   compose — a control inside a sheet can carry print:hidden and stay off the
+   paper, and the sheet can size itself up for paper. */
 @layer components {
   @media print {
-    body:has(.print-sheet) * {
-      visibility: hidden;
-    }
-
-    body:has(.print-sheet) .print-sheet,
-    body:has(.print-sheet) .print-sheet * {
-      visibility: visible;
+    body:has(.print-sheet)
+      *:not(:has(.print-sheet)):not(.print-sheet):not(.print-sheet *) {
+      display: none !important;
     }
 
     .print-sheet {
-      position: absolute;
-      inset: 0 auto auto 0;
-      width: 100%;
       margin: 0;
-      padding: 0;
+      box-shadow: none;
     }
   }
 }

@@ -29,10 +29,17 @@ defmodule EmakolaWeb.QRComponents do
   def qr_code(assigns) do
     ~H"""
     <figure id={@id} class={["flex flex-col items-center gap-2", @class]}>
-      <div class="bg-white p-3 rounded-xl border border-slate-200 print:border-0">
-        <div class="w-40 h-40">{@svg}</div>
+      <div class="bg-white p-3 rounded-card border border-slate-200 print:border-0">
+        <%!-- Bigger on paper than on screen. On screen the code sits beside its
+              own controls and is scanned from arm's length; printed, it is a
+              stall sign read across a stall, and a 1.7in square is too small
+              for that. --%>
+        <div class="w-40 h-40 print:w-72 print:h-72">{@svg}</div>
       </div>
-      <figcaption :if={@caption} class="text-xs font-medium text-slate-500 text-center">
+      <figcaption
+        :if={@caption}
+        class="text-xs font-medium text-slate-500 text-center print:text-base"
+      >
         {@caption}
       </figcaption>
     </figure>
