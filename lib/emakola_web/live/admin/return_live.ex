@@ -456,7 +456,10 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               <.stat_card
                 label="Refundable balance"
                 value={Currency.format_price(@refundable_balance, @selected_return.currency)}
-              />
+                tone={:success}
+              >
+                <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+              </.stat_card>
 
               <div
                 :if={@supplier_fulfillments != []}

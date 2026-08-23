@@ -292,6 +292,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <.admin_page_header
+        icon="hero-link"
         title="Pay Links"
         subtitle="Share a checkout link for a custom deal or a catalog item"
       >
@@ -312,14 +313,15 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
         <.stat_card
           label="Active Links"
           value={to_string(count_by_status(@links, :active))}
+          tone={:success}
         >
-          <:icon><.icon name="hero-link" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
+          <:icon><.icon name="hero-link" class="size-7" /></:icon>
         </.stat_card>
-        <.stat_card label="Opened" value={to_string(total_opened(@links))}>
-          <:icon><.icon name="hero-eye" class="w-[18px] h-[18px] text-violet-600" /></:icon>
+        <.stat_card label="Opened" value={to_string(total_opened(@links))} tone={:accent}>
+          <:icon><.icon name="hero-eye" class="size-7" /></:icon>
         </.stat_card>
-        <.stat_card label="Paid" value={to_string(total_paid(@links))}>
-          <:icon><.icon name="hero-banknotes" class="w-[18px] h-[18px] text-amber-600" /></:icon>
+        <.stat_card label="Paid" value={to_string(total_paid(@links))} tone={:info}>
+          <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
         </.stat_card>
       </div>
 

@@ -132,6 +132,7 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
     ~H"""
     <div class="space-y-6">
       <.admin_page_header
+        icon="hero-document-text"
         title="Store Pages"
         subtitle="Write the content shoppers see on your About, Contact, FAQ and Policies pages"
       />

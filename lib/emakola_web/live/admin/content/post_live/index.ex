@@ -95,6 +95,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <.admin_page_header
+        icon="hero-newspaper"
         title="Content"
         subtitle="Posts, pages, recipes & guides"
         action_label="+ New Post"

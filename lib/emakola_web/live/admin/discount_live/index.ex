@@ -96,6 +96,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
   def render(assigns) do
     ~H"""
     <.admin_page_header
+      icon="hero-receipt-percent"
       title="Discounts"
       subtitle="Create and manage discount codes"
       action_label="+ Create Discount"
