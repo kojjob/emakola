@@ -31,6 +31,50 @@ defmodule EmakolaWeb.CoreComponentsModalTest do
     # Sizes come from the approved modal canvas. Every step is bigger than
     # it was: a dialog that asks a merchant to destroy an order should not
     # be a 448px slip of paper.
+    # Proportionate to the screen, not just wide: a modal must never grow
+    # taller than the viewport, and its own body scrolls when the content
+    # does. Without this a long form pushes its own footer off-screen and
+    # the merchant cannot reach the save button.
+    test "a modal is bounded by the viewport and scrolls its own body" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="bounded" title="Tall" size={:lg}>
+          <p>Content</p>
+          <:footer>
+            <button>Save</button>
+          </:footer>
+        </CoreComponents.modal>
+        """)
+
+      assert html =~ "max-h-[88vh]"
+      assert html =~ "overflow-y-auto"
+    end
+
+    # Padding tracks width, so a 1320px dialog does not wear the gutters of
+    # a 560px one.
+    test "padding scales with the modal's size" do
+      assigns = %{}
+
+      small =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="small" title="Small" size={:sm}>
+          <p>Content</p>
+        </CoreComponents.modal>
+        """)
+
+      large =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="large" title="Large" size={:xl}>
+          <p>Content</p>
+        </CoreComponents.modal>
+        """)
+
+      assert small =~ "px-6"
+      assert large =~ "px-8"
+    end
+
     test "the header icon sits in a tinted tile, not a bare glyph" do
       assigns = %{}
 
@@ -49,10 +93,10 @@ defmodule EmakolaWeb.CoreComponentsModalTest do
 
     test "renders modal with different sizes" do
       for {size, expected_class} <- [
-            {:sm, "max-w-lg"},
-            {:md, "max-w-2xl"},
-            {:lg, "max-w-[860px]"},
-            {:xl, "max-w-[1240px]"}
+            {:sm, "max-w-[560px]"},
+            {:md, "max-w-[720px]"},
+            {:lg, "max-w-[960px]"},
+            {:xl, "max-w-[1320px]"}
           ] do
         assigns = %{size: size}
 
