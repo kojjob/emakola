@@ -25,6 +25,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         store_id: store_id,
         status_filter: :all,
         search_query: "",
+        scanner_open?: false,
+        scan_error: nil,
         search_form: to_form(%{"query" => ""}),
         variants: [],
         stats: %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0},
@@ -80,6 +82,50 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       |> apply_filters()
 
     {:noreply, socket}
+  end
+
+  # -- Scanning a shelf label -------------------------------------------------
+  #
+  # Counting stock means reading a label and typing what it says into search.
+  # The camera does that step instead.
+
+  @impl true
+  def handle_event("open_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: true, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("close_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: false, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("scan_camera_unavailable", _params, socket) do
+    {:noreply, assign(socket, scan_error: "No camera. Type the name instead.")}
+  end
+
+  # Same posture as the orders scanner: the decoded string is a claim about an
+  # identifier, resolved by EmakolaWeb.QRScan against the store_id in assigns —
+  # never taken from the payload — so a label from another shop resolves to
+  # nothing rather than to its own product.
+  @impl true
+  def handle_event("qr_scanned", %{"value" => value}, socket) do
+    case EmakolaWeb.QRScan.resolve_product(value, socket.assigns.store_id) do
+      {:ok, product} ->
+        {:noreply,
+         socket
+         |> assign(
+           scanner_open?: false,
+           scan_error: nil,
+           search_query: product.title,
+           search_form: to_form(%{"query" => product.title})
+         )
+         |> apply_filters()}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket, scanner_open?: false, scan_error: "Nothing here matches that code.")}
+    end
   end
 
   @impl true
@@ -555,6 +601,16 @@ defmodule EmakolaWeb.Admin.InventoryLive do
             %{key: :out_of_stock, label: "Out of Stock", count: @stats.out_of_stock}
           ]}
         />
+        <%!-- Point at a shelf label instead of reading it and typing the name. --%>
+        <.admin_button
+          :if={!@scanner_open?}
+          id="scan-stock-open"
+          variant={:secondary}
+          phx-click="open_scanner"
+        >
+          <.icon name="hero-qr-code" class="size-4" /> Scan a label
+        </.admin_button>
+
         <div class="flex-1 w-full sm:w-auto">
           <.form
             for={@search_form}
@@ -583,8 +639,36 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
             />
           </.form>
+          <p
+            :if={@scan_error && !@scanner_open?}
+            id="stock-scan-error"
+            class="text-sm text-danger mt-2"
+          >
+            {@scan_error}
+          </p>
         </div>
       </div>
+
+      <.admin_card :if={@scanner_open?} id="stock-scanner-card">
+        <div class="flex flex-col sm:flex-row items-center gap-5">
+          <div
+            id="stock-scanner"
+            phx-hook="QRScanner"
+            data-decoder-url={~p"/assets/js/qr_decoder.js"}
+            class="w-56 h-56 shrink-0 rounded-card overflow-hidden bg-slate-900"
+          >
+            <video class="w-full h-full object-cover" muted playsinline></video>
+          </div>
+          <div class="min-w-0 text-center sm:text-left">
+            <h3 class="text-base font-bold text-slate-900">Point at the label</h3>
+            <p class="text-sm text-slate-600 mt-1">Hold the code in the box.</p>
+            <p :if={@scan_error} class="text-sm text-danger mt-2">{@scan_error}</p>
+            <.admin_button variant={:secondary} size={:sm} class="mt-4" phx-click="close_scanner">
+              Stop
+            </.admin_button>
+          </div>
+        </div>
+      </.admin_card>
 
       <%!-- Stock Table --%>
       <%= if @variants == [] do %>
