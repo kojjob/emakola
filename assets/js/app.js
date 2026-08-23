@@ -89,6 +89,12 @@ window.addEventListener("copy-to-clipboard", (e) => {
   }
 })
 
+// Printing a QR sign. Inline onclick handlers are blocked by our CSP
+// (script-src has no 'unsafe-inline'), so the button dispatches and this
+// listener prints — same shape as copy-to-clipboard above. What lands on the
+// paper is decided by the page's print: utilities, not by this handler.
+window.addEventListener("makola:print", () => window.print())
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

@@ -789,3 +789,36 @@ html.high-contrast {
     box-shadow: inset 0 -2px 0 0 var(--color-primary);
   }
 }
+
+/* Print isolation for QR sheets (the stall sign on Settings, the packing slip
+   on an order). Admin pages are dense — sidebar, header, cards — and none of
+   that belongs on paper next to a QR a buyer has to scan.
+
+   A page marks the one block it wants printed with .print-sheet; everything
+   else on the page is hidden for print. `visibility` rather than `display`
+   deliberately: display:none on an ancestor would take the sheet down with it,
+   whereas visibility can be handed back to the sheet's own subtree.
+
+   Wrapped in @layer components so Tailwind's own print: utilities (which set
+   `display`, a different property, from the utilities layer) still compose —
+   a control inside a sheet can carry print:hidden and stay off the paper. */
+@layer components {
+  @media print {
+    body:has(.print-sheet) * {
+      visibility: hidden;
+    }
+
+    body:has(.print-sheet) .print-sheet,
+    body:has(.print-sheet) .print-sheet * {
+      visibility: visible;
+    }
+
+    .print-sheet {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  }
+}

@@ -7,7 +7,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
   require Logger
 
+  import EmakolaWeb.QRComponents, only: [qr_code: 1]
+
   alias EmakolaWeb.AddressComponents
+  alias EmakolaWeb.QR
 
   @ghana_regions [
     "Greater Accra",
@@ -291,6 +294,42 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
+      <.admin_card id="store-qr-sign" class="print-sheet">
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+          <.qr_code
+            id="store-qr"
+            svg={QR.store_svg(@store)}
+            caption="Scan to open my shop"
+            class="shrink-0"
+          />
+          <div class="flex-1 min-w-0 w-full text-center sm:text-left print:hidden">
+            <h3 class="text-base font-bold text-slate-900">My shop code</h3>
+            <p class="text-sm text-slate-600 mt-1 mb-4">
+              Print it for your stall. Buyers scan — no typing.
+            </p>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                id="store-qr-url"
+                readonly
+                value={QR.store_url(@store)}
+                class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-control text-xs text-slate-700"
+              />
+              <.admin_button
+                variant={:secondary}
+                size={:sm}
+                phx-click={JS.dispatch("copy-to-clipboard", detail: %{text: QR.store_url(@store)})}
+              >
+                Copy
+              </.admin_button>
+              <.admin_button id="store-qr-print" size={:sm} phx-click={JS.dispatch("makola:print")}>
+                Print
+              </.admin_button>
+            </div>
+          </div>
+        </div>
+      </.admin_card>
+
       <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
         <.form
