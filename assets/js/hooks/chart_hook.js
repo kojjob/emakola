@@ -63,7 +63,7 @@ const CHART_CONFIGS = {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (item) => `${item.label}: GHS ${(item.raw / 100).toFixed(2)}`
+            label: (item) => `${item.label}: GH₵ ${(item.raw / 100).toFixed(2)}`
           }
         }
       }
@@ -91,7 +91,7 @@ const CHART_CONFIGS = {
         tooltip: {
           callbacks: {
             title: (items) => items[0].label,
-            label: (item) => `GHS ${(item.raw / 100).toFixed(2)}`
+            label: (item) => `GH₵ ${(item.raw / 100).toFixed(2)}`
           }
         }
       },
@@ -101,7 +101,7 @@ const CHART_CONFIGS = {
           grid: { color: "rgba(0,0,0,0.05)" },
           ticks: {
             font: { size: 11 },
-            callback: (v) => `GHS ${(v / 100).toFixed(0)}`
+            callback: (v) => `GH₵ ${(v / 100).toFixed(0)}`
           }
         }
       }
@@ -132,7 +132,7 @@ const CHART_CONFIGS = {
         tooltip: {
           callbacks: {
             title: (items) => items[0].label,
-            label: (item) => `GHS ${(item.raw / 100).toFixed(2)}`
+            label: (item) => `GH₵ ${(item.raw / 100).toFixed(2)}`
           }
         }
       },
@@ -143,7 +143,7 @@ const CHART_CONFIGS = {
           beginAtZero: true,
           ticks: {
             font: { size: 11 },
-            callback: (value) => `GHS ${(value / 100).toFixed(0)}`
+            callback: (value) => `GH₵ ${(value / 100).toFixed(0)}`
           }
         }
       }
