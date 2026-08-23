@@ -11,6 +11,14 @@ config :emakola,
   env: config_env(),
   generators: [timestamp_type: :utc_datetime]
 
+# Hosts that serve the apex (marketing + platform/app admin), never a store.
+# Read at compile time by EmakolaWeb.Router (`scope host:` requires a literal)
+# and by Emakola.Stores.Validations.ValidStoreHost, so a merchant can never
+# claim a platform host as a custom domain. One list, two readers.
+config :emakola,
+       :apex_hosts,
+       ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+
 # Configure the endpoint
 config :emakola, EmakolaWeb.Endpoint,
   url: [host: "localhost"],
