@@ -124,6 +124,17 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
                  "entry — it renders a blank card with no error"
       end
     end
+
+    test "chart money labels use the cedi symbol the rest of the app uses" do
+      # Currency.format_price/2 renders GH₵ everywhere. Chart.js cannot read it
+      # from Elixir, so the symbol is duplicated in JS — where it silently drifts.
+      hook = File.read!(Path.expand("../../../../assets/js/hooks/chart_hook.js", __DIR__))
+
+      refute hook =~ ~r/GHS\s/,
+             "chart_hook.js labels money as \"GHS\" but every other surface says " <>
+               "#{EmakolaWeb.Helpers.Currency.currency_symbol("GHS")} — the same amount " <>
+               "reads two ways depending on whether you look at the tile or the chart"
+    end
   end
 
   describe "range and table agree" do
