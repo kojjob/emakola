@@ -491,4 +491,35 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       assert reloaded.title == "Renamed Pack"
     end
   end
+
+  describe "shelf label" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    test "an existing product carries a printable QR label", %{conn: conn, store: store} do
+      product = Emakola.Factory.create_product!(store, %{title: "Kente Wrap Dress"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      # The other half of the stock scanner: without a label on the bin there
+      # is nothing for the inventory page's camera to read.
+      assert has_element?(view, "#product-qr svg")
+      assert has_element?(view, "#product-label-print")
+
+      assert has_element?(
+               view,
+               "#product-qr-url[value='#{EmakolaWeb.QR.product_url(store, product)}']"
+             )
+    end
+
+    test "a product being created has no label yet", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+
+      # Nothing to point at: the slug the code would carry does not exist until
+      # the product is saved.
+      refute has_element?(view, "#product-qr svg")
+    end
+  end
 end

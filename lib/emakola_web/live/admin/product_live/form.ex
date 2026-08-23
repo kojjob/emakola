@@ -7,7 +7,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   require Logger
 
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
+
   alias EmakolaWeb.Admin.ProductLive.Shared
+  alias EmakolaWeb.QR
 
   @upload_opts [
     accept: ~w(.jpg .jpeg .png .webp),
@@ -363,6 +366,39 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           </button>
         </div>
       </.form>
+
+      <%!-- Shelf label. Printed and stuck on the bin, it does double duty: a
+            customer scans it to read about the item, and the merchant scans it
+            on the stock page to pull this product up without typing its name.
+            Edit only — a product being created has no slug to point at yet. --%>
+      <.admin_card :if={@is_edit && @current_store} id="product-shelf-label" class="print-sheet">
+        <.qr_panel
+          id="product-qr"
+          svg={QR.product_svg(@current_store, @product)}
+          eyebrow={@current_store.name}
+          title={@product.title}
+          hint="Stick it on the shelf. Scan to count stock."
+          caption="Scan for this item"
+          url={QR.product_url(@current_store, @product)}
+        >
+          <:actions>
+            <.admin_button
+              variant={:secondary}
+              size={:sm}
+              phx-click={
+                JS.dispatch("copy-to-clipboard",
+                  detail: %{text: QR.product_url(@current_store, @product)}
+                )
+              }
+            >
+              Copy link
+            </.admin_button>
+            <.admin_button id="product-label-print" size={:sm} phx-click={JS.dispatch("makola:print")}>
+              Print label
+            </.admin_button>
+          </:actions>
+        </.qr_panel>
+      </.admin_card>
     </div>
     """
   end

@@ -36,7 +36,8 @@ defmodule EmakolaWeb.QRTest do
      store: %{slug: "kente-shop"},
      pay_link: %{code: "PAY7X2K"},
      susu_plan: %{code: "SUSU4M9"},
-     order: %{order_number: "1001"}}
+     order: %{order_number: "1001"},
+     product: %{slug: "kente-wrap-dress"}}
   end
 
   describe "payload URLs" do
@@ -54,6 +55,12 @@ defmodule EmakolaWeb.QRTest do
 
     test "order_tracking_url is store-scoped", %{base: base, store: store, order: order} do
       assert QR.order_tracking_url(store, order) == base <> "/s/kente-shop/track/1001"
+    end
+
+    test "product_url is store-scoped", %{base: base, store: store, product: product} do
+      # Dual-use on purpose: the same square on a shelf label is a customer's
+      # way to read about the item and the merchant's way to reach its stock.
+      assert QR.product_url(store, product) == base <> "/s/kente-shop/products/kente-wrap-dress"
     end
 
     test "store payloads follow Canonical onto subdomains once those go live", %{

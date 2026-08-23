@@ -70,6 +70,45 @@ defmodule EmakolaWeb.QRScanTest do
     end
   end
 
+  describe "resolving a product code" do
+    setup %{store: store} do
+      product = Emakola.Factory.create_product!(store, %{title: "Kente Wrap Dress"})
+      {:ok, product: product}
+    end
+
+    test "a shelf label resolves to its product", %{store: store, product: product} do
+      scanned = QR.product_url(store, product)
+
+      assert {:ok, resolved} = QRScan.resolve_product(scanned, store.id)
+      assert resolved.id == product.id
+    end
+
+    test "a bare slug resolves too", %{store: store, product: product} do
+      assert {:ok, resolved} = QRScan.resolve_product(product.slug, store.id)
+      assert resolved.id == product.id
+    end
+
+    test "another store's product is not found", %{other_store: other_store, store: store} do
+      product = Emakola.Factory.create_product!(store, %{title: "Private Item"})
+
+      assert {:error, :not_found} =
+               QRScan.resolve_product(QR.product_url(store, product), other_store.id)
+    end
+
+    test "an order code is not a product", %{store: store, order: order} do
+      # The two resolvers read different shapes; a tracking URL must not
+      # accidentally satisfy a product lookup.
+      assert {:error, _} = QRScan.resolve_product(QR.order_tracking_url(store, order), store.id)
+    end
+
+    test "a hostile host is discarded here too", %{store: store, product: product} do
+      scanned = "https://evil.example/s/whatever/products/#{product.slug}"
+
+      assert {:ok, resolved} = QRScan.resolve_product(scanned, store.id)
+      assert resolved.id == product.id
+    end
+  end
+
   describe "hostile and malformed input" do
     test "a foreign host cannot redirect the merchant anywhere", %{store: store, order: order} do
       # A sticker slapped on a parcel pointing at an attacker's domain. The host

@@ -56,6 +56,67 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     end
   end
 
+  describe "scanning a shelf label" do
+    test "offers a scanner, and the camera only mounts once opened", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      assert has_element?(view, "#scan-stock-open")
+      refute has_element?(view, "#stock-scanner video")
+
+      render_click(view, "open_scanner", %{})
+      assert has_element?(view, "#stock-scanner video")
+    end
+
+    test "a scanned label narrows the list to that product", %{conn: conn, store: store} do
+      wanted = Factory.create_product!(store, %{title: "Kente Wrap Dress"})
+      Factory.create_variant!(wanted, store, %{sku: "KENTE-1", stock_quantity: 5})
+
+      other = Factory.create_product!(store, %{title: "Ankara Shirt"})
+      Factory.create_variant!(other, store, %{sku: "ANKARA-1", stock_quantity: 5})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{"value" => EmakolaWeb.QR.product_url(store, wanted)})
+
+      assert html =~ "Kente Wrap Dress"
+      refute html =~ "Ankara Shirt"
+    end
+
+    test "another store's label matches nothing here", %{conn: conn} do
+      elsewhere = Factory.create_store!()
+      theirs = Factory.create_product!(elsewhere, %{title: "Someone Elses Item"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{
+          "value" => EmakolaWeb.QR.product_url(elsewhere, theirs)
+        })
+
+      assert html =~ "Nothing here matches that code"
+      refute html =~ "Someone Elses Item"
+    end
+
+    test "a hostile payload never becomes a destination", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "qr_scanned", %{"value" => "https://evil.example/admin/inventory"})
+
+      assert html =~ "Nothing here matches that code"
+    end
+
+    test "a merchant with no working camera is told", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      assert render_hook(view, "scan_camera_unavailable", %{}) =~ "No camera"
+    end
+  end
+
   describe "InventoryLive page rendering" do
     test "renders page with stat cards", %{conn: conn, store: store} do
       product = Factory.create_product!(store, %{title: "Test Product"})
