@@ -39,6 +39,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header
+        icon="hero-photo"
         title="Media Library"
         subtitle={"#{length(@media)} #{if length(@media) == 1, do: "file", else: "files"}"}
       />

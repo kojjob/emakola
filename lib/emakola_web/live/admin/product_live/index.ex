@@ -475,18 +475,18 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           <.stat_card
             label="Total products"
             value={to_string(@product_stats.all)}
-            tone={:info}
+            tone={:accent}
           >
             <:icon><.icon name="hero-cube" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-products-active">
-          <.stat_card label="Active" value={to_string(@product_stats.active)} tone={:primary}>
+          <.stat_card label="Active" value={to_string(@product_stats.active)} tone={:success}>
             <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
           </.stat_card>
         </div>
         <div id="stat-products-draft">
-          <.stat_card label="Draft" value={to_string(@product_stats.draft)}>
+          <.stat_card label="Draft" value={to_string(@product_stats.draft)} tone={:warning}>
             <:icon><.icon name="hero-pencil" class="size-7" /></:icon>
           </.stat_card>
         </div>

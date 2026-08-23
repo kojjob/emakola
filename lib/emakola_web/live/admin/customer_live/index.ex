@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Customers" subtitle="Manage your customer base">
+      <.admin_page_header icon="hero-users" title="Customers" subtitle="Manage your customer base">
         <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
         </button>
@@ -71,28 +71,28 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       </.admin_page_header>
 
       <%!-- KPI Cards --%>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <%!-- Three tiles, not four: "Active" rendered @total_customers, the same
+            assign as "Total Customers", so it was the same number by
+            construction and told a merchant nothing. --%>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <.stat_card
           label="Total Customers"
           value={Integer.to_string(@total_customers)}
+          tone={:accent}
         >
           <:icon><.icon name="hero-users" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
-          label="Active"
-          value={Integer.to_string(@total_customers)}
-        >
-          <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
-        </.stat_card>
-        <.stat_card
           label="New This Month"
           value={Integer.to_string(@new_this_month)}
+          tone={:success}
         >
           <:icon><.icon name="hero-user-plus" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="Avg. Order Value"
           value={calculate_avg_order_value(@customers)}
+          tone={:info}
         >
           <:icon><.icon name="hero-currency-dollar" class="size-7" /></:icon>
         </.stat_card>
