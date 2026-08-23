@@ -174,11 +174,21 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     |> Enum.take(8)
   end
 
+  # Addresses carry the region however checkout stored it — "greater_accra"
+  # from a select, "Greater Accra" typed by hand. Merchants should never see
+  # the storage key.
   defp region_of(%{shipping_address: %{"region" => region}})
        when is_binary(region) and region != "",
-       do: region
+       do: humanise_region(region)
 
   defp region_of(_order), do: "Not given"
+
+  defp humanise_region(region) do
+    region
+    |> String.replace("_", " ")
+    |> String.split(" ", trim: true)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
 
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do

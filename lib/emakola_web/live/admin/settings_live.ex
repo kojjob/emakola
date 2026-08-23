@@ -426,8 +426,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               </span>
             </label>
 
+            <%!-- Capped: a 16:9 dropzone at full form width is ~480px tall and
+                  swallows the page. The cover is one field, not the form. --%>
             <div
-              class="relative border-2 border-dashed border-slate-300 rounded-control hover:border-emerald-400 transition-colors overflow-hidden"
+              class="relative max-w-md border-2 border-dashed border-slate-300 rounded-control hover:border-emerald-400 transition-colors overflow-hidden"
               phx-drop-target={@uploads.cover.ref}
             >
               <.live_img_preview

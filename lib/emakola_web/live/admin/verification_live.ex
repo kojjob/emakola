@@ -171,7 +171,7 @@ defmodule EmakolaWeb.Admin.VerificationLive do
           icon="hero-identification"
           title="Your details"
           hint="Name and ID number"
-          state={:current}
+          state={if @status in [nil, :rejected], do: :current, else: :done}
         />
         <.verify_step
           icon="hero-document-arrow-up"

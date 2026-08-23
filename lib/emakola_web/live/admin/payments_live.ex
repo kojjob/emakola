@@ -281,7 +281,10 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         </div>
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div
+          id="payments-table"
+          class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden"
+        >
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -441,7 +444,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
     in_range = fetch_in_range(store_id, range)
 
     assign(socket,
-      payments: fetch_payments(store_id, status),
+      payments: fetch_payments(store_id, status, range),
       summary: summarise(in_range),
       volume_chart: build_volume_chart(in_range, range),
       status_chart: build_status_chart(in_range),
@@ -616,7 +619,9 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
     }
   end
 
-  defp fetch_payments(store_id, status) do
+  # Range-scoped, like the tiles above it. When only the tiles honoured the
+  # range, "Money in GH₵ 0" sat directly above a table full of payments.
+  defp fetch_payments(store_id, status, range) do
     status_arg = if status == :all, do: nil, else: status
 
     Ash.Query.for_read(
@@ -624,6 +629,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
       :by_store_with_status,
       %{store_id: store_id, status: status_arg}
     )
+    |> range_filter(range)
     |> Ash.Query.limit(@payments_page_limit)
     |> Ash.read!(authorize?: false)
   rescue
