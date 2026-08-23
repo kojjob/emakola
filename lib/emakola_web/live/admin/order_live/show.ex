@@ -349,6 +349,34 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   Cancel Order
                 </button>
               </div>
+
+              <%!-- Every button above is guarded on a status, so a delivered or
+                    cancelled order emptied this card and left a heading over
+                    blank space — which reads as a page that failed to load
+                    rather than as "nothing to do". Naming the end state keeps
+                    the card's shape constant across an order's life, which
+                    matters for merchants who navigate by shape rather than by
+                    reading labels. --%>
+              <p
+                :if={@order.status in [:delivered, :cancelled]}
+                id="order-actions-none"
+                class="flex items-center gap-2 text-sm text-slate-500"
+              >
+                <.icon
+                  name={
+                    if @order.status == :delivered,
+                      do: "hero-check-circle",
+                      else: "hero-x-circle"
+                  }
+                  class={[
+                    "size-5 shrink-0",
+                    if(@order.status == :delivered, do: "text-success", else: "text-slate-400")
+                  ]}
+                />
+                {if @order.status == :delivered,
+                  do: "This order is done.",
+                  else: "This order was cancelled."}
+              </p>
             </.admin_card>
 
             <%!-- Packing slip. It goes in the parcel, so it sits with the work

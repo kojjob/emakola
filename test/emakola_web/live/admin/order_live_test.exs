@@ -482,6 +482,47 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       refute has_element?(view, "div.flex.flex-wrap.gap-3 button", "Cancel Order")
     end
 
+    # A delivered or cancelled order has no next step, so every button in the
+    # card was guarded away and the merchant was left looking at a heading over
+    # empty space — which reads as a page that failed to load, not as "nothing
+    # to do here".
+    test "a finished order says so instead of showing an empty actions card", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order is done")
+    end
+
+    test "a cancelled order names its own end state", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :cancelled)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order was cancelled")
+    end
+
+    test "an order with a next step shows buttons, not the finished note", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      refute has_element?(view, "#order-actions-none")
+      assert has_element?(view, "div.flex.flex-wrap.gap-3 button", "Confirm Order")
+    end
+
     test "displays shipping address when present", %{
       conn: conn,
       store: store,
