@@ -42,8 +42,13 @@ defmodule EmakolaWeb.PlatformComponents do
     """
   end
 
-  defp tone_for_color(color) when color in ["emerald", "green"], do: :primary
-  defp tone_for_color(color) when color in ["blue", "indigo", "violet", "sky"], do: :info
+  # Map the call site's colour word to the tone that still LOOKS like it.
+  # `:primary` is violet now, so routing "emerald" there would repaint every
+  # green platform tile violet and leave the platform admin with no green at all.
+  defp tone_for_color(color) when color in ["emerald", "green"], do: :success
+  defp tone_for_color(color) when color in ["violet", "indigo"], do: :accent
+  defp tone_for_color(color) when color in ["blue", "sky"], do: :info
+  defp tone_for_color(color) when color in ["cyan", "teal"], do: :cyan
   defp tone_for_color(color) when color in ["amber", "yellow", "orange"], do: :warning
   defp tone_for_color(color) when color in ["red", "rose"], do: :danger
   defp tone_for_color(_slate), do: :neutral

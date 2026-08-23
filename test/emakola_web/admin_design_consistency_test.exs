@@ -43,6 +43,26 @@ defmodule EmakolaWeb.AdminDesignConsistencyTest do
              inspect(offenders)
   end
 
+  test "stat tile icons are Heroicons, never hand-rolled SVG" do
+    # The tile paints its own 56px chip and forces text-white. An inline
+    # <svg class="w-5 h-5 text-slate-600"> ignores both: it renders at 20px in
+    # its own colour inside the chip. Inventory shipped four of them.
+    offenders =
+      "lib/emakola_web/live/**/*.ex"
+      |> Path.wildcard()
+      |> Enum.filter(fn file ->
+        # Bounded to ONE slot: an unbounded `.*?` matches an <:icon> here and an
+        # <svg> two hundred lines later in a table cell, which named five
+        # innocent pages the first time this ran.
+        File.read!(file) =~ ~r/<:icon>(?:(?!<\/:icon>).)*<svg/s
+      end)
+
+    assert offenders == [],
+           "these pages put a raw <svg> in a stat tile's :icon slot — use " <>
+             "<.icon name=\"hero-*\" class=\"size-7\" /> so the tile can colour " <>
+             "and size it: " <> inspect(offenders)
+  end
+
   test "the Stitch token system stays dead" do
     hits =
       Path.wildcard("lib/**/*.{ex,heex}")

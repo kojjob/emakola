@@ -21,8 +21,9 @@ defmodule EmakolaWeb.Platform.RefundsLive do
       |> assign(:page_title, "Refunds")
       |> assign(:active_nav, :refunds)
       |> assign(:loaded, false)
-      |> assign(:total_refunded, 0)
+      |> assign(:total_refunded, money(0, "GHS"))
       |> assign(:refund_count, 0)
+      |> assign(:shown_count, 0)
       |> assign(:refunds_empty?, true)
       |> stream(:refunds, [])
 
@@ -38,16 +39,32 @@ defmodule EmakolaWeb.Platform.RefundsLive do
 
     socket
     |> assign(:loaded, true)
-    |> assign(:total_refunded, Stats.total_refunded())
+    |> assign(:total_refunded, totals_by_currency(refunds))
     |> assign(:refund_count, Stats.refund_count())
+    |> assign(:shown_count, length(refunds))
     |> assign(:refunds_empty?, refunds == [])
     |> stream(:refunds, refunds, reset: true)
+  end
+
+  # Refunded money per currency. `Stats.total_refunded/0` sums `refunded_amount`
+  # across every payment regardless of currency and the tile labelled the result
+  # "GHS" — one NGN refund made the headline both wrong and mislabelled.
+  defp totals_by_currency([]), do: money(0, "GHS")
+
+  defp totals_by_currency(refunds) do
+    refunds
+    |> Enum.group_by(&(&1.currency || "GHS"), &(&1.refunded_amount || 0))
+    |> Enum.map(fn {currency, amounts} -> money(Enum.sum(amounts), currency) end)
+    |> Enum.sort()
+    |> Enum.join(" · ")
   end
 
   defp money(nil, _currency), do: "—"
 
   defp money(amount, currency) when is_integer(amount) do
-    major = div(amount, 100)
+    # Grouped, as every other money surface formats it — an ungrouped
+    # "GHS 1240000.00" is unreadable at a glance.
+    major = amount |> div(100) |> Emakola.Money.group_thousands()
     minor = rem(abs(amount), 100) |> Integer.to_string() |> String.pad_leading(2, "0")
     "#{currency || "GHS"} #{major}.#{minor}"
   end
@@ -66,18 +83,22 @@ defmodule EmakolaWeb.Platform.RefundsLive do
       <p :if={!@loaded} class="text-sm text-gray-500">Loading…</p>
 
       <div :if={@loaded}>
-        <div class="flex flex-wrap gap-4 mb-8">
-          <.metric_tile
-            label="Total refunded"
-            value={money(@total_refunded, "GHS")}
-            icon="hero-receipt-refund"
-            chip="bg-rose-100 text-rose-600"
+        <%!-- Same tiles as /platform, so the money pages read as one product
+              instead of three tile implementations. --%>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <.stat_tile
+            id="platform-refunds-total"
+            label="Sent back"
+            value={@total_refunded}
+            icon="undo"
+            color="rose"
           />
-          <.metric_tile
+          <.stat_tile
+            id="platform-refunds-count"
             label="Refunds"
             value={@refund_count}
-            icon="hero-arrow-uturn-left"
-            chip="bg-amber-100 text-amber-600"
+            icon="autorenew"
+            color="amber"
           />
         </div>
 
@@ -139,6 +160,21 @@ defmodule EmakolaWeb.Platform.RefundsLive do
               </tr>
             </tbody>
           </table>
+
+          <%!-- The read is capped server-side. Without saying so, the table
+                and the Refunds tile simply disagree past the cap and nothing
+                explains why. --%>
+          <div
+            id="platform-refunds-showing"
+            class="px-6 py-3.5 border-t border-gray-100 bg-gray-50 text-[13px] text-gray-500"
+          >
+            Showing <span class="font-semibold text-gray-900">{@shown_count}</span>
+            of <span class="font-semibold text-gray-900">{@refund_count}</span>
+            {if @refund_count == 1, do: "refund", else: "refunds"}
+            <span :if={@shown_count < @refund_count} class="text-gray-400">
+              — newest first
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -150,23 +186,4 @@ defmodule EmakolaWeb.Platform.RefundsLive do
   defp gateway_tone(:paystack), do: "blue"
   defp gateway_tone(:hubtel), do: "green"
   defp gateway_tone(_), do: "slate"
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :chip, :string, required: true
-
-  defp metric_tile(assigns) do
-    ~H"""
-    <div class="w-full sm:w-[340px] rounded-card border border-border bg-surface p-5 shadow-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-medium text-gray-500">{@label}</span>
-        <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @chip]}>
-          <.icon name={@icon} class="h-5 w-5" />
-        </span>
-      </div>
-      <p class="mt-3 text-2xl font-bold text-gray-900">{@value}</p>
-    </div>
-    """
-  end
 end

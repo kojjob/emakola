@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias EmakolaWeb.AddressComponents
 
   @ghana_regions [
@@ -26,6 +28,17 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     "Oti"
   ]
 
+  # Pictures, not URLs: a merchant who cannot comfortably read a link still has
+  # to be able to put a face on their shop. `auto_upload: true` is deliberate —
+  # a submit that waits on progress deadlocks without it (see
+  # emakola-liveview-upload-progress-gate).
+  @image_upload_opts [
+    accept: ~w(.jpg .jpeg .png .webp),
+    max_entries: 1,
+    max_file_size: 5_000_000,
+    auto_upload: true
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     store = socket.assigns.current_store
@@ -38,8 +51,11 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         active_tab: "general",
         ghana_regions: @ghana_regions,
         store: store,
+        general_errors: %{},
         saved: false
       )
+      |> allow_upload(:logo, @image_upload_opts)
+      |> allow_upload(:cover, @image_upload_opts)
 
     {:ok, socket}
   end
@@ -49,9 +65,37 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     {:noreply, assign(socket, active_tab: tab, saved: false)}
   end
 
+  # Runs on every keystroke in the General tab. It also registers upload
+  # entries with LiveView — a form holding a live_file_input needs a
+  # phx-change or the entries never arrive.
+  @impl true
+  def handle_event("validate_general", %{"store" => params}, socket) do
+    {:noreply, assign(socket, general_errors: validate_general(params))}
+  end
+
+  def handle_event("validate_general", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("cancel_upload", %{"ref" => ref, "slot" => slot}, socket) do
+    {:noreply, cancel_upload(socket, upload_slot(slot), ref)}
+  end
+
   @impl true
   def handle_event("save_general", %{"store" => params}, socket) do
-    save_settings(socket, params)
+    case validate_general(params) do
+      errors when errors == %{} ->
+        params =
+          params
+          |> put_uploaded_image(socket, :logo, "logo_url")
+          |> put_uploaded_image(socket, :cover, "cover_image_url")
+
+        save_settings(assign(socket, general_errors: %{}), params)
+
+      errors ->
+        # Field errors stay on the field. A flash saying "Could not save
+        # settings" never told the merchant WHICH box was wrong.
+        {:noreply, assign(socket, general_errors: errors)}
+    end
   end
 
   @impl true
@@ -67,6 +111,56 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   def handle_event("save_social", %{"store" => params}, socket) do
     save_settings(socket, params)
   end
+
+  # The slot comes from the client, so it is matched against the two names this
+  # page allows rather than converted with String.to_atom/1.
+  defp upload_slot("cover"), do: :cover
+  defp upload_slot(_logo), do: :logo
+
+  # Consumes a picture, if one was chosen, and merges its stored URL into the
+  # params under the Store attribute name. No entry means the key is untouched,
+  # so saving other fields never wipes an existing picture.
+  defp put_uploaded_image(params, socket, slot, attribute) do
+    store_id = socket.assigns.store.id
+
+    url =
+      socket
+      |> consume_uploaded_entries(slot, fn %{path: tmp_path}, entry ->
+        extension = Path.extname(entry.client_name)
+        path = "stores/#{store_id}/branding/#{slot}-#{Ecto.UUID.generate()}#{extension}"
+
+        case Emakola.Storage.upload(File.read!(tmp_path), path, content_type: entry.client_type) do
+          {:ok, url} ->
+            {:ok, url}
+
+          {:error, reason} ->
+            Logger.error("[settings_live] #{slot} upload failed: #{inspect(reason)}")
+            {:ok, nil}
+        end
+      end)
+      |> List.first()
+
+    if is_nil(url), do: params, else: Map.put(params, attribute, url)
+  end
+
+  # Field-level messages in the merchant's own words — the Store resource
+  # carries the same limits (name max 255, tagline max 140) but surfaces them
+  # only after a failed write, as one flash for the whole form.
+  defp validate_general(params) do
+    %{}
+    |> check(:name, blank?(params["name"]), "Your shop needs a name")
+    |> check(:name, too_long?(params["name"], 255), "That name is too long")
+    |> check(:tagline, too_long?(params["tagline"], 140), "Keep it under 140 letters")
+  end
+
+  defp check(errors, field, true, message), do: Map.put_new(errors, field, message)
+  defp check(errors, _field, false, _message), do: errors
+
+  defp blank?(nil), do: false
+  defp blank?(value) when is_binary(value), do: String.trim(value) == ""
+
+  defp too_long?(value, limit) when is_binary(value), do: String.length(value) > limit
+  defp too_long?(_value, _limit), do: false
 
   defp save_settings(socket, params) do
     store = socket.assigns.store
@@ -101,11 +195,20 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp error_message(%{message: msg}) when is_binary(msg), do: msg
   defp error_message(_), do: "invalid"
 
+  defp upload_error_message(:too_large), do: "That picture is too big (5MB max)"
+  defp upload_error_message(:not_accepted), do: "Use a JPG, PNG or WebP picture"
+  defp upload_error_message(:too_many_files), do: "Choose one picture"
+  defp upload_error_message(_), do: "Could not use that picture"
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.admin_page_header title="Settings" subtitle="Manage your store preferences" />
+      <.admin_page_header
+        title="Settings"
+        subtitle="Manage your store preferences"
+        icon="hero-cog-6-tooth"
+      />
 
       <%!-- Settings layout: tabs + content --%>
       <div class="flex flex-col md:flex-row gap-6">
@@ -133,7 +236,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         <%!-- Right content --%>
         <div class="flex-1 min-w-0">
           <div :if={@active_tab == "general"}>
-            <.general_tab store={@store} />
+            <.general_tab store={@store} uploads={@uploads} errors={@general_errors} />
           </div>
           <div :if={@active_tab == "contact"}>
             <.contact_tab store={@store} ghana_regions={@ghana_regions} />
@@ -182,21 +285,85 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   # -- General tab --
 
   attr :store, :map, required: true
+  attr :uploads, :map, required: true
+  attr :errors, :map, default: %{}
 
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
       <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
-        <.form for={%{}} as={:store} id="general-form" phx-submit="save_general" class="space-y-5">
+        <.form
+          for={%{}}
+          as={:store}
+          id="general-form"
+          phx-change="validate_general"
+          phx-submit="save_general"
+          class="space-y-5"
+        >
+          <%!-- Shop picture. The tile used to show initials beside a button
+                that did nothing — there was no upload wired to this page. --%>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">Shop picture</label>
+            <div class="flex items-center gap-4">
+              <div class="relative w-20 h-20 shrink-0">
+                <.live_img_preview
+                  :for={entry <- @uploads.logo.entries}
+                  entry={entry}
+                  class="w-20 h-20 rounded-control object-cover border border-slate-200"
+                />
+                <img
+                  :if={@uploads.logo.entries == [] && @store && @store.logo_url}
+                  src={@store.logo_url}
+                  alt="Your shop picture"
+                  class="w-20 h-20 rounded-control object-cover border border-slate-200"
+                />
+                <div
+                  :if={@uploads.logo.entries == [] && !(@store && @store.logo_url)}
+                  class="w-20 h-20 rounded-control bg-primary flex items-center justify-center text-white text-2xl font-bold"
+                >
+                  {logo_initials(@store)}
+                </div>
+                <%!-- A full-size opacity-0 input, not sr-only: an sr-only file
+                      input will not open the picker on iOS Safari, and these
+                      merchants are on phones. --%>
+                <label class="absolute -right-1.5 -bottom-1.5 w-9 h-9 rounded-full bg-surface border border-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-slate-50">
+                  <.icon name="hero-camera" class="size-4 text-slate-700" />
+                  <.live_file_input
+                    upload={@uploads.logo}
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                </label>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm text-slate-600">Tap the camera to change it.</p>
+                <p class="text-xs text-slate-400 mt-1">JPG or PNG, up to 5MB.</p>
+                <p :for={err <- upload_errors(@uploads.logo)} class="text-xs text-red-600 mt-1">
+                  {upload_error_message(err)}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Store Name</label>
             <input
               type="text"
               name="store[name]"
               value={@store && @store.name}
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class={[
+                "w-full px-4 py-2.5 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 transition-all",
+                if(@errors[:name],
+                  do: "bg-red-50 border border-red-300 focus:ring-red-500/30",
+                  else:
+                    "bg-white border border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-500"
+                )
+              ]}
             />
+            <p :if={@errors[:name]} class="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+              <.icon name="hero-exclamation-circle" class="size-4 shrink-0" />
+              {@errors[:name]}
+            </p>
           </div>
 
           <div>
@@ -227,8 +394,19 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               value={@store && @store.tagline}
               maxlength="140"
               placeholder="One line that captures your shop in 140 characters"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class={[
+                "w-full px-4 py-2.5 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 transition-all",
+                if(@errors[:tagline],
+                  do: "bg-red-50 border border-red-300 focus:ring-red-500/30",
+                  else:
+                    "bg-white border border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-500"
+                )
+              ]}
             />
+            <p :if={@errors[:tagline]} class="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+              <.icon name="hero-exclamation-circle" class="size-4 shrink-0" />
+              {@errors[:tagline]}
+            </p>
           </div>
 
           <div>
@@ -242,41 +420,67 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
-              Cover image URL
+              Cover picture
               <span class="text-xs text-slate-400 font-normal">
-                — 16:9 banner on the marketplace card
+                — the wide banner buyers see on the marketplace
               </span>
             </label>
-            <input
-              type="url"
-              name="store[cover_image_url]"
-              value={@store && @store.cover_image_url}
-              placeholder="https://your-cdn.com/cover.jpg"
-              inputmode="url"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-            />
-            <p :if={@store && @store.cover_image_url && @store.cover_image_url != ""} class="mt-2">
+
+            <div
+              class="relative border-2 border-dashed border-slate-300 rounded-control hover:border-emerald-400 transition-colors overflow-hidden"
+              phx-drop-target={@uploads.cover.ref}
+            >
+              <.live_img_preview
+                :for={entry <- @uploads.cover.entries}
+                entry={entry}
+                class="w-full aspect-[16/9] object-cover"
+              />
               <img
+                :if={
+                  @uploads.cover.entries == [] && @store && @store.cover_image_url &&
+                    @store.cover_image_url != ""
+                }
                 src={@store.cover_image_url}
                 alt="Cover preview"
-                class="w-full max-w-md aspect-[16/9] object-cover rounded-control border border-slate-200"
+                class="w-full aspect-[16/9] object-cover"
                 loading="lazy"
               />
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Store Logo</label>
-            <div class="flex items-center gap-4">
-              <div class="w-20 h-20 rounded-control bg-primary flex items-center justify-center">
-                <span class="text-2xl font-bold text-white">
-                  {logo_initials(@store)}
-                </span>
+              <div
+                :if={
+                  @uploads.cover.entries == [] &&
+                    !(@store && @store.cover_image_url && @store.cover_image_url != "")
+                }
+                class="aspect-[16/9] flex flex-col items-center justify-center gap-2 bg-slate-50 text-center px-4"
+              >
+                <div class="w-14 h-14 rounded-control bg-info-soft flex items-center justify-center">
+                  <.icon name="hero-photo" class="size-7 text-info" />
+                </div>
+                <p class="text-sm font-semibold text-slate-700">Add a wide picture</p>
+                <p class="text-xs text-slate-500">Tap to take one or choose a photo</p>
               </div>
-              <.admin_button variant={:secondary}>
-                <.icon name="hero-arrow-up-tray" class="size-4" /> Change Logo
-              </.admin_button>
+              <.live_file_input
+                upload={@uploads.cover}
+                class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
             </div>
+
+            <p :for={err <- upload_errors(@uploads.cover)} class="mt-1.5 text-xs text-red-600">
+              {upload_error_message(err)}
+            </p>
+
+            <%!-- Kept as the secondary path: a merchant whose picture already
+                  lives on a CDN can still paste the link. --%>
+            <details class="mt-2">
+              <summary class="text-xs text-slate-500 cursor-pointer">Or paste a picture link</summary>
+              <input
+                type="url"
+                name="store[cover_image_url]"
+                value={@store && @store.cover_image_url}
+                placeholder="https://your-cdn.com/cover.jpg"
+                inputmode="url"
+                class="mt-2 w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              />
+            </details>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

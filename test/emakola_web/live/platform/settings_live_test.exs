@@ -105,6 +105,35 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
       {:ok, reloaded} = Emakola.FeatureFlags.get_flag(flag.id, authorize?: false)
       refute reloaded.enabled
     end
+
+    # One click here changes what every merchant on the platform can see, and
+    # it fired with no confirmation — while Delete, far less reachable, got a
+    # full modal.
+    test "turning a live flag off asks first, and names the flag", %{conn: conn} do
+      flag =
+        Factory.create_feature_flag!(%{key: "live_one", name: "Dropship network", enabled: true})
+
+      conn = log_in_platform_admin(conn)
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      toggle = view |> element("#flags-#{flag.id} button[phx-click='toggle']") |> render()
+
+      assert toggle =~ "data-confirm"
+      assert toggle =~ "Dropship network"
+      assert toggle =~ "off"
+    end
+
+    test "turning a flag on asks first too, worded for switching on", %{conn: conn} do
+      flag = Factory.create_feature_flag!(%{key: "dark_one", name: "Susu plans", enabled: false})
+      conn = log_in_platform_admin(conn)
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      toggle = view |> element("#flags-#{flag.id} button[phx-click='toggle']") |> render()
+
+      assert toggle =~ "data-confirm"
+      assert toggle =~ "Susu plans"
+      assert toggle =~ "on"
+    end
   end
 
   describe "create" do

@@ -253,21 +253,39 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       <.admin_page_header
         title="Returns"
         subtitle="Review and manage customer return requests"
+        icon="hero-arrow-uturn-left"
       />
 
-      <%!-- KPI tiles --%>
+      <%!-- KPI tiles: an icon and a hue per tile, so the row can be read at a
+            glance without reading the labels. --%>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div id="stat-returns-open">
-          <.stat_card label="Open requests" value={@return_stats.open} tone={:warning} />
+          <.stat_card label="Open requests" value={@return_stats.open} tone={:warning}>
+            <:icon><.icon name="hero-inbox-arrow-down" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Waiting for your answer</p>
+            </:delta>
+          </.stat_card>
         </div>
         <div id="stat-returns-approved">
-          <.stat_card label="Approved, awaiting refund" value={@return_stats.approved} tone={:info} />
+          <.stat_card label="Approved, awaiting refund" value={@return_stats.approved} tone={:info}>
+            <:icon><.icon name="hero-clock" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Money not sent back yet</p>
+            </:delta>
+          </.stat_card>
         </div>
         <div id="stat-returns-refunded">
           <.stat_card
             label="Refunded (30 days)"
             value={Currency.format_price(@return_stats.refunded_30d, "GHS")}
-          />
+            tone={:cyan}
+          >
+            <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Sent back in the last month</p>
+            </:delta>
+          </.stat_card>
         </div>
       </div>
 
@@ -317,7 +335,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
             class={[
               "bg-surface rounded-card border border-border shadow-sm p-5 cursor-pointer transition-all hover:shadow-md",
               if(@selected_return && @selected_return.id == return.id,
-                do: "ring-2 ring-emerald-500",
+                do: "ring-2 ring-primary",
                 else: ""
               )
             ]}

@@ -62,6 +62,93 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
       assert html =~ "https://cdn.example.com/cover.jpg"
     end
 
+    # The logo tile rendered initials and "Change Logo" was a dead button —
+    # no allow_upload, no live_file_input anywhere in the page. A merchant who
+    # cannot read a URL had no way to put a picture on their shop.
+    test "a logo photo uploads to platform storage and lands on the store", %{
+      conn: conn,
+      store: store
+    } do
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "https://cdn.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photo =
+        file_input(view, "#general-form", :logo, [
+          %{name: "shop.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        ])
+
+      render_upload(photo, "shop.png")
+
+      view |> form("#general-form", %{store: %{name: store.name}}) |> render_submit()
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.logo_url =~ "https://cdn.example.com/stores/#{store.id}/branding/"
+    end
+
+    test "a cover photo uploads and lands on the store", %{conn: conn, store: store} do
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "https://cdn.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photo =
+        file_input(view, "#general-form", :cover, [
+          %{name: "banner.jpg", content: <<255, 216, 255, 224>>, type: "image/jpeg"}
+        ])
+
+      render_upload(photo, "banner.jpg")
+
+      view |> form("#general-form", %{store: %{name: store.name}}) |> render_submit()
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.cover_image_url =~ "https://cdn.example.com/stores/#{store.id}/branding/"
+    end
+
+    # Every failure used to surface as one flash reading "Could not save
+    # settings", with nothing pointing at the field that was wrong.
+    test "an empty shop name is refused at the field, before saving", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html = view |> form("#general-form", %{store: %{name: ""}}) |> render_change()
+
+      assert html =~ "Your shop needs a name"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.name == store.name
+    end
+
+    test "a tagline over the limit is refused at the field", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view
+        |> form("#general-form", %{store: %{name: "Shop", tagline: String.duplicate("a", 141)}})
+        |> render_change()
+
+      assert html =~ "Keep it under 140 letters"
+    end
+
+    test "saving with an invalid field shows the field error, not a flash", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html = view |> form("#general-form", %{store: %{name: ""}}) |> render_submit()
+
+      assert html =~ "Your shop needs a name"
+      refute html =~ "Settings saved"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.name == store.name
+    end
+
     test "can enable buyer protection from the General tab", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, ~p"/admin/settings")
 

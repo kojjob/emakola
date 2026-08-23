@@ -54,6 +54,10 @@
 @theme {
   /* ── Emakola semantic tokens (Design System v1) ── */
   /* Actions */
+  /* Makola emerald, one brand everywhere: the admin, makola.io, every
+     storefront, and the public pay-link / susu-link / contact forms all
+     resolve these three. Tile hues (violet / green / blue / red / cyan) carry
+     meaning inside the admin; the chrome stays green. */
   --color-primary: #059669;        /* emerald-600 — every primary action */
   --color-primary-hover: #047857;  /* emerald-700 */
   --color-primary-soft: #ECFDF5;   /* emerald-50 — soft bg, selected states */
