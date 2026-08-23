@@ -135,21 +135,19 @@ defmodule EmakolaWeb.Admin.DesignLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <%!-- Header (matches Theme page) --%>
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Design Studio</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Customize buttons, cards, typography, and layout — preview live
-          </p>
-        </div>
+      <.admin_page_header
+        icon="hero-paint-brush"
+        title="Design Studio"
+        subtitle="Customize buttons, cards, typography, and layout — preview live"
+      >
         <a
           href={"/s/#{@store.slug}/"}
           target="_blank"
-          class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium self-start sm:self-auto"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control border border-border bg-surface text-sm font-semibold text-text hover:bg-surface-subtle transition-colors"
         >
-          <span class="material-symbols-outlined text-base">open_in_new</span> View live store
+          <.icon name="hero-arrow-top-right-on-square" class="size-5" /> View live store
         </a>
-      </div>
+      </.admin_page_header>
 
       <%!-- 3-COLUMN LAYOUT — components | preview | typography ──────── --%>
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-32">

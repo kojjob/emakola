@@ -63,6 +63,52 @@ defmodule EmakolaWeb.AdminDesignConsistencyTest do
              "and size it: " <> inspect(offenders)
   end
 
+  test "every stat tile declares a tone" do
+    # A tile with no `tone` falls to neutral, so two of them in one row are
+    # the same grey and carry no meaning. This is the single most repeated
+    # piece of feedback on the admin: "the cards are the same colour."
+    offenders =
+      "lib/emakola_web/live/**/*.ex"
+      |> Path.wildcard()
+      |> Enum.map(fn file ->
+        source = File.read!(file)
+        tiles = source |> String.split("<.stat_card") |> length() |> Kernel.-(1)
+        toned = source |> String.split(~r/<\.stat_card[^>]*?\stone=/s) |> length() |> Kernel.-(1)
+        {file, tiles, toned}
+      end)
+      |> Enum.filter(fn {_file, tiles, toned} -> tiles > 0 and toned < tiles end)
+      |> Enum.map(fn {file, tiles, toned} -> "#{file} (#{tiles - toned} of #{tiles} untoned)" end)
+
+    assert offenders == [],
+           "these pages render a stat tile without a tone, so it greys out and " <>
+             "reads the same as its neighbour: " <> Enum.join(offenders, ", ")
+  end
+
+  test "every admin page header carries an icon badge" do
+    # The badge is how a page identifies itself at a glance — the merchants
+    # using this admin often scan the picture, not the heading.
+    offenders =
+      "lib/emakola_web/live/**/*.ex"
+      |> Path.wildcard()
+      |> Enum.map(fn file ->
+        source = File.read!(file)
+        headers = source |> String.split("<.admin_page_header") |> length() |> Kernel.-(1)
+
+        iconed =
+          source
+          |> String.split(~r/<\.admin_page_header(?:(?!\/>|>).)*?\sicon=/s)
+          |> length()
+          |> Kernel.-(1)
+
+        {file, headers, iconed}
+      end)
+      |> Enum.filter(fn {_file, headers, iconed} -> headers > 0 and iconed < headers end)
+      |> Enum.map(fn {file, _h, _i} -> file end)
+
+    assert offenders == [],
+           "these page headers have no icon badge: " <> Enum.join(offenders, ", ")
+  end
+
   test "the Stitch token system stays dead" do
     hits =
       Path.wildcard("lib/**/*.{ex,heex}")

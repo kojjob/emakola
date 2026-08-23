@@ -62,7 +62,11 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
-      <.admin_page_header title="Campaigns" subtitle="Engage customers with targeted messages">
+      <.admin_page_header
+        icon="hero-megaphone"
+        title="Campaigns"
+        subtitle="Engage customers with targeted messages"
+      >
         <button
           phx-click={show_modal("create-campaign-modal")}
           class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"

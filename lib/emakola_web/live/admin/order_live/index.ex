@@ -87,7 +87,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Orders" subtitle="Manage and track all customer orders" />
+      <.admin_page_header
+        icon="hero-shopping-bag"
+        title="Orders"
+        subtitle="Manage and track all customer orders"
+      />
 
       <%!-- KPI tiles (store-wide, independent of search/filter) --%>
       <div id="order-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -543,12 +543,15 @@ defmodule EmakolaWeb.CoreComponents do
           >
             <div class="flex h-full flex-col">
               <%!-- Header --%>
-              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
                 <div class="flex items-center gap-3">
-                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
-                    {@icon}
-                  </span>
-                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                  <div
+                    :if={@icon}
+                    class="w-11 h-11 rounded-control bg-primary-soft flex items-center justify-center shrink-0"
+                  >
+                    <.modal_icon name={@icon} class={@icon_class} />
+                  </div>
+                  <h2 id={"#{@id}-title"} class="text-xl font-bold text-slate-900">{@title}</h2>
                 </div>
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
@@ -572,21 +575,32 @@ defmodule EmakolaWeb.CoreComponents do
         <% else %>
           <%!-- Centered modal --%>
           <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
+            <%!-- Bounded by the viewport and a column, so the body scrolls
+                  and the footer stays reachable. A tall form previously grew
+                  past the bottom of the screen, taking its save button with
+                  it. --%>
             <div
               id={"#{@id}-container"}
               class={[
-                "w-full bg-white rounded-2xl shadow-xl max-sm:max-w-full",
+                "w-full bg-white rounded-card shadow-xl max-sm:max-w-full",
+                "max-h-[88vh] flex flex-col",
                 modal_size_class(@size)
               ]}
               phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
             >
               <%!-- Header --%>
-              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div class={[
+                "flex items-center justify-between py-5 border-b border-slate-200 shrink-0",
+                modal_pad(@size)
+              ]}>
                 <div class="flex items-center gap-3">
-                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
-                    {@icon}
-                  </span>
-                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                  <div
+                    :if={@icon}
+                    class="w-11 h-11 rounded-control bg-primary-soft flex items-center justify-center shrink-0"
+                  >
+                    <.modal_icon name={@icon} class={@icon_class} />
+                  </div>
+                  <h2 id={"#{@id}-title"} class="text-xl font-bold text-slate-900">{@title}</h2>
                 </div>
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
@@ -598,13 +612,16 @@ defmodule EmakolaWeb.CoreComponents do
                 </button>
               </div>
               <%!-- Body --%>
-              <div class="px-6 py-5">
+              <div class={["flex-1 overflow-y-auto py-6", modal_pad(@size)]}>
                 {render_slot(@inner_block)}
               </div>
               <%!-- Footer --%>
               <div
                 :if={@footer != []}
-                class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl"
+                class={[
+                  "py-4 border-t border-slate-200 bg-slate-50 rounded-b-card shrink-0",
+                  modal_pad(@size)
+                ]}
               >
                 {render_slot(@footer)}
               </div>
@@ -673,10 +690,37 @@ defmodule EmakolaWeb.CoreComponents do
     """
   end
 
-  defp modal_size_class(:sm), do: "max-w-md"
-  defp modal_size_class(:md), do: "max-w-lg"
-  defp modal_size_class(:lg), do: "max-w-2xl"
-  defp modal_size_class(:xl), do: "max-w-4xl"
+  # Modal headers take either icon family: `hero-*` renders through the
+  # sprite, anything else is a Material Symbols ligature. Call sites across
+  # the admin still speak both, and a modal is the wrong place to force a
+  # migration — the fallback keeps every existing dialog rendering.
+  attr :name, :string, required: true
+  attr :class, :string, default: nil
+
+  defp modal_icon(%{name: "hero-" <> _} = assigns) do
+    ~H"""
+    <.icon name={@name} class={["size-6", @class]} />
+    """
+  end
+
+  defp modal_icon(assigns) do
+    ~H"""
+    <span class={["material-symbols-outlined text-2xl", @class]}>{@name}</span>
+    """
+  end
+
+  # Widths on a ~1.3 step, so the four sizes read as one family rather than
+  # four unrelated boxes. A dialog carrying a decision about money or a
+  # customer's order needs room for the thing it is deciding about.
+  defp modal_size_class(:sm), do: "max-w-[560px]"
+  defp modal_size_class(:md), do: "max-w-[720px]"
+  defp modal_size_class(:lg), do: "max-w-[960px]"
+  defp modal_size_class(:xl), do: "max-w-[1320px]"
+
+  # Gutters track width. A 1320px dialog wearing a 560px dialog's padding
+  # looks like a table that lost its container.
+  defp modal_pad(size) when size in [:lg, :xl], do: "px-8"
+  defp modal_pad(_size), do: "px-6"
 
   ## JS Commands
 

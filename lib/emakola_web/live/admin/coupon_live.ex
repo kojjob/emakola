@@ -187,6 +187,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <.admin_page_header
+        icon="hero-ticket"
         title="Coupons"
         subtitle="Create and manage coupon codes for your customers"
         action_label="+ Create Coupon"

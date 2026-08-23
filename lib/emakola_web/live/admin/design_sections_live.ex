@@ -812,6 +812,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
       class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16"
     >
       <.admin_page_header
+        icon="hero-squares-2x2"
         title="Sections"
         subtitle="Reorder, show, or hide sections on your store's home page"
       >
