@@ -483,6 +483,51 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             </details>
           </div>
 
+          <%!-- What a buyer sees on the marketplace, from the same values the
+                fields above hold. A merchant editing a tagline should not have
+                to go and look at another page to see the result. --%>
+          <div id="store-card-preview" class="rounded-card border border-border bg-surface-subtle p-4">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+              How buyers see you
+            </p>
+            <div class="max-w-sm rounded-card border border-border bg-surface overflow-hidden">
+              <img
+                :if={@store && @store.cover_image_url && @store.cover_image_url != ""}
+                src={@store.cover_image_url}
+                alt=""
+                class="w-full aspect-[16/9] object-cover"
+                loading="lazy"
+              />
+              <div
+                :if={!(@store && @store.cover_image_url && @store.cover_image_url != "")}
+                class="w-full aspect-[16/9] bg-gradient-to-br from-primary-soft to-primary/30"
+              >
+              </div>
+              <div class="p-4 flex gap-3 items-start">
+                <img
+                  :if={@store && @store.logo_url}
+                  src={@store.logo_url}
+                  alt=""
+                  class="w-11 h-11 rounded-control object-cover shrink-0"
+                />
+                <div
+                  :if={!(@store && @store.logo_url)}
+                  class="w-11 h-11 rounded-control bg-primary text-white flex items-center justify-center font-bold shrink-0"
+                >
+                  {logo_initials(@store)}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-slate-900 truncate">
+                    {(@store && @store.name) || "Your shop"}
+                  </p>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                    {(@store && @store.tagline) || "Your one line goes here"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1.5">Currency</label>
@@ -495,7 +540,27 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             </div>
           </div>
 
-          <div class="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-control">
+          <%!-- A switch, not a tick-box: this decides whether a merchant's
+                money waits, and it should read as a lever you throw. The
+                checkbox is still the input — only its skin changed. --%>
+          <label
+            for="store-buyer-protection-enabled"
+            class="flex items-center justify-between gap-6 p-5 rounded-card border border-border bg-gradient-to-br from-success-soft to-surface cursor-pointer"
+          >
+            <div class="flex items-start gap-4 min-w-0">
+              <div class="w-13 h-13 shrink-0 rounded-control bg-success flex items-center justify-center">
+                <.icon name="hero-shield-check" class="size-7 text-white" />
+              </div>
+              <div class="min-w-0">
+                <span class="block text-base font-bold text-slate-900">
+                  Hold money until it arrives
+                </span>
+                <span class="block text-sm text-slate-600 mt-1">
+                  Buyers trust you more. You wait a little longer for your money.
+                </span>
+              </div>
+            </div>
+
             <input type="hidden" name="store[buyer_protection_enabled]" value="false" />
             <input
               type="checkbox"
@@ -503,40 +568,70 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               name="store[buyer_protection_enabled]"
               value="true"
               checked={@store && @store.buyer_protection_enabled == true}
-              class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+              class="peer sr-only"
             />
-            <label for="store-buyer-protection-enabled" class="cursor-pointer">
-              <span class="block text-sm font-medium text-slate-700">Buyer Protection</span>
-              <span class="block text-xs text-slate-500 mt-0.5">
-                Hold payments until delivery is confirmed. Slower cash-out, stronger buyer trust.
-              </span>
-            </label>
-          </div>
+            <span class="relative shrink-0 w-16 h-9 rounded-full bg-slate-300 peer-checked:bg-success transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:w-7 after:h-7 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-7">
+            </span>
+          </label>
           
     <!-- What this shop is allowed to sell. The hidden input is load-bearing:
                an all-unticked checkbox group submits no key at all, and a store
                without :physical cannot edit its own existing catalogue, because
                ProductTypeAcceptedByStore runs on Product :update too. -->
           <div class="pt-2">
-            <span class="block text-sm font-medium text-slate-700 mb-1.5">What you sell</span>
+            <span class="block text-sm font-semibold text-slate-700 mb-1">What you sell</span>
+            <p class="text-xs text-slate-500 mb-3">Pick everything that fits your shop.</p>
             <input type="hidden" name="store[enabled_product_types][]" value="physical" />
-            <div
-              :for={type <- Emakola.Catalog.Product.sellable_types() -- [:physical]}
-              class="flex items-start gap-3"
-            >
-              <input
-                type="checkbox"
-                id={"store-product-type-#{type}"}
-                name="store[enabled_product_types][]"
-                value={to_string(type)}
-                checked={@store && Emakola.Stores.Store.accepts?(@store, type)}
-                class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-              <label for={"store-product-type-#{type}"} class="cursor-pointer">
-                <span class="block text-sm font-medium text-slate-700">Digital downloads</span>
-                <span class="block text-xs text-slate-500 mt-0.5">
-                  Sell files — ebooks, beats, presets, courses. No address, no delivery fee.
-                </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <%!-- Physical is always on: a store without it cannot edit its own
+                    existing catalogue, so it shows as a fact, not a choice. --%>
+              <div class="rounded-card border-2 border-primary bg-primary-soft p-4 flex gap-4">
+                <div class="w-12 h-12 shrink-0 rounded-control bg-primary flex items-center justify-center">
+                  <.icon name="hero-cube" class="size-6 text-white" />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">Things you post</span>
+                    <.icon name="hero-check-circle" class="size-5 text-primary shrink-0" />
+                  </div>
+                  <span class="block text-xs text-slate-600 mt-1">
+                    Cloth, food, phones — anything a rider carries.
+                  </span>
+                </div>
+              </div>
+
+              <label
+                :for={type <- Emakola.Catalog.Product.sellable_types() -- [:physical]}
+                for={"store-product-type-#{type}"}
+                class="group rounded-card border-2 border-border p-4 flex gap-4 cursor-pointer transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary-soft"
+              >
+                <input
+                  type="checkbox"
+                  id={"store-product-type-#{type}"}
+                  name="store[enabled_product_types][]"
+                  value={to_string(type)}
+                  checked={@store && Emakola.Stores.Store.accepts?(@store, type)}
+                  class="peer sr-only"
+                />
+                <div class="w-12 h-12 shrink-0 rounded-control bg-slate-100 peer-checked:bg-primary flex items-center justify-center transition-colors">
+                  <.icon
+                    name="hero-arrow-down-tray"
+                    class="size-6 text-slate-500 peer-checked:text-white"
+                  />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">Things they download</span>
+                    <.icon
+                      name="hero-check-circle"
+                      class="size-5 text-primary shrink-0 hidden peer-checked:block"
+                    />
+                  </div>
+                  <span class="block text-xs text-slate-600 mt-1">
+                    Beats, ebooks, courses. No rider needed.
+                  </span>
+                </div>
               </label>
             </div>
           </div>
