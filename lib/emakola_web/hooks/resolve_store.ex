@@ -15,6 +15,15 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
 
   alias EmakolaWeb.Helpers.StoreResolver
 
+  @doc """
+  `:default` serves the `/s/:slug` subfolder form; `:short` serves
+  `makola.io/:slug`. They differ only in the link dialect the page renders in,
+  so a visitor who arrived on a short URL keeps short URLs as they navigate.
+  """
+  def on_mount(:short, params, session, socket) do
+    on_mount(:default, params, Map.put(session, "storefront_path_mode", :short), socket)
+  end
+
   def on_mount(:default, %{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
@@ -27,7 +36,14 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
         end
 
         on_store_subdomain? = Map.get(session, "on_store_subdomain?", false)
-        EmakolaWeb.Storefront.Path.put_on_store_subdomain(on_store_subdomain?)
+
+        EmakolaWeb.Storefront.Path.put_mode(
+          cond do
+            on_store_subdomain? -> :branded
+            Map.get(session, "storefront_path_mode") == :short -> :short
+            true -> :subfolder
+          end
+        )
 
         {:cont,
          socket
