@@ -11,6 +11,14 @@ config :emakola,
   env: config_env(),
   generators: [timestamp_type: :utc_datetime]
 
+# DNS targets a merchant points their own domain at. Apex domains need BOTH
+# A and AAAA: the IPv4 is a SHARED Fly address, so only the dedicated IPv6
+# lets Fly prove ownership and issue the certificate.
+config :emakola, :fly_dns_targets,
+  a: "66.241.124.228",
+  aaaa: "2a09:8280:1::126:6f75:0",
+  cname: "emakola.fly.dev"
+
 # Configure the endpoint
 config :emakola, EmakolaWeb.Endpoint,
   url: [host: "localhost"],
