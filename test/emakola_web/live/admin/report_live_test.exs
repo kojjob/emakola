@@ -195,6 +195,39 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
       assert has_element?(view, "#stat-reports-visitors", "25.0% of them bought")
     end
 
+    test "more orders than visitors is not a rate above 100%", %{conn: conn, store: store} do
+      # Orders are counted from the store's whole history, visits only from the
+      # day counting shipped, so every store starts with orders far exceeding
+      # visitors. Dividing anyway produced "1.5e3% of them bought" — scientific
+      # notation, because Float.to_string/1 emits the shortest round-trip form
+      # for round values at 1000 and above.
+      customer = Emakola.Factory.create_customer!(store)
+
+      for _ <- 1..15,
+          do:
+            Emakola.Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      Emakola.Analytics.StoreVisits.record(store.id, "only-visitor", %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      # Scoped to the tile, never the whole document: the phx-session blob is
+      # random base64 and would match a short literal by chance. See #475.
+      assert has_element?(view, "#stat-reports-visitors", "Still counting visits")
+      refute has_element?(view, "#stat-reports-visitors", "of them bought")
+      refute has_element?(view, "#stat-reports-visitors", "e3")
+    end
+
+    test "visitors who did not buy still get a rate", %{conn: conn, store: store} do
+      # Nobody bought is a real answer and needs no guard: the denominator is
+      # whole, so 0.0% is a fact about traffic rather than an invented figure.
+      for id <- ["a", "b"], do: Emakola.Analytics.StoreVisits.record(store.id, id, %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-visitors", "0.0% of them bought")
+    end
+
     test "one store's traffic never appears in another's report", %{conn: conn} do
       elsewhere = Emakola.Factory.create_store!()
       for id <- ["x", "y"], do: Emakola.Analytics.StoreVisits.record(elsewhere.id, id, %{})

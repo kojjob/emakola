@@ -116,10 +116,25 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   defp traffic_sources(nil, _range), do: %{}
   defp traffic_sources(store_id, range), do: StoreVisits.by_source(store_id, @ranges[range])
 
-  # Percent to one decimal. Zero visitors means no rate rather than a divide —
-  # a store nobody visited has not converted 0%, it has no rate to report.
+  # Percent to one decimal, already rendered as a string.
+  #
+  # float_to_binary rather than interpolation: `Float.to_string/1` emits the
+  # shortest round-trip form, so 1500.0 comes out "1.5e3" while 714.3 and
+  # 3333.3 render fine — the bug only appears once the number gets large.
+  #
+  # No visitors means no rate rather than a divide: a store nobody visited has
+  # not converted 0%, it has no rate to report.
   defp conversion_rate(_orders, 0), do: nil
-  defp conversion_rate(orders, visitors), do: Float.round(orders / visitors * 100, 1)
+
+  # More orders than visitors means the denominator is short, not that the
+  # store converts above 100%. Orders are counted from the store's whole
+  # history; visits only from the day counting shipped. Every merchant starts
+  # in that state, so this is the ordinary early case, not a freak one — and
+  # "1500% of them bought" answers no question a merchant has.
+  defp conversion_rate(orders, visitors) when orders > visitors, do: nil
+
+  defp conversion_rate(orders, visitors),
+    do: :erlang.float_to_binary(orders / visitors * 100, decimals: 1)
 
   defp fetch_orders(nil, _from, _to), do: []
 
@@ -310,13 +325,19 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         >
           <:icon><.icon name="hero-users" class="size-7" /></:icon>
           <:delta>
-            <%!-- A store nobody visited has no rate to report — saying "0%"
-                  would be a claim about conversion rather than about traffic. --%>
+            <%!-- Three states, not two. A store nobody visited has no rate to
+                  report — "0%" would be a claim about conversion rather than
+                  about traffic. And more orders than visitors means the
+                  denominator is still short, which is every store's first
+                  weeks, so it says so instead of claiming 1500%. --%>
             <p :if={@conversion_rate} class="text-sm text-slate-500">
               {@conversion_rate}% of them bought
             </p>
-            <p :if={is_nil(@conversion_rate)} class="text-sm text-slate-500">
+            <p :if={is_nil(@conversion_rate) and @visitors == 0} class="text-sm text-slate-500">
               No visits yet
+            </p>
+            <p :if={is_nil(@conversion_rate) and @visitors > 0} class="text-sm text-slate-500">
+              Still counting visits
             </p>
           </:delta>
         </.stat_card>
