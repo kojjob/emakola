@@ -13,6 +13,18 @@ defmodule EmakolaWeb.BrandComponents do
 
   For a plain static mark in a context that cannot take inline SVG (email,
   `og:image`, the press kit) use `/images/emakola-logo.svg` instead.
+
+  ## Where this mark does not go
+
+  Not on the storefront. A shopper is buying from the merchant's shop, not from
+  us — the storefront is themed per merchant for exactly that reason, and the
+  MoMo waiting state is deliberately painted in the network's own colours
+  because that is the cue the shopper needs. Our mark belongs on merchant and
+  platform surfaces.
+
+  Not inline beside button text either. At 16px the stall collapses to its
+  favicon cut, which has nothing to animate; keep the existing icon spinners
+  for that.
   """
 
   use Phoenix.Component
@@ -110,6 +122,38 @@ defmodule EmakolaWeb.BrandComponents do
         />
       </g>
     </svg>
+    """
+  end
+
+  @doc """
+  A block-level loading state for a panel that is waiting on data.
+
+  Replaces a bare "Loading…" line. The mark ripples, the label says what is
+  being waited on, and the whole thing announces itself once to a screen
+  reader — the mark stays decorative so the label is not read twice.
+
+  For an inline spinner beside button text, keep `hero-arrow-path`.
+
+  ## Examples
+
+      <.brand_loader label="Checking invite" />
+      <.brand_loader label="Loading offers" size={48} />
+  """
+  attr :label, :string, default: "Loading"
+  attr :size, :integer, default: 56
+  attr :tone, :string, default: "ink", values: ~w(ink reversed)
+  attr :class, :any, default: nil
+
+  def brand_loader(assigns) do
+    ~H"""
+    <div
+      class={["flex flex-col items-center justify-center gap-3 py-16", @class]}
+      role="status"
+      aria-live="polite"
+    >
+      <.logo_mark motion="loading" tone={@tone} size={@size} />
+      <span class="text-sm text-slate-500">{@label}</span>
+    </div>
     """
   end
 end
