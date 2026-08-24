@@ -47,31 +47,45 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   defp base(opts),
     do: opts[:subdomain_base] || Application.get_env(:emakola, :store_subdomain_base)
 
-  # nil base → ship-dark; apex/www → normal apex routing; otherwise look it up.
-  defp classify(_conn, nil), do: :passthrough
-
+  # The apex and its www form always route normally. Everything else is looked
+  # up — including when no subdomain base is configured, because a merchant's
+  # own domain has nothing to do with the platform's subdomain namespace.
   defp classify(%{host: host} = conn, base) do
-    if host == base or host == "www." <> base do
+    if base && (host == base or host == "www." <> base) do
       :passthrough
     else
-      resolve_host(conn, base)
+      resolve_host(conn)
     end
   end
 
-  defp resolve_host(conn, _base) do
+  defp resolve_host(conn) do
     case Stores.get_store_domain_by_host(conn.host,
            load: [:store],
            authorize?: false,
            not_found_error?: false
          ) do
       # An explicit, active, non-serve-in-place domain consolidates SEO on the
-      # /s/:slug subfolder. serve_in_place? domains, the implicit <slug>.<base>
-      # match, and unknown/reserved hosts all pass through to the router.
+      # store's canonical origin. serve_in_place? domains, the implicit
+      # <slug>.<base> match, and unknown hosts all pass through to the router.
       {:ok, %{status: :active, serve_in_place?: false, store: %{slug: slug}}} ->
-        {:redirect, EmakolaWeb.SEO.Canonical.store_url(%{slug: slug}) <> subpath(conn)}
+        redirect_unless_self(conn, EmakolaWeb.SEO.Canonical.store_url(%{slug: slug}))
 
       _ ->
         :passthrough
+    end
+  end
+
+  # Belt for the self-301 loop. A store's canonical can now BE a custom domain,
+  # so a redirecting row could point at itself. `claim_custom` already forces
+  # serve_in_place? on and SafePrimaryDomain refuses to turn it off, but this
+  # holds regardless of any future drift in those invariants — and it is what
+  # makes the automatic `www.` sibling safe: www.shop.com redirects to shop.com
+  # (a different host, so it proceeds) while shop.com never redirects at all.
+  defp redirect_unless_self(conn, target) do
+    if URI.parse(target).host == conn.host do
+      :passthrough
+    else
+      {:redirect, target <> subpath(conn)}
     end
   end
 

@@ -14,9 +14,10 @@ defmodule Emakola.Stores.StoreDomain do
 
   A `:custom` row behaves differently on purpose. It always serves in place,
   and once it is `:active` and `primary?` it *becomes* the store's canonical
-  URL — reversing the Phase 0 stance that authority always consolidates on the
-  subfolder. A merchant paying for their own domain and still seeing the
-  platform host in Google is the feature not working.
+  URL — see `EmakolaWeb.SEO.Canonical`, which resolves it. This reverses the
+  Phase 0 stance that authority always consolidates on the subfolder: a
+  merchant paying for their own domain and still seeing the platform host in
+  Google is the feature not working.
 
   ## Lifecycle
 
