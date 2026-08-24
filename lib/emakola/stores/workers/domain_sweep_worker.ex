@@ -14,7 +14,6 @@ defmodule Emakola.Stores.Workers.DomainSweepWorker do
 
   use Oban.Worker, queue: :domains, max_attempts: 1
 
-  require Ash.Query
   require Logger
 
   alias Emakola.Stores

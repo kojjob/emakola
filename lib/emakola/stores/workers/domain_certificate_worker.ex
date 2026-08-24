@@ -15,7 +15,7 @@ defmodule Emakola.Stores.Workers.DomainCertificateWorker do
   use Oban.Worker,
     queue: :domains,
     max_attempts: 3,
-    unique: [period: 600, fields: [:worker, :args], states: [:available, :scheduled, :executing]]
+    unique: [period: 600, fields: [:worker, :args], states: :incomplete]
 
   require Logger
 
