@@ -20,8 +20,6 @@ defmodule EmakolaWeb.Platform.DomainLive.Index do
 
   use EmakolaWeb, :live_view
 
-  require Logger
-
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
   alias Emakola.Accounts.PlatformAudit
