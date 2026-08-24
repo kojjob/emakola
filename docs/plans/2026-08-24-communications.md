@@ -32,7 +32,7 @@ Makola ↔ merchants, over one shared thread/message core.
       customer or merchant, return the ordered channels that will actually
       reach them (whatsapp → sms → email), honouring `marketing_opt_out_at`
       for marketing and ignoring it for transactional. Never assume email.
-- [ ] **A2. Route existing notifications through it.** Order, shipping and
+- [x] **A2. ✅ Route existing notifications through it.** Order, shipping and
       delivery notifications currently branch on their own. One resolver, so
       a merchant with no email stops silently missing messages.
 - [ ] **A3. Phone-based account recovery.** The lockout fix.
@@ -80,4 +80,14 @@ Makola ↔ merchants, over one shared thread/message core.
   `send_customer_email`, already behind `if customer && customer.email` — the
   email path was already nil-safe. Pinned with a phone-only regression test,
   the shape that could not exist before. Full suite 6990 → green.
-- **Next: A2** (route existing notifications through Reach).
+- 2026-08-24 — **A2 done**: `OrderNotificationWorker` now asks
+  `Reach.channels_for/2` instead of re-implementing "do they have a phone".
+  A hypothesised blank-phone bug turned out NOT to exist — a blank phone is
+  normalised to nil on write, so the test written for it passed vacuously and
+  was deleted rather than kept as a guard over nothing.
+- 🔴 **Open cost question for Kojo:** every buyer event currently sends BOTH
+  WhatsApp *and* SMS when a phone exists — two paid messages per notification.
+  Reach's ordering would support whatsapp-first-with-sms-fallback, halving it,
+  but WhatsApp can fail silently without an approved template, and then the
+  buyer gets nothing. Behaviour deliberately left unchanged pending that call.
+- **Next: A3** (phone-based account recovery).

@@ -24,6 +24,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   require Ash.Query
   require Logger
 
+  alias Emakola.Notifications.Reach
   alias Emakola.Notifications.Templates
   alias Emakola.Notifications.Emails.DeliveryEmail
   alias Emakola.Notifications.Emails.OrderEmail
@@ -78,20 +79,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
          {:ok, store} <- load_store(order.store_id),
          customer <- load_customer(order.customer_id) do
       if event in @buyer_events do
-        # Send customer notification if they have a phone number
-        if customer && customer.phone do
-          send_customer_sms(order, store, customer, event)
-          send_customer_whatsapp(order, store, customer, event)
-        else
-          Logger.info(
-            "[OrderNotificationWorker] No customer phone for order #{order_id}, skipping customer notification"
-          )
-        end
-
-        # Send customer email if they have an email address
-        if customer && customer.email do
-          send_customer_email(order, store, customer, event)
-        end
+        notify_customer(order, store, customer, event)
       end
 
       # Send merchant notification for relevant events
@@ -145,6 +133,36 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
       _ -> nil
     end
   end
+
+  # One place decides which channels can reach this buyer. Reach answers
+  # phone-first (whatsapp → sms → email) and treats a blank contact detail as
+  # absent, so no caller re-implements "do they have a phone" slightly
+  # differently. Both phone channels are still used where both are possible —
+  # see the note in Notifications.Reach about cost if that ever changes.
+  defp notify_customer(order, store, customer, event) do
+    case customer && Reach.channels_for(customer, :transactional) do
+      nil ->
+        :ok
+
+      [] ->
+        Logger.info(
+          "[OrderNotificationWorker] No way to reach the customer for order " <>
+            "#{order.id} — no phone and no email"
+        )
+
+      channels ->
+        Enum.each(channels, &deliver(&1, order, store, customer, event))
+    end
+  end
+
+  defp deliver(:sms, order, store, customer, event),
+    do: send_customer_sms(order, store, customer, event)
+
+  defp deliver(:whatsapp, order, store, customer, event),
+    do: send_customer_whatsapp(order, store, customer, event)
+
+  defp deliver(:email, order, store, customer, event),
+    do: send_customer_email(order, store, customer, event)
 
   defp send_customer_sms(order, store, customer, event) do
     message = customer_sms_template(order, store, event)
