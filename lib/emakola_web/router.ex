@@ -419,9 +419,13 @@ defmodule EmakolaWeb.Router do
     # credential, it is single-use, and it is worthless until the merchant
     # confirms on their already-authenticated desktop. Apex-host scoped like the
     # other code-bearing pages, so no store subdomain can shadow it.
+    # No layout, matching the auth routes above: this is a full-page sign-in
+    # screen, not a shop page. It previously borrowed the storefront layout from
+    # the pay-link block next door, which put a "Shop" header and a row of
+    # payment logos around a page whose only job is to sign a phone in.
+    # NoIndex because the URL carries a credential.
     live_session :device_pairing,
-      layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
       live "/pair/:token", PairLive
     end
 
