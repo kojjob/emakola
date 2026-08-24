@@ -7,7 +7,12 @@ defmodule EmakolaWeb.Router do
   # `host: @apex_hosts` matches these hosts only; store subdomains
   # (`kente-kingdom.makola.io`) fall through to the no-host storefront catch-all.
   # fly.dev is listed so the platform host never reaches the catch-all.
-  @apex_hosts ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+  #
+  # Sourced from config so `Emakola.Stores.Validations.ValidStoreHost` rejects
+  # these same hosts as custom domains. Must stay compile_env: `scope host:`
+  # needs a literal, and a nil here fails the build rather than silently
+  # matching nothing.
+  @apex_hosts Application.compile_env!(:emakola, :apex_hosts)
 
   pipeline :browser do
     plug :accepts, ["html"]
