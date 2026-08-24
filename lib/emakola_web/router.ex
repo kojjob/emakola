@@ -527,6 +527,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/earnings", Admin.EarningsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
       live "/admin/settings/address", Admin.StoreAddressLive
+      live "/admin/settings/domain", Admin.StoreDomainLive
 
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index

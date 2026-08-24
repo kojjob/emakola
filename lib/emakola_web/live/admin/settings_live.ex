@@ -227,6 +227,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             <.tab_button tab="delivery" active_tab={@active_tab} icon="hero-truck">
               Delivery
             </.tab_button>
+            <.tab_button tab="domain" active_tab={@active_tab} icon="hero-globe-alt">
+              Domain
+            </.tab_button>
             <.tab_button tab="social" active_tab={@active_tab} icon="hero-share">
               Social
             </.tab_button>
@@ -246,6 +249,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
           <div :if={@active_tab == "delivery"}>
             <.delivery_tab />
+          </div>
+          <div :if={@active_tab == "domain"}>
+            <.domain_tab />
           </div>
           <div :if={@active_tab == "social"}>
             <.social_tab store={@store} />
@@ -927,6 +933,28 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   end
 
   # -- Delivery tab (links to dedicated page) --
+
+  defp domain_tab(assigns) do
+    ~H"""
+    <div class="bg-white rounded-card border border-slate-200 p-6">
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Your Own Domain</h3>
+          <p class="text-sm text-slate-500 mt-1">Show your shop on an address you own</p>
+        </div>
+        <.link
+          navigate={~p"/admin/settings/domain"}
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+        >
+          <.icon name="hero-globe-alt" class="size-4" /> Connect Domain
+        </.link>
+      </div>
+      <p class="text-sm text-slate-500">
+        Use a web address you bought, like yourshop.com, instead of your Makola address.
+      </p>
+    </div>
+    """
+  end
 
   defp delivery_tab(assigns) do
     ~H"""
