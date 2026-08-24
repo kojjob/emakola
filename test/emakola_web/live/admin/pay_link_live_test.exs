@@ -496,6 +496,61 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
 
   defp future_deadline(days), do: DateTime.add(DateTime.utc_now(), days, :day)
 
+  describe "showing a susu plan's code again" do
+    test "a merchant can pull up an existing plan's QR for a returning customer", %{
+      conn: conn,
+      store: store
+    } do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+
+      # The code is shown once at creation. A susu customer comes back weekly to
+      # pay the next bit, and the merchant needs to show it again each time —
+      # copying a link is no use to someone standing at the stall.
+      refute has_element?(view, "#susu-code-modal svg")
+
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+
+      assert has_element?(view, "#susu-code-modal svg")
+      assert has_element?(view, "#susu-code-modal", "Fridge")
+    end
+
+    test "the shown code is that plan's own", %{conn: conn, store: store} do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+
+      assert has_element?(view, "#susu-code-modal", EmakolaWeb.QR.susu_url(plan))
+    end
+
+    test "the code closes again", %{conn: conn, store: store} do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+      render_click(view, "close_susu_code", %{})
+
+      refute has_element?(view, "#susu-code-modal svg")
+    end
+
+    test "another store's plan id shows nothing", %{conn: conn} do
+      elsewhere = Emakola.Factory.create_store!()
+
+      theirs =
+        create_susu_plan!(elsewhere, %{type: :custom, title: "Theirs", total_amount: 9_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+
+      # Params are never trusted for tenancy: the id is matched against the
+      # plans this store actually loaded.
+      render_click(view, "show_susu_code", %{"id" => theirs.id})
+
+      refute has_element?(view, "#susu-code-modal svg")
+    end
+  end
+
   defp create_susu_plan!(store, attrs) do
     attrs = Map.new(attrs) |> Map.put_new(:deadline, future_deadline(30))
 
