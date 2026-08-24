@@ -42,7 +42,7 @@ Makola ↔ merchants, over one shared thread/message core.
 
 ## Phase B — In-house messaging core (shared by both directions)
 
-- [ ] **B1. Thread + Message resources.** One core: a thread has a subject,
+- [x] **B1. ✅ Thread + Message resources.** One core: a thread has a subject,
       a kind (`:shop_buyer` | `:platform_merchant`), participants, and
       messages. Store-scoped for shop threads.
 - [ ] **B2. Merchant ↔ buyer threads.** Attached to an order where one
@@ -99,4 +99,12 @@ Makola ↔ merchants, over one shared thread/message core.
   tests sharing one phone exhaust the window and a later test silently gets no
   code — which reads as a broken feature, not a noisy test. Give each test its
   own number.
-- **Next: B1** (Thread + Message core).
+- 2026-08-24 — **B1 done**: `Emakola.Conversations` — Thread (both kinds) +
+  Message, 11 tests. Unread is two timestamps per thread, not a receipts table
+  (one row instead of one row per message per reader).
+- ⚠️ Postgres note: the thread uniques are PLAIN, not partial. A partial unique
+  index cannot be an `ON CONFLICT` target (42P10), which breaks the upsert that
+  makes `open_*_thread` idempotent. Plain works because Postgres treats NULLs
+  as distinct, so platform threads (NULL store/customer) and shop threads
+  (NULL merchant) each coexist while true duplicates are still refused.
+- **Next: B2** (merchant ↔ buyer UI), then B3/B4/B5.
