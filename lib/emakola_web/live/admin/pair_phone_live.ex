@@ -94,7 +94,7 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
           error: nil
         )
 
-      {:error, _reason} ->
+      {:error, reason} ->
         assign(socket,
           pairing: nil,
           pairing_code: nil,
@@ -102,7 +102,7 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
           seconds_left: 0,
           scanned_by: nil,
           stage: :error,
-          error: "Could not make a code. Try again."
+          error: issue_error(reason)
         )
     end
   end
@@ -116,6 +116,11 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
   defp seconds_left(expires_at) do
     expires_at |> DateTime.diff(DateTime.utc_now()) |> max(0)
   end
+
+  # "Try again" is wrong advice while rate limited — trying again is the one
+  # thing that will not work.
+  defp issue_error(:rate_limited), do: "Too many codes. Wait a minute, then try again."
+  defp issue_error(_reason), do: "Could not make a code. Try again."
 
   defp message_for(:expired), do: "That code ran out. Make a new one."
   defp message_for(:not_scanned), do: "No phone has scanned it yet."
