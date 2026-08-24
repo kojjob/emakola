@@ -60,6 +60,17 @@ defmodule Emakola.Stores do
       define(:list_store_domains, action: :list_for_store, args: [:store_id])
       define(:update_store_domain, action: :update)
       define(:destroy_store_domain, action: :destroy)
+
+      define(:claim_custom_domain, action: :claim_custom)
+      define(:claim_custom_domain_alias, action: :claim_custom_alias)
+      define(:request_domain_verification, action: :request_verification)
+      define(:record_domain_check, action: :record_check)
+      define(:mark_domain_active, action: :mark_active)
+      define(:expire_store_domain, action: :expire)
+      define(:make_domain_primary, action: :make_primary)
+      define(:list_verifying_domains, action: :list_verifying)
+      define(:list_custom_domains_for_review, action: :list_custom_for_review)
+      define(:get_primary_custom_domain_by_slug, action: :get_primary_by_slug, args: [:slug])
     end
   end
 end

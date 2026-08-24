@@ -114,7 +114,10 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
 
     {:ok, _view, html} = live(conn, ~p"/platform/protection")
 
-    refute html =~ "2222"
+    # The whole phone number, not its last four digits. A four-digit run can
+    # turn up by chance in the CSRF token or the phx-session blob, which are
+    # random base64 — the same fragility that made the reports guard flaky.
+    refute html =~ "0201112222"
   end
 
   test "a forged event cannot act on a hold outside the mounted oversight queues", %{
