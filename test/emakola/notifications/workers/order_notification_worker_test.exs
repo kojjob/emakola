@@ -29,6 +29,49 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerEmailTest do
       %{store: store}
     end
 
+    test "a phone-only customer is notified by SMS and never emailed", %{store: store} do
+      # Customer.email became optional so buyers without one can register by
+      # phone. This is the shape that could not exist before, so nothing in
+      # the suite covered it: the email builders call to_string(customer.email),
+      # which would quietly address a message to "" rather than raise.
+      customer =
+        Emakola.Customers.Customer
+        |> Ash.Changeset.for_create(
+          :register_with_phone,
+          %{name: "Ama", phone: "+233201234567"},
+          tenant: store.id
+        )
+        |> Ash.create!(authorize?: false)
+
+      assert is_nil(customer.email)
+
+      order =
+        create_order!(store, %{
+          customer_id: customer.id,
+          total: 50_000,
+          subtotal: 48_000,
+          currency: "GHS"
+        })
+
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
+
+      # A phone-only customer is reached on their phone — WhatsApp first,
+      # which is exactly the ordering Notifications.Reach encodes.
+      Emakola.WhatsAppProviderMock
+      |> stub(:send_message, fn to, _template, _params, _opts ->
+        assert to == "+233201234567"
+        {:ok, %{message_id: "wa_1"}}
+      end)
+
+      assert :ok =
+               OrderNotificationWorker.perform(%Oban.Job{
+                 args: %{"order_id" => order.id, "event" => "order_placed"}
+               })
+
+      refute_email_sent()
+    end
+
     test "sends order confirmation email when customer has email (no phone)", %{store: store} do
       customer =
         create_customer!(store, %{

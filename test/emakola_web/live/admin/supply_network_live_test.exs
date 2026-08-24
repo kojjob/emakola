@@ -22,6 +22,28 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     }
   end
 
+  test "a merchant with no store yet gets the page, not a 500", %{conn: _conn} do
+    # RequireActiveStore deliberately lets a merchant who has not created a
+    # store through to the admin ("still onboarding … passes through
+    # untouched"), so every store-backed loader must tolerate a nil store.
+    # On production this raised (KeyError) key :id not found in: nil from
+    # Data.load_connections/1 and returned "Something broke." — 2026-08-24.
+    merchant = create_merchant!()
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+    # build_conn/0 here is ConnCase's apex-host version — Phoenix's own
+    # defaults to www.example.com, which the router sends to the storefront.
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{})
+      |> Plug.Conn.put_session(:user_token, token)
+
+    {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#supply-network-page")
+    assert has_element?(view, "#connection-count", "0")
+  end
+
   test "renders an empty connection inbox with a stable invite form", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
 

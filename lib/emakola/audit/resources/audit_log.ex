@@ -32,7 +32,12 @@ defmodule Emakola.Audit.AuditLog do
           :api_key_created,
           :api_key_revoked,
           :settings_changed,
-          :export_requested
+          :export_requested,
+          # Signing a second device in by showing it a code. Named separately
+          # from :login because the thing worth finding in a log is the METHOD —
+          # a pairing is the one sign-in that needs no password.
+          :device_paired,
+          :device_pairing_refused
         ]
       )
 
