@@ -18,6 +18,14 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
   # Bounded by the per-store daily AI cap — no point queuing more than a day's worth.
   @batch 50
 
+  # A merchant with no store has nothing to configure here yet. RequireActiveStore
+  # lets them through on purpose (they are mid-onboarding), so send them where
+  # the work actually is instead of rendering a page with no store behind it.
+  @impl true
+  def mount(_params, _session, %{assigns: %{current_store: nil}} = socket) do
+    {:ok, Phoenix.LiveView.push_navigate(socket, to: "/onboarding")}
+  end
+
   @impl true
   def mount(_params, _session, socket) do
     store = socket.assigns.current_store

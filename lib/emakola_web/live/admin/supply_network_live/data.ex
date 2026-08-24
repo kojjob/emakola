@@ -27,6 +27,25 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
 
   alias EmakolaWeb.Admin.SupplyNetworkLive.Inputs
 
+  # RequireActiveStore lets a merchant who has not created a store reach the
+  # admin ("still onboarding … passes through untouched"), so current_store can
+  # be nil here. Every loader below dereferences store.id; the defaults from
+  # Inputs.default_assigns/0 already describe an empty network, so the page
+  # renders its own empty states rather than raising.
+  def load_all(%{assigns: %{current_store: nil}} = socket) do
+    # Every stream the template renders must still exist, empty — a template
+    # reading @streams.connections raises just as loudly as a nil store did.
+    ~w(available_franchise_packages commerce_signals connections content_drafts
+       eligible_inventory_policies group_buys inbound_fulfillments
+       inventory_reservations listings offers opportunity_radar
+       owned_franchise_packages owned_inventory_policies sales_shares
+       sales_team_invitations sales_teams supplier_demand_alerts)a
+    |> Enum.reduce(socket, &Phoenix.LiveView.stream(&2, &1, [], reset: true))
+    |> assign(:active_connection, nil)
+    |> assign(:collaboration_owned_offers, [])
+    |> assign(:radar_offers, [])
+  end
+
   def load_all(socket) do
     socket
     |> load_connections()

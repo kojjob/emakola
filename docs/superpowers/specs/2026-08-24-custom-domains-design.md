@@ -320,3 +320,50 @@ mix test                      # full suite, not just the slice's files
 The full suite matters more than usual: A, B and F all touch the hot path of every existing storefront request, and three of the highest-value tests here (A's subdomain regression, B's `:create` default, F's subdomain-primary scope limit) exist purely to prove the subdomain path did not move.
 
 **End-to-end verification** is a real domain on prod: walk `:pending → :verifying → :active`, confirm Fly reads `Ready`, confirm the `wss://` handshake returns 101 on the custom domain **and** still on `makola.io`, and confirm the canonical self-references.
+
+
+---
+
+## SEO and AI crawlers — verified behaviour
+
+Checked end-to-end against a store with a live primary custom domain, not reasoned about.
+
+**One canonical from every entry point.** `makola.io/s/shop`, `makola.io/shop` and
+`shop.makola.io` all emit the same canonical, and it moves to the custom domain the moment
+that domain goes live. Canonical, OG, JSON-LD and the sitemap funnel through
+`SEO.Canonical.store_base/1`, so they flip together. Three addresses never become three
+SEO identities.
+
+**On the custom domain**, `sitemap.xml` emits custom-domain `<loc>`s, `robots.txt` is the
+store's own and points at the right sitemap, and `llms.txt` serves 200 — so AI crawlers cite
+the merchant's own domain rather than a platform subpath, which is strictly better for them.
+
+**The move is a 301, not just a canonical.** Canonical alone is a hint search engines may
+take slowly or ignore; for a domain move the definitive signal is a redirect. Once a store
+has a live primary custom domain, both its subdomain and its `/s/:slug` apex URL 301 there,
+preserving path and query. Retiring the domain stops the redirect.
+
+### Two follow-ups this leaves open
+
+1. **The short URL (`makola.io/:slug`) does not 301 yet.** That route and the reserved-slug
+   list that distinguishes a store slug from a platform page arrive with the short-URL work.
+   Extending the apex move to a bare `[slug | rest]` without that list would 301 the pricing
+   page to a merchant's domain. Once both are on `main`, add the `[slug | rest]` clause to
+   `ResolveStoreByHost.apex_store_slug/1` — roughly three lines, guarded by
+   `ReservedStoreSlugs.reserved?/1`.
+
+2. **Search Console does not cover custom domains.** The property is `sc-domain:makola.io`, a
+   Domain property: it covers the apex and every `*.makola.io` subdomain in one place, but a
+   merchant's own domain is a separate property returning nothing.
+   `Emakola.Analytics.SearchConsoleCoverage` makes this queryable so surfaces can say so
+   plainly — otherwise a merchant on their own domain sees zero impressions and reads it as
+   "nobody is finding my shop". Closing it for real means per-store properties: each merchant
+   verifies their domain in Search Console and grants our service account access. That is its
+   own piece of work.
+
+### For the merchant UI (slice G)
+
+Warn before a domain is retired. Canonical snaps back to the subdomain when `primary?`
+clears, which is correct — but a merchant who adds and drops a domain shows search engines
+two site moves in quick succession, and that costs ranking. The UI should make retiring feel
+consequential rather than casual.

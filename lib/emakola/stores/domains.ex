@@ -10,6 +10,8 @@ defmodule Emakola.Stores.Domains do
   half-wired domain is worse than none.
   """
 
+  require Logger
+
   alias Emakola.Repo
   alias Emakola.Stores
   alias Emakola.Stores.DomainInstructions
@@ -32,10 +34,24 @@ defmodule Emakola.Stores.Domains do
     end
   end
 
-  @doc "Staff approval: moves a pending domain into verification."
+  @doc """
+  Staff approval: moves a pending domain into verification and asks for its
+  certificate straight away.
+
+  The cron sweep would pick it up within ten minutes, but a merchant watching
+  the screen after approval would read that silence as broken.
+  """
   @spec request_verification(struct(), keyword()) :: {:ok, struct()} | {:error, term()}
   def request_verification(domain, opts \\ []) do
-    Stores.request_domain_verification(domain, Keyword.put_new(opts, :authorize?, false))
+    with {:ok, verifying} <-
+           Stores.request_domain_verification(domain, Keyword.put_new(opts, :authorize?, false)) do
+      _ =
+        %{"store_domain_id" => verifying.id}
+        |> Emakola.Stores.Workers.DomainCertificateWorker.new()
+        |> Oban.insert()
+
+      {:ok, verifying}
+    end
   end
 
   @doc "The certificate is issued and the host is live."
@@ -52,12 +68,27 @@ defmodule Emakola.Stores.Domains do
   """
   @spec expire(struct(), String.t(), keyword()) :: {:ok, struct()} | {:error, term()}
   def expire(domain, reason, opts \\ []) do
-    Stores.expire_store_domain(
-      domain,
-      %{reason: reason},
-      Keyword.put_new(opts, :authorize?, false)
-    )
+    with {:ok, expired} <-
+           Stores.expire_store_domain(
+             domain,
+             %{reason: reason},
+             Keyword.put_new(opts, :authorize?, false)
+           ) do
+      # Hand the certificate slot back to Fly. Best-effort: a retired domain
+      # must not stay live just because Fly was briefly unreachable.
+      case fly().delete_certificate(expired.host) do
+        :ok ->
+          :ok
+
+        other ->
+          Logger.warning("[domains] could not remove cert for #{expired.host}: #{inspect(other)}")
+      end
+
+      {:ok, expired}
+    end
   end
+
+  defp fly, do: Application.get_env(:emakola, :fly_certs, Emakola.Infra.FlyCerts)
 
   @doc "Staff rejecting a request. Same terminal state as an expiry."
   @spec revoke(struct(), String.t(), keyword()) :: {:ok, struct()} | {:error, term()}

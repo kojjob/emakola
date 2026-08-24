@@ -147,6 +147,51 @@ defmodule Emakola.Accounts.DevicePairingsTest do
     end
   end
 
+  describe "leaving a trace" do
+    test "a redemption is written to the audit log", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "An iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+      {:ok, _} = DevicePairings.redeem(token)
+
+      # A pairing IS a sign-in. Without a record, an account taken over this
+      # way leaves nothing behind to investigate.
+      entries = Ash.read!(Emakola.Audit.AuditLog, authorize?: false)
+
+      assert Enum.any?(entries, fn e ->
+               e.action == :device_paired and e.actor_id == merchant.id
+             end)
+    end
+
+    test "a refused redemption is recorded too", %{merchant: merchant} do
+      {:ok, token, _pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "An iPhone")
+
+      # Never confirmed — the inverted-phishing shape. Someone trying it is
+      # exactly what a reviewer would want to find in the log.
+      {:error, :not_confirmed} = DevicePairings.redeem(token)
+
+      entries = Ash.read!(Emakola.Audit.AuditLog, authorize?: false)
+      assert Enum.any?(entries, &(&1.action == :device_pairing_refused))
+    end
+  end
+
+  describe "rate limiting" do
+    test "a burst of pairing requests is cut off", %{merchant: merchant} do
+      results = for _ <- 1..12, do: DevicePairings.issue(merchant.id)
+
+      assert Enum.any?(results, &match?({:error, :rate_limited}, &1)),
+             "expected issuing to be rate limited"
+    end
+
+    test "one merchant's burst does not lock out another", %{merchant: merchant} do
+      other = Emakola.Factory.create_merchant!()
+      for _ <- 1..12, do: DevicePairings.issue(merchant.id)
+
+      assert {:ok, _token, _pairing} = DevicePairings.issue(other.id)
+    end
+  end
+
   defp expire!(pairing) do
     pairing
     |> Ash.Changeset.for_update(:confirm, %{})
