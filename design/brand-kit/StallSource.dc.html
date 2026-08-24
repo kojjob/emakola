@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    .card { border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    .card img { width: 100%; display: block; }
+    .body { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+    .kicker { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab; }
+    .cname { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
+    .cnote { font-size: 12px; line-height: 1.5; color: #64748b; margin: 0; }
+  </style>
+</helmet>
+
+<div style="width: 1320px; background: #ffffff; color: #0f172a; padding: 44px 44px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 30px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span class="kicker">Where the stall came from</span>
+      <h1 style="margin: 0; font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em;">Machine sketched it, we drew it</h1>
+    </div>
+    <p style="max-width: 460px; margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; text-align: right;">Generated marks come back as flat pictures — no paths, no control, wrong at small sizes. They are useful for one thing: showing you an idea you had not drawn yet. This one was worth keeping.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px;">
+
+    <div class="card">
+      <img src="ai-stall-a.jpg" alt="Generated market stall concept A">
+      <div class="body">
+        <span class="kicker">Generated</span>
+        <p class="cname">The idea</p>
+        <p class="cnote">A pitched roof over a scalloped valance, posts, a counter. Harder to mistake for anything else than the dome I had drawn.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="ai-stall-b.jpg" alt="Generated market stall concept B">
+      <div class="body">
+        <span class="kicker">Generated</span>
+        <p class="cname">The variant</p>
+        <p class="cnote">Same anatomy, colours swapped. Confirmed the shape holds when gold and ink change places — which the lockups need.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="background: #f7f2e6; height: 232px; display: flex; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 64 64" width="150" height="150" aria-hidden="true">
+          <path d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+          <path d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+          <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+          <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+        </svg>
+      </div>
+      <div class="body">
+        <span class="kicker" style="color: #047857;">Kept — drawn as vector</span>
+        <p class="cname">Canopy</p>
+        <p class="cnote">Six paths on a 64&nbsp;px grid. Scales, recolours, exports, and every edge is a number you can change.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="background: #0c1526; height: 232px; display: flex; align-items: center; justify-content: center; gap: 26px;">
+        <div style="width: 44px; height: 44px; border-radius: 11px; background: #131f33; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
+            <path d="M32 8 L60 26 H4 Z" fill="#f1f5f9"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+          </svg>
+        </div>
+        <div style="width: 16px; height: 16px; border-radius: 4px; background: #131f33; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 64 64" width="12" height="12" aria-hidden="true">
+            <path d="M32 8 L60 26 H4 Z" fill="#f1f5f9"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+          </svg>
+        </div>
+      </div>
+      <div class="body">
+        <span class="kicker" style="color: #047857;">The small cut</span>
+        <p class="cname">30 px and 16 px</p>
+        <p class="cnote">Posts and counter box removed, roof and valance fattened. A separate drawing, not a shrunk copy.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: stretch;">
+    <div class="card">
+      <img src="ai-cowrie-fail.jpg" alt="Generated cowrie attempt that failed">
+    </div>
+    <div style="border: 1px solid #fecaca; background: #fef2f2; border-radius: 16px; padding: 26px 28px; display: flex; flex-direction: column; gap: 10px; justify-content: center;">
+      <span class="kicker" style="color: #b91c1c;">Thrown away — three attempts, none usable</span>
+      <p style="margin: 0; font-size: 21px; font-weight: 700; color: #991b1b; letter-spacing: -0.01em;">It cannot draw a cowrie</p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #7f1d1d; max-width: 700px;">Asked for a cowrie shell three times and got a nautilus with a gradient, a bitten biscuit, and a peach. The toothed aperture — the one feature that makes a cowrie a cowrie, and the thing every Ghanaian recognises — never appeared once. The hand-drawn cowrie on the directions sheet stays.</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #b91c1c;">Worth knowing before you spend on this again: generation is good for finding a composition you had not considered, and bad at any mark whose meaning lives in a small, specific detail.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
