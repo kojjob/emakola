@@ -320,6 +320,22 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         </.qr_panel>
       </.admin_card>
 
+      <%!-- Signing in the phone. Sits by the shop code because both are "show a
+            square to a phone", which is the shape a merchant remembers. --%>
+      <.admin_card class="print:hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-slate-900">Sign in my phone</h3>
+            <p class="text-sm text-slate-600 mt-1">Scan a code instead of typing your password.</p>
+          </div>
+          <.link navigate={~p"/admin/pair-phone"} id="pair-phone-link">
+            <.admin_button variant={:secondary}>
+              <.icon name="hero-device-phone-mobile" class="size-4" /> Show me the code
+            </.admin_button>
+          </.link>
+        </div>
+      </.admin_card>
+
       <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
         <.form
