@@ -546,7 +546,7 @@ defmodule EmakolaWeb.AdminComponents do
 
   attr :variant, :atom,
     default: :order,
-    values: [:order, :payment, :delivery, :product, :return, :payout]
+    values: [:order, :payment, :delivery, :product, :return, :payout, :campaign]
 
   def status_badge(assigns) do
     status_atom = normalise_status(assigns.status)
@@ -778,6 +778,14 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_color(:payout, :paid), do: "bg-success-soft text-success"
   defp status_color(:payout, :failed), do: "bg-danger-soft text-danger"
   defp status_color(:payout, :reversed), do: "bg-slate-50 text-slate-600"
+
+  # ── Campaign statuses ──────────────────────────────────────────────
+  # A draft is grey, not amber: nothing is pending, the merchant simply has
+  # not spent the money yet.
+  defp status_color(:campaign, :draft), do: "bg-slate-100 text-slate-600"
+  defp status_color(:campaign, :sending), do: "bg-info-soft text-info"
+  defp status_color(:campaign, :sent), do: "bg-success-soft text-success"
+  defp status_color(:campaign, :failed), do: "bg-danger-soft text-danger"
 
   # ── Delivery statuses (alias of order) ─────────────────────────────
   defp status_color(:delivery, status), do: status_color(:order, status)

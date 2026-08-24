@@ -138,6 +138,14 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    # Set when a customer asks to stop receiving marketing messages. A stamp
+    # rather than a boolean so the date is auditable — every SMS costs the
+    # merchant money, and "when did they opt out" is the question that
+    # settles a dispute. nil means never opted out.
+    attribute :marketing_opt_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     attribute :hashed_password, :string do
       allow_nil?(true)
       sensitive?(true)
@@ -221,6 +229,16 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+    end
+
+    # Opting out is its own intent, not a field edit — widening :update to
+    # accept the stamp would let any customer edit clear it by omission.
+    update :opt_out_of_marketing do
+      change(set_attribute(:marketing_opt_out_at, &DateTime.utc_now/0))
+    end
+
+    update :opt_in_to_marketing do
+      change(set_attribute(:marketing_opt_out_at, nil))
     end
 
     # Passwordless, store-scoped registration via verified phone. store_id comes
