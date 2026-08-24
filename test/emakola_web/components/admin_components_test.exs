@@ -252,6 +252,36 @@ defmodule EmakolaWeb.AdminComponentsTest do
       assert html =~ "tabular-nums"
     end
 
+    test "a tile with no delta drops its value to the floor instead of leaving a void" do
+      # min-h-48 keeps tiles equal height. On pages whose tiles carry no delta
+      # (platform Refunds, Protection) that floor became ~100px of dead space
+      # under the number — seen on production 2026-08-23. With no delta the
+      # value takes the slack itself: label and icon top, number bottom.
+      assigns = %{}
+
+      without_delta =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Sent back" value="GHS 0.00" />
+        """)
+
+      with_delta =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Sent back" value="GHS 0.00">
+          <:delta>up 4%</:delta>
+        </AdminComponents.stat_card>
+        """)
+
+      assert without_delta =~ "mt-auto",
+             "a tile with no delta must push its value down, or the min-height floor is a void"
+
+      # With a delta the delta owns the floor; the value must stay put under
+      # the label, otherwise the two would fight for the same slack.
+      assert with_delta =~ "up 4%"
+
+      refute Regex.match?(~r/tabular-nums[^"]*mt-auto/, with_delta),
+             "the value must not claim mt-auto when a delta is already floored there"
+    end
+
     test "one tone drives the card wash, the icon tile and the icon colour" do
       assigns = %{}
 
