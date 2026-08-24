@@ -74,6 +74,16 @@ defmodule EmakolaWeb.QR do
   @typedoc "A product, or anything carrying its slug."
   @type product :: %{:slug => String.t(), optional(any()) => any()}
 
+  @typedoc """
+  A device-pairing code.
+
+  Wrapped in a map rather than passed as a bare string on purpose: a pairing
+  token *is* a secret string, and a `pair_url(binary)` arity would be the one
+  hole in this module's guarantee that no caller-supplied string ever becomes a
+  payload. The wrapper costs nothing and keeps the rule absolute.
+  """
+  @type pairing :: %{:token => String.t(), optional(any()) => any()}
+
   @svg_defaults [viewbox: true]
 
   # -- payloads ---------------------------------------------------------------
@@ -113,6 +123,10 @@ defmodule EmakolaWeb.QR do
     Canonical.product_url(store, %{slug: slug})
   end
 
+  @doc "The page a phone lands on after scanning a pairing code. Apex-only."
+  @spec pair_url(pairing()) :: String.t()
+  def pair_url(%{token: token}) when is_binary(token), do: Canonical.url("/pair/" <> token)
+
   # -- rendering --------------------------------------------------------------
 
   @doc "QR of a pay link's checkout URL."
@@ -138,6 +152,10 @@ defmodule EmakolaWeb.QR do
   def product_svg(%{slug: _} = store, %{slug: _} = product, opts \\ []) do
     render(product_url(store, product), opts)
   end
+
+  @doc "QR of a device-pairing code — shown on the desktop, read by the phone."
+  @spec pair_svg(pairing(), keyword()) :: Phoenix.HTML.safe()
+  def pair_svg(%{token: _} = pairing, opts \\ []), do: render(pair_url(pairing), opts)
 
   # Reached only via the builders above, so `url` is always one of ours. See the
   # moduledoc for why the safe-marking happens here and nowhere else.
