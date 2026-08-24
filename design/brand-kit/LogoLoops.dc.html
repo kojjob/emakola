@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    .sec { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab; }
+    .tile { border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    .stage { height: 226px; display: flex; align-items: center; justify-content: center; }
+    .tbody { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .tname { margin: 0; font-size: 17px; font-weight: 700; color: #0f172a; }
+    .twhen { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #b98a1f; }
+    .tnote { margin: 0; font-size: 13px; line-height: 1.5; color: #64748b; }
+    svg * { transform-box: fill-box; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      /* 1 — awning ripple, the house loading state */
+      .rip { transform-origin: center top; animation: ripple 1.25s ease-in-out infinite; }
+      .rip:nth-of-type(2) { animation-delay: .08s; }
+      .rip:nth-of-type(3) { animation-delay: .16s; }
+      .rip:nth-of-type(4) { animation-delay: .24s; }
+      .rip:nth-of-type(5) { animation-delay: .32s; }
+      .rip:nth-of-type(6) { animation-delay: .40s; }
+
+      /* 2 — a coin falls in through the front of the stall */
+      .coin { animation: coinFall 2.1s cubic-bezier(.45,0,.55,1) infinite; }
+
+      /* 3 — paid */
+      .paidMark { transform-origin: center center; animation: pop 2.4s cubic-bezier(.3,.9,.4,1.3) infinite; }
+      .paidBar  { animation: flash 2.4s ease-in-out infinite; }
+      .tick     { transform-origin: center center; animation: tickIn 2.4s cubic-bezier(.2,.9,.3,1.4) infinite; }
+
+      /* 4 — splash */
+      .breathe { transform-origin: center center; animation: breathe 3s ease-in-out infinite; }
+    }
+
+    @keyframes ripple { 0%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.42); } }
+    @keyframes coinFall {
+      0%       { transform: translateY(-44px); opacity: 0; }
+      12%      { opacity: 1; }
+      62%      { transform: translateY(2px); }
+      72%      { transform: translateY(-3px); }
+      82%      { transform: translateY(0); opacity: 1; }
+      95%,100% { transform: translateY(0); opacity: 0; }
+    }
+    @keyframes pop   { 0%, 22% { transform: scale(1); } 32% { transform: scale(1.07); } 46%, 100% { transform: scale(1); } }
+    @keyframes flash { 0%, 20% { fill: #d4a843; } 30%, 62% { fill: #10b981; } 78%, 100% { fill: #d4a843; } }
+    @keyframes tickIn{ 0%, 26% { transform: scale(0); opacity: 0; } 38% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 92%, 100% { transform: scale(1); opacity: 0; } }
+    @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+  </style>
+</helmet>
+
+<div style="width: 1320px; background: #ffffff; color: #0f172a; padding: 44px 48px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 30px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span class="sec">Motion — the loops</span>
+      <h1 style="margin: 0; font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em;">Four states, one mark</h1>
+    </div>
+    <p style="max-width: 450px; margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; text-align: right;">A spinning circle tells a merchant nothing. The same stall doing four different things tells them which of four things is happening — and they never have to read a status message to find out.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px;">
+
+    <div class="tile">
+      <div class="stage" style="background: #f7f2e6;">
+        <svg viewBox="0 0 64 64" width="150" height="150" role="img" aria-label="Loading">
+          <path d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+          <rect x="5" y="23" width="54" height="6" fill="#d4a843"/>
+          <path class="rip" d="M5 29 A4.5 4.5 0 0 0 14 29 Z" fill="#d4a843"/>
+          <path class="rip" d="M14 29 A4.5 4.5 0 0 0 23 29 Z" fill="#d4a843"/>
+          <path class="rip" d="M23 29 A4.5 4.5 0 0 0 32 29 Z" fill="#d4a843"/>
+          <path class="rip" d="M32 29 A4.5 4.5 0 0 0 41 29 Z" fill="#d4a843"/>
+          <path class="rip" d="M41 29 A4.5 4.5 0 0 0 50 29 Z" fill="#d4a843"/>
+          <path class="rip" d="M50 29 A4.5 4.5 0 0 0 59 29 Z" fill="#d4a843"/>
+          <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+          <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+        </svg>
+      </div>
+      <div class="tbody">
+        <p class="twhen">Loading &middot; 1.25 s</p>
+        <p class="tname">The awning ripples</p>
+        <p class="tnote">Replaces every spinner in the app. Six scallops on an 80&nbsp;ms stagger — the stall is up, the cloth is moving, something is happening.</p>
+      </div>
+    </div>
+
+    <div class="tile">
+      <div class="stage" style="background: #f7f2e6;">
+        <svg viewBox="0 0 64 64" width="150" height="150" role="img" aria-label="Payment on the way">
+          <circle class="coin" cx="32" cy="38" r="4.6" fill="#b98a1f"/>
+          <path d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+          <path d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+          <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+          <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+        </svg>
+      </div>
+      <div class="tbody">
+        <p class="twhen">Waiting for payment &middot; 2.1 s</p>
+        <p class="tname">A coin drops in</p>
+        <p class="tnote">The coin is drawn behind the roof, so it falls in through the front of the stall and settles on the counter. Money going into the shop, no words.</p>
+      </div>
+    </div>
+
+    <div class="tile">
+      <div class="stage" style="background: #ecfdf5;">
+        <svg viewBox="0 0 64 64" width="150" height="150" role="img" aria-label="Paid">
+          <g class="paidMark">
+            <path d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+            <path d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+            <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+            <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+            <rect class="paidBar" x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+            <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+          </g>
+          <g class="tick">
+            <circle cx="48" cy="14" r="12" fill="#10b981"/>
+            <path d="M42 14 L46.5 18.5 L54 10.5" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </svg>
+      </div>
+      <div class="tbody">
+        <p class="twhen">Paid &middot; 2.4 s, plays once</p>
+        <p class="tname">Counter turns green</p>
+        <p class="tnote">The one place the mark is allowed to leave its palette — green is the money colour everywhere else in the kit, so it has to be here too.</p>
+      </div>
+    </div>
+
+    <div class="tile">
+      <div class="stage" style="background: #0c1526;">
+        <svg viewBox="0 0 64 64" width="150" height="150" role="img" aria-label="Splash">
+          <g class="breathe">
+            <path d="M32 7 L59 23 H5 Z" fill="#f1f5f9"/>
+            <path d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+            <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#f1f5f9"/>
+            <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#f1f5f9"/>
+            <rect x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+            <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#f1f5f9"/>
+          </g>
+        </svg>
+      </div>
+      <div class="tbody">
+        <p class="twhen">Splash &middot; 3 s</p>
+        <p class="tname">It breathes</p>
+        <p class="tnote">4.5% scale, nothing else. Enough to say the app is alive on a slow cold start, quiet enough to sit behind a login form.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+    <div style="background: #f8fafc; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700;">Only two properties move</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #64748b;"><span style="font-family: ui-monospace, Menlo, monospace;">transform</span> and <span style="font-family: ui-monospace, Menlo, monospace;">opacity</span> — both composited on the GPU. Nothing here forces a layout pass, which is what keeps it smooth on a cheap Android.</p>
+    </div>
+    <div style="background: #f8fafc; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700;">One exception, deliberately</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #64748b;">The Paid state animates <span style="font-family: ui-monospace, Menlo, monospace;">fill</span>, which is not composited. It fires once on a single element, so the cost is nothing — but do not reach for it in a loop.</p>
+    </div>
+    <div style="background: #f8fafc; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700;">Every part needs <span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">transform-box</span></p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #64748b;">Without <span style="font-family: ui-monospace, Menlo, monospace;">transform-box: fill-box</span> an SVG child scales from the viewBox corner, not its own. That single line is the difference between an awning unfurling and the whole mark sliding off.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

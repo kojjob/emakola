@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    .sec { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab; }
+
+    /* Every part starts in its FINISHED state. Motion is added only when the
+       viewer welcomes it, so reduced-motion users get the mark, not an empty frame. */
+    .stall * { transform-box: fill-box; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .stall .roof    { animation: roofDrop    3.4s cubic-bezier(.2,.75,.25,1) infinite; }
+      .stall .valance { animation: valanceDrop 3.4s cubic-bezier(.3,.9,.4,1.25) infinite; transform-origin: center top; }
+      .stall .postL   { animation: postGrow    3.4s cubic-bezier(.2,.8,.3,1) infinite;   transform-origin: center top; }
+      .stall .postR   { animation: postGrowR   3.4s cubic-bezier(.2,.8,.3,1) infinite;   transform-origin: center top; }
+      .stall .bar     { animation: barSlide    3.4s cubic-bezier(.2,.8,.3,1) infinite;   transform-origin: center center; }
+      .stall .box     { animation: boxRise     3.4s cubic-bezier(.2,.8,.3,1) infinite;   transform-origin: center top; }
+    }
+
+    @keyframes roofDrop {
+      0%    { transform: translateY(-20px); opacity: 0; }
+      4%    { opacity: 1; }
+      13.5% { transform: translateY(0); opacity: 1; }
+      100%  { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes valanceDrop {
+      0%, 8.8% { transform: scaleY(0); opacity: 0; }
+      10%      { opacity: 1; }
+      19%      { transform: scaleY(1); opacity: 1; }
+      100%     { transform: scaleY(1); opacity: 1; }
+    }
+    @keyframes postGrow {
+      0%, 15%  { transform: scaleY(0); }
+      23.5%    { transform: scaleY(1); }
+      100%     { transform: scaleY(1); }
+    }
+    @keyframes postGrowR {
+      0%, 17%  { transform: scaleY(0); }
+      25.5%    { transform: scaleY(1); }
+      100%     { transform: scaleY(1); }
+    }
+    @keyframes barSlide {
+      0%, 20.6% { transform: scaleX(0); }
+      28%       { transform: scaleX(1); }
+      100%      { transform: scaleX(1); }
+    }
+    @keyframes boxRise {
+      0%, 24% { transform: scaleY(0); opacity: 0; }
+      26%     { opacity: 1; }
+      32%     { transform: scaleY(1); opacity: 1; }
+      100%    { transform: scaleY(1); opacity: 1; }
+    }
+
+    .gantt { position: relative; height: 26px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+    .gantt span { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+    .row { display: grid; grid-template-columns: 150px 1fr 108px; gap: 16px; align-items: center; }
+    .rowname { font-size: 14px; font-weight: 600; color: #0f172a; }
+    .rowms { font-size: 13px; color: #64748b; font-variant-numeric: tabular-nums; text-align: right; }
+  </style>
+</helmet>
+
+<div style="width: 1320px; background: #ffffff; color: #0f172a; padding: 44px 48px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 32px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span class="sec">Motion — the reveal</span>
+      <h1 style="margin: 0; font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em;">The stall opens for business</h1>
+    </div>
+    <p style="max-width: 440px; margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; text-align: right;">The mark is a shop, so it should assemble like one — roof up, awning down, posts, counter. A merchant who cannot read the wordmark watches a stall being set up, which is the same sentence in a different language.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 420px 1fr; gap: 32px; align-items: start;">
+
+    <div style="background: #f7f2e6; border-radius: 16px; height: 340px; display: flex; align-items: center; justify-content: center;">
+      <svg class="stall" viewBox="0 0 64 64" width="230" height="230" role="img" aria-label="Makola.io mark assembling">
+        <path class="roof" d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+        <path class="valance" d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+        <rect class="postL" x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+        <rect class="postR" x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+        <rect class="bar" x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+        <path class="box" d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+      </svg>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <span class="sec">Sequence — 1,100 ms end to end</span>
+
+      <div class="row">
+        <span class="rowname">Roof</span>
+        <div class="gantt"><span style="left: 0%; width: 42%; background: #0c1526;"></span></div>
+        <span class="rowms">0 → 460</span>
+      </div>
+      <div class="row">
+        <span class="rowname">Valance</span>
+        <div class="gantt"><span style="left: 27%; width: 32%; background: #d4a843;"></span></div>
+        <span class="rowms">300 → 650</span>
+      </div>
+      <div class="row">
+        <span class="rowname">Posts</span>
+        <div class="gantt"><span style="left: 47%; width: 25%; background: #0c1526;"></span></div>
+        <span class="rowms">520 → 800</span>
+      </div>
+      <div class="row">
+        <span class="rowname">Counter</span>
+        <div class="gantt"><span style="left: 64%; width: 23%; background: #d4a843;"></span></div>
+        <span class="rowms">700 → 950</span>
+      </div>
+      <div class="row">
+        <span class="rowname">Front</span>
+        <div class="gantt"><span style="left: 75%; width: 25%; background: #0c1526;"></span></div>
+        <span class="rowms">820 → 1100</span>
+      </div>
+
+      <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+        <div style="background: #f8fafc; border-radius: 12px; padding: 16px 18px;">
+          <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8896ab;">Easing</p>
+          <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: #334155; font-family: ui-monospace, Menlo, monospace;">cubic-bezier(.2,.8,.3,1)</p>
+          <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: #64748b;">The valance alone overshoots — <span style="font-family: ui-monospace, Menlo, monospace;">(.3,.9,.4,1.25)</span> — so the cloth settles like cloth.</p>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 16px 18px;">
+          <p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8896ab;">Transform origins</p>
+          <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: #334155;">Valance, posts and front grow from their <strong>top</strong>. The counter grows from its <strong>centre</strong>. Roof translates only — never scale a triangle.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+    <div style="border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700; color: #065f46;">Plays once, on first paint</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #047857;">On the canvas it loops every 3.4&nbsp;s so you can watch it. In production set <span style="font-family: ui-monospace, Menlo, monospace;">animation-iteration-count: 1</span> and drop the hold frames.</p>
+    </div>
+    <div style="border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700; color: #065f46;">Costs nothing to ship</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #047857;">Six inline paths and one stylesheet block. No Lottie, no JSON, no JavaScript, no extra request — which is the only kind of animation a 2G connection forgives.</p>
+    </div>
+    <div style="border: 1px solid #fde68a; background: #fef3c7; border-radius: 14px; padding: 18px 20px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 700; color: #78350f;">Reduced motion is the default</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: #92400e;">Every part is authored in its finished state; the keyframes live inside <span style="font-family: ui-monospace, Menlo, monospace;">prefers-reduced-motion: no-preference</span>. Turn motion off and you get the mark, never a blank box.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
