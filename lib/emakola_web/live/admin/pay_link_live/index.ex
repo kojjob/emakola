@@ -62,6 +62,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
            created_link: nil,
            created_susu_plan: nil,
            extending_plan_id: nil,
+           showing_code_plan: nil,
            extend_deadline_form: to_form(%{"plan_id" => "", "deadline" => ""}),
            pay_link_form: pay_link_form("custom"),
            susu_plan_form: susu_plan_form(),
@@ -181,6 +182,23 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
       {:error, message} ->
         {:noreply, assign(socket, form_errors: %{base: message})}
     end
+  end
+
+  # A susu customer comes back week after week to pay the next bit. The code was
+  # shown once, at creation; copying a link is no use to someone standing at the
+  # stall. This puts it back on screen on demand.
+  #
+  # The id is matched against the plans this store already loaded rather than
+  # fetched by id — params are never trusted for tenancy.
+  @impl true
+  def handle_event("show_susu_code", %{"id" => id}, socket) do
+    {:noreply,
+     assign(socket, showing_code_plan: Enum.find(socket.assigns.susu_plans, &(&1.id == id)))}
+  end
+
+  @impl true
+  def handle_event("close_susu_code", _params, socket) do
+    {:noreply, assign(socket, showing_code_plan: nil)}
   end
 
   @impl true
@@ -488,6 +506,15 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     <div class="flex items-center justify-end gap-1">
                       <button
                         type="button"
+                        id={"show-susu-code-#{plan.id}"}
+                        phx-click="show_susu_code"
+                        phx-value-id={plan.id}
+                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      >
+                        Show code
+                      </button>
+                      <button
+                        type="button"
                         phx-click={
                           JS.dispatch("copy-to-clipboard", detail: %{text: susu_share_url(plan)})
                         }
@@ -558,6 +585,39 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
             </table>
           </div>
         <% end %>
+      </div>
+
+      <%!-- A susu plan's code, back on screen for a customer at the stall. --%>
+      <div
+        :if={@showing_code_plan}
+        id="susu-code-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <div class="absolute inset-0 bg-slate-900/40" phx-click="close_susu_code"></div>
+
+        <div class="relative bg-white rounded-card shadow-xl w-full max-w-sm p-6 text-center">
+          <h2 class="text-base font-bold text-slate-900 mb-1">{@showing_code_plan.title}</h2>
+          <p class="text-sm text-slate-600 mb-4">
+            {susu_progress_text(@showing_code_plan, @store.currency)}
+          </p>
+
+          <.qr_code
+            id="susu-plan-code"
+            svg={QR.susu_svg(@showing_code_plan)}
+            caption="Buyer scans to pay the next bit"
+            class="mb-4"
+          />
+
+          <p class="text-xs text-slate-400 break-all mb-4">{QR.susu_url(@showing_code_plan)}</p>
+
+          <button
+            type="button"
+            phx-click="close_susu_code"
+            class="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-control transition-colors cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
       </div>
 
       <%!-- Create modal --%>
