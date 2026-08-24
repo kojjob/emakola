@@ -44,7 +44,9 @@ defmodule EmakolaWeb.Layouts do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id} aria-live="polite" class="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-3">
+    <%!-- z-[60] outranks the modal's z-50: a flash raised from inside a modal
+    (a failed invite, a save error) must sit above its blurred backdrop. --%>
+    <div id={@id} aria-live="polite" class="fixed bottom-6 right-6 z-[60] flex flex-col-reverse gap-3">
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
