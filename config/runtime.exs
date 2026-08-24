@@ -38,6 +38,13 @@ config :emakola, EmakolaWeb.Endpoint,
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
 # SplitPay tenant client (any env) — ships dark until both are set.
+# Fly certificate provisioning for merchant custom domains. Ships dark: without
+# FLY_API_TOKEN the client makes no network call and no certificate is ever
+# requested, so the whole custom-domain flow stalls harmlessly at :verifying.
+config :emakola, Emakola.Infra.FlyCerts,
+  api_token: System.get_env("FLY_API_TOKEN"),
+  app_name: System.get_env("FLY_APP_NAME") || "emakola"
+
 if splitpay_url = System.get_env("SPLITPAY_API_URL") do
   config :emakola, Emakola.SplitPay.Client,
     base_url: splitpay_url,
