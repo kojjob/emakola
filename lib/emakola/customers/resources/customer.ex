@@ -117,8 +117,12 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    # Optional on purpose. Most buyers in this market do not use email, and
+    # requiring it made phone-first signup impossible — the WhatsApp flow had
+    # to ask for an address the buyer did not have. Reachability is enforced
+    # instead by ContactDetailPresent on the create actions: a customer must
+    # have a phone or an email, so the shop can always reach them.
     attribute :email, :ci_string do
-      allow_nil?(false)
       public?(true)
       constraints(max_length: 320)
     end
@@ -229,6 +233,7 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
     end
 
     # Opting out is its own intent, not a field edit — widening :update to
@@ -245,6 +250,7 @@ defmodule Emakola.Customers.Customer do
     # from the request tenant (multitenancy :attribute).
     create :register_with_phone do
       accept([:email, :name, :phone])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
     end
 
     create :register_with_password do

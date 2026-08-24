@@ -21,7 +21,7 @@ Makola ↔ merchants, over one shared thread/message core.
 
 ## Phase A — Reach the person by the channel they have
 
-- [ ] **A0. Make email optional on `Customers.Customer`.** *(found 2026-08-24
+- [x] **A0. ✅ Make email optional on `Customers.Customer`.** *(found 2026-08-24
       while writing A1)* `email` is `allow_nil?(false)`, so a buyer cannot
       exist without one — and the WhatsApp signup still asks for an email
       because the attribute forbids nil. Phone-first signup is not actually
@@ -74,4 +74,10 @@ Makola ↔ merchants, over one shared thread/message core.
   `Customer.email` is `allow_nil?(false)`, 57 call sites read `customer.email`,
   and AshAuthentication's password strategy depends on the `:unique_email`
   identity. Needs its own branch and a call-site audit — not a tail-end change.
-- **Next: A0**, then A2 (route existing notifications through Reach).
+- 2026-08-24 — **A0 done**: `Customer.email` optional + `ContactDetailPresent`
+  (a customer needs a phone OR an email, so nobody is created unreachable) +
+  migration. Audit result: all three email builders are reached only through
+  `send_customer_email`, already behind `if customer && customer.email` — the
+  email path was already nil-safe. Pinned with a phone-only regression test,
+  the shape that could not exist before. Full suite 6990 → green.
+- **Next: A2** (route existing notifications through Reach).
