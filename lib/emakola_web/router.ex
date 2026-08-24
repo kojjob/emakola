@@ -452,6 +452,7 @@ defmodule EmakolaWeb.Router do
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
+      live "/platform/domains", Platform.DomainLive.Index
       live "/platform/stores/:id", Platform.StoreLive.Show
       live "/platform/merchants", Platform.MerchantLive.Index
       live "/platform/verifications", Platform.VerificationLive.Index
