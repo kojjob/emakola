@@ -77,7 +77,9 @@ defmodule Emakola.Stores.Validations.ValidStoreHost do
   """
   def platform_host?(host) do
     host = normalize(host)
-    platform_named_host?(host) or under_subdomain_base?(host)
+
+    platform_named_host?(host) or under_subdomain_base?(host) or
+      under_endpoint_host?(host)
   end
 
   # A `:subdomain` row lives UNDER the base by definition, so only the named
@@ -116,6 +118,17 @@ defmodule Emakola.Stores.Validations.ValidStoreHost do
     :emakola
     |> Application.get_env(:canonical_redirect_hosts, [])
     |> Enum.map(&normalize/1)
+  end
+
+  # `*.PHX_HOST`, independent of :store_subdomain_base. The two are the same
+  # value in production, but they are separate settings — and if they ever
+  # diverged, store subdomains would silently lose their websockets while the
+  # pages kept rendering.
+  defp under_endpoint_host?(host) do
+    case endpoint_hosts() do
+      [apex | _] -> String.ends_with?(host, "." <> apex)
+      _ -> false
+    end
   end
 
   defp under_subdomain_base?(host) do

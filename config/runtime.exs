@@ -413,20 +413,16 @@ if config_env() == :prod do
 
   config :emakola, EmakolaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    # WebSocket origin allowlist. The wildcard covers merchant subdomain
-    # storefronts (shopname.emakola.com). NOTE: merchant CUSTOM domains
-    # (www.merchantshop.com) need their origins added here — or a
-    # function-based check_origin — before LiveView will connect for them.
-    check_origin: [
-      "https://#{host}",
-      "https://www.#{host}",
-      "https://*.#{host}",
-      # Fly's default hostname — the app is reachable here until (and after)
-      # the emakola.com DNS cutover. Without it, LiveView websockets from
-      # emakola.fly.dev are rejected and clients degrade to long-polling,
-      # which breaks across multiple machines (reconnect/error loops).
-      "https://emakola.fly.dev"
-    ],
+    # WebSocket origin allowlist. A list cannot express merchant custom
+    # domains — those are rows in a table, not config — so this is a function.
+    # OriginChecker covers the apex, www, every *.PHX_HOST store subdomain,
+    # Fly's own hostname, and any ACTIVE custom domain, checking the cheap
+    # cases before it ever looks anything up.
+    #
+    # Getting this wrong fails silently: the page still renders, LiveView
+    # degrades to long-polling, and long-polling then breaks across multiple
+    # machines. Verify with a real wss:// handshake, not a status code.
+    check_origin: {EmakolaWeb.OriginChecker, :allowed?, []},
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
