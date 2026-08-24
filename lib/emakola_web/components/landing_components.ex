@@ -11,6 +11,7 @@ defmodule EmakolaWeb.LandingComponents do
 
   import EmakolaWeb.CoreComponents, only: [icon: 1]
 
+  alias EmakolaWeb.BrandComponents
   alias Phoenix.LiveView.JS
 
   # ─────────────────────────────────────────────────────────────────────
@@ -34,7 +35,12 @@ defmodule EmakolaWeb.LandingComponents do
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <a href="/" class="flex items-center gap-2">
-            <img src="/images/emakola-logo.svg" alt="Makola" class="h-8 w-auto" />
+            <BrandComponents.logo_mark
+              motion="reveal"
+              tone="reversed"
+              size={32}
+              class="shrink-0"
+            />
             <span class="text-xl font-headline font-bold text-[#f1f5f9]">Makola</span>
           </a>
           <div class="hidden md:flex items-center gap-6">
