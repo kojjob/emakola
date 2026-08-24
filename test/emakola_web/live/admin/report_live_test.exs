@@ -96,11 +96,16 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "an empty store reports zeros, not a fabricated dashboard", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
 
-      refute html =~ "38,470"
-      refute html =~ "135.46"
-      refute html =~ "284"
+      # Scoped to the tiles rather than matched against the whole document.
+      # `refute html =~ "284"` searched the page including the CSRF token and
+      # the data-phx-session blob — kilobytes of random base64 — so roughly one
+      # run in sixty failed because three random characters happened to spell
+      # the number it was guarding against.
+      refute has_element?(view, "#stat-reports-revenue", "38,470")
+      refute has_element?(view, "#stat-reports-aov", "135.46")
+      refute has_element?(view, "#stat-reports-orders", "284")
     end
 
     # There is no visit or session tracking in this codebase. A conversion
