@@ -32,6 +32,16 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert message.author_kind == :customer
   end
 
+  test "the shop's reply appears without a refresh", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    # Posted from elsewhere entirely — the merchant's admin, in real life.
+    {:ok, _} = Conversations.post_message(thread, :merchant, Ecto.UUID.generate(), "On its way.")
+
+    assert render(view) =~ "On its way."
+  end
+
   test "a buyer sees the shop's reply", ctx do
     {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
     {:ok, _} = Conversations.post_message(thread, :merchant, Ecto.UUID.generate(), "Yes, we do.")

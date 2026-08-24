@@ -51,7 +51,7 @@ Makola ↔ merchants, over one shared thread/message core.
 - [ ] **B3. Makola ↔ merchant support inbox.** Platform staff open a thread
       with a merchant; merchant sees and replies in the admin. Extends
       Announcements from broadcast to conversation.
-- [ ] **B4. Unread counts + realtime.** PubSub per thread, unread badge in
+- [x] **B4. ✅ Unread counts + realtime.** PubSub per thread, unread badge in
       both admins. Streams, not assigns (a thread grows).
 - [ ] **B5. Notify only when needed.** A new in-app message notifies via the
       A1 resolver **only if unread after a delay** — otherwise every message
@@ -115,4 +115,10 @@ Makola ↔ merchants, over one shared thread/message core.
   page renders empty rather than crashing.
 - The storefront messages page is on the theme-renderer `@exempt` list beside
   `account_downloads_live.ex` — an account utility page, not a themed surface.
-- **Next: B4** (unread badges + realtime), then B3 and B5.
+- 2026-08-24 — **B4 done**: `unread_counts/2` returns the whole inbox in ONE
+  query (the per-thread `unread_count/2` was N queries in the list — invisible
+  at ten conversations, painful at a thousand). PubSub per thread; a reply
+  posted from the merchant's admin appears on the buyer's page with no
+  refresh, and is marked read on arrival if they are looking at it.
+  Sidebar gains Messages.
+- **Next: B3** (Makola ↔ merchant inbox), then B5.

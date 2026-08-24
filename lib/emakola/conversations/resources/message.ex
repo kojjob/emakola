@@ -90,6 +90,15 @@ defmodule Emakola.Conversations.Message do
       prepare(build(sort: [inserted_at: :asc]))
     end
 
+    read :for_threads do
+      argument :thread_ids, {:array, :uuid} do
+        allow_nil?(false)
+      end
+
+      filter(expr(thread_id in ^arg(:thread_ids)))
+      prepare(build(sort: [inserted_at: :asc]))
+    end
+
     read :unread_for_thread do
       argument :thread_id, :uuid do
         allow_nil?(false)

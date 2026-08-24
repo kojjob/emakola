@@ -319,6 +319,12 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav in [:coupons, :discounts]}
         />
         <.sidebar_link
+          href="/admin/messages"
+          title="Messages"
+          icon="chat_bubble"
+          active={@active_nav == :messages}
+        />
+        <.sidebar_link
           href="/admin/campaigns"
           title="Campaigns"
           icon="megaphone"

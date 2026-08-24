@@ -33,6 +33,7 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
             []
 
           thread ->
+            if connected?(socket), do: Conversations.subscribe(thread.id)
             Conversations.mark_read(thread, :customer)
             {:ok, messages} = Conversations.list_messages(thread.id)
             messages
@@ -60,6 +61,21 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info({:new_message, message}, socket) do
+    thread = socket.assigns[:thread]
+
+    if thread && message.thread_id == thread.id do
+      # The buyer is looking at the thread, so the shop's reply is read.
+      Conversations.mark_read(thread, :customer)
+      {:noreply, assign(socket, messages: socket.assigns.messages ++ [message])}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do

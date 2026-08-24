@@ -33,11 +33,18 @@ defmodule EmakolaWeb.Admin.MessageLive do
 
   defp load_threads(socket, store) do
     {:ok, threads} = Conversations.list_shop_threads(store.id)
+    # One query for every badge, rather than one per row.
+    counts = Conversations.unread_counts(store.id, :merchant)
 
     assign(socket,
+      unread_total: counts |> Map.values() |> Enum.sum(),
       threads:
         Enum.map(threads, fn thread ->
-          %{thread: thread, last: Conversations.last_message(thread.id)}
+          %{
+            thread: thread,
+            last: Conversations.last_message(thread.id),
+            unread: Map.get(counts, thread.id, 0)
+          }
         end)
     )
   end
@@ -49,6 +56,8 @@ defmodule EmakolaWeb.Admin.MessageLive do
   defp load_thread(socket, thread_id, store) do
     case Conversations.get_shop_thread(store.id, thread_id) do
       {:ok, thread} ->
+        if connected?(socket), do: Conversations.subscribe(thread.id)
+
         # Opening is reading.
         {:ok, thread} = Conversations.mark_read(thread, :merchant)
         {:ok, messages} = Conversations.list_messages(thread.id)
@@ -85,6 +94,25 @@ defmodule EmakolaWeb.Admin.MessageLive do
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_info({:new_message, message}, socket) do
+    thread = socket.assigns[:thread]
+
+    if thread && message.thread_id == thread.id do
+      # The merchant is looking at it, so it is read on arrival.
+      Conversations.mark_read(thread, :merchant)
+
+      {:noreply,
+       socket
+       |> assign(messages: socket.assigns.messages ++ [message])
+       |> load_threads(socket.assigns.current_store)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6">
@@ -109,7 +137,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         <%!-- Inbox --%>
         <div class="space-y-2">
           <.link
-            :for={%{thread: thread, last: last} <- @threads}
+            :for={%{thread: thread, last: last, unread: unread} <- @threads}
             navigate={~p"/admin/messages/#{thread.id}"}
             class={[
               "block rounded-card border p-4 transition-colors",
@@ -122,10 +150,10 @@ defmodule EmakolaWeb.Admin.MessageLive do
             <div class="flex items-center justify-between gap-2">
               <p class="font-semibold text-slate-900 truncate">{buyer_name(thread)}</p>
               <span
-                :if={Conversations.unread_count(thread.id, :merchant) > 0}
+                :if={unread > 0}
                 class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
               >
-                {Conversations.unread_count(thread.id, :merchant)}
+                {unread}
               </span>
             </div>
             <p :if={last} class="text-sm text-slate-500 truncate mt-1">{last.body}</p>

@@ -77,6 +77,8 @@ defmodule Emakola.Conversations do
       |> Ash.Changeset.for_update(:touch, %{last_message_at: message.inserted_at})
       |> Ash.update(authorize?: false)
 
+      Phoenix.PubSub.broadcast(Emakola.PubSub, topic(thread.id), {:new_message, message})
+
       {:ok, message}
     end
   end
@@ -113,6 +115,43 @@ defmodule Emakola.Conversations do
     end
   end
 
+  @doc """
+  Unread counts for every thread in a store, as `%{thread_id => count}`.
+
+  One query for the whole inbox. `unread_count/2` is per-thread and fine for
+  a single open conversation; calling it once per row turns an inbox into N
+  queries, which is invisible at ten conversations and painful at a thousand.
+  """
+  def unread_counts(store_id, side) when is_binary(store_id) do
+    with {:ok, threads} <- list_shop_threads(store_id),
+         ids when ids != [] <- Enum.map(threads, & &1.id),
+         {:ok, messages} <-
+           Message
+           |> Ash.Query.for_read(:for_threads, %{thread_ids: ids})
+           |> Ash.read(authorize?: false) do
+      read_marks = Map.new(threads, &{&1.id, last_read_at(&1, side)})
+
+      counts =
+        messages
+        |> Enum.filter(fn message ->
+          message.author_kind != side and
+            unread?(message.inserted_at, Map.get(read_marks, message.thread_id))
+        end)
+        |> Enum.frequencies_by(& &1.thread_id)
+
+      # Threads with nothing unread still belong in the map, so a caller can
+      # read every thread's count without a nil check.
+      Map.new(threads, &{&1.id, Map.get(counts, &1.id, 0)})
+    else
+      _ -> %{}
+    end
+  end
+
+  @doc "Subscribes the calling process to a thread's new messages."
+  def subscribe(thread_id) when is_binary(thread_id) do
+    Phoenix.PubSub.subscribe(Emakola.PubSub, topic(thread_id))
+  end
+
   @doc "Marks everything currently in the thread as seen by `side`."
   def mark_read(%Thread{} = thread, :merchant) do
     thread
@@ -143,4 +182,10 @@ defmodule Emakola.Conversations do
   # (platform thread) is the other.
   defp last_read_at(thread, :merchant), do: thread.merchant_last_read_at
   defp last_read_at(thread, _counterpart), do: thread.counterpart_last_read_at
+
+  # Never read means everything from the other side is unread.
+  defp unread?(_inserted_at, nil), do: true
+  defp unread?(inserted_at, since), do: DateTime.compare(inserted_at, since) == :gt
+
+  defp topic(thread_id), do: "conversation:" <> thread_id
 end
