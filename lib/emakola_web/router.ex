@@ -214,6 +214,7 @@ defmodule EmakolaWeb.Router do
       live "/register", RegisterLive
       live "/whatsapp", WhatsAppLive
       live "/forgot-password", ForgotPasswordLive
+      live "/recover-phone", PhoneRecoveryLive
       live "/reset-password", ResetPasswordLive
     end
   end

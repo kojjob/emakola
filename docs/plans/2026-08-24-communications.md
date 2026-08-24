@@ -35,7 +35,7 @@ Makola ↔ merchants, over one shared thread/message core.
 - [x] **A2. ✅ Route existing notifications through it.** Order, shipping and
       delivery notifications currently branch on their own. One resolver, so
       a merchant with no email stops silently missing messages.
-- [ ] **A3. Phone-based account recovery.** The lockout fix.
+- [x] **A3. ✅ Phone-based account recovery.** The lockout fix.
       `Accounts.PhoneAuth` (OTP request/verify, E.164 normalisation) is
       already built and ship-dark behind `PHONE_AUTH_ENABLED`; wire it into
       the forgot-password flow so recovery does not require email.
@@ -90,4 +90,13 @@ Makola ↔ merchants, over one shared thread/message core.
   Reach's ordering would support whatsapp-first-with-sms-fallback, halving it,
   but WhatsApp can fail silently without an approved template, and then the
   buyer gets nothing. Behaviour deliberately left unchanged pending that call.
-- **Next: A3** (phone-based account recovery).
+- 2026-08-24 — **A3 done**: `Accounts.PhoneRecovery` + `/auth/recover-phone`,
+  linked from the email page ("No email? Use your phone number"). An unknown
+  number is indistinguishable from a known one (otherwise the form enumerates
+  merchants' phone numbers); a code is single-use; a reset revokes every
+  existing session. **Phase A complete.**
+- ⚠️ Test trap worth remembering: `PhoneAuth` rate-limits sends PER NUMBER, so
+  tests sharing one phone exhaust the window and a later test silently gets no
+  code — which reads as a broken feature, not a noisy test. Give each test its
+  own number.
+- **Next: B1** (Thread + Message core).
