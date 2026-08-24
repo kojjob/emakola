@@ -117,8 +117,12 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    # Optional on purpose. Most buyers in this market do not use email, and
+    # requiring it made phone-first signup impossible — the WhatsApp flow had
+    # to ask for an address the buyer did not have. Reachability is enforced
+    # instead by ContactDetailPresent on the create actions: a customer must
+    # have a phone or an email, so the shop can always reach them.
     attribute :email, :ci_string do
-      allow_nil?(false)
       public?(true)
       constraints(max_length: 320)
     end
@@ -135,6 +139,14 @@ defmodule Emakola.Customers.Customer do
 
     attribute :tags, {:array, :string} do
       default([])
+      public?(true)
+    end
+
+    # Set when a customer asks to stop receiving marketing messages. A stamp
+    # rather than a boolean so the date is auditable — every SMS costs the
+    # merchant money, and "when did they opt out" is the question that
+    # settles a dispute. nil means never opted out.
+    attribute :marketing_opt_out_at, :utc_datetime_usec do
       public?(true)
     end
 
@@ -221,12 +233,24 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
+    end
+
+    # Opting out is its own intent, not a field edit — widening :update to
+    # accept the stamp would let any customer edit clear it by omission.
+    update :opt_out_of_marketing do
+      change(set_attribute(:marketing_opt_out_at, &DateTime.utc_now/0))
+    end
+
+    update :opt_in_to_marketing do
+      change(set_attribute(:marketing_opt_out_at, nil))
     end
 
     # Passwordless, store-scoped registration via verified phone. store_id comes
     # from the request tenant (multitenancy :attribute).
     create :register_with_phone do
       accept([:email, :name, :phone])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
     end
 
     create :register_with_password do
