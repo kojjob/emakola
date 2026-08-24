@@ -46,6 +46,19 @@ defmodule Emakola.Stores.StoreDomainLifecycleTest do
 
     # The accept list is [:store_id, :host] and Ash refuses unknown inputs
     # outright, so there is no path to a live, unverified domain.
+    # #458's platform-host guard now lives on this branch, so this is the
+    # assertion neither branch could carry alone: the endpoint plug runs before
+    # the router's @apex_hosts scope, so without it a custom domain for
+    # emakola.fly.dev would 301 the platform's own host to a merchant's store.
+    test "refuses a platform host", %{store: store} do
+      assert {:error, error} =
+               Stores.claim_custom_domain(%{store_id: store.id, host: "emakola.fly.dev"},
+                 authorize?: false
+               )
+
+      assert Exception.message(error) =~ "is not available"
+    end
+
     test "refuses an attempt to set status or verified_at directly", %{store: store} do
       for attrs <- [%{status: :active}, %{verified_at: DateTime.utc_now()}] do
         assert {:error, %Ash.Error.Invalid{errors: [%Ash.Error.Invalid.NoSuchInput{}]}} =
