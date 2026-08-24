@@ -26,6 +26,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   import Plug.Conn
 
   alias Emakola.Stores
+  alias Emakola.Stores.DomainResolver
 
   @impl true
   def init(opts), do: opts
@@ -52,10 +53,48 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   # own domain has nothing to do with the platform's subdomain namespace.
   defp classify(%{host: host} = conn, base) do
     if base && (host == base or host == "www." <> base) do
-      :passthrough
+      apex_move(conn)
     else
       resolve_host(conn)
     end
+  end
+
+  # On the apex, a store reached by its subfolder (or short) URL is moved to
+  # its own domain the same way its subdomain is. Canonical alone is a hint
+  # Google may take slowly; a 301 is the definitive signal for a domain move
+  # and is what carries ranking across.
+  defp apex_move(conn) do
+    case apex_store_slug(conn) do
+      nil ->
+        :passthrough
+
+      {slug, rest} ->
+        case DomainResolver.primary_host(slug) do
+          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query(conn)}
+          _ -> :passthrough
+        end
+    end
+  end
+
+  # Only "/s/:slug/rest" identifies a store by path on the apex; everything else
+  # is a platform page and is never touched.
+  #
+  # The short form (makola.io/:slug) needs the same move, but that route — and
+  # the reserved-slug list that tells a store slug apart from a platform page —
+  # arrive with the short-URL work. Extending this to `[slug | rest]` without
+  # that list would 301 the pricing page to a merchant's domain.
+  defp apex_store_slug(%{path_info: ["s", slug | rest]}), do: {slug, join(rest)}
+  defp apex_store_slug(_conn), do: nil
+
+  defp join([]), do: ""
+  defp join(segments), do: "/" <> Enum.join(segments, "/")
+
+  defp query(%{query_string: ""}), do: ""
+  defp query(%{query_string: q}), do: "?" <> q
+
+  defp origin(host) do
+    scheme = URI.parse(EmakolaWeb.Endpoint.url()).scheme
+    "#{scheme}://#{host}"
   end
 
   defp resolve_host(conn) do
@@ -71,7 +110,22 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
         redirect_unless_self(conn, EmakolaWeb.SEO.Canonical.store_url(%{slug: slug}))
 
       _ ->
-        :passthrough
+        implicit_subdomain_move(conn)
+    end
+  end
+
+  # A store subdomain is served implicitly, with no StoreDomain row, so it
+  # never reaches the branch above. It still has to move once the store has a
+  # domain of its own.
+  defp implicit_subdomain_move(conn) do
+    with base when is_binary(base) <- base([]),
+         suffix = "." <> base,
+         true <- String.ends_with?(conn.host, suffix),
+         slug = String.replace_suffix(conn.host, suffix, ""),
+         host when is_binary(host) <- DomainResolver.primary_host(slug) do
+      redirect_unless_self(conn, origin(host))
+    else
+      _ -> :passthrough
     end
   end
 
