@@ -48,6 +48,13 @@ defmodule Emakola.Accounts.DevicePairings do
   # resource's moduledoc for why this is SHA-256 and not bcrypt.
   @token_bytes 32
 
+  # Every issued code is a live credential for its ninety seconds, so a session
+  # that has been taken over should not be able to mint them without end. Ten a
+  # minute is far above honest use — pairing a phone needs one, maybe two if the
+  # camera fumbles.
+  @issue_limit 10
+  @issue_window_ms 60_000
+
   @doc """
   Mints a pairing code for `merchant_id`.
 
@@ -56,6 +63,17 @@ defmodule Emakola.Accounts.DevicePairings do
   """
   @spec issue(binary()) :: {:ok, binary(), DevicePairing.t()} | {:error, term()}
   def issue(merchant_id) when is_binary(merchant_id) do
+    case Emakola.RateLimit.check_rate(
+           "device_pairing_issue:" <> merchant_id,
+           @issue_limit,
+           @issue_window_ms
+         ) do
+      {:allow, _count} -> do_issue(merchant_id)
+      {:deny, _retry_after} -> {:error, :rate_limited}
+    end
+  end
+
+  defp do_issue(merchant_id) do
     token = Base.url_encode64(:crypto.strong_rand_bytes(@token_bytes), padding: false)
 
     attrs = %{
@@ -140,7 +158,9 @@ defmodule Emakola.Accounts.DevicePairings do
                :ok <- require_confirmed(pairing) do
             consume!(pairing)
           else
-            {:error, reason} -> {:validation_error, reason}
+            {:error, reason} ->
+              audit_refusal(pairing, reason)
+              {:validation_error, reason}
           end
       end
     end)
@@ -226,7 +246,32 @@ defmodule Emakola.Accounts.DevicePairings do
 
     # Both ids come back from the schemaless query as raw 16-byte binaries —
     # fine for the update's own WHERE, but Ash wants the canonical string form.
-    Ash.get!(Merchant, Ecto.UUID.load!(pairing.merchant_id), authorize?: false)
+    merchant_id = Ecto.UUID.load!(pairing.merchant_id)
+
+    # A pairing is a sign-in with no password, so it has to leave a trace. An
+    # account taken over this way would otherwise be invisible afterwards.
+    Emakola.Audit.log(
+      :device_paired,
+      "DevicePairing",
+      Ecto.UUID.load!(pairing.id),
+      merchant_id,
+      nil
+    )
+
+    Ash.get!(Merchant, merchant_id, authorize?: false)
+  end
+
+  # Someone presenting a code that cannot be redeemed is worth finding in a log:
+  # an unconfirmed redemption is the inverted-phishing attempt itself.
+  defp audit_refusal(pairing, reason) do
+    Emakola.Audit.log(
+      :device_pairing_refused,
+      "DevicePairing",
+      Ecto.UUID.load!(pairing.id),
+      Ecto.UUID.load!(pairing.merchant_id),
+      nil,
+      metadata: %{"reason" => to_string(reason)}
+    )
   end
 
   # -- plumbing ---------------------------------------------------------------

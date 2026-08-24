@@ -159,7 +159,9 @@ config :emakola, Oban,
     orders: 5,
     whatsapp_catalog: 3,
     # Low concurrency bounds AI spend + respects Anthropic rate limits.
-    ai_content: 3
+    ai_content: 3,
+    # Low concurrency keeps custom-domain traffic to Fly's API modest.
+    domains: 3
   ],
   repo: Emakola.Repo,
   plugins: [
@@ -171,6 +173,9 @@ config :emakola, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+       # Re-checks custom-domain certificates and retires the ones whose DNS
+       # was never connected.
+       {"*/10 * * * *", Emakola.Stores.Workers.DomainSweepWorker},
        {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
        {"*/5 * * * *", Emakola.Suppliers.Workers.GroupBuyExpiryWorker},
        {"*/10 * * * *", Emakola.Suppliers.Workers.InventoryReservationExpiryWorker},

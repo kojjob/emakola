@@ -3,6 +3,8 @@ defmodule Emakola.Analytics do
   use Ash.Domain
 
   resources do
+    resource(Emakola.Analytics.StoreVisit)
+
     resource Emakola.Analytics.AppEvent do
       define(:create_event, action: :create)
       define(:list_events, action: :read)

@@ -313,10 +313,10 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :payments}
         />
         <.sidebar_link
-          href="/admin/discounts"
+          href="/admin/coupons"
           title="Discounts"
           icon="tag"
-          active={@active_nav == :discounts}
+          active={@active_nav in [:coupons, :discounts]}
         />
         <.sidebar_link
           href="/admin/campaigns"

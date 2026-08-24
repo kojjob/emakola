@@ -64,9 +64,10 @@ defmodule EmakolaWeb.Plugs.ResolveStoreHost do
 
   defp base, do: Application.get_env(:emakola, :store_subdomain_base)
 
-  # No base configured (ship-dark) → nothing to resolve.
-  defp resolve(_host, nil), do: :error
-
+  # An explicit, active StoreDomain row wins regardless of the subdomain base.
+  # A merchant's own domain has nothing to do with the platform's subdomain
+  # base, and gating on it here made custom domains unresolvable — and so
+  # untestable — anywhere the base is unset, which is dev and test.
   defp resolve(host, base) do
     case Stores.get_store_domain_by_host(host,
            load: [:store],
@@ -80,6 +81,9 @@ defmodule EmakolaWeb.Plugs.ResolveStoreHost do
         resolve_implicit_subdomain(host, base)
     end
   end
+
+  # Only the IMPLICIT match needs a base: it is the platform's own namespace.
+  defp resolve_implicit_subdomain(_host, nil), do: :error
 
   # No explicit StoreDomain row: a bare `<slug>.<base>` resolves to that store.
   # Reserved labels, multi-label hosts, and unknown slugs are rejected.

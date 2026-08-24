@@ -301,8 +301,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     ~H"""
     <div class="space-y-6">
       <%!-- The stall sign. First card on the tab because it is the one control
-            here that needs no reading at all. --%>
-      <.admin_card id="store-qr-sign" class="print-sheet">
+            here that needs no reading at all. Hidden until the merchant has a
+            store: there is no shop code to print yet, and QR.store_svg/2 needs
+            a real slug. --%>
+      <.admin_card :if={@store} id="store-qr-sign" class="print-sheet">
         <.qr_panel
           id="store-qr"
           svg={QR.store_svg(@store)}

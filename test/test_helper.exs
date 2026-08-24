@@ -5,6 +5,7 @@ Ecto.Adapters.SQL.Sandbox.mode(Emakola.Repo, :manual)
 
 # Mox mocks
 Mox.defmock(Emakola.HTTPClientMock, for: Emakola.HTTPClient)
+Mox.defmock(Emakola.Infra.FlyCertsMock, for: Emakola.Infra.FlyCertsBehaviour)
 Mox.defmock(Emakola.Payments.PaystackClientMock, for: Emakola.Payments.PaystackClientBehaviour)
 Mox.defmock(Emakola.Payments.HubtelClientMock, for: Emakola.Payments.HubtelClientBehaviour)
 Mox.defmock(Emakola.Payments.GatewayMock, for: Emakola.Payments.Gateway)
