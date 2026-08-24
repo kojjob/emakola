@@ -96,11 +96,16 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "an empty store reports zeros, not a fabricated dashboard", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/reports")
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
 
-      refute html =~ "38,470"
-      refute html =~ "135.46"
-      refute html =~ "284"
+      # Scoped to the tiles rather than matched against the whole document.
+      # `refute html =~ "284"` searched the page including the CSRF token and
+      # the data-phx-session blob — kilobytes of random base64 — so roughly one
+      # run in sixty failed because three random characters happened to spell
+      # the number it was guarding against.
+      refute has_element?(view, "#stat-reports-revenue", "38,470")
+      refute has_element?(view, "#stat-reports-aov", "135.46")
+      refute has_element?(view, "#stat-reports-orders", "284")
     end
 
     # There is no visit or session tracking in this codebase. A conversion
@@ -145,5 +150,58 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
       DateTime.add(DateTime.utc_now(), days, :day)
     )
     |> Ash.update!(authorize?: false)
+  end
+
+  describe "traffic" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    test "a store with no visits reports no rate rather than 0%", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      # This page was rebuilt because it showed merchants invented figures.
+      # "0% of them bought" would be a claim about conversion made from no data
+      # at all — the same mistake in a smaller font.
+      assert has_element?(view, "#stat-reports-visitors", "No visits yet")
+      refute has_element?(view, "#stat-reports-visitors", "% of them bought")
+    end
+
+    test "visitors are counted, and pageviews are not mistaken for people", %{
+      conn: conn,
+      store: store
+    } do
+      # Two people, one of whom browsed three pages.
+      for _ <- 1..3, do: Emakola.Analytics.StoreVisits.record(store.id, "person-a", %{})
+      Emakola.Analytics.StoreVisits.record(store.id, "person-b", %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-visitors", "2")
+    end
+
+    test "conversion is orders over visitors", %{conn: conn, store: store} do
+      customer = Emakola.Factory.create_customer!(store)
+
+      Emakola.Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      for id <- ["a", "b", "c", "d"],
+          do: Emakola.Analytics.StoreVisits.record(store.id, id, %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      # 1 order, 4 visitors.
+      assert has_element?(view, "#stat-reports-visitors", "25.0% of them bought")
+    end
+
+    test "one store's traffic never appears in another's report", %{conn: conn} do
+      elsewhere = Emakola.Factory.create_store!()
+      for id <- ["x", "y"], do: Emakola.Analytics.StoreVisits.record(elsewhere.id, id, %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-visitors", "No visits yet")
+    end
   end
 end

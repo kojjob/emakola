@@ -1,7 +1,8 @@
 defmodule Emakola.Stores.Changes.EnsureUniqueSlug do
   @moduledoc """
-  Ash change that guarantees a globally-unique Store slug by appending a numeric
-  suffix (`-2`, `-3`, …) when the base slug is already taken.
+  Ash change that guarantees a usable Store slug by appending a numeric suffix
+  (`-2`, `-3`, …) when the base slug is already taken — either by another store
+  or by a page on the apex, since stores are served at `makola.io/<slug>`.
 
   Without it, onboarding dead-ends the moment a chosen store name slugifies to
   one that already exists — the `:unique_slug` identity rejects the insert with
@@ -60,7 +61,15 @@ defmodule Emakola.Stores.Changes.EnsureUniqueSlug do
     end
   end
 
+  # "Taken" covers both an existing store and a slug that would collide with a
+  # page on the apex — a store is served at makola.io/<slug>, so a store
+  # slugged `pricing` would be unreachable at its own short URL. Suffixing is
+  # the same remedy either way, which keeps onboarding from dead-ending.
   defp taken?(slug) do
+    EmakolaWeb.ReservedStoreSlugs.reserved?(slug) or store_exists?(slug)
+  end
+
+  defp store_exists?(slug) do
     Emakola.Stores.Store
     |> Ash.Query.filter(slug == ^slug)
     |> Ash.read!(authorize?: false)
