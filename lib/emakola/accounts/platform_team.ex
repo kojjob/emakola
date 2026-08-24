@@ -147,7 +147,14 @@ defmodule Emakola.Accounts.PlatformTeam do
         {:ok, _} ->
           {:ok, invite}
 
-        {:error, _reason} ->
+        {:error, reason} ->
+          # The flash can only say "Could not send the invite email." — the
+          # provider's reason lives here or nowhere.
+          Logger.error(
+            "platform invite email failed to=#{to_string(invite.email)} " <>
+              "id=#{invite.id} reason=#{inspect(reason)}"
+          )
+
           invite
           |> Ash.Changeset.for_update(:revoke, %{})
           |> Ash.update(authorize?: false, actor: actor)
