@@ -78,6 +78,25 @@ defmodule Emakola.Accounts.PlatformTeamTest do
       assert %DateTime{} = invite.revoked_at
     end
 
+    test "logs why the mailer failed, so a live failure is diagnosable" do
+      # The UI can only say "Could not send the invite email." Without the
+      # provider's reason in the log, a production failure is undebuggable —
+      # exactly what happened on 2026-08-23.
+      owner = create_platform_owner!()
+      email = unique_email()
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert {:error, :email_delivery_failed} =
+                   PlatformTeam.create_invite(email, [], owner, mailer: FailingMailer)
+        end)
+
+      assert log =~ "connection_refused",
+             "the mailer's reason must reach the log — the flash message never carries it"
+
+      assert log =~ email, "the log must name the recipient the invite was for"
+    end
+
     test "returns validation errors without sending an email" do
       owner = create_platform_owner!()
       user = create_user!()

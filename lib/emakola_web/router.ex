@@ -541,7 +541,9 @@ defmodule EmakolaWeb.Router do
 
       # Marketing
       live "/admin/campaigns", Admin.CampaignLive.Index
-      live "/admin/discounts", Admin.DiscountLive.Index
+      # The placeholder discounts page is gone; Marketing.Coupon is the real
+      # feature and /admin/coupons its page. Kept so bookmarks do not 404.
+      live "/admin/discounts", Admin.DiscountRedirectLive
       live "/admin/coupons", Admin.CouponLive
       live "/admin/pay-links", Admin.PayLinkLive.Index
 
