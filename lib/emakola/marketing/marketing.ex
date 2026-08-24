@@ -12,6 +12,9 @@ defmodule Emakola.Marketing do
   use Ash.Domain
 
   resources do
+    resource(Emakola.Marketing.Campaign)
+    resource(Emakola.Marketing.CampaignRecipient)
+
     resource Emakola.Marketing.Coupon do
       define(:create_coupon, action: :create)
       define(:update_coupon, action: :update)
