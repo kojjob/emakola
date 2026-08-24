@@ -237,7 +237,15 @@ defmodule EmakolaWeb.AdminComponents do
           {render_slot(@icon)}
         </div>
       </div>
-      <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
+      <%!-- With a delta, the delta owns the floor and the value sits under the
+            label. With no delta the value takes the slack itself, so min-h-48
+            reads as a deliberate tile instead of a number with a void below. --%>
+      <p class={[
+        "text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums",
+        @delta == [] && "mt-auto"
+      ]}>
+        {@value}
+      </p>
       <%!-- mt-auto floors the footnote, so a row of tiles lines up on both
             edges even when one label wraps to two lines and its neighbour
             has no footnote at all. --%>

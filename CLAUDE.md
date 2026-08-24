@@ -273,6 +273,8 @@ Required environment variables (see `.env.example` for full list):
 | `SMS_API_KEY` | SMS gateway API key |
 | `SMS_SENDER_ID` | SMS sender ID (e.g., "Emakola") |
 | `OBAN_QUEUE_DEFAULT` | Oban default queue concurrency |
+| `FLY_API_TOKEN` | Fly API token for merchant custom-domain certificates (omit to ship dark) |
+| `FLY_APP_NAME` | Fly app certificates are attached to (default `emakola`) |
 | `FCM_SERVICE_ACCOUNT_JSON` | Firebase service account JSON (enables FCM push; omit to use LogPush) |
 | `FCM_PROJECT_ID` | Firebase project ID (required when FCM_SERVICE_ACCOUNT_JSON is set) |
 
@@ -331,6 +333,26 @@ Running `mix phx.server` in one terminal while editing files in another causes:
 - Tests can fail intermittently because the server process is recompiling
 
 **Rule:** When doing focused code work (refactors, large edits), stop `phx.server`. Restart it only when you need to look at the UI.
+
+### Two test suites against one database exhausts Postgres
+
+`pool_size` in `config/test.exs` is `System.schedulers_online() * 2` — 20
+connections on a 10-core machine. Postgres ships with `max_connections = 100`,
+and a running `phx.server` plus a few `psql` sessions already accounts for
+roughly half of that.
+
+Run `mix test` in two worktrees at once and the second suite starts getting
+`FATAL 53300 (too_many_connections)`. It does not fail cleanly: a checkout that
+fails part-way through a seeding test leaves partial data, and the failure
+surfaces as an unrelated assertion — `SeedThemeDemosTest` reporting duplicate
+stores, for instance. That looks exactly like a flaky test and is not one.
+
+**Rule:** one `mix test` at a time per database. If you need a long suite
+running while you work, stop the dev server, or point the second worktree at
+its own `MIX_TEST_PARTITION`/database.
+
+(The sandbox itself is fine. A Mix task invoked from a test runs in the test
+process and is inside the sandbox transaction — that is not the problem.)
 
 ### Stacked PRs: always merge bottom-up
 For a stack like A → B → C → D where each branch's base is the previous one:

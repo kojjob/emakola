@@ -26,6 +26,31 @@ defmodule EmakolaWeb.AdminDesignConsistencyTest do
     end
   end
 
+  test "flash messages stack above modals" do
+    # A flash raised from inside a modal (\"Could not send the invite email.\")
+    # was painted over by the modal's blurred backdrop: both sat at z-50, so
+    # DOM order decided, and the modal renders last. Found on production
+    # 2026-08-23. The flash must outrank the modal numerically — equal
+    # z-index is the bug, not a tie.
+    flash_z = z_index!("lib/emakola_web/components/layouts.ex", ~r/id=\{@id\}[^>]*?z-\[?(\d+)/s)
+
+    modal_z =
+      z_index!("lib/emakola_web/components/core_components.ex", ~r/hidden relative z-\[?(\d+)/)
+
+    assert flash_z > modal_z,
+           "flash group is z-#{flash_z} but the modal is z-#{modal_z} — a flash raised " <>
+             "from inside a modal renders behind its backdrop and is never seen"
+  end
+
+  defp z_index!(path, regex) do
+    source = File.read!(path)
+
+    case Regex.run(regex, source, capture: :all_but_first) do
+      [value] -> String.to_integer(value)
+      _ -> flunk("could not find a z-index in #{path} with #{inspect(regex)}")
+    end
+  end
+
   test "no admin page styles its own stat tiles" do
     # The tile's look lives in stat_card and is chosen with one `tone`. A page
     # that passes its own icon_bg — or colours the icon inside the slot — is
