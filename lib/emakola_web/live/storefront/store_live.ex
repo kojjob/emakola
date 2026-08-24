@@ -18,13 +18,21 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     store = socket.assigns.store
     products = load_featured_products(store)
     categories = load_root_categories(store)
     public_coupons = load_public_coupons(store)
     delivery_zones = load_delivery_zones(store)
     cart_session_id = session["cart_session_id"]
+
+    # Counted once the socket is live, so crawlers and link previews — which
+    # never open a socket — do not inflate a merchant's traffic. Recorded
+    # unconditionally on failure grounds: a visit that cannot be written is not
+    # worth failing a storefront over.
+    if connected?(socket) && cart_session_id do
+      Emakola.Analytics.StoreVisits.record(store.id, cart_session_id, params)
+    end
 
     cart_count =
       if connected?(socket) && cart_session_id,

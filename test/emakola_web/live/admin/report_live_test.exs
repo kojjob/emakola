@@ -146,4 +146,57 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     )
     |> Ash.update!(authorize?: false)
   end
+
+  describe "traffic" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    test "a store with no visits reports no rate rather than 0%", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      # This page was rebuilt because it showed merchants invented figures.
+      # "0% of them bought" would be a claim about conversion made from no data
+      # at all — the same mistake in a smaller font.
+      assert has_element?(view, "#stat-reports-visitors", "No visits yet")
+      refute has_element?(view, "#stat-reports-visitors", "% of them bought")
+    end
+
+    test "visitors are counted, and pageviews are not mistaken for people", %{
+      conn: conn,
+      store: store
+    } do
+      # Two people, one of whom browsed three pages.
+      for _ <- 1..3, do: Emakola.Analytics.StoreVisits.record(store.id, "person-a", %{})
+      Emakola.Analytics.StoreVisits.record(store.id, "person-b", %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-visitors", "2")
+    end
+
+    test "conversion is orders over visitors", %{conn: conn, store: store} do
+      customer = Emakola.Factory.create_customer!(store)
+
+      Emakola.Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      for id <- ["a", "b", "c", "d"],
+          do: Emakola.Analytics.StoreVisits.record(store.id, id, %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      # 1 order, 4 visitors.
+      assert has_element?(view, "#stat-reports-visitors", "25.0% of them bought")
+    end
+
+    test "one store's traffic never appears in another's report", %{conn: conn} do
+      elsewhere = Emakola.Factory.create_store!()
+      for id <- ["x", "y"], do: Emakola.Analytics.StoreVisits.record(elsewhere.id, id, %{})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/reports")
+
+      assert has_element?(view, "#stat-reports-visitors", "No visits yet")
+    end
+  end
 end

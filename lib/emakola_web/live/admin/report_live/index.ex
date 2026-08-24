@@ -24,14 +24,30 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     * **Per-region conversion** fails for both reasons at once.
 
   Rebuilding those as orders-by-source would answer a question nobody asked
-  while looking like the question they did. They are gone until something
-  actually measures traffic.
+  while looking like the question they did. They were gone until something
+  actually measured traffic.
+
+  ## What came back, and on what basis
+
+  `Emakola.Analytics.StoreVisits` now counts storefront visits, so two of the
+  three are honest again:
+
+    * **Conversion rate** is orders ÷ distinct *visitors* — not pageviews. One
+      person browsing five pages is one visitor; dividing by pageviews would
+      understate every merchant's rate while looking like the same sum.
+    * **Traffic by channel** counts visits by source, which is the claim the
+      words make. It is not orders-by-UTM wearing the same label.
+
+  Per-region conversion is still absent: visits are not recorded per region, and
+  inventing a denominator per region would repeat exactly the mistake this page
+  was rebuilt to undo.
   """
   use EmakolaWeb, :live_view
 
   require Ash.Query
   require Logger
 
+  alias Emakola.Analytics.StoreVisits
   alias Emakola.Dashboard.Stats
   alias Emakola.Orders.Order
 
@@ -73,6 +89,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     {from, to} = window(range)
 
     orders = fetch_orders(store_id, from, to)
+    visitors = count_visitors(store_id, range)
     counted = Enum.reject(orders, &(&1.status == :cancelled))
     revenue = counted |> Enum.map(&(&1.total || 0)) |> Enum.sum()
     count = length(counted)
@@ -86,9 +103,23 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       revenue_chart: build_revenue_chart(counted, from, to),
       status_breakdown: build_status_breakdown(orders),
       top_products: top_products(store_id, from, to),
-      regions: build_regions(counted)
+      regions: build_regions(counted),
+      visitors: visitors,
+      conversion_rate: conversion_rate(count, visitors),
+      traffic_sources: traffic_sources(store_id, range)
     )
   end
+
+  defp count_visitors(nil, _range), do: 0
+  defp count_visitors(store_id, range), do: StoreVisits.visitors(store_id, @ranges[range])
+
+  defp traffic_sources(nil, _range), do: %{}
+  defp traffic_sources(store_id, range), do: StoreVisits.by_source(store_id, @ranges[range])
+
+  # Percent to one decimal. Zero visitors means no rate rather than a divide —
+  # a store nobody visited has not converted 0%, it has no rate to report.
+  defp conversion_rate(_orders, 0), do: nil
+  defp conversion_rate(orders, visitors), do: Float.round(orders / visitors * 100, 1)
 
   defp fetch_orders(nil, _from, _to), do: []
 
@@ -268,6 +299,25 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           <:icon><.icon name="hero-calculator" class="size-7" /></:icon>
           <:delta>
             <p class="text-sm text-slate-500">Money divided by orders</p>
+          </:delta>
+        </.stat_card>
+
+        <.stat_card
+          id="stat-reports-visitors"
+          label="People who looked"
+          value={to_string(@visitors)}
+          tone={:neutral}
+        >
+          <:icon><.icon name="hero-users" class="size-7" /></:icon>
+          <:delta>
+            <%!-- A store nobody visited has no rate to report — saying "0%"
+                  would be a claim about conversion rather than about traffic. --%>
+            <p :if={@conversion_rate} class="text-sm text-slate-500">
+              {@conversion_rate}% of them bought
+            </p>
+            <p :if={is_nil(@conversion_rate)} class="text-sm text-slate-500">
+              No visits yet
+            </p>
           </:delta>
         </.stat_card>
       </div>
