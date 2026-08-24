@@ -11,6 +11,27 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
     end
   end
 
+  describe "SettingsLive (merchant with no store yet)" do
+    test "renders instead of raising on the store QR", %{conn: _conn} do
+      # RequireActiveStore lets an onboarding merchant with no store through,
+      # and this tab renders QR.store_svg(@store), whose head needs %{slug: _}.
+      # On production that was (FunctionClauseError) no function clause
+      # matching in EmakolaWeb.QR.store_svg/2 — 2026-08-24.
+      merchant = Factory.create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        build_conn()
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/settings")
+
+      assert html =~ "Settings"
+      refute html =~ "Something broke"
+    end
+  end
+
   describe "SettingsLive (authenticated)" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)
