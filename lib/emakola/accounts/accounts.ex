@@ -50,6 +50,7 @@ defmodule Emakola.Accounts do
     resource(Emakola.Accounts.Token)
 
     resource(Emakola.Accounts.PhoneOtp)
+    resource(Emakola.Accounts.DevicePairing)
   end
 
   @doc """
