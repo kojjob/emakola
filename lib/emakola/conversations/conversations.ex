@@ -36,9 +36,35 @@ defmodule Emakola.Conversations do
 
   @doc "A store's buyer threads, most recently active first."
   def list_shop_threads(store_id) when is_binary(store_id) do
-    Thread
-    |> Ash.Query.for_read(:for_store, %{store_id: store_id})
-    |> Ash.read(authorize?: false)
+    with {:ok, threads} <-
+           Thread
+           |> Ash.Query.for_read(:for_store, %{store_id: store_id})
+           |> Ash.read(authorize?: false) do
+      {:ok, Ash.load!(threads, [:customer], authorize?: false)}
+    end
+  end
+
+  @doc "The last thing said in a thread, for an inbox preview."
+  def last_message(thread_id) when is_binary(thread_id) do
+    case list_messages(thread_id) do
+      {:ok, []} -> nil
+      {:ok, messages} -> List.last(messages)
+      _ -> nil
+    end
+  end
+
+  @doc """
+  A shop thread, but only if it belongs to `store_id`.
+
+  Scoped rather than a bare `Ash.get/2`: the thread id travels in the URL, so
+  the only thing standing between a merchant and another shop's conversation
+  is this check.
+  """
+  def get_shop_thread(store_id, thread_id) when is_binary(store_id) and is_binary(thread_id) do
+    case Ash.get(Thread, thread_id, authorize?: false) do
+      {:ok, %Thread{store_id: ^store_id, kind: :shop_buyer} = thread} -> {:ok, thread}
+      _ -> {:error, :not_found}
+    end
   end
 
   @doc "Posts a message and stamps the thread so inboxes sort correctly."

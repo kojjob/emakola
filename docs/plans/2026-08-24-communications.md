@@ -45,7 +45,7 @@ Makola ↔ merchants, over one shared thread/message core.
 - [x] **B1. ✅ Thread + Message resources.** One core: a thread has a subject,
       a kind (`:shop_buyer` | `:platform_merchant`), participants, and
       messages. Store-scoped for shop threads.
-- [ ] **B2. Merchant ↔ buyer threads.** Attached to an order where one
+- [x] **B2. ✅ Merchant ↔ buyer threads.** Attached to an order where one
       exists, standalone otherwise. Buyer writes from the storefront account
       area; merchant replies from the admin.
 - [ ] **B3. Makola ↔ merchant support inbox.** Platform staff open a thread
@@ -107,4 +107,12 @@ Makola ↔ merchants, over one shared thread/message core.
   makes `open_*_thread` idempotent. Plain works because Postgres treats NULLs
   as distinct, so platform threads (NULL store/customer) and shop threads
   (NULL merchant) each coexist while true duplicates are still refused.
-- **Next: B2** (merchant ↔ buyer UI), then B3/B4/B5.
+- 2026-08-24 — **B2 done**: `/admin/messages` (inbox + thread, opening marks
+  read) and storefront `/account/messages`. Cross-store isolation is tested:
+  another shop's thread id in the URL redirects, it does not render.
+- ⚠️ Storefront assigns `@store`; the admin assigns `@current_store`. Reaching
+  for the admin's name on a storefront LiveView silently yields nil and the
+  page renders empty rather than crashing.
+- The storefront messages page is on the theme-renderer `@exempt` list beside
+  `account_downloads_live.ex` — an account utility page, not a themed surface.
+- **Next: B4** (unread badges + realtime), then B3 and B5.

@@ -71,6 +71,19 @@ defmodule Emakola.Conversations.Thread do
     has_many :messages, Emakola.Conversations.Message do
       destination_attribute(:thread_id)
     end
+
+    # define_attribute? false — the ids are declared above so a thread can
+    # carry either shape without two nullable belongs_to definitions fighting
+    # over them.
+    belongs_to :customer, Emakola.Customers.Customer do
+      define_attribute?(false)
+      public?(true)
+    end
+
+    belongs_to :merchant, Emakola.Accounts.Merchant do
+      define_attribute?(false)
+      public?(true)
+    end
   end
 
   policies do

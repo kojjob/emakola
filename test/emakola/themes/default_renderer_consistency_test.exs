@@ -119,6 +119,9 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       about_live.ex
       page_live.ex
       account_downloads_live.ex
+      # Account utility page, same class as account_downloads: a message
+      # thread and a text box, not a themed storefront surface.
+      customer_messages_live.ex
       saved_stores_live.ex
       pay_link_live.ex
       susu_link_live.ex

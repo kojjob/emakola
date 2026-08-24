@@ -368,6 +368,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
@@ -541,6 +542,8 @@ defmodule EmakolaWeb.Router do
       live "/admin/design/sections", Admin.DesignSectionsLive
 
       # Marketing
+      live "/admin/messages", Admin.MessageLive
+      live "/admin/messages/:id", Admin.MessageLive
       live "/admin/campaigns", Admin.CampaignLive.Index
       # The placeholder discounts page is gone; Marketing.Coupon is the real
       # feature and /admin/coupons its page. Kept so bookmarks do not 404.
@@ -655,6 +658,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
