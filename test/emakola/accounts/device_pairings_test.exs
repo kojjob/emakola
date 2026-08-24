@@ -1,0 +1,160 @@
+defmodule Emakola.Accounts.DevicePairingsTest do
+  @moduledoc """
+  The lifecycle of a scan-to-sign-in request.
+
+  These tests are the security contract, not a feature description. The flow
+  hands out a bearer credential in visible form, so what matters is what it
+  refuses: an expired code, a replayed code, a code confirmed by nobody, and a
+  code redeemed twice at once.
+  """
+  use Emakola.DataCase, async: true
+
+  alias Emakola.Accounts.DevicePairings
+
+  setup do
+    merchant = Emakola.Factory.create_merchant!()
+    {:ok, merchant: merchant}
+  end
+
+  describe "issuing" do
+    test "returns the plaintext token once and never stores it", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+
+      assert is_binary(token)
+      # 32 random bytes, base64url — well past guessing range.
+      assert byte_size(token) >= 40
+      assert pairing.status == :pending
+
+      # The row keeps only a digest. A database read must not yield anything a
+      # phone could redeem.
+      refute pairing.token_digest == token
+      assert byte_size(pairing.token_digest) == 64
+    end
+
+    test "expires 90 seconds out", %{merchant: merchant} do
+      {:ok, _token, pairing} = DevicePairings.issue(merchant.id)
+
+      seconds = DateTime.diff(pairing.expires_at, DateTime.utc_now())
+      assert seconds > 80 and seconds <= 90
+    end
+
+    test "two issues never collide", %{merchant: merchant} do
+      {:ok, a, _} = DevicePairings.issue(merchant.id)
+      {:ok, b, _} = DevicePairings.issue(merchant.id)
+
+      refute a == b
+    end
+  end
+
+  describe "scanning" do
+    test "a valid token records the phone and moves to :scanned", %{merchant: merchant} do
+      {:ok, token, _} = DevicePairings.issue(merchant.id)
+
+      assert {:ok, pairing} = DevicePairings.scan(token, "iPhone Safari")
+      assert pairing.status == :scanned
+      assert pairing.scanned_by == "iPhone Safari"
+    end
+
+    test "an unknown token is refused", %{merchant: _merchant} do
+      assert {:error, :not_found} = DevicePairings.scan("not-a-real-token", "iPhone")
+    end
+
+    test "an expired token is refused", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      expire!(pairing)
+
+      assert {:error, :expired} = DevicePairings.scan(token, "iPhone")
+    end
+  end
+
+  describe "confirming — the step that defeats the inverted attack" do
+    test "the desktop that minted it can confirm", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+
+      assert {:ok, confirmed} = DevicePairings.confirm(pairing.id, merchant.id)
+      assert confirmed.status == :confirmed
+    end
+
+    test "another merchant cannot confirm someone else's pairing", %{merchant: merchant} do
+      other = Emakola.Factory.create_merchant!()
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+
+      assert {:error, :not_found} = DevicePairings.confirm(pairing.id, other.id)
+    end
+
+    test "a pairing nobody scanned cannot be confirmed", %{merchant: merchant} do
+      {:ok, _token, pairing} = DevicePairings.issue(merchant.id)
+
+      assert {:error, :not_scanned} = DevicePairings.confirm(pairing.id, merchant.id)
+    end
+  end
+
+  describe "redeeming" do
+    test "a confirmed token yields its merchant exactly once", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+
+      assert {:ok, redeemed} = DevicePairings.redeem(token)
+      assert redeemed.id == merchant.id
+
+      # Replay. The image outlives the redemption, so this is the case that
+      # matters most.
+      assert {:error, :not_found} = DevicePairings.redeem(token)
+    end
+
+    test "an unconfirmed token cannot be redeemed", %{merchant: merchant} do
+      {:ok, token, _} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+
+      # Scanned but never confirmed on the desktop — this is exactly the
+      # inverted-phishing case, and it must not produce a session.
+      assert {:error, :not_confirmed} = DevicePairings.redeem(token)
+    end
+
+    test "an expired token cannot be redeemed even after confirmation", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+      expire!(pairing)
+
+      assert {:error, :expired} = DevicePairings.redeem(token)
+    end
+
+    test "a rejected pairing cannot be redeemed", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+      {:ok, _} = DevicePairings.reject(pairing.id, merchant.id)
+
+      assert {:error, :not_confirmed} = DevicePairings.redeem(token)
+    end
+
+    test "concurrent redemptions cannot both win", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+
+      # Two phones with the same photographed code, racing. The row lock is the
+      # only thing standing between that and two live sessions.
+      results =
+        [1, 2]
+        |> Enum.map(fn _ -> Task.async(fn -> DevicePairings.redeem(token) end) end)
+        |> Task.await_many(5_000)
+
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 1
+    end
+  end
+
+  defp expire!(pairing) do
+    pairing
+    |> Ash.Changeset.for_update(:confirm, %{})
+    |> Ash.Changeset.force_change_attribute(
+      :expires_at,
+      DateTime.add(DateTime.utc_now(), -1, :second)
+    )
+    |> Ash.Changeset.force_change_attribute(:status, pairing.status)
+    |> Ash.update!(authorize?: false)
+  end
+end

@@ -7,7 +7,12 @@ defmodule EmakolaWeb.Router do
   # `host: @apex_hosts` matches these hosts only; store subdomains
   # (`kente-kingdom.makola.io`) fall through to the no-host storefront catch-all.
   # fly.dev is listed so the platform host never reaches the catch-all.
-  @apex_hosts ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+  #
+  # Sourced from config so `Emakola.Stores.Validations.ValidStoreHost` rejects
+  # these same hosts as custom domains. Must stay compile_env: `scope host:`
+  # needs a literal, and a nil here fails the build rather than silently
+  # matching nothing.
+  @apex_hosts Application.compile_env!(:emakola, :apex_hosts)
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -409,6 +414,21 @@ defmodule EmakolaWeb.Router do
       live "/pay/:code", Storefront.PayLinkLive
     end
 
+    # Device pairing — the phone half of scan-to-sign-in. Public because the
+    # phone is by definition not signed in yet; the token in the URL is the only
+    # credential, it is single-use, and it is worthless until the merchant
+    # confirms on their already-authenticated desktop. Apex-host scoped like the
+    # other code-bearing pages, so no store subdomain can shadow it.
+    live_session :device_pairing,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/pair/:token", PairLive
+    end
+
+    # The exchange itself. A controller, not a LiveView, because signing in
+    # means writing the session cookie.
+    get "/pair/:token/complete", PairController, :complete
+
     # Susu (lay-away) buyer pages — public bare-code face + signed "My susu"
     # progress face, both served by ONE LiveView. Same apex-host posture as
     # pay links above (this scope is host: @apex_hosts).
@@ -497,6 +517,7 @@ defmodule EmakolaWeb.Router do
 
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
+      live "/admin/pair-phone", Admin.PairPhoneLive
       live "/admin/verification", Admin.VerificationLive
       live "/admin/payouts", Admin.PayoutLive
       live "/admin/earnings", Admin.EarningsLive
