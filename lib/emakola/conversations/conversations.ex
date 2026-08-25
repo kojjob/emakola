@@ -12,7 +12,7 @@ defmodule Emakola.Conversations do
 
   use Ash.Domain
 
-  alias Emakola.Conversations.{Message, Thread}
+  alias Emakola.Conversations.{Message, MessageNudgeWorker, Thread}
 
   resources do
     resource(Thread)
@@ -119,6 +119,7 @@ defmodule Emakola.Conversations do
       |> Ash.update(authorize?: false)
 
       Phoenix.PubSub.broadcast(Emakola.PubSub, topic(thread.id), {:new_message, message})
+      schedule_nudge(thread, author_kind)
 
       {:ok, message}
     end
@@ -229,4 +230,29 @@ defmodule Emakola.Conversations do
   defp unread?(inserted_at, since), do: DateTime.compare(inserted_at, since) == :gt
 
   defp topic(thread_id), do: "conversation:" <> thread_id
+
+  # Tell the OTHER side, later, and only if they still have not read it. The
+  # delay plus Oban uniqueness is what stops a free in-app conversation from
+  # billing the merchant for an SMS per message.
+  defp schedule_nudge(thread, author_kind) do
+    case other_side(thread, author_kind) do
+      nil ->
+        :ok
+
+      side ->
+        %{"thread_id" => thread.id, "side" => to_string(side)}
+        |> MessageNudgeWorker.new(schedule_in: MessageNudgeWorker.delay_seconds())
+        |> Oban.insert()
+
+        :ok
+    end
+  end
+
+  # Staff are never nudged — they work in the dashboard — so a merchant
+  # writing on a platform thread schedules nothing.
+  defp other_side(%Thread{kind: :platform_merchant}, :platform), do: :merchant
+  defp other_side(%Thread{kind: :platform_merchant}, _author), do: nil
+  defp other_side(%Thread{kind: :shop_buyer}, :merchant), do: :customer
+  defp other_side(%Thread{kind: :shop_buyer}, :customer), do: :merchant
+  defp other_side(_thread, _author), do: nil
 end

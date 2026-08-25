@@ -35,25 +35,25 @@ Makola ↔ merchants, over one shared thread/message core.
 - [x] **A2. ✅ Route existing notifications through it.** Order, shipping and
       delivery notifications currently branch on their own. One resolver, so
       a merchant with no email stops silently missing messages.
-- [ ] **A3. Phone-based account recovery.** The lockout fix.
+- [x] **A3. ✅ Phone-based account recovery.** The lockout fix.
       `Accounts.PhoneAuth` (OTP request/verify, E.164 normalisation) is
       already built and ship-dark behind `PHONE_AUTH_ENABLED`; wire it into
       the forgot-password flow so recovery does not require email.
 
 ## Phase B — In-house messaging core (shared by both directions)
 
-- [ ] **B1. Thread + Message resources.** One core: a thread has a subject,
+- [x] **B1. ✅ Thread + Message resources.** One core: a thread has a subject,
       a kind (`:shop_buyer` | `:platform_merchant`), participants, and
       messages. Store-scoped for shop threads.
-- [ ] **B2. Merchant ↔ buyer threads.** Attached to an order where one
+- [x] **B2. ✅ Merchant ↔ buyer threads.** Attached to an order where one
       exists, standalone otherwise. Buyer writes from the storefront account
       area; merchant replies from the admin.
-- [ ] **B3. Makola ↔ merchant support inbox.** Platform staff open a thread
+- [x] **B3. ✅ Makola ↔ merchant support inbox.** Platform staff open a thread
       with a merchant; merchant sees and replies in the admin. Extends
       Announcements from broadcast to conversation.
-- [ ] **B4. Unread counts + realtime.** PubSub per thread, unread badge in
+- [x] **B4. ✅ Unread counts + realtime.** PubSub per thread, unread badge in
       both admins. Streams, not assigns (a thread grows).
-- [ ] **B5. Notify only when needed.** A new in-app message notifies via the
+- [x] **B5. ✅ Notify only when needed.** A new in-app message notifies via the
       A1 resolver **only if unread after a delay** — otherwise every message
       costs an SMS and defeats the point.
 
@@ -90,4 +90,60 @@ Makola ↔ merchants, over one shared thread/message core.
   Reach's ordering would support whatsapp-first-with-sms-fallback, halving it,
   but WhatsApp can fail silently without an approved template, and then the
   buyer gets nothing. Behaviour deliberately left unchanged pending that call.
-- **Next: A3** (phone-based account recovery).
+- 2026-08-24 — **A3 done**: `Accounts.PhoneRecovery` + `/auth/recover-phone`,
+  linked from the email page ("No email? Use your phone number"). An unknown
+  number is indistinguishable from a known one (otherwise the form enumerates
+  merchants' phone numbers); a code is single-use; a reset revokes every
+  existing session. **Phase A complete.**
+- ⚠️ Test trap worth remembering: `PhoneAuth` rate-limits sends PER NUMBER, so
+  tests sharing one phone exhaust the window and a later test silently gets no
+  code — which reads as a broken feature, not a noisy test. Give each test its
+  own number.
+- 2026-08-24 — **B1 done**: `Emakola.Conversations` — Thread (both kinds) +
+  Message, 11 tests. Unread is two timestamps per thread, not a receipts table
+  (one row instead of one row per message per reader).
+- ⚠️ Postgres note: the thread uniques are PLAIN, not partial. A partial unique
+  index cannot be an `ON CONFLICT` target (42P10), which breaks the upsert that
+  makes `open_*_thread` idempotent. Plain works because Postgres treats NULLs
+  as distinct, so platform threads (NULL store/customer) and shop threads
+  (NULL merchant) each coexist while true duplicates are still refused.
+- 2026-08-24 — **B2 done**: `/admin/messages` (inbox + thread, opening marks
+  read) and storefront `/account/messages`. Cross-store isolation is tested:
+  another shop's thread id in the URL redirects, it does not render.
+- ⚠️ Storefront assigns `@store`; the admin assigns `@current_store`. Reaching
+  for the admin's name on a storefront LiveView silently yields nil and the
+  page renders empty rather than crashing.
+- The storefront messages page is on the theme-renderer `@exempt` list beside
+  `account_downloads_live.ex` — an account utility page, not a themed surface.
+- 2026-08-24 — **B4 done**: `unread_counts/2` returns the whole inbox in ONE
+  query (the per-thread `unread_count/2` was N queries in the list — invisible
+  at ten conversations, painful at a thousand). PubSub per thread; a reply
+  posted from the merchant's admin appears on the buyer's page with no
+  refresh, and is marked read on arrival if they are looking at it.
+  Sidebar gains Messages.
+- 2026-08-25 — **B3 done**: `/platform/messages` for staff, and the merchant
+  sees their Makola thread FIRST in their existing `/admin/messages` inbox
+  rather than learning a second place to look. A merchant can open their own
+  buyer threads or their own Makola thread and nothing else — both lookups
+  scope by something they own (the store, or their own id), never by the id
+  in the URL alone.
+- ⚠️ `setup_platform_staff/1` returns `{conn, user, session}`, not a map.
+- 2026-08-25 — **B5 done**: `MessageNudgeWorker`. Three guards keep in-house
+  messaging from costing more than it saves: a 10-minute delay, a re-check of
+  read state at RUN time (not post time), and Oban uniqueness per thread+side
+  so a burst is one nudge. Staff are never nudged — they work in the dashboard.
+- ⚠️ Oban uniqueness must list EVERY incomplete state. `[:available,
+  :scheduled]` alone lets a second nudge enqueue beside one that is executing
+  or retrying — two SMS about one conversation. The compiler warns; heed it.
+
+**PHASE A AND PHASE B COMPLETE.**
+
+## What is still not done
+
+- 🔴 The cost question from A2: every buyer order event sends BOTH WhatsApp
+  and SMS. Reach supports whatsapp-first-with-fallback, which halves it, but
+  WhatsApp fails silently without an approved template. Kojo's call.
+- 🔴 Nothing sends for real until `SMS_API_KEY` is set (Arkesel or Hubtel, not
+  Twilio — ~10x cheaper to Ghana, and the merchant pays it). Verify at the
+  PROVIDER's dashboard after setting it, never at the app's `{:ok, _}`.
+- The campaign engine and messaging are both live-dark for the same reason.
