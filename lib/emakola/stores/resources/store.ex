@@ -166,6 +166,21 @@ defmodule Emakola.Stores.Store do
       constraints(one_of: [:active, :suspended, :blocked, :archived])
     end
 
+    # What this row IS. `:shop` is a real store with a storefront; a
+    # `:affiliate_payout` row is a payout container for an affiliate who has
+    # no shop — it exists only because every payout rail here is keyed to a
+    # store id, and it must never appear anywhere a shop appears.
+    #
+    # Explicit rather than leaning on `active: false`: a merchant reopening
+    # their shop flips `active`, and a payout container must not become
+    # visible by accident.
+    attribute :kind, :atom do
+      allow_nil?(false)
+      default(:shop)
+      public?(true)
+      constraints(one_of: [:shop, :affiliate_payout])
+    end
+
     # Why the store is in its current non-active status. Surfaced to the
     # merchant on the lockout screen; nil when `:active`.
     attribute :status_reason, :string do
@@ -340,6 +355,17 @@ defmodule Emakola.Stores.Store do
       change(Emakola.Stores.Changes.EnsureUniqueSlug)
     end
 
+    # An affiliate's payout container — never a shop. Its own action rather
+    # than widening :create to accept `kind`, so a merchant-facing create can
+    # never mint one, deliberately or by a stray parameter.
+    create :create_payout_container do
+      accept([:name, :slug])
+
+      change(set_attribute(:kind, :affiliate_payout))
+      change(set_attribute(:active, false))
+      change(Emakola.Stores.Changes.EnsureUniqueSlug)
+    end
+
     update :update do
       accept([:name, :currency, :theme_config])
     end
@@ -386,7 +412,10 @@ defmodule Emakola.Stores.Store do
 
     read :list_by_slugs do
       argument(:slugs, {:array, :string}, allow_nil?: false)
-      filter(expr(active == true and status == :active and slug in ^arg(:slugs)))
+
+      filter(
+        expr(active == true and status == :active and kind == :shop and slug in ^arg(:slugs))
+      )
     end
 
     read :list_for_admin do
@@ -405,20 +434,20 @@ defmodule Emakola.Stores.Store do
     # ── Directory read actions ──
 
     read :list_active do
-      filter(expr(active == true and status == :active))
+      filter(expr(active == true and status == :active and kind == :shop))
       prepare(build(sort: [name: :asc]))
     end
 
     read :list_featured do
       argument(:limit, :integer, default: 8)
-      filter(expr(active == true and status == :active and featured == true))
+      filter(expr(active == true and status == :active and featured == true and kind == :shop))
       prepare(build(sort: [featured_rank: :asc_nils_last, view_count: :desc]))
       pagination(offset?: true, default_limit: 8, max_page_size: 50, required?: false)
     end
 
     read :list_recent do
       argument(:limit, :integer, default: 6)
-      filter(expr(active == true and status == :active))
+      filter(expr(active == true and status == :active and kind == :shop))
       prepare(build(sort: [inserted_at: :desc]))
     end
 
@@ -444,7 +473,7 @@ defmodule Emakola.Stores.Store do
       argument(:limit, :integer, default: 12)
       argument(:offset, :integer, default: 0)
 
-      filter(expr(active == true and status == :active))
+      filter(expr(active == true and status == :active and kind == :shop))
 
       filter(
         expr(
