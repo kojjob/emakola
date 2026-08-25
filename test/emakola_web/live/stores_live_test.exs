@@ -271,25 +271,7 @@ defmodule EmakolaWeb.StoresLiveTest do
       {:ok, _view, html} = live(conn, "/stores")
 
       assert html =~ "Just opened"
-    end
-
-    test "the most-visited rail stays hidden until there is traffic to rank", %{conn: conn} do
-      stores =
-        for i <- 1..6 do
-          Factory.create_store!(%{name: "Rail Shop #{i}", slug: "rail-shop-#{i}"})
-        end
-
-      {:ok, _view, html} = live(conn, "/stores")
-      # Six shops, nobody has visited any of them. Ranking them by traffic would
-      # be ranking them by nothing.
-      refute html =~ "Most visited this week"
-
-      for {store, i} <- Enum.with_index(stores) do
-        Emakola.Analytics.StoreVisits.record(store.id, "visitor-#{i}", %{})
-      end
-
-      {:ok, _view, html} = live(conn, "/stores")
-      assert html =~ "Most visited this week"
+      assert html =~ "Most visited"
     end
 
     test "the rails survive a search and come back when it is cleared", %{conn: conn} do

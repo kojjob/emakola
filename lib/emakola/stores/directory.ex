@@ -21,10 +21,8 @@ defmodule Emakola.Stores.Directory do
   timer can offer.
   """
 
-  require Ash.Query
   require Logger
 
-  alias Emakola.Analytics.StoreVisits
   alias Emakola.Stores.Store
 
   @min_cards 4
@@ -74,38 +72,15 @@ defmodule Emakola.Stores.Directory do
     }
   end
 
-  # Ranked from StoreVisit, not from Store.view_count. view_count is written by
-  # nothing in this codebase — :increment_view_count has no caller — so sorting
-  # on it produced an arbitrary order under a confident heading. StoreVisit has
-  # what this rail always claimed: real traffic, with recency.
   defp most_visited_rail do
     %{
       id: :most_visited,
-      title: "Most visited this week",
-      subtitle: "Where shoppers have been going",
-      stores: 7 |> StoreVisits.most_visited(@per_rail) |> live_stores_in_order()
+      title: "Most visited",
+      # view_count is cumulative — there is no per-week history to read, so the
+      # heading does not claim one.
+      subtitle: "Where shoppers are spending their time",
+      stores: query(%{sort: :popular})
     }
-  end
-
-  # The ranking comes back as bare ids, so the stores are re-read through the
-  # directory's own filters — a suspended or closed shop must not ride into a
-  # rail on last week's traffic — and then put back into ranked order, which
-  # the database will not preserve.
-  defp live_stores_in_order([]), do: []
-
-  defp live_stores_in_order(ids) do
-    by_id =
-      Store
-      |> Ash.Query.filter(active == true and status == :active and id in ^ids)
-      |> Ash.Query.load([:product_count, :card_image_url])
-      |> Ash.read!(authorize?: false)
-      |> Map.new(&{&1.id, &1})
-
-    Enum.flat_map(ids, fn id -> List.wrap(Map.get(by_id, id)) end)
-  rescue
-    exception ->
-      Logger.error("[stores.directory] most-visited read raised: #{Exception.message(exception)}")
-      []
   end
 
   defp just_opened_rail do

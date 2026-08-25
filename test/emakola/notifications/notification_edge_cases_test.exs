@@ -360,9 +360,10 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "order_placed triggers merchant SMS", %{order: order} do
-      # Stub all provider mocks — customer has phone so customer SMS/WhatsApp + merchant SMS fire
+      # ONE SMS, not two: the buyer is reached on WhatsApp, so only the
+      # merchant's own alert is bought.
       Emakola.SMSProviderMock
-      |> expect(:send_sms, 2, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
+      |> expect(:send_sms, 1, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn _to, _template, _params, _opts ->
@@ -377,8 +378,9 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "order_cancelled triggers merchant SMS", %{order: order} do
+      # ONE SMS, not two — see order_placed above.
       Emakola.SMSProviderMock
-      |> expect(:send_sms, 2, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
+      |> expect(:send_sms, 1, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn _to, _template, _params, _opts ->
@@ -393,9 +395,10 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "order_confirmed does NOT trigger merchant SMS", %{order: order} do
-      # order_confirmed: customer SMS + customer WhatsApp, but NO merchant SMS
+      # order_confirmed reaches the buyer on WhatsApp and tells the merchant
+      # nothing — so NO SMS at all is bought for this event.
       Emakola.SMSProviderMock
-      |> expect(:send_sms, 1, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
+      |> expect(:send_sms, 0, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn _to, _template, _params, _opts ->

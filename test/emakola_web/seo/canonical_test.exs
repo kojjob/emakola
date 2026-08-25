@@ -9,7 +9,7 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
   never from the request host — so every host that serves a page emits the same
   canonical, consolidating authority onto one indexed URL per store.
   """
-  use ExUnit.Case, async: false
+  use Emakola.DataCase, async: false
 
   alias EmakolaWeb.SEO.Canonical
 

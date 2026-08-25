@@ -214,6 +214,7 @@ defmodule EmakolaWeb.Router do
       live "/register", RegisterLive
       live "/whatsapp", WhatsAppLive
       live "/forgot-password", ForgotPasswordLive
+      live "/recover-phone", PhoneRecoveryLive
       live "/reset-password", ResetPasswordLive
     end
   end
@@ -367,6 +368,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
@@ -472,6 +474,8 @@ defmodule EmakolaWeb.Router do
       live "/platform/finance", Platform.FinanceLive
       live "/platform/payments", Platform.PaymentLive.Index
       live "/platform/refunds", Platform.RefundsLive
+      live "/platform/messages", Platform.MessageLive
+      live "/platform/messages/:id", Platform.MessageLive
       live "/platform/protection", Platform.ProtectionLive
       live "/platform/settings", Platform.SettingsLive
     end
@@ -546,6 +550,8 @@ defmodule EmakolaWeb.Router do
       live "/admin/design/sections", Admin.DesignSectionsLive
 
       # Marketing
+      live "/admin/messages", Admin.MessageLive
+      live "/admin/messages/:id", Admin.MessageLive
       live "/admin/campaigns", Admin.CampaignLive.Index
       # The placeholder discounts page is gone; Marketing.Coupon is the real
       # feature and /admin/coupons its page. Kept so bookmarks do not 404.
@@ -660,6 +666,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive

@@ -99,7 +99,8 @@ defmodule Emakola.Accounts.DevicePairings do
   @spec scan(binary(), binary()) :: {:ok, DevicePairing.t()} | {:error, atom()}
   def scan(token, device_description) when is_binary(token) do
     with {:ok, pairing} <- fetch(token),
-         :ok <- unexpired(pairing) do
+         :ok <- unexpired(pairing),
+         :ok <- require_pending(pairing) do
       pairing
       |> Ash.Changeset.for_update(:mark_scanned, %{scanned_by: truncate(device_description)})
       |> Ash.update(authorize?: false)
@@ -137,6 +138,33 @@ defmodule Emakola.Accounts.DevicePairings do
       |> Ash.update(authorize?: false)
       |> normalise()
     end
+  end
+
+  @doc """
+  Kills every code this merchant has in flight.
+
+  Called when a merchant signs out, and from
+  `Emakola.Accounts.revoke_all_sessions_for/1` — the path a password reset or a
+  suspected takeover takes. A confirmed-but-unredeemed code is a credential
+  someone is holding at that moment, so cutting sessions while leaving it live
+  would leave a way straight back in.
+
+  Deliberately covers `:confirmed` as well as `:pending` and `:scanned`. The
+  ninety-second window is short, but "short" is not the same as closed, and this
+  is the one moment we know the merchant wants access cut.
+  """
+  @spec revoke_pending(binary()) :: :ok
+  def revoke_pending(merchant_id) when is_binary(merchant_id) do
+    Emakola.Repo.update_all(
+      from(p in "device_pairings",
+        where:
+          p.merchant_id == type(^merchant_id, :binary_id) and
+            p.status in ["pending", "scanned", "confirmed"]
+      ),
+      set: [status: "rejected", updated_at: DateTime.utc_now()]
+    )
+
+    :ok
   end
 
   @doc """
@@ -228,6 +256,12 @@ defmodule Emakola.Accounts.DevicePairings do
   defp unexpired(%{expires_at: %NaiveDateTime{} = expires_at}) do
     unexpired(%{expires_at: DateTime.from_naive!(expires_at, "Etc/UTC")})
   end
+
+  # A code that has been revoked, consumed or already answered is not something
+  # a phone can walk back into. Without this, revoke_pending/1 would stop a
+  # redemption but still let a fresh phone raise a request against a dead code.
+  defp require_pending(%{status: status}) when status in [:pending, "pending"], do: :ok
+  defp require_pending(_pairing), do: {:error, :not_found}
 
   defp require_scanned(%{status: status}) when status in [:scanned, "scanned"], do: :ok
   defp require_scanned(_pairing), do: {:error, :not_scanned}

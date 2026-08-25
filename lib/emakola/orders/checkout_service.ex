@@ -126,6 +126,9 @@ defmodule Emakola.Orders.CheckoutService do
             customer_id: customer_id,
             notes: Keyword.get(opts, :notes),
             shipping_address: shipping_address,
+            # Custom (pay-link) orders used to drop attribution entirely, so a
+            # sale that a shared link produced credited nobody.
+            attribution: Keyword.get(opts, :attribution, %{}),
             pay_link_id: Keyword.get(opts, :pay_link_id)
           })
           |> Ash.create!(authorize?: false)

@@ -58,15 +58,15 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
   # ── order_confirmed ────────────────────────────────────────────
 
   describe "order_confirmed event" do
-    test "sends SMS and WhatsApp to customer" do
+    test "reaches the customer on WhatsApp alone — no SMS to pay for" do
       {order, customer, _store} = create_order_with_customer()
 
+      # WhatsApp-first: a delivered WhatsApp message means the merchant is
+      # never billed for an SMS saying the same thing.
       Emakola.SMSProviderMock
-      |> expect(:send_sms, fn to, message, _opts ->
-        assert to == customer.phone
-        assert message =~ "confirmed"
-        assert message =~ order.order_number
-        {:ok, %{provider: :mock, to: to, message: message}}
+      |> stub(:send_sms, fn to, _message, _opts ->
+        refute to == customer.phone, "customer was charged an SMS after WhatsApp succeeded"
+        {:ok, %{provider: :mock}}
       end)
 
       Emakola.WhatsAppProviderMock
@@ -84,18 +84,10 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
   # ── order_placed ───────────────────────────────────────────────
 
   describe "order_placed event" do
-    test "sends customer SMS/WhatsApp and merchant SMS" do
+    test "reaches the customer on WhatsApp, and still alerts the merchant by SMS" do
       {order, customer, _store} = create_order_with_customer()
 
-      # Customer SMS
-      Emakola.SMSProviderMock
-      |> expect(:send_sms, fn to, message, _opts ->
-        assert to == customer.phone
-        assert message =~ "placed"
-        {:ok, %{provider: :mock, to: to, message: message}}
-      end)
-
-      # Customer WhatsApp
+      # The buyer is reached on WhatsApp, so no buyer SMS is bought.
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn to, template, _params, _opts ->
         assert to == customer.phone
@@ -103,7 +95,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
         {:ok, %{provider: :mock, to: to, template: template}}
       end)
 
-      # Merchant SMS
+      # The merchant's own alert is unaffected — they have no WhatsApp route.
       Emakola.SMSProviderMock
       |> expect(:send_sms, fn to, message, _opts ->
         assert to == @merchant_phone
@@ -119,14 +111,13 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
   # ── order_shipped ──────────────────────────────────────────────
 
   describe "order_shipped event" do
-    test "sends SMS and WhatsApp to customer, no merchant SMS" do
+    test "reaches the customer on WhatsApp alone, and never the merchant" do
       {order, customer, _store} = create_order_with_customer()
 
       Emakola.SMSProviderMock
-      |> expect(:send_sms, 1, fn to, message, _opts ->
-        assert to == customer.phone
-        assert message =~ "shipped"
-        {:ok, %{provider: :mock, to: to, message: message}}
+      |> stub(:send_sms, fn to, _message, _opts ->
+        refute to == customer.phone, "customer was charged an SMS after WhatsApp succeeded"
+        {:ok, %{provider: :mock}}
       end)
 
       Emakola.WhatsAppProviderMock
@@ -332,22 +323,14 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
     test "can be called multiple times for the same order without error" do
       {order, _customer, _store} = create_order_with_customer()
 
-      # First call
-      Emakola.SMSProviderMock
-      |> expect(:send_sms, fn _to, _msg, _opts -> {:ok, %{}} end)
-
+      # WhatsApp succeeds on both runs, so no SMS is bought on either.
       Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn _to, _template, _params, _opts -> {:ok, %{}} end)
+      |> expect(:send_message, 2, fn _to, _template, _params, _opts -> {:ok, %{}} end)
+
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _msg, _opts -> {:ok, %{}} end)
 
       assert :ok == perform_job(order.id, "order_confirmed")
-
-      # Second call — same result
-      Emakola.SMSProviderMock
-      |> expect(:send_sms, fn _to, _msg, _opts -> {:ok, %{}} end)
-
-      Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn _to, _template, _params, _opts -> {:ok, %{}} end)
-
       assert :ok == perform_job(order.id, "order_confirmed")
     end
   end
