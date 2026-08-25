@@ -11,8 +11,6 @@ defmodule Emakola.Affiliates.PayoutStoreNeverLeaksTest do
   """
   use Emakola.DataCase, async: true
 
-  require Ash.Query
-
   alias Emakola.Affiliates
   alias Emakola.Stores.Store
 
@@ -51,7 +49,7 @@ defmodule Emakola.Affiliates.PayoutStoreNeverLeaksTest do
     refute ctx.payout_store_id in ids
   end
 
-  test "no read action returns it as a shop", ctx do
+  test "no read action returns it as a shop", _ctx do
     # A blunt sweep: whatever reads exist for listing shops, none may return a
     # payout container. Written as a sweep rather than one assertion per
     # action so a NEW listing action added later is covered by default.
