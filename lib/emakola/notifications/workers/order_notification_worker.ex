@@ -137,8 +137,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   # One place decides which channels can reach this buyer. Reach answers
   # phone-first (whatsapp → sms → email) and treats a blank contact detail as
   # absent, so no caller re-implements "do they have a phone" slightly
-  # differently. Both phone channels are still used where both are possible —
-  # see the note in Notifications.Reach about cost if that ever changes.
+  # differently.
   defp notify_customer(order, store, customer, event) do
     case customer && Reach.channels_for(customer, :transactional) do
       nil ->
@@ -151,18 +150,44 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
         )
 
       channels ->
-        Enum.each(channels, &deliver(&1, order, store, customer, event))
+        deliver_by_phone(channels, order, store, customer, event)
+
+        # Email is additive, not an alternative: it costs nothing and a buyer
+        # who has one may well read it first.
+        if :email in channels, do: send_customer_email(order, store, customer, event)
     end
   end
 
-  defp deliver(:sms, order, store, customer, event),
-    do: send_customer_sms(order, store, customer, event)
+  # WhatsApp first, SMS only if WhatsApp actually failed.
+  #
+  # Both used to send, so the merchant paid twice to say one thing. WhatsApp
+  # is cheaper and usually free to the buyer, and a real failure is visible —
+  # a rejected template or bad request comes back {:error, _} — so the
+  # fallback fires when it matters. This is the same shape Accounts.PhoneAuth
+  # has always used for login codes, where a missed delivery locks a merchant
+  # out of their shop.
+  #
+  # The residual risk is a number Meta accepts and then fails on
+  # asynchronously (a buyer not on WhatsApp): they get nothing rather than an
+  # SMS. Worth revisiting if buyers report missed notifications.
+  defp deliver_by_phone(channels, order, store, customer, event) do
+    cond do
+      :whatsapp in channels ->
+        case send_customer_whatsapp(order, store, customer, event) do
+          {:ok, _} ->
+            :ok
 
-  defp deliver(:whatsapp, order, store, customer, event),
-    do: send_customer_whatsapp(order, store, customer, event)
+          _failed ->
+            if :sms in channels, do: send_customer_sms(order, store, customer, event)
+        end
 
-  defp deliver(:email, order, store, customer, event),
-    do: send_customer_email(order, store, customer, event)
+      :sms in channels ->
+        send_customer_sms(order, store, customer, event)
+
+      true ->
+        :ok
+    end
+  end
 
   defp send_customer_sms(order, store, customer, event) do
     message = customer_sms_template(order, store, event)
@@ -171,10 +196,11 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   # No approved WhatsApp Business template exists for these events yet — SMS
   # only (the tracking link body doesn't fit a templated-params WhatsApp
-  # message anyway).
+  # message anyway). Returned as an explicit skip so deliver_by_phone/5 falls
+  # through to SMS on purpose rather than by mistaking :ok for a send.
   defp send_customer_whatsapp(_order, _store, _customer, event)
        when event in [:protection_held, :protection_delivery_nudge, :susu_completed] do
-    :ok
+    {:error, :no_template}
   end
 
   defp send_customer_whatsapp(order, store, customer, event) do
