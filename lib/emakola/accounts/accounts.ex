@@ -57,10 +57,13 @@ defmodule Emakola.Accounts do
   End every authenticated session for a merchant. Used after a password reset
   so the new password actually locks out anyone holding old credentials.
 
-  Two independent mechanisms have to be closed:
+  Three independent mechanisms have to be closed:
 
     * **Ash-issued tokens** (mobile API refresh tokens, magic links) are rows
       in the token table — revoke them.
+    * **Device pairings** are short-lived codes that mint a fresh session when
+      redeemed — revoke the ones in flight, or a confirmed code outlives the
+      revocation it was supposed to be caught by.
     * **Browser sessions** are signed `Phoenix.Token` subjects held in the
       cookie. Nothing server-side is consulted when one is presented, so they
       cannot be deleted; instead we move the merchant's `sessions_valid_from`
@@ -70,6 +73,12 @@ defmodule Emakola.Accounts do
   lifetime, which would make password reset useless against account takeover.
   """
   def revoke_all_sessions_for(merchant) do
+    # Device pairings are a third mechanism, and they outlive both of the above
+    # for their ninety seconds: a confirmed code is a credential someone is
+    # holding right now. Cutting sessions while leaving one live would leave a
+    # way straight back in.
+    Emakola.Accounts.DevicePairings.revoke_pending(merchant.id)
+
     subject = AshAuthentication.user_to_subject(merchant)
 
     Emakola.Accounts.Token
