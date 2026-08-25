@@ -62,6 +62,91 @@ defmodule Emakola.Accounts.StorePolicyTest do
     end
   end
 
+  describe "Store platform-only action policy" do
+    @moduledoc_note """
+    :update_directory_meta grants the featured flag, the manual rank and the
+    public "Verified" badge. :increment_view_count feeds the :popular sort, the
+    :list_featured order and the default featured tiebreak. Neither belongs to
+    the merchant, so both sit with the lifecycle actions behind forbid_if.
+    """
+
+    test "a merchant WITH store membership cannot feature their own shop" do
+      store = create_store!()
+      owner = create_merchant!()
+      _membership = create_store_membership!(owner, store, :owner)
+
+      result =
+        store
+        |> Ash.Changeset.for_update(:update_directory_meta, %{featured: true, featured_rank: 1})
+        |> Ash.update(actor: owner, authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "a merchant WITH store membership cannot grant themselves the verified badge" do
+      store = create_store!()
+      owner = create_merchant!()
+      _membership = create_store_membership!(owner, store, :owner)
+
+      result =
+        store
+        |> Ash.Changeset.for_update(:update_directory_meta, %{verified: true})
+        |> Ash.update(actor: owner, authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "a merchant WITH store membership cannot inflate their own view count" do
+      store = create_store!()
+      owner = create_merchant!()
+      _membership = create_store_membership!(owner, store, :owner)
+
+      result =
+        store
+        |> Ash.Changeset.for_update(:increment_view_count, %{})
+        |> Ash.update(actor: owner, authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "denies directory meta with nil actor" do
+      store = create_store!()
+
+      result =
+        store
+        |> Ash.Changeset.for_update(:update_directory_meta, %{featured: true})
+        |> Ash.update(authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "the staff path stays open — authorize?: false still works" do
+      store = create_store!()
+
+      assert {:ok, updated} =
+               store
+               |> Ash.Changeset.for_update(:update_directory_meta, %{
+                 featured: true,
+                 verified: true
+               })
+               |> Ash.update(authorize?: false)
+
+      assert updated.featured
+      assert updated.verified
+    end
+
+    test "storefront view counting still works via authorize?: false" do
+      store = create_store!()
+
+      assert {:ok, updated} =
+               store
+               |> Ash.Changeset.for_update(:increment_view_count, %{})
+               |> Ash.update(authorize?: false)
+
+      assert updated.view_count == store.view_count + 1
+    end
+  end
+
   describe "Store create policy" do
     defp create_attrs do
       n = System.unique_integer([:positive])
