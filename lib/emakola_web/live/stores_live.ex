@@ -10,6 +10,7 @@ defmodule EmakolaWeb.StoresLive do
 
   require Logger
 
+  alias Emakola.Stores.Directory
   alias Emakola.Stores.Store
   alias EmakolaWeb.Plugs.RecentlyViewedStores
   alias EmakolaWeb.SEO.Canonical
@@ -46,8 +47,8 @@ defmodule EmakolaWeb.StoresLive do
         stores_empty?: true,
         map_stores: [],
         total_active: count_active_stores(),
-        featured_stores: load_featured(),
-        recent_stores: load_recent(),
+        featured_stores: Directory.spotlight(load_featured(), Date.utc_today()),
+        rails: Directory.rails(),
         current_customer: customer,
         favorite_slugs: favorite_slugs,
         favorite_stores: load_stores_by_slug(favorite_slugs),
@@ -449,6 +450,7 @@ defmodule EmakolaWeb.StoresLive do
           >
             <StoresComponents.recent_strip
               stores={@favorite_stores}
+              id_prefix="saved"
               title="Your saved shops"
               subtitle="The places you want to visit again"
             />
@@ -460,13 +462,23 @@ defmodule EmakolaWeb.StoresLive do
           >
             <StoresComponents.recent_strip
               stores={@recently_viewed_stores}
+              id_prefix="viewed"
               title="Recently viewed"
               subtitle="Pick up where you left off"
             />
           </div>
 
-          <div :if={!filters_active?(assigns)} class="border-t border-slate-200 bg-white">
-            <StoresComponents.recent_strip stores={@recent_stores} />
+          <div
+            :for={rail <- @rails}
+            :if={!filters_active?(assigns)}
+            class="border-t border-slate-200 bg-white"
+          >
+            <StoresComponents.recent_strip
+              stores={rail.stores}
+              title={rail.title}
+              subtitle={rail.subtitle}
+              id_prefix={to_string(rail.id)}
+            />
           </div>
 
           <section id="stores-sell-cta" class="bg-[#f7f6f1] px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
@@ -627,18 +639,6 @@ defmodule EmakolaWeb.StoresLive do
   rescue
     exception ->
       Logger.error("[stores_live] load_featured stores raised: #{Exception.message(exception)}")
-      []
-  end
-
-  defp load_recent do
-    Store
-    |> Ash.Query.for_read(:list_recent, %{limit: 6})
-    |> Ash.Query.load([:card_image_url])
-    |> Ash.Query.limit(6)
-    |> Ash.read!(authorize?: false)
-  rescue
-    exception ->
-      Logger.error("[stores_live] load_recent stores raised: #{Exception.message(exception)}")
       []
   end
 

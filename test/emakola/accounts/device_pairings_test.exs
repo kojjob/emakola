@@ -192,6 +192,54 @@ defmodule Emakola.Accounts.DevicePairingsTest do
     end
   end
 
+  describe "revocation" do
+    test "signing out kills a code still waiting on screen", %{merchant: merchant} do
+      {:ok, token, _pairing} = DevicePairings.issue(merchant.id)
+
+      DevicePairings.revoke_pending(merchant.id)
+
+      # The merchant walked away from the desktop. A code still live on that
+      # screen must not sign anyone in afterwards.
+      assert {:error, _} = DevicePairings.scan(token, "An iPhone")
+    end
+
+    test "a code already confirmed is killed too", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "An iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+
+      DevicePairings.revoke_pending(merchant.id)
+
+      # This is the one that matters: confirmed but not yet redeemed is a
+      # credential someone is holding right now.
+      assert {:error, :not_confirmed} = DevicePairings.redeem(token)
+    end
+
+    test "revoking one merchant leaves another's codes alone", %{merchant: merchant} do
+      other = Emakola.Factory.create_merchant!()
+      {:ok, their_token, their_pairing} = DevicePairings.issue(other.id)
+      {:ok, _} = DevicePairings.scan(their_token, "An iPhone")
+      {:ok, _} = DevicePairings.confirm(their_pairing.id, other.id)
+
+      DevicePairings.revoke_pending(merchant.id)
+
+      assert {:ok, redeemed} = DevicePairings.redeem(their_token)
+      assert redeemed.id == other.id
+    end
+
+    test "cutting a merchant's sessions cuts their pairings with them", %{merchant: merchant} do
+      {:ok, token, pairing} = DevicePairings.issue(merchant.id)
+      {:ok, _} = DevicePairings.scan(token, "An iPhone")
+      {:ok, _} = DevicePairings.confirm(pairing.id, merchant.id)
+
+      # revoke_all_sessions_for/1 is what runs on a password reset or a
+      # suspected takeover. A pairing that survived it would be a way back in.
+      Emakola.Accounts.revoke_all_sessions_for(merchant)
+
+      assert {:error, :not_confirmed} = DevicePairings.redeem(token)
+    end
+  end
+
   defp expire!(pairing) do
     pairing
     |> Ash.Changeset.for_update(:confirm, %{})
