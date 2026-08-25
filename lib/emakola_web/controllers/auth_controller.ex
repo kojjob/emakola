@@ -44,9 +44,26 @@ defmodule EmakolaWeb.AuthController do
   end
 
   def sign_out(conn, _params) do
+    revoke_pairings_for_session(conn)
+
     conn
     |> configure_session(drop: true)
     |> redirect(to: "/auth/login")
+  end
+
+  # A merchant walking away from a desktop must not leave a live pairing code on
+  # it. Resolved from the session token rather than assigns: the browser
+  # pipeline never sets :current_merchant, so reading assigns here would have
+  # quietly done nothing on every real sign-out.
+  defp revoke_pairings_for_session(conn) do
+    with token when is_binary(token) <- get_session(conn, :user_token),
+         {:ok, subject} <- AuthTokens.verify_subject(token),
+         {:ok, %Emakola.Accounts.Merchant{id: id}} <-
+           AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
+      Emakola.Accounts.DevicePairings.revoke_pending(id)
+    else
+      _ -> :ok
+    end
   end
 
   defp customer_landing(nil), do: "/"
