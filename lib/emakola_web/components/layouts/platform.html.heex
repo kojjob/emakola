@@ -123,6 +123,14 @@
         icon="megaphone"
         active={@active_nav == :announcements}
       />
+      <%!-- Announcements broadcast at merchants; Messages is the reply. --%>
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_announcements)}
+        href="/platform/messages"
+        title="Messages"
+        icon="chat_bubble"
+        active={@active_nav == :messages}
+      />
       <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/merchants"
