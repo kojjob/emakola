@@ -469,6 +469,8 @@ defmodule EmakolaWeb.Router do
       live "/platform/finance", Platform.FinanceLive
       live "/platform/payments", Platform.PaymentLive.Index
       live "/platform/refunds", Platform.RefundsLive
+      live "/platform/messages", Platform.MessageLive
+      live "/platform/messages/:id", Platform.MessageLive
       live "/platform/protection", Platform.ProtectionLive
       live "/platform/settings", Platform.SettingsLive
     end

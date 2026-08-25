@@ -48,7 +48,7 @@ Makola ↔ merchants, over one shared thread/message core.
 - [x] **B2. ✅ Merchant ↔ buyer threads.** Attached to an order where one
       exists, standalone otherwise. Buyer writes from the storefront account
       area; merchant replies from the admin.
-- [ ] **B3. Makola ↔ merchant support inbox.** Platform staff open a thread
+- [x] **B3. ✅ Makola ↔ merchant support inbox.** Platform staff open a thread
       with a merchant; merchant sees and replies in the admin. Extends
       Announcements from broadcast to conversation.
 - [x] **B4. ✅ Unread counts + realtime.** PubSub per thread, unread badge in
@@ -121,4 +121,13 @@ Makola ↔ merchants, over one shared thread/message core.
   posted from the merchant's admin appears on the buyer's page with no
   refresh, and is marked read on arrival if they are looking at it.
   Sidebar gains Messages.
-- **Next: B3** (Makola ↔ merchant inbox), then B5.
+- 2026-08-25 — **B3 done**: `/platform/messages` for staff, and the merchant
+  sees their Makola thread FIRST in their existing `/admin/messages` inbox
+  rather than learning a second place to look. A merchant can open their own
+  buyer threads or their own Makola thread and nothing else — both lookups
+  scope by something they own (the store, or their own id), never by the id
+  in the URL alone.
+- ⚠️ `setup_platform_staff/1` returns `{conn, user, session}`, not a map.
+- **Next: B5** (notify only if unread) — the last item, and the one with a
+  cost consequence: too eager and every message costs an SMS, too slow and
+  merchants miss messages.

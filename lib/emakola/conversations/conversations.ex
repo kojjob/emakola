@@ -44,6 +44,47 @@ defmodule Emakola.Conversations do
     end
   end
 
+  @doc "Every Makola ↔ merchant thread, most recently active first."
+  def list_platform_threads do
+    with {:ok, threads} <-
+           Thread
+           |> Ash.Query.for_read(:all_platform, %{})
+           |> Ash.read(authorize?: false) do
+      {:ok, Ash.load!(threads, [:merchant], authorize?: false)}
+    end
+  end
+
+  @doc """
+  A merchant's own Makola thread, or nil.
+
+  Returns nil rather than creating one: a merchant who has never been
+  written to should see no support conversation at all, not an empty one.
+  """
+  def platform_thread_for(merchant_id) when is_binary(merchant_id) do
+    Thread
+    |> Ash.Query.for_read(:platform_for_merchant, %{merchant_id: merchant_id})
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, thread} -> thread
+      _ -> nil
+    end
+  end
+
+  @doc """
+  A platform thread by id — staff-only, so no scoping argument.
+
+  Merchants never reach this: their own thread is found by merchant_id.
+  """
+  def get_platform_thread(thread_id) when is_binary(thread_id) do
+    case Ash.get(Thread, thread_id, authorize?: false) do
+      {:ok, %Thread{kind: :platform_merchant} = thread} ->
+        {:ok, Ash.load!(thread, [:merchant], authorize?: false)}
+
+      _ ->
+        {:error, :not_found}
+    end
+  end
+
   @doc "The last thing said in a thread, for an inbox preview."
   def last_message(thread_id) when is_binary(thread_id) do
     case list_messages(thread_id) do

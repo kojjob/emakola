@@ -36,17 +36,40 @@ defmodule EmakolaWeb.Admin.MessageLive do
     # One query for every badge, rather than one per row.
     counts = Conversations.unread_counts(store.id, :merchant)
 
+    rows =
+      Enum.map(threads, fn thread ->
+        %{
+          thread: thread,
+          name: buyer_name(thread),
+          last: Conversations.last_message(thread.id),
+          unread: Map.get(counts, thread.id, 0)
+        }
+      end)
+
+    # Makola's own thread rides in the same inbox, first — a merchant should
+    # not have to learn a second place to find messages.
+    rows = platform_row(socket) ++ rows
+
     assign(socket,
-      unread_total: counts |> Map.values() |> Enum.sum(),
-      threads:
-        Enum.map(threads, fn thread ->
-          %{
-            thread: thread,
-            last: Conversations.last_message(thread.id),
-            unread: Map.get(counts, thread.id, 0)
-          }
-        end)
+      unread_total: Enum.sum(Enum.map(rows, & &1.unread)),
+      threads: rows
     )
+  end
+
+  defp platform_row(socket) do
+    with %{id: merchant_id} <- socket.assigns[:current_merchant],
+         %{} = thread <- Conversations.platform_thread_for(merchant_id) do
+      [
+        %{
+          thread: thread,
+          name: "Makola",
+          last: Conversations.last_message(thread.id),
+          unread: Conversations.unread_count(thread.id, :merchant)
+        }
+      ]
+    else
+      _ -> []
+    end
   end
 
   defp load_thread(socket, nil, _store) do
@@ -54,7 +77,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
   end
 
   defp load_thread(socket, thread_id, store) do
-    case Conversations.get_shop_thread(store.id, thread_id) do
+    case resolve_thread(socket, store, thread_id) do
       {:ok, thread} ->
         if connected?(socket), do: Conversations.subscribe(thread.id)
 
@@ -137,7 +160,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         <%!-- Inbox --%>
         <div class="space-y-2">
           <.link
-            :for={%{thread: thread, last: last, unread: unread} <- @threads}
+            :for={%{thread: thread, name: name, last: last, unread: unread} <- @threads}
             navigate={~p"/admin/messages/#{thread.id}"}
             class={[
               "block rounded-card border p-4 transition-colors",
@@ -148,7 +171,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
             ]}
           >
             <div class="flex items-center justify-between gap-2">
-              <p class="font-semibold text-slate-900 truncate">{buyer_name(thread)}</p>
+              <p class="font-semibold text-slate-900 truncate">{name}</p>
               <span
                 :if={unread > 0}
                 class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
@@ -163,7 +186,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         <%!-- Thread --%>
         <div :if={@thread} class="bg-white border border-border rounded-card flex flex-col">
           <div class="px-5 py-4 border-b border-border">
-            <p class="font-semibold text-slate-900">{buyer_name(@thread)}</p>
+            <p class="font-semibold text-slate-900">{thread_name(@thread)}</p>
           </div>
 
           <div id="messages" class="flex-1 p-5 space-y-3 max-h-[60vh] overflow-y-auto">
@@ -206,6 +229,25 @@ defmodule EmakolaWeb.Admin.MessageLive do
     </div>
     """
   end
+
+  # A merchant may open their own buyer threads or their own Makola thread,
+  # and nothing else. Both lookups are scoped by something the merchant owns
+  # — the store, or their own id — never by the id in the URL alone.
+  defp resolve_thread(socket, store, thread_id) do
+    case Conversations.get_shop_thread(store.id, thread_id) do
+      {:ok, thread} ->
+        {:ok, thread}
+
+      {:error, :not_found} ->
+        merchant = socket.assigns[:current_merchant]
+        own = merchant && Conversations.platform_thread_for(merchant.id)
+
+        if own && own.id == thread_id, do: {:ok, own}, else: {:error, :not_found}
+    end
+  end
+
+  defp thread_name(%{kind: :platform_merchant}), do: "Makola"
+  defp thread_name(thread), do: buyer_name(thread)
 
   defp buyer_name(%{customer: %{name: name}}) when is_binary(name) and name != "", do: name
   defp buyer_name(_thread), do: "Buyer"

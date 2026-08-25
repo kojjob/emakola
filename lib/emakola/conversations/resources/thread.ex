@@ -129,6 +129,19 @@ defmodule Emakola.Conversations.Thread do
       change(set_attribute(:counterpart_last_read_at, &DateTime.utc_now/0))
     end
 
+    read :all_platform do
+      filter(expr(kind == :platform_merchant))
+      prepare(build(sort: [last_message_at: :desc_nils_last]))
+    end
+
+    read :platform_for_merchant do
+      argument :merchant_id, :uuid do
+        allow_nil?(false)
+      end
+
+      filter(expr(merchant_id == ^arg(:merchant_id) and kind == :platform_merchant))
+    end
+
     read :for_store do
       argument :store_id, :uuid do
         allow_nil?(false)
