@@ -113,6 +113,29 @@ defmodule Emakola.Analytics.StoreVisits do
     |> Map.new(fn {source, count} -> {String.to_existing_atom(source), count} end)
   end
 
+  @doc """
+  Store ids ranked by distinct people over the last `days`, busiest first.
+
+  Ranks on visitors rather than page views for the same reason `visitors/2`
+  exists: one person refreshing a page all afternoon is one interested person,
+  and letting that outrank three separate shoppers would put the wrong shop at
+  the top of the directory.
+
+  Returns ids, not stores — the caller loads them through the directory's own
+  read action so the live/active filters and the tenant rules still apply.
+  """
+  @spec most_visited(non_neg_integer(), pos_integer()) :: [binary()]
+  def most_visited(days, limit) do
+    from(v in "store_visits",
+      where: v.occurred_at >= ^since(days),
+      group_by: v.store_id,
+      order_by: [desc: count(fragment("distinct ?", v.visitor_hash))],
+      limit: ^limit,
+      select: type(v.store_id, :binary_id)
+    )
+    |> Emakola.Repo.all()
+  end
+
   # -- internals --------------------------------------------------------------
 
   defp since(days), do: DateTime.add(DateTime.utc_now(), -days * 86_400, :second)

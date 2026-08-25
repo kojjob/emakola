@@ -9,6 +9,8 @@ defmodule Emakola.Analytics.StoreVisitsTest do
   """
   use Emakola.DataCase, async: true
 
+  import Emakola.Factory
+
   alias Emakola.Analytics.StoreVisits
 
   setup do
@@ -138,4 +140,39 @@ defmodule Emakola.Analytics.StoreVisitsTest do
   end
 
   import Ecto.Query, only: [from: 2]
+
+  describe "most_visited/2" do
+    test "ranks stores by distinct people, not page views" do
+      [busy, popular] = [create_store!(), create_store!()]
+
+      # One obsessive visitor on `busy`: five page views, one person.
+      for _ <- 1..5, do: StoreVisits.record(busy.id, "one-session", %{})
+      # Three different people on `popular`: three page views, three people.
+      for n <- 1..3, do: StoreVisits.record(popular.id, "session-#{n}", %{})
+
+      assert [first | _] = StoreVisits.most_visited(7, 10)
+      assert first == popular.id
+    end
+
+    test "ignores visits outside the window" do
+      store = create_store!()
+      StoreVisits.record(store.id, "recent", %{})
+
+      assert store.id in StoreVisits.most_visited(7, 10)
+      refute store.id in StoreVisits.most_visited(0, 10)
+    end
+
+    test "honours the limit" do
+      for n <- 1..4 do
+        store = create_store!()
+        StoreVisits.record(store.id, "s-#{n}", %{})
+      end
+
+      assert length(StoreVisits.most_visited(7, 2)) == 2
+    end
+
+    test "a marketplace with no traffic ranks nobody" do
+      assert StoreVisits.most_visited(7, 10) == []
+    end
+  end
 end
