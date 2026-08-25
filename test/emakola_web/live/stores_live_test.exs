@@ -251,4 +251,51 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, "#featured-stores .hero-star-solid")
     end
   end
+
+  describe "browse rails" do
+    test "an all-but-empty directory shows no rail headings at all", %{conn: conn} do
+      Factory.create_store!(%{name: "Lonely Shop", slug: "lonely-shop"})
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      # One shop cannot fill a rail, and a heading over one card reads as broken.
+      refute html =~ "Just opened"
+      refute html =~ "Most visited"
+    end
+
+    test "rails appear once there are enough shops to fill one", %{conn: conn} do
+      for i <- 1..6 do
+        Factory.create_store!(%{name: "Rail Shop #{i}", slug: "rail-shop-#{i}"})
+      end
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "Just opened"
+      assert html =~ "Most visited"
+    end
+
+    test "the rails survive a search and come back when it is cleared", %{conn: conn} do
+      for i <- 1..6 do
+        Factory.create_store!(%{name: "Rail Shop #{i}", slug: "rail-shop-#{i}"})
+      end
+
+      {:ok, view, html} = live(conn, "/stores")
+      assert html =~ "Just opened"
+
+      filtered =
+        view
+        |> element("#stores-search-form")
+        |> render_change(%{"value" => "Rail Shop 1"})
+
+      # Browsing rails step aside for results while a filter is active.
+      refute filtered =~ "Just opened"
+
+      cleared =
+        view
+        |> element("#stores-search-form")
+        |> render_change(%{"value" => ""})
+
+      assert cleared =~ "Just opened"
+    end
+  end
 end
