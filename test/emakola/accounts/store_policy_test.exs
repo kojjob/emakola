@@ -63,12 +63,11 @@ defmodule Emakola.Accounts.StorePolicyTest do
   end
 
   describe "Store platform-only action policy" do
-    @moduledoc_note """
-    :update_directory_meta grants the featured flag, the manual rank and the
-    public "Verified" badge. :increment_view_count feeds the :popular sort, the
-    :list_featured order and the default featured tiebreak. Neither belongs to
-    the merchant, so both sit with the lifecycle actions behind forbid_if.
-    """
+    # :update_directory_meta grants the featured flag, the manual rank and the
+    # public "Verified" badge. :increment_view_count feeds the :popular sort,
+    # the :list_featured order and the default featured tiebreak. Neither
+    # belongs to the merchant, so both sit with the lifecycle actions behind
+    # forbid_if.
 
     test "a merchant WITH store membership cannot feature their own shop" do
       store = create_store!()
