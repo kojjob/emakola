@@ -19,6 +19,8 @@ defmodule Emakola.Stores.DomainResolver do
   represented as `{:ok, :none}` internally and unwrapped at the boundary.
   """
 
+  require Logger
+
   alias Emakola.Cache.StoreCache
   alias Emakola.Stores
 
@@ -51,7 +53,12 @@ defmodule Emakola.Stores.DomainResolver do
         {:ok, resolved}
 
       :miss ->
-        case load_host(host) do
+        case safely(fn -> load_host(host) end) do
+          # A read that could not happen is not an answer — caching it would
+          # pin the wrong result for the whole TTL after one blip.
+          :unavailable ->
+            :none
+
           :none ->
             StoreCache.put(@cache, key, :none, ttl: @miss_ttl)
             :none
@@ -81,7 +88,10 @@ defmodule Emakola.Stores.DomainResolver do
         host
 
       :miss ->
-        case load_primary_host(slug) do
+        case safely(fn -> load_primary_host(slug) end) do
+          :unavailable ->
+            nil
+
           :none ->
             StoreCache.put(@cache, key, :none, ttl: @miss_ttl)
             nil
@@ -111,7 +121,8 @@ defmodule Emakola.Stores.DomainResolver do
   def warm_slug(nil), do: :ok
 
   def warm_slug(slug) do
-    case load_primary_host(slug) do
+    case safely(fn -> load_primary_host(slug) end) do
+      :unavailable -> :ok
       :none -> StoreCache.put(@cache, primary_key(slug), :none, ttl: @miss_ttl)
       host -> StoreCache.put(@cache, primary_key(slug), host, ttl: @host_ttl)
     end
@@ -145,6 +156,22 @@ defmodule Emakola.Stores.DomainResolver do
       {:ok, %{host: host}} -> host
       _ -> :none
     end
+  end
+
+  # Canonical URLs are rendered on every page, including from callers with no
+  # database of their own. Resolving a custom domain turned that into a query,
+  # so an unreachable database must degrade to the platform URL rather than
+  # take the page down with it.
+  defp safely(fun) do
+    fun.()
+  rescue
+    error ->
+      Logger.debug("[domain_resolver] read failed: #{inspect(error)}")
+      :unavailable
+  catch
+    :exit, reason ->
+      Logger.debug("[domain_resolver] read unavailable: #{inspect(reason)}")
+      :unavailable
   end
 
   defp host_key(host), do: "domain_host:" <> host
