@@ -6,6 +6,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  alias EmakolaWeb.BrandComponents
   alias Emakola.Suppliers.Offers
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
@@ -143,7 +144,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
         </.link>
       </.admin_page_header>
 
-      <div :if={@loading} class="py-16 text-center text-sm text-slate-400">Loading…</div>
+      <BrandComponents.brand_loader :if={@loading} label="Loading offers" />
 
       <div
         :if={!@loading and @offers == []}

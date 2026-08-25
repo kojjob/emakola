@@ -98,4 +98,37 @@ defmodule EmakolaWeb.BrandComponentsTest do
       assert html =~ "logo-reveal"
     end
   end
+
+  describe "brand_loader/1" do
+    test "puts the mark in its loading state above a label" do
+      html = render_component(&BrandComponents.brand_loader/1, label: "Checking invite")
+
+      assert html =~ "logo-loading"
+      assert html =~ "Checking invite"
+    end
+
+    test "announces itself to a screen reader without the mark speaking twice" do
+      html = render_component(&BrandComponents.brand_loader/1, [])
+
+      assert html =~ ~s(role="status")
+      assert html =~ ~s(aria-live="polite")
+      # The label carries the text; the mark stays decorative.
+      assert html =~ ~s(aria-hidden="true")
+    end
+
+    test "labels itself when not told otherwise" do
+      assert render_component(&BrandComponents.brand_loader/1, []) =~ "Loading"
+    end
+
+    test "passes tone and size through to the mark" do
+      html = render_component(&BrandComponents.brand_loader/1, tone: "reversed", size: 72)
+
+      assert html =~ "#f1f5f9"
+      assert html =~ ~s(width="72")
+    end
+
+    test "extra classes survive" do
+      assert render_component(&BrandComponents.brand_loader/1, class: "py-24") =~ "py-24"
+    end
+  end
 end
