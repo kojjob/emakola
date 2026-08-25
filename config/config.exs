@@ -128,6 +128,7 @@ config :emakola,
     Emakola.Fulfillment,
     Emakola.Security,
     Emakola.AI,
+    Emakola.Conversations,
     Emakola.Affiliates
   ]
 

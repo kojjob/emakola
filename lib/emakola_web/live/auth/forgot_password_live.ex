@@ -89,6 +89,10 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
 
           <p class="mt-6 text-center text-sm text-[#5f6b7a]">
             Remembered it?
+            <a href="/auth/recover-phone" class="font-medium text-[#2563eb] hover:underline">
+              No email? Use your phone number
+            </a>
+            <span class="mx-2 text-slate-300">·</span>
             <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">Back to login</a>
           </p>
         </div>

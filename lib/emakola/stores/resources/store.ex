@@ -329,12 +329,29 @@ defmodule Emakola.Stores.Store do
       authorize_if(always())
     end
 
-    # Platform lifecycle actions are platform-only — callable solely via
-    # `authorize?: false` from the platform admin (gated there by
-    # :manage_stores). Forbidding every actor here means a suspended merchant
-    # can't un-suspend themselves by calling :reactivate (etc.) directly, even
-    # though the general update policy below would otherwise admit them.
-    policy action([:suspend, :block, :archive, :reactivate]) do
+    # Platform-only actions — callable solely via `authorize?: false` from the
+    # platform admin (gated there by :manage_stores) or from storefront system
+    # code. Forbidding every actor here means a suspended merchant can't
+    # un-suspend themselves by calling :reactivate (etc.) directly, even though
+    # the general update policy below would otherwise admit them.
+    #
+    # The same reasoning covers two actions that are not lifecycle:
+    #
+    #   :update_directory_meta grants :featured, :featured_rank and the public
+    #   :verified badge. A merchant awarding themselves a trust badge shoppers
+    #   rely on is the exact shape of thing this block exists to stop.
+    #
+    #   :increment_view_count looks harmless but :view_count is the tiebreak on
+    #   the default featured sort, the whole :popular sort and the :list_featured
+    #   order — so a merchant able to call it can climb the directory at will.
+    policy action([
+             :suspend,
+             :block,
+             :archive,
+             :reactivate,
+             :update_directory_meta,
+             :increment_view_count
+           ]) do
       forbid_if(always())
     end
 
