@@ -421,9 +421,13 @@ defmodule EmakolaWeb.Router do
     # credential, it is single-use, and it is worthless until the merchant
     # confirms on their already-authenticated desktop. Apex-host scoped like the
     # other code-bearing pages, so no store subdomain can shadow it.
+    # No layout, matching the auth routes above: this is a full-page sign-in
+    # screen, not a shop page. It previously borrowed the storefront layout from
+    # the pay-link block next door, which put a "Shop" header and a row of
+    # payment logos around a page whose only job is to sign a phone in.
+    # NoIndex because the URL carries a credential.
     live_session :device_pairing,
-      layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
       live "/pair/:token", PairLive
     end
 
@@ -454,6 +458,7 @@ defmodule EmakolaWeb.Router do
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
+      live "/platform/domains", Platform.DomainLive.Index
       live "/platform/stores/:id", Platform.StoreLive.Show
       live "/platform/merchants", Platform.MerchantLive.Index
       live "/platform/verifications", Platform.VerificationLive.Index
@@ -527,6 +532,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/earnings", Admin.EarningsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
       live "/admin/settings/address", Admin.StoreAddressLive
+      live "/admin/settings/domain", Admin.StoreDomainLive
 
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
@@ -665,6 +671,57 @@ defmodule EmakolaWeb.Router do
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
       live "/p/:page_slug", PageLive
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Short store URLs: makola.io/yourshop
+  #
+  # Declared LAST, on purpose. Phoenix takes the first matching route, so every
+  # apex page above wins — makola.io/pricing is the pricing page, and no store
+  # slug can ever shadow it. The hazard runs the other way (a store slugged
+  # `pricing` being unreachable here), and `EmakolaWeb.ReservedStoreSlugs`
+  # closes that at slug-generation time, deriving the reserved list from THIS
+  # router so it cannot rot.
+  #
+  # Host-locked to the apex: branded hosts (store subdomains and merchant custom
+  # domains) already serve the storefront at root via :storefront_root, where the
+  # slug is not in the path at all.
+  #
+  # The older /s/:store_slug routes above still serve, so links shared before
+  # this existed keep working.
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through :browser
+
+    live_session :storefront_short,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :short},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/:store_slug", StoreLive
+      live "/:store_slug/products", ProductListLive
+      live "/:store_slug/products/:product_slug", ProductDetailLive
+      live "/:store_slug/cart", CartLive
+      live "/:store_slug/checkout", CheckoutLive
+      live "/:store_slug/orders/:order_number/confirmation", OrderConfirmationLive
+      live "/:store_slug/category/:category_slug", CategoryLive
+      live "/:store_slug/about", AboutLive
+      live "/:store_slug/contact", ContactLive
+      live "/:store_slug/faq", FaqLive
+      live "/:store_slug/policies", PoliciesLive
+      live "/:store_slug/blog", BlogListLive
+      live "/:store_slug/blog/:post_slug", BlogPostLive
+      live "/:store_slug/recipes", RecipeListLive
+      live "/:store_slug/recipes/:recipe_slug", RecipeLive
+      live "/:store_slug/account", AccountLive
+      live "/:store_slug/account/downloads", AccountDownloadsLive
+      live "/:store_slug/saved-stores", SavedStoresLive
+      live "/:store_slug/wishlist", WishlistLive
+      live "/:store_slug/track/:order_number", TrackingLive
+      live "/:store_slug/p/:page_slug", PageLive
     end
   end
 

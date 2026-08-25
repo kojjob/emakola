@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    .lbl { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab; }
+    .dont { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; box-sizing: border-box; }
+    .dont p { margin: 0; font-size: 12px; line-height: 1.45; color: #64748b; text-align: center; }
+    .x { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: .1em; }
+  </style>
+</helmet>
+
+<div style="width: 1200px; background: #ffffff; color: #0f172a; padding: 44px 48px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 32px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span class="lbl">Using the mark</span>
+      <h1 style="margin: 0; font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em;">Rules that keep it recognisable</h1>
+    </div>
+    <p style="max-width: 400px; margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; text-align: right;">A mark that changes shape every time it appears has to be re-learned every time. For an audience that recognises the picture before the word, consistency is not fussiness — it is the whole mechanism.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px;">
+
+    <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px; display: flex; flex-direction: column; gap: 16px;">
+      <span class="lbl">Clear space = the height of the counter bar</span>
+      <div style="background: #f8fafc; border-radius: 12px; padding: 36px; display: flex; align-items: center; justify-content: center;">
+        <div style="position: relative; padding: 22px; border: 1.5px dashed #d4a843; border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <svg viewBox="0 0 64 64" width="58" height="58" aria-hidden="true">
+              <path d="M32 7 L59 23 H5 Z" fill="#0c1526"/>
+          <path d="M5 23 H59 V29 A4.5 4.5 0 0 1 50 29 A4.5 4.5 0 0 1 41 29 A4.5 4.5 0 0 1 32 29 A4.5 4.5 0 0 1 23 29 A4.5 4.5 0 0 1 14 29 A4.5 4.5 0 0 1 5 29 Z" fill="#d4a843"/>
+          <rect x="10" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="49" y="29" width="5" height="15" rx="1.5" fill="#0c1526"/>
+          <rect x="6" y="43" width="52" height="6" rx="3" fill="#d4a843"/>
+          <path d="M11 49 H53 V57 A3 3 0 0 1 50 60 H14 A3 3 0 0 1 11 57 Z" fill="#0c1526"/>
+            </svg>
+            <span style="font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.03em; color: #0c1526; line-height: 1;">Makola<span style="color: #b98a1f;">.io</span></span>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #475569;">Nothing enters the dashed box — not a nav item, not a photo edge, not another logo. Measure it off the counter bar so it scales with the mark instead of being a fixed pixel number.</p>
+    </div>
+
+    <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px; display: flex; flex-direction: column; gap: 16px;">
+      <span class="lbl">Smallest it may go</span>
+      <div style="background: #f8fafc; border-radius: 12px; padding: 26px; display: flex; align-items: flex-end; justify-content: space-around;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">
+              <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+            </svg>
+            <span style="font-size: 16px; font-weight: 800; font-stretch: 114%; letter-spacing: -0.02em; color: #0c1526;">Makola<span style="color: #b98a1f;">.io</span></span>
+          </div>
+          <span style="font-size: 11px; color: #94a3b8;">Full lockup · 120&nbsp;px wide</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
+            <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+          </svg>
+          <span style="font-size: 11px; color: #94a3b8;">Mark alone · 24&nbsp;px</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="width: 16px; height: 16px; border-radius: 4px; background: #0c1526; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 64 64" width="12" height="12" aria-hidden="true">
+              <path d="M32 8 L60 26 H4 Z" fill="#f1f5f9"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+            </svg>
+          </div>
+          <span style="font-size: 11px; color: #94a3b8;">Favicon · 16&nbsp;px</span>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #475569;">Below 24&nbsp;px the scalloped hem fills in. Use the simplified favicon cut — one canopy, one bar, no shadow — never a shrunk copy of the full mark.</p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px;">
+
+    <div class="dont">
+      <div style="background: #f8fafc; border-radius: 8px; width: 100%; height: 92px; display: flex; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 64 64" width="88" height="46" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+        </svg>
+      </div>
+      <span class="x">✕ Never</span>
+      <p>Stretch or squash it. Scale both sides together.</p>
+    </div>
+
+    <div class="dont">
+      <div style="background: #f8fafc; border-radius: 8px; width: 100%; height: 92px; display: flex; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+          <path d="M32 8 L60 26 H4 Z" fill="#dd2a7b"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#8134af"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#8134af"/>
+        </svg>
+      </div>
+      <span class="x">✕ Never</span>
+      <p>Recolour it. Gold and ink, or one flat colour.</p>
+    </div>
+
+    <div class="dont">
+      <div style="border-radius: 8px; width: 100%; height: 92px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #8896ab 0%, #cbd5e1 45%, #64748b 100%);">
+        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+          <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+        </svg>
+      </div>
+      <span class="x">✕ Never</span>
+      <p>Drop it onto a busy photo. Add an ink scrim first.</p>
+    </div>
+
+    <div class="dont">
+      <div style="background: #f8fafc; border-radius: 8px; width: 100%; height: 92px; display: flex; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 64 64" width="52" height="52" style="transform: rotate(-14deg); filter: drop-shadow(0 6px 6px rgba(12,21,38,.45));" aria-hidden="true">
+          <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+            <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+            <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+        </svg>
+      </div>
+      <span class="x">✕ Never</span>
+      <p>Rotate it or add a shadow, bevel or glow.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

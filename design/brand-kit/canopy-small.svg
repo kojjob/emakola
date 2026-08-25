@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32" role="img" aria-label="Makola.io mark, small cut">
+  <path d="M32 8 L60 26 H4 Z" fill="#0c1526"/>
+  <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+  <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+</svg>

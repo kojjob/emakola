@@ -17,6 +17,10 @@ async function loginAsMerchant(page: Page) {
   await page.locator("input[name='user[password]']").fill(MERCHANT.password);
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
+  // waitForURL only proves the dead render arrived. The topbar dropdown is
+  // driven by JS.toggle, so a click before the socket joins is swallowed and
+  // the sign-out link never appears — the whole reason this helper exists.
+  await waitForLiveView(page);
 }
 
 test.describe("Merchant session", () => {

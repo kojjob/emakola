@@ -48,6 +48,43 @@ defmodule EmakolaWeb.PairPhoneTest do
       assert has_element?(view, "#pair-confirm-yes")
     end
 
+    # Found by leaving the page open, not by any assertion: the countdown used
+    # to overwrite whatever stage it landed on when it hit zero.
+    test "the countdown does not overwrite a pending request", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/pair-phone")
+
+      send(view.pid, {:scanned, "An iPhone"})
+      render(view)
+
+      send(view.pid, :tick)
+      html = render(view)
+
+      # The merchant is mid-decision. Expiring here silently discards a real
+      # phone's request and leaves the two screens disagreeing.
+      assert html =~ "A phone wants to sign in"
+    end
+
+    test "the countdown does not undo a completed pairing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/pair-phone")
+
+      # Scan the page's OWN code, so the row really is :scanned and confirm has
+      # something to approve. Pushing {:scanned, …} at the view only moves the
+      # display, which is what made the first draft of this test lie to me.
+      token = :sys.get_state(view.pid).socket.assigns.pairing_code.token
+      {:ok, _} = DevicePairings.scan(token, "An iPhone")
+      send(view.pid, {:scanned, "An iPhone"})
+      render(view)
+
+      view |> element("#pair-confirm-yes") |> render_click()
+      assert has_element?(view, "#pair-done")
+
+      # 90 seconds later. The phone is signed in and stays signed in, so a page
+      # announcing "that code ran out" would simply be lying.
+      send(view.pid, :tick)
+      refute has_element?(view, "#pair-expired")
+      assert has_element?(view, "#pair-done")
+    end
+
     test "refusing leaves nothing signed in", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/pair-phone")
 

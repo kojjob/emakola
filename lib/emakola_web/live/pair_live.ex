@@ -43,6 +43,10 @@ defmodule EmakolaWeb.PairLive do
     {:noreply, assign(socket, stage: :rejected)}
   end
 
+  def handle_info(:expired, socket) do
+    {:noreply, assign(socket, stage: :error, error: message_for(:expired))}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp register_scan(socket, token) do

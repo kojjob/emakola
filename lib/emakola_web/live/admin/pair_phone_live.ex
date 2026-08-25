@@ -65,10 +65,26 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
     {:noreply, assign(socket, stage: :awaiting_confirmation, scanned_by: scanned_by)}
   end
 
+  # Only the two live stages can expire. Without this guard the countdown
+  # overwrites whatever is on screen when it reaches zero — including
+  # :awaiting_confirmation, losing a real pending request, and :confirmed, so a
+  # merchant who had just paired their phone would watch this page announce
+  # "That code ran out" ninety seconds later.
+  @expirable [:waiting, :awaiting_confirmation]
+
   def handle_info(:tick, socket) do
-    case seconds_left(socket.assigns.expires_at) do
-      0 -> {:noreply, assign(socket, stage: :expired, seconds_left: 0)}
-      n -> {:noreply, assign(socket, seconds_left: n)}
+    cond do
+      socket.assigns.stage not in @expirable ->
+        {:noreply, socket}
+
+      seconds_left(socket.assigns.expires_at) == 0 ->
+        # Tell the phone too, or it waits for ever on "look at your other
+        # screen" for a code that can no longer be confirmed.
+        if socket.assigns.pairing, do: broadcast(socket.assigns.pairing.id, :expired)
+        {:noreply, assign(socket, stage: :expired, seconds_left: 0)}
+
+      true ->
+        {:noreply, assign(socket, seconds_left: seconds_left(socket.assigns.expires_at))}
     end
   end
 
@@ -94,7 +110,7 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
           error: nil
         )
 
-      {:error, _reason} ->
+      {:error, reason} ->
         assign(socket,
           pairing: nil,
           pairing_code: nil,
@@ -102,7 +118,7 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
           seconds_left: 0,
           scanned_by: nil,
           stage: :error,
-          error: "Could not make a code. Try again."
+          error: issue_error(reason)
         )
     end
   end
@@ -116,6 +132,11 @@ defmodule EmakolaWeb.Admin.PairPhoneLive do
   defp seconds_left(expires_at) do
     expires_at |> DateTime.diff(DateTime.utc_now()) |> max(0)
   end
+
+  # "Try again" is wrong advice while rate limited — trying again is the one
+  # thing that will not work.
+  defp issue_error(:rate_limited), do: "Too many codes. Wait a minute, then try again."
+  defp issue_error(_reason), do: "Could not make a code. Try again."
 
   defp message_for(:expired), do: "That code ran out. Make a new one."
   defp message_for(:not_scanned), do: "No phone has scanned it yet."
