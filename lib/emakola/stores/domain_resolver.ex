@@ -164,13 +164,13 @@ defmodule Emakola.Stores.DomainResolver do
   # take the page down with it.
   defp safely(fun) do
     fun.()
-  catch
-    :exit, reason ->
-      Logger.debug("[domain_resolver] read unavailable: #{inspect(reason)}")
-      :unavailable
   rescue
     error ->
       Logger.debug("[domain_resolver] read failed: #{inspect(error)}")
+      :unavailable
+  catch
+    :exit, reason ->
+      Logger.debug("[domain_resolver] read unavailable: #{inspect(reason)}")
       :unavailable
   end
 
