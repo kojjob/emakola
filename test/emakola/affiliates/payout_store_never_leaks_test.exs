@@ -49,7 +49,7 @@ defmodule Emakola.Affiliates.PayoutStoreNeverLeaksTest do
     refute ctx.payout_store_id in ids
   end
 
-  test "no read action returns it as a shop", _ctx do
+  test "no read action returns it as a shop" do
     # A blunt sweep: whatever reads exist for listing shops, none may return a
     # payout container. Written as a sweep rather than one assertion per
     # action so a NEW listing action added later is covered by default.
