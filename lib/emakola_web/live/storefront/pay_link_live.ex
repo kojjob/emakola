@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
-  def mount(%{"code" => code}, _session, socket) do
+  def mount(%{"code" => code}, session, socket) do
     case Emakola.Orders.get_pay_link_by_code(code, authorize?: false) do
       {:ok, link} ->
         store = Ash.get!(Emakola.Stores.Store, link.store_id, authorize?: false)
@@ -39,6 +39,9 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:variant, variant)
          |> assign(:state, page_state(link, store, variant))
          |> assign(:quantity, quantity)
+         # UtmCapture wrote this when the buyer followed a shared link.
+         # Without carrying it, a pay-link sale credits nobody.
+         |> assign(:attribution, Map.get(session, "utm_attribution", %{}))
          |> assign(:processing, false)
          |> assign(:buyer, empty_buyer())
          |> assign(:form_errors, %{})
@@ -196,7 +199,13 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           {:ok, fresh_link} ->
             case PayLink.usable?(fresh_link) do
               :ok ->
-                case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
+                case create_order(
+                       fresh_link,
+                       store,
+                       buyer,
+                       socket.assigns.quantity,
+                       socket.assigns.attribution
+                     ) do
                   {:ok, order} ->
                     initiate_payment(socket, store, order)
 
@@ -268,7 +277,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     end
   end
 
-  defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty) do
+  defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty, attribution) do
     Emakola.Orders.CheckoutService.checkout_custom!(
       store.id,
       %{title: link.title, unit_price: link.amount},
@@ -278,11 +287,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         presence(buyer["email"]) ||
           Emakola.Orders.CheckoutService.phone_placeholder_email(buyer["phone"]),
       shipping_address: shipping_address(link, buyer),
-      pay_link_id: link.id
+      pay_link_id: link.id,
+      attribution: attribution
     )
   end
 
-  defp create_order(%PayLink{type: :catalog} = link, store, buyer, qty) do
+  defp create_order(%PayLink{type: :catalog} = link, store, buyer, qty, attribution) do
     Emakola.Orders.CheckoutService.checkout!(
       store.id,
       [%{variant_id: link.variant_id, quantity: qty}],
@@ -292,7 +302,8 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
       customer_name: buyer["name"],
       customer_phone: buyer["phone"],
       shipping_address: shipping_address(link, buyer),
-      pay_link_id: link.id
+      pay_link_id: link.id,
+      attribution: attribution
     )
   end
 

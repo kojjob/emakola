@@ -114,6 +114,45 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     refute html =~ "pay-link-address"
   end
 
+  test "carries share attribution from the session onto the order", %{conn: conn} do
+    # A shared link that funnels into a pay-link checkout attributed nothing:
+    # pay_link_live's mount ignored the session, so the share token captured by
+    # UtmCapture never reached the order. Pay links are how a great many
+    # Ghanaian sales actually close, so an affiliate programme that ignores
+    # them is broken before it ships.
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-attr-ref", authorization_url: "https://pay.test/x"}}
+    end)
+
+    conn =
+      Phoenix.ConnTest.init_test_session(conn, %{
+        "utm_attribution" => %{"share_token" => "tok_abc123", "utm_source" => "whatsapp"}
+      })
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.attribution["share_token"] == "tok_abc123"
+  end
+
   test "submitting the form creates the order and initiates payment", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)

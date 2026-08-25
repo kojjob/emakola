@@ -128,7 +128,8 @@ config :emakola,
     Emakola.Fulfillment,
     Emakola.Security,
     Emakola.AI,
-    Emakola.Conversations
+    Emakola.Conversations,
+    Emakola.Affiliates
   ]
 
 # JSON:API content type (ash_json_api)
