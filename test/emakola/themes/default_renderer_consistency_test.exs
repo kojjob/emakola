@@ -108,6 +108,12 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
 
     # LiveViews that legitimately render their own content (not via the
     # theme delegation pattern). These don't need a default renderer.
+    #
+    # customer_messages_live is the same class as account_downloads: a message
+    # thread and a text box, not a themed storefront surface.
+    #
+    # Comments must stay OUT of the sigil — ~w has no comment syntax, so every
+    # word of one becomes an entry in the list.
     @exempt ~w(
       checkout_live.ex
       customer_login_live.ex
@@ -119,8 +125,6 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       about_live.ex
       page_live.ex
       account_downloads_live.ex
-      # Account utility page, same class as account_downloads: a message
-      # thread and a text box, not a themed storefront surface.
       customer_messages_live.ex
       saved_stores_live.ex
       pay_link_live.ex
