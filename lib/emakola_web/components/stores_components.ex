@@ -373,6 +373,10 @@ defmodule EmakolaWeb.StoresComponents do
   attr :title, :string, default: "New on Makola"
   attr :subtitle, :string, default: "Just joined the marketplace"
 
+  attr :id_prefix, :string,
+    default: "recent",
+    doc: "namespaces the strip's SVG pattern ids — several strips now share one page"
+
   def recent_strip(assigns) do
     ~H"""
     <section :if={@stores != []}>
@@ -471,7 +475,7 @@ defmodule EmakolaWeb.StoresComponents do
                   >
                     <defs>
                       <pattern
-                        id={"diag-#{store.slug}"}
+                        id={"diag-#{@id_prefix}-#{store.slug}"}
                         width="14"
                         height="14"
                         patternUnits="userSpaceOnUse"
@@ -480,7 +484,11 @@ defmodule EmakolaWeb.StoresComponents do
                         <line x1="0" y="0" x2="0" y2="14" stroke="white" stroke-width="2" />
                       </pattern>
                     </defs>
-                    <rect width="100%" height="100%" fill={"url(#diag-#{store.slug})"} />
+                    <rect
+                      width="100%"
+                      height="100%"
+                      fill={"url(##{"diag-" <> @id_prefix <> "-" <> store.slug})"}
+                    />
                   </svg>
                   <%!-- Centered storefront mark --%>
                   <div class="absolute inset-0 flex items-center justify-center">
