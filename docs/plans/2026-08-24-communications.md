@@ -140,9 +140,17 @@ Makola ↔ merchants, over one shared thread/message core.
 
 ## What is still not done
 
-- 🔴 The cost question from A2: every buyer order event sends BOTH WhatsApp
-  and SMS. Reach supports whatsapp-first-with-fallback, which halves it, but
-  WhatsApp fails silently without an approved template. Kojo's call.
+- ✅ **RESOLVED 2026-08-25 — the A2 cost question.** Kojo chose WhatsApp-first
+  with SMS fallback. A buyer order notification now costs ONE message, not
+  two. SMS runs only when WhatsApp returns `{:error, _}` — a rejected
+  template or bad request — which is the same shape `Accounts.PhoneAuth` has
+  always used for login codes, where a missed delivery locks a merchant out.
+  Events with no approved template return an explicit `{:error, :no_template}`
+  so the SMS fallback fires on purpose rather than by mistaking `:ok` for a
+  send.
+  ⚠️ Residual risk, accepted knowingly: a number Meta accepts and then fails
+  on asynchronously (a buyer not on WhatsApp) gets nothing rather than an SMS.
+  Revisit if buyers report missed notifications.
 - 🔴 Nothing sends for real until `SMS_API_KEY` is set (Arkesel or Hubtel, not
   Twilio — ~10x cheaper to Ghana, and the merchant pays it). Verify at the
   PROVIDER's dashboard after setting it, never at the app's `{:ok, _}`.
