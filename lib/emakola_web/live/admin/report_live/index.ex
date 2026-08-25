@@ -38,9 +38,29 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     * **Traffic by channel** counts visits by source, which is the claim the
       words make. It is not orders-by-UTM wearing the same label.
 
-  Per-region conversion is still absent: visits are not recorded per region, and
-  inventing a denominator per region would repeat exactly the mistake this page
-  was rebuilt to undo.
+  ## Per-region conversion is not coming back, and this is why
+
+  Not a TODO. It was looked at properly and turned down.
+
+  Orders carry a region because the buyer typed a shipping address. A *visitor*
+  has no such source, so a per-region rate needs IP geolocation — and in this
+  market that cannot produce an honest answer. Ghanaian storefront traffic is
+  overwhelmingly mobile, and mobile carrier IPs resolve to the carrier's
+  gateway rather than the person: MTN's traffic would file under Accra whether
+  the shopper is in Kumasi, Tamale or Takoradi.
+
+  So the figure would not measure where customers are. It would measure a
+  carrier's network topology while wearing the word "region", carry a decimal
+  point, and be wrong in a direction no merchant could detect. A trader who
+  stopped advertising in Kumasi because "Kumasi does not convert" — when
+  Kumasi's traffic was silently filed under Accra — would have been harmed by
+  a number this page handed them.
+
+  That is the same failure the invented figures caused, in a worse form: those
+  were at least obviously invented.
+
+  Orders and revenue by region stay, because a typed shipping address is real.
+  They simply cannot carry a rate, since the denominator would be fiction.
   """
   use EmakolaWeb, :live_view
 
