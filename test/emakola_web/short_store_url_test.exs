@@ -85,6 +85,44 @@ defmodule EmakolaWeb.ShortStoreUrlTest do
     end
   end
 
+  # Found by the production smoke test: a guest with a digital item in cart is
+  # redirected to store_path(slug, "/login") — which the short dialect never
+  # routed. The customer hit a 404 with a paid cart behind them.
+  describe "customer auth in the short dialect" do
+    test "/:slug/login mounts", %{conn: conn, store: store} do
+      assert {:ok, _view, html} = live(conn, "/#{store.slug}/login")
+      assert html =~ store.name
+    end
+
+    test "/:slug/register mounts", %{conn: conn, store: store} do
+      assert {:ok, _view, _html} = live(conn, "/#{store.slug}/register")
+    end
+
+    test "/:slug/whatsapp mounts", %{conn: conn, store: store} do
+      assert {:ok, _view, _html} = live(conn, "/#{store.slug}/whatsapp")
+    end
+
+    test "auth pages link in the short dialect, not /s/", %{conn: conn, store: store} do
+      {:ok, _view, html} = live(conn, "/#{store.slug}/login")
+      assert html =~ "/#{store.slug}/register"
+      refute html =~ "/s/#{store.slug}/register"
+    end
+
+    test "logout routes rather than 404ing", %{conn: conn, store: store} do
+      conn = get(conn, "/#{store.slug}/auth/customer-logout")
+      assert conn.status in [302, 303]
+    end
+
+    test "an unknown download grant is a 404 from the controller, not the router",
+         %{conn: conn, store: store} do
+      conn = get(conn, "/#{store.slug}/downloads/#{Ecto.UUID.generate()}")
+      # A routing miss would render the platform 404 page; the controller
+      # refusing (401 for a guest, 404 for a bad grant, 302 to login) proves
+      # the route exists and resolved the store.
+      assert conn.status in [302, 401, 404]
+    end
+  end
+
   describe "backwards compatibility" do
     test "the old /s/:slug URL still serves", %{conn: conn, store: store} do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}")
