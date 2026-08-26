@@ -19,7 +19,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
     {:ok, store: store}
   end
 
-  describe "GET /s/:slug/feed/instagram.xml" do
+  describe "GET /:slug/feed/instagram.xml" do
     test "returns 404 for unknown store", %{conn: conn} do
       conn = get(conn, "/s/no-such-store/feed/instagram.xml")
       assert conn.status == 404
@@ -72,7 +72,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
       assert body =~ "<g:title>Kente Tee</g:title>"
       assert body =~ "<g:description>Cotton</g:description>"
       assert body =~ "<g:link>"
-      assert body =~ "/s/#{store.slug}/products/"
+      assert body =~ "/#{store.slug}/products/"
       assert body =~ "<g:availability>in stock</g:availability>"
       assert body =~ "<g:price>125.00 GHS</g:price>"
       assert body =~ "<g:brand>Feed Shop</g:brand>"

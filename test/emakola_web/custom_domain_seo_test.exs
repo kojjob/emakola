@@ -77,8 +77,13 @@ defmodule EmakolaWeb.CustomDomainSeoTest do
       assert ["http://hotdeals.africa/cart"] = get_resp_header(conn, "location")
     end
 
-    test "/s/:slug is untouched with no custom domain", %{conn: conn, store: store} do
-      refute call(conn, "makola.io", "/s/#{store.slug}/cart").halted
+    # Used to pass through and serve at /s/. It now moves to the short form
+    # instead: a store without a custom domain still has one URL shape, not two.
+    test "/s/:slug moves to the short form with no custom domain", %{conn: conn, store: store} do
+      conn = call(conn, "makola.io", "/s/#{store.slug}/cart")
+
+      assert conn.status == 301
+      assert ["/#{store.slug}/cart"] == get_resp_header(conn, "location")
     end
 
     test "other apex pages are never touched", %{conn: conn, store: store} do

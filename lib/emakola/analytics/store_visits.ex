@@ -65,14 +65,37 @@ defmodule Emakola.Analytics.StoreVisits do
   @spec record(binary(), binary(), map()) :: {:ok, StoreVisit.t()} | {:error, term()}
   def record(store_id, session_id, params)
       when is_binary(store_id) and is_binary(session_id) and is_map(params) do
-    StoreVisit
-    |> Ash.Changeset.for_create(:record, %{
-      store_id: store_id,
-      visitor_hash: hash(session_id),
-      source: source_from(params),
-      occurred_at: DateTime.utc_now()
-    })
-    |> Ash.create(authorize?: false)
+    result =
+      StoreVisit
+      |> Ash.Changeset.for_create(:record, %{
+        store_id: store_id,
+        visitor_hash: hash(session_id),
+        source: source_from(params),
+        occurred_at: DateTime.utc_now()
+      })
+      |> Ash.create(authorize?: false)
+
+    with {:ok, _visit} <- result, do: bump_view_count(store_id)
+
+    result
+  end
+
+  # Store.view_count is what the directory's "Most popular" sort reads, and
+  # for months nothing wrote it — the sort ordered twenty zeros. Bumping it
+  # here, on the same event that records the visit, makes that sort mean
+  # "most viewed" again. Atomic on the database side; best-effort on ours,
+  # because a counter that cannot be written is not worth failing a
+  # storefront visit over.
+  defp bump_view_count(store_id) do
+    Emakola.Stores.Store
+    |> Ash.get!(store_id, authorize?: false)
+    |> Ash.Changeset.for_update(:increment_view_count, %{})
+    |> Ash.update(authorize?: false)
+  rescue
+    exception ->
+      require Logger
+      Logger.warning("[store_visits] view_count bump failed: #{Exception.message(exception)}")
+      :ok
   end
 
   @doc "Page views for a store over the last `days`."

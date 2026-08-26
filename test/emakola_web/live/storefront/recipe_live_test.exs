@@ -32,7 +32,7 @@ defmodule EmakolaWeb.Storefront.RecipeLiveTest do
     assert html =~ ~s("prepTime":"PT20M")
 
     assert html =~
-             ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/recipes/#{post.slug}")
+             ~s(<link rel="canonical" href="http://localhost:4000/#{store.slug}/recipes/#{post.slug}")
 
     assert html =~
              ~s(<meta name="description" content="Authentic smoky Ghana jollof rice recipe.")
