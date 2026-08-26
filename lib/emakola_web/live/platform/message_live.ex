@@ -6,11 +6,18 @@ defmodule EmakolaWeb.Platform.MessageLive do
   differ. Announcements broadcast at merchants; this is the conversation
   back, which is where a merchant tells you their payout is late.
 
-  Staff see every merchant thread and need no scoping check: reaching this
-  page at all requires platform staff. A merchant never opens a thread by
-  id — theirs is found by their own merchant_id.
+  Staff see every merchant thread and need no scoping check, so the gate is
+  the whole access control: `:manage_merchants`, the same permission that
+  guards the merchant directory this conversation is started from. A merchant
+  never opens a thread by id — theirs is found by their own merchant_id.
+
+  Being platform staff is not enough on its own. These threads carry whatever
+  a merchant chose to tell Makola in confidence, and someone trusted with
+  billing has no business reading it.
   """
   use EmakolaWeb, :live_view
+
+  on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
   alias Emakola.Conversations
 
@@ -70,12 +77,18 @@ defmodule EmakolaWeb.Platform.MessageLive do
         {:ok, messages} = Conversations.list_messages(thread.id)
         {:noreply, socket |> assign(messages: messages, form: blank_form()) |> load_threads()}
 
-      {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Write something first.")}
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, send_error_message(reason))}
     end
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # One flash per cause — a collapsed error tells staff nothing about why the
+  # message did not go.
+  defp send_error_message(:empty_message), do: "Write something first."
+  defp send_error_message(:rate_limited), do: "You are sending too fast. Wait a moment."
+  defp send_error_message(_other), do: "That message did not send. Try again."
 
   @impl true
   def handle_info({:new_message, message}, socket) do
