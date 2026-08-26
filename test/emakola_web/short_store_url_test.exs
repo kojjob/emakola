@@ -184,12 +184,31 @@ defmodule EmakolaWeb.ShortStoreUrlTest do
       assert redirected_to(conn, 301) =~ "/#{store.slug}/cart?ref=whatsapp"
     end
 
-    # The short form has no route for these, so moving them would 301 into a
-    # 404 — and a 301 is cached hard enough that it would not be recoverable.
-    test "machine and callback paths are left alone", %{conn: conn, store: store} do
-      for path <- ["/sitemap.xml", "/robots.txt", "/auth/customer-session", "/login"] do
+    # The retirement asks the router whether the short form serves a path, so
+    # what moves is not a frozen list. Machine paths still never move; the
+    # auth pages moved the moment their short routes were born in this PR.
+    test "machine paths are left alone", %{conn: conn, store: store} do
+      for path <- ["/sitemap.xml", "/robots.txt"] do
         conn = %{conn | host: "makola.io"} |> get("/s/#{store.slug}#{path}")
         refute conn.status == 301, "#{path} must not be redirected"
+      end
+    end
+
+    # These were excluded only because their short routes did not exist —
+    # "moving them would 301 into a 404". This PR creates those routes, so the
+    # router now says yes and they move like any other person-visible page.
+    # The guard that matters survives: a 301 must never land on a 404.
+    test "auth pages move now that their short routes exist", %{conn: conn, store: store} do
+      for path <- ["/login", "/auth/customer-session"] do
+        conn = %{conn | host: "makola.io"} |> get("/s/#{store.slug}#{path}")
+        assert conn.status == 301, "#{path} should move to the short form"
+
+        [target] = Plug.Conn.get_resp_header(conn, "location")
+        target_path = URI.parse(target).path
+
+        assert %{} =
+                 Phoenix.Router.route_info(EmakolaWeb.Router, "GET", target_path, "makola.io"),
+               "#{path} 301s to #{target_path}, which does not route"
       end
     end
 
