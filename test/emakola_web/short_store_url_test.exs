@@ -123,6 +123,7 @@ defmodule EmakolaWeb.ShortStoreUrlTest do
       assert html =~ "/s/#{store.slug}/cart"
     end
   end
+
   describe "the /s/ prefix is retired for anything a person sees" do
     setup do
       # apex_move only runs when a subdomain base is configured, which is what
@@ -161,5 +162,4 @@ defmodule EmakolaWeb.ShortStoreUrlTest do
       refute conn.status == 301
     end
   end
-
 end
