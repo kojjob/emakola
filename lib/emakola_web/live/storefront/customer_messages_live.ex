@@ -56,11 +56,18 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
          {:ok, _message} <- Conversations.post_message(thread, :customer, customer_id, body) do
       {:noreply, socket |> assign(form: blank_form()) |> load()}
     else
-      _ -> {:noreply, put_flash(socket, :error, "Write something first.")}
+      {:error, reason} -> {:noreply, put_flash(socket, :error, send_error_message(reason))}
+      _ -> {:noreply, put_flash(socket, :error, "That message did not send. Try again.")}
     end
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # One flash per cause. A buyer told to "write something first" after being
+  # rate limited retypes a message that was never the problem.
+  defp send_error_message(:empty_message), do: "Write something first."
+  defp send_error_message(:rate_limited), do: "You are sending too fast. Wait a moment."
+  defp send_error_message(_other), do: "That message did not send. Try again."
 
   @impl true
   def handle_info({:new_message, message}, socket) do
