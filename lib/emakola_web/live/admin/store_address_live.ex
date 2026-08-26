@@ -70,6 +70,17 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
     end
   end
 
+  def handle_event("toggle_serve", _params, socket) do
+    domain = socket.assigns.domain
+
+    {:ok, updated} =
+      Stores.update_store_domain(domain, %{serve_in_place?: !domain.serve_in_place?},
+        actor: actor(socket)
+      )
+
+    {:noreply, assign(socket, domain: updated)}
+  end
+
   defp retire_previous(domain, %{id: old_id, type: :subdomain} = previous, socket)
        when old_id != domain.id do
     case Stores.destroy_store_domain(previous, actor: actor(socket)) do
@@ -100,17 +111,6 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
         Logger.warning("[store_address] could not promote #{domain.host}: #{inspect(error)}")
         domain
     end
-  end
-
-  def handle_event("toggle_serve", _params, socket) do
-    domain = socket.assigns.domain
-
-    {:ok, updated} =
-      Stores.update_store_domain(domain, %{serve_in_place?: !domain.serve_in_place?},
-        actor: actor(socket)
-      )
-
-    {:noreply, assign(socket, domain: updated)}
   end
 
   @impl true
