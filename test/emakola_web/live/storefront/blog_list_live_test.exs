@@ -31,7 +31,7 @@ defmodule EmakolaWeb.Storefront.BlogListLiveTest do
   test "emits apex canonical and a blog-index meta description", %{conn: conn, store: store} do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
 
-    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/blog")
+    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/#{store.slug}/blog")
     assert html =~ ~s(<meta name="description" content="Articles and updates from Blog Shop.")
   end
 end

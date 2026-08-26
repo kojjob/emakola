@@ -274,6 +274,6 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
   end
 
   defp current_url(assigns) do
-    "#{EmakolaWeb.Endpoint.url()}/s/#{assigns.store.slug}/blog/#{assigns.post.slug}"
+    EmakolaWeb.SEO.Canonical.blog_url(assigns.store, assigns.post)
   end
 end

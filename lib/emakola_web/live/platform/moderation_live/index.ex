@@ -611,8 +611,16 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
                   {@selected.description}
                 </p>
               </div>
+              <%!-- No store means no storefront to link into. Previously this
+                    rendered "/s//products/..." — a dead link shown as live. --%>
               <a
-                href={"/s/#{@selected.store && @selected.store.slug}/products/#{@selected.slug}"}
+                :if={@selected.store}
+                href={
+                  EmakolaWeb.Storefront.Path.public_path(
+                    @selected.store.slug,
+                    "/products/#{@selected.slug}"
+                  )
+                }
                 target="_blank"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold text-blue-600 bg-white ring-1 ring-inset ring-gray-200 hover:bg-slate-50 transition-colors shrink-0"
               >

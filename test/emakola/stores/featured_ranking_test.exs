@@ -108,4 +108,35 @@ defmodule Emakola.Stores.FeaturedRankingTest do
       assert FeaturedRanking.position(second) == {2, 2}
     end
   end
+
+  describe "tenure" do
+    test "featuring stamps featured_at so the clock starts now" do
+      store = Factory.create_store!()
+      assert is_nil(store.featured_at)
+
+      assert {:ok, featured} = FeaturedRanking.feature(store)
+
+      assert %DateTime{} = featured.featured_at
+      assert DateTime.diff(DateTime.utc_now(), featured.featured_at, :second) < 5
+    end
+
+    test "unfeaturing clears featured_at — tenure does not survive the slot" do
+      {:ok, featured} = Factory.create_store!() |> FeaturedRanking.feature()
+
+      assert {:ok, unfeatured} = FeaturedRanking.unfeature(featured)
+      assert is_nil(unfeatured.featured_at)
+    end
+
+    test "moving rank does not restart the clock" do
+      {:ok, first} = Factory.create_store!() |> FeaturedRanking.feature()
+      {:ok, second} = Factory.create_store!() |> FeaturedRanking.feature()
+
+      FeaturedRanking.move(second, :up)
+
+      reread = Ash.get!(Emakola.Stores.Store, second.id, authorize?: false)
+      assert DateTime.compare(reread.featured_at, second.featured_at) == :eq
+
+      _ = first
+    end
+  end
 end

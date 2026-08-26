@@ -55,19 +55,21 @@ defmodule Emakola.Customers.Customer do
         sign_in_action_name(:sign_in_with_password)
       end
 
-      # Storefront social login. No identity_resource on purpose: the per-store
-      # Customer is found/created by the upsert action keyed on
-      # :unique_store_email (store_id from the request tenant).
-      # AshAuthentication.UserIdentity has no multitenancy support, so an
-      # identity table would make the same social account ambiguous across
-      # stores. prevent_hijacking? true — armed by the confirmation add-on above,
-      # (no email-confirmation flow yet).
+      # Storefront social login. The identity resource is per-store: Ash scopes
+      # an identity on a multitenant resource to the tenant by default
+      # (all_tenants?: false), so the extension's (uid, strategy) becomes
+      # (store_id, uid, strategy). The same Google account is therefore a
+      # different customer at every shop, which is what a shopper needs and the
+      # opposite of the merchant rule. See CustomerIdentity for why.
+      #
+      # prevent_hijacking? true — armed by the confirmation add-on above.
       google :google do
         client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_id) end)
         client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_secret) end)
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
 
@@ -82,6 +84,7 @@ defmodule Emakola.Customers.Customer do
         authorization_params(scope: "email public_profile")
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
 
@@ -93,6 +96,7 @@ defmodule Emakola.Customers.Customer do
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
     end
@@ -288,6 +292,11 @@ defmodule Emakola.Customers.Customer do
       argument(:oauth_tokens, :map, allow_nil?: false)
 
       change(AshAuthentication.GenerateTokenChange)
+
+      # Records the provider's iss/sub against this store's customer. The tenant
+      # rides along from the changeset, so the identity lands scoped to the shop
+      # the shopper is signing in to.
+      change(AshAuthentication.Strategy.OAuth2.IdentityChange)
 
       change(fn changeset, _context ->
         user_info = Ash.Changeset.get_argument(changeset, :user_info) || %{}

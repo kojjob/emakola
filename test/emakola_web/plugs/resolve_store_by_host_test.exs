@@ -68,7 +68,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.status == 301
 
     assert Plug.Conn.get_resp_header(conn, "location") ==
-             ["http://localhost:4000/s/sub-shop/products?color=red"]
+             ["http://localhost:4000/sub-shop/products?color=red"]
   end
 
   test "redirects the root path to the bare store URL (no trailing slash)", %{store: store} do
@@ -76,7 +76,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
 
     conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/"), @opts)
 
-    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/s/sub-shop"]
+    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/sub-shop"]
   end
 
   # serve_in_place? domains are no longer rewritten here — the router host-routes

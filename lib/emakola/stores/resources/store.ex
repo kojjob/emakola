@@ -210,6 +210,15 @@ defmodule Emakola.Stores.Store do
 
     # Manual ordering within featured. Lower numbers appear first.
     # Nil = not in the manual rank; falls back to view_count desc.
+    # When the shop entered the featured set. Stamped by FeaturedRanking on
+    # feature, cleared on unfeature; rank moves never touch it. Display-only
+    # today — it exists so featured tenure is answerable from the day the
+    # first shop was featured, not from the day someone asks.
+    attribute :featured_at, :utc_datetime_usec do
+      allow_nil?(true)
+      public?(true)
+    end
+
     attribute :featured_rank, :integer do
       public?(true)
     end
@@ -534,7 +543,7 @@ defmodule Emakola.Stores.Store do
     end
 
     update :update_directory_meta do
-      accept([:featured, :featured_rank, :verified])
+      accept([:featured, :featured_at, :featured_rank, :verified])
     end
 
     # ── Platform lifecycle actions ──

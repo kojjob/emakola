@@ -335,8 +335,7 @@ defmodule Emakola.Notifications.Templates do
   defp item_count_segment(_), do: ""
 
   defp storefront_tracking_url(store, order) do
-    host = storefront_host()
-    "https://#{host}/s/#{store.slug}/track/#{order.order_number}"
+    EmakolaWeb.SEO.Canonical.path(store, "/track/#{order.order_number}")
   end
 
   # Buyer-authorization token bound to this order (TC-2), appended so the

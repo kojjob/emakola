@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Storefront.CategoryLiveTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/category/#{category.slug}")
 
     assert html =~
-             ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/category/#{category.slug}")
+             ~s(<link rel="canonical" href="http://localhost:4000/#{store.slug}/category/#{category.slug}")
 
     assert html =~ ~s("@type":"BreadcrumbList")
     assert html =~ ~s("name":"Spices")
