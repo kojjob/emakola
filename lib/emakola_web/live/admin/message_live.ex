@@ -109,12 +109,18 @@ defmodule EmakolaWeb.Admin.MessageLive do
          |> assign(messages: messages, form: blank_form())
          |> load_threads(socket.assigns.current_store)}
 
-      {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Write something first.")}
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, send_error_message(reason))}
     end
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # One flash per cause. Telling someone who has been rate limited to "write
+  # something first" sends them retyping a message that was never the problem.
+  defp send_error_message(:empty_message), do: "Write something first."
+  defp send_error_message(:rate_limited), do: "You are sending too fast. Wait a moment."
+  defp send_error_message(_other), do: "That message did not send. Try again."
 
   @impl true
   def handle_info({:new_message, message}, socket) do
