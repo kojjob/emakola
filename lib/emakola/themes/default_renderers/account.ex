@@ -119,6 +119,13 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                    and gating on "has grants" would cost a count query on every
                    account page load. --%>
               <.link
+                navigate={store_path(@store.slug, "/account/messages")}
+                class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border bg-white border-stone-200 hover:border-stone-400 transition-colors"
+                style="color: #44403C"
+              >
+                Messages
+              </.link>
+              <.link
                 navigate={store_path(@store.slug, "/account/downloads")}
                 class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border bg-white border-stone-200 hover:border-stone-400 transition-colors"
                 style="color: #44403C"
@@ -151,6 +158,13 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               >
                 {tab.label}
               </button>
+              <.link
+                navigate={store_path(@store.slug, "/account/messages")}
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-r-lg transition-colors text-left border-l-2 border-transparent hover:bg-stone-50"
+                style="color: #44403C"
+              >
+                Messages
+              </.link>
               <.link
                 navigate={store_path(@store.slug, "/account/downloads")}
                 class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-r-lg transition-colors text-left border-l-2 border-transparent hover:bg-stone-50"
