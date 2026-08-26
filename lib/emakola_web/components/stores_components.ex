@@ -81,7 +81,7 @@ defmodule EmakolaWeb.StoresComponents do
       ]}
     >
       <a
-        href={"/s/#{@store.slug}"}
+        href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
         target={@target}
         rel={@target == "_blank" && "noopener"}
         class="relative block aspect-[16/10] overflow-hidden bg-slate-200"
@@ -160,7 +160,7 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <a
-              href={"/s/#{@store.slug}"}
+              href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
               target={@target}
               rel={@target == "_blank" && "noopener"}
               class="line-clamp-1 text-lg font-black tracking-tight text-slate-900 transition hover:text-emerald-700"
@@ -225,7 +225,7 @@ defmodule EmakolaWeb.StoresComponents do
           </span>
 
           <a
-            href={"/s/#{@store.slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
             class="ml-auto inline-flex items-center gap-1 font-bold text-emerald-700 transition group-hover:gap-1.5"
           >
             Visit shop <.icon name="hero-arrow-right" class="size-3.5" />
@@ -282,7 +282,7 @@ defmodule EmakolaWeb.StoresComponents do
           <div class="flex min-w-max snap-x snap-mandatory gap-4 sm:gap-5">
             <a
               :for={store <- @stores}
-              href={"/s/#{store.slug}"}
+              href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
               class="group relative block w-[82vw] max-w-[400px] shrink-0 snap-start overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_20px_50px_-30px_rgba(12,31,23,0.65)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-28px_rgba(12,31,23,0.5)]"
             >
               <div class="relative aspect-[4/3] overflow-hidden">
@@ -450,7 +450,7 @@ defmodule EmakolaWeb.StoresComponents do
             --%>
             <a
               :for={store <- @stores}
-              href={"/s/#{store.slug}"}
+              href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
               class="group block w-[260px] sm:w-[290px] shrink-0 bg-white rounded-3xl overflow-hidden ring-1 ring-slate-200 hover:ring-2 hover:ring-emerald-300 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/15 hover:-translate-y-1 transition-all duration-300"
             >
               <%!-- IMAGE HERO --%>
@@ -702,7 +702,7 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <a
             :for={store <- @stores}
-            href={"/s/#{store.slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
             class="group relative bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-2xl overflow-hidden transition-all flex flex-col"
           >
             <div class="relative aspect-[16/9] overflow-hidden">

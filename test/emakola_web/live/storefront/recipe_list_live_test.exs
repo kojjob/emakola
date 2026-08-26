@@ -8,7 +8,7 @@ defmodule EmakolaWeb.Storefront.RecipeListLiveTest do
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/recipes")
 
-    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/recipes")
+    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/#{store.slug}/recipes")
     assert html =~ ~s(<meta name="description" content="Recipes from Recipe List Shop.")
   end
 end

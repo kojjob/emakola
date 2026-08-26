@@ -8,6 +8,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmail do
   """
 
   import Swoosh.Email
+  alias EmakolaWeb.SEO.Canonical
   alias Emakola.Notifications.Emails.EmailHelpers
 
   @doc """
@@ -36,7 +37,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmail do
 
   defp delivered_html(order, customer, store) do
     line_items_html = build_line_items_html(order.line_items, order.currency)
-    review_url = "/s/#{store.slug}/orders/#{order.order_number}/review"
+    review_url = Canonical.path(store, "/orders/#{order.order_number}/review")
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
 
     """
@@ -134,7 +135,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmail do
 
   defp delivered_text(order, customer, store) do
     line_items_text = build_line_items_text(order.line_items, order.currency)
-    review_url = "/s/#{store.slug}/orders/#{order.order_number}/review"
+    review_url = Canonical.path(store, "/orders/#{order.order_number}/review")
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
 
     """

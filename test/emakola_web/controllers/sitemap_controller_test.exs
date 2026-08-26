@@ -41,7 +41,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
   end
 
-  describe "GET /s/:store_slug/sitemap.xml" do
+  describe "GET /:store_slug/sitemap.xml" do
     test "returns valid XML with correct content type", %{conn: conn, store: store} do
       conn = get(conn, "/s/#{store.slug}/sitemap.xml")
 
@@ -57,7 +57,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
     test "includes store home URL", %{conn: conn, store: store} do
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}</loc>"
+      assert body =~ "/#{store.slug}</loc>"
     end
 
     test "<loc> URLs use the canonical apex host, not the request host", %{
@@ -71,7 +71,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
         |> get("/s/#{store.slug}/sitemap.xml")
         |> response(200)
 
-      assert body =~ "#{apex}/s/#{store.slug}</loc>"
+      assert body =~ "#{apex}/#{store.slug}</loc>"
       refute body =~ "tenant-subdomain.example.com"
     end
 
@@ -80,7 +80,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products/#{product.slug}"
+      assert body =~ "/#{store.slug}/products/#{product.slug}"
     end
 
     test "excludes draft and archived products", %{conn: conn, store: store} do
@@ -111,19 +111,19 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/category/#{category.slug}"
+      assert body =~ "/#{store.slug}/category/#{category.slug}"
     end
 
     test "omits empty or thin content hubs", %{conn: conn, store: store} do
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/about</loc>"
-      assert body =~ "/s/#{store.slug}/contact</loc>"
-      assert body =~ "/s/#{store.slug}/policies</loc>"
-      refute body =~ "/s/#{store.slug}/products</loc>"
-      refute body =~ "/s/#{store.slug}/faq</loc>"
-      refute body =~ "/s/#{store.slug}/blog</loc>"
-      refute body =~ "/s/#{store.slug}/recipes</loc>"
+      assert body =~ "/#{store.slug}/about</loc>"
+      assert body =~ "/#{store.slug}/contact</loc>"
+      assert body =~ "/#{store.slug}/policies</loc>"
+      refute body =~ "/#{store.slug}/products</loc>"
+      refute body =~ "/#{store.slug}/faq</loc>"
+      refute body =~ "/#{store.slug}/blog</loc>"
+      refute body =~ "/#{store.slug}/recipes</loc>"
     end
 
     test "includes populated content hubs", %{conn: conn, store: store} do
@@ -146,13 +146,13 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products</loc>"
-      assert body =~ "/s/#{store.slug}/faq</loc>"
-      assert body =~ "/s/#{store.slug}/blog</loc>"
-      assert body =~ "/s/#{store.slug}/recipes</loc>"
-      assert body =~ "/s/#{store.slug}/blog/#{blog.slug}</loc>"
-      assert body =~ "/s/#{store.slug}/recipes/#{recipe.slug}</loc>"
-      refute body =~ "/s/#{store.slug}/blog/#{recipe.slug}</loc>"
+      assert body =~ "/#{store.slug}/products</loc>"
+      assert body =~ "/#{store.slug}/faq</loc>"
+      assert body =~ "/#{store.slug}/blog</loc>"
+      assert body =~ "/#{store.slug}/recipes</loc>"
+      assert body =~ "/#{store.slug}/blog/#{blog.slug}</loc>"
+      assert body =~ "/#{store.slug}/recipes/#{recipe.slug}</loc>"
+      refute body =~ "/#{store.slug}/blog/#{recipe.slug}</loc>"
     end
 
     test "includes non-empty published custom pages and excludes duplicate home", %{
@@ -185,8 +185,8 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/p/#{page.slug}</loc>"
-      refute body =~ "/s/#{store.slug}/p/home</loc>"
+      assert body =~ "/#{store.slug}/p/#{page.slug}</loc>"
+      refute body =~ "/#{store.slug}/p/home</loc>"
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
@@ -220,7 +220,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
   # ── robots.txt ──────────────────────────────────────────────────────
 
-  describe "GET /s/:store_slug/robots.txt" do
+  describe "GET /:store_slug/robots.txt" do
     test "returns text/plain with sitemap reference", %{conn: conn, store: store} do
       conn = get(conn, "/s/#{store.slug}/robots.txt")
 
@@ -229,7 +229,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = response(conn, 200)
       assert body =~ "Sitemap:"
-      assert body =~ "/s/#{store.slug}/sitemap.xml"
+      assert body =~ "/#{store.slug}/sitemap.xml"
     end
 
     test "allows transactional pages to be crawled for their noindex meta tag", %{
@@ -263,7 +263,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
   # ── llms.txt ────────────────────────────────────────────────────────
 
-  describe "GET /s/:store_slug/llms.txt" do
+  describe "GET /:store_slug/llms.txt" do
     test "returns text/plain with store description", %{conn: conn, store: store} do
       conn = get(conn, "/s/#{store.slug}/llms.txt")
 
@@ -288,9 +288,9 @@ defmodule EmakolaWeb.SitemapControllerTest do
     test "includes navigation links", %{conn: conn, store: store} do
       body = conn |> get("/s/#{store.slug}/llms.txt") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products"
-      assert body =~ "/s/#{store.slug}/about"
-      assert body =~ "/s/#{store.slug}/sitemap.xml"
+      assert body =~ "/#{store.slug}/products"
+      assert body =~ "/#{store.slug}/about"
+      assert body =~ "/#{store.slug}/sitemap.xml"
     end
 
     test "includes AI assistant guidance", %{conn: conn, store: store} do

@@ -38,7 +38,7 @@ defmodule Emakola.Notifications.ProtectionTemplatesTest do
       assert msg =~ "ORD-20260330-PRO001"
       assert msg =~ "held"
       assert msg =~ "confirm"
-      assert msg =~ "/s/adom-boutique/track/ORD-20260330-PRO001?t="
+      assert msg =~ "/adom-boutique/track/ORD-20260330-PRO001?t="
     end
 
     test "the embedded token verifies to this order's id" do
@@ -59,7 +59,7 @@ defmodule Emakola.Notifications.ProtectionTemplatesTest do
       assert msg =~ "ORD-20260330-PRO001"
       assert msg =~ "confirm"
       assert msg =~ "5 days"
-      assert msg =~ "/s/adom-boutique/track/ORD-20260330-PRO001?t="
+      assert msg =~ "/adom-boutique/track/ORD-20260330-PRO001?t="
     end
 
     test "the embedded token verifies to this order's id" do

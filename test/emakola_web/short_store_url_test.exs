@@ -123,4 +123,43 @@ defmodule EmakolaWeb.ShortStoreUrlTest do
       assert html =~ "/s/#{store.slug}/cart"
     end
   end
+  describe "the /s/ prefix is retired for anything a person sees" do
+    setup do
+      # apex_move only runs when a subdomain base is configured, which is what
+      # tells the plug which host is the apex.
+      Application.put_env(:emakola, :store_subdomain_base, "makola.io")
+      on_exit(fn -> Application.delete_env(:emakola, :store_subdomain_base) end)
+      :ok
+    end
+
+    test "the store home moves to the short form", %{conn: conn, store: store} do
+      conn = %{conn | host: "makola.io"} |> get("/s/#{store.slug}")
+
+      assert redirected_to(conn, 301) =~ "/#{store.slug}"
+      refute redirected_to(conn, 301) =~ "/s/#{store.slug}"
+    end
+
+    test "a deeper page moves too, keeping its path and query", %{conn: conn, store: store} do
+      conn = %{conn | host: "makola.io"} |> get("/s/#{store.slug}/cart?ref=whatsapp")
+
+      assert redirected_to(conn, 301) =~ "/#{store.slug}/cart?ref=whatsapp"
+    end
+
+    # The short form has no route for these, so moving them would 301 into a
+    # 404 — and a 301 is cached hard enough that it would not be recoverable.
+    test "machine and callback paths are left alone", %{conn: conn, store: store} do
+      for path <- ["/sitemap.xml", "/robots.txt", "/auth/customer-session", "/login"] do
+        conn = %{conn | host: "makola.io"} |> get("/s/#{store.slug}#{path}")
+        refute conn.status == 301, "#{path} must not be redirected"
+      end
+    end
+
+    # /s/pricing is not a store. Redirecting it would send a dead storefront
+    # URL to the real pricing page and cache that answer in every browser.
+    test "a reserved word after /s/ is never moved", %{conn: conn} do
+      conn = %{conn | host: "makola.io"} |> get("/s/pricing")
+      refute conn.status == 301
+    end
+  end
+
 end
