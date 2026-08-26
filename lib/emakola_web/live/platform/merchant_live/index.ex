@@ -15,6 +15,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
   alias Emakola.Accounts
+  alias Emakola.Conversations
 
   @impl true
   def mount(_params, _session, socket) do
@@ -78,6 +79,25 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       {:noreply, socket}
     else
       {:noreply, socket}
+    end
+  end
+
+  # Opening is idempotent, so a staff member returning to a merchant lands
+  # back in the thread they already have rather than starting a second one.
+  #
+  # Permission is re-checked here rather than leaning on the mount gate: the
+  # event arrives from the client, and a button hidden by :if is not access
+  # control. Membership in the mounted queue guards the id, same as
+  # select_merchant above.
+  def handle_event("message_merchant", %{"id" => id}, socket) do
+    staff = socket.assigns.current_user
+
+    with true <- Accounts.PlatformPermissions.allowed?(staff, :manage_merchants),
+         true <- MapSet.member?(socket.assigns.merchant_ids, id),
+         {:ok, thread} <- Conversations.open_platform_thread(id) do
+      {:noreply, push_navigate(socket, to: ~p"/platform/messages/#{thread.id}")}
+    else
+      _ -> {:noreply, put_flash(socket, :error, "Could not open that conversation.")}
     end
   end
 
@@ -385,6 +405,16 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                   </span>
                 </div>
               </div>
+
+              <button
+                :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+                type="button"
+                phx-click="message_merchant"
+                phx-value-id={m.id}
+                class="w-full rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+              >
+                Message this merchant
+              </button>
 
               <.form
                 :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}

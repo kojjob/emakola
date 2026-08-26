@@ -108,12 +108,27 @@ defmodule Emakola.Conversations do
     end
   end
 
-  @doc "Posts a message and stamps the thread so inboxes sort correctly."
+  # Generous for a person typing and useless to a script: roughly one message
+  # every two seconds, sustained, before anything is refused.
+  @message_limit 30
+  @message_window_ms 60_000
+
+  @doc "How many messages one author may post per minute."
+  def message_limit, do: @message_limit
+
+  @doc """
+  Posts a message and stamps the thread so inboxes sort correctly.
+
+  Returns `{:error, :rate_limited}` when the author has been writing faster
+  than a person plausibly types. The allowance is per author rather than per
+  thread, so one abusive buyer cannot spend a shop's other conversations.
+  """
   def post_message(%Thread{} = thread, author_kind, author_id, body)
       when author_kind in [:merchant, :customer, :platform] do
     body = String.trim(body || "")
 
-    with {:ok, message} <- create_message(thread, author_kind, author_id, body) do
+    with :ok <- check_message_rate(author_kind, author_id),
+         {:ok, message} <- create_message(thread, author_kind, author_id, body) do
       thread
       |> Ash.Changeset.for_update(:touch, %{last_message_at: message.inserted_at})
       |> Ash.update(authorize?: false)
@@ -222,6 +237,15 @@ defmodule Emakola.Conversations do
     thread
     |> Ash.Changeset.for_update(:mark_counterpart_read, %{})
     |> Ash.update(authorize?: false)
+  end
+
+  defp check_message_rate(author_kind, author_id) do
+    key = "conversation_post:#{author_kind}:#{author_id}"
+
+    case Emakola.RateLimit.check_rate(key, @message_limit, @message_window_ms) do
+      {:allow, _count} -> :ok
+      {:deny, _retry_after_ms} -> {:error, :rate_limited}
+    end
   end
 
   defp create_message(_thread, _kind, _id, ""), do: {:error, :empty_message}
