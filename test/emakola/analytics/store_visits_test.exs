@@ -175,4 +175,37 @@ defmodule Emakola.Analytics.StoreVisitsTest do
       assert StoreVisits.most_visited(7, 10) == []
     end
   end
+
+  describe "record/3 feeds the popular sort" do
+    test "each recorded visit bumps the store's view_count" do
+      store = create_store!()
+      assert store.view_count == 0
+
+      StoreVisits.record(store.id, "session-a", %{})
+      StoreVisits.record(store.id, "session-b", %{})
+
+      reread = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reread.view_count == 2
+    end
+
+    test "the directory's Most popular sort now means most viewed" do
+      quiet = create_store!(%{name: "Quiet Shop"})
+      busy = create_store!(%{name: "Busy Shop"})
+
+      for n <- 1..3, do: StoreVisits.record(busy.id, "s-#{n}", %{})
+      StoreVisits.record(quiet.id, "s-x", %{})
+
+      names =
+        Emakola.Stores.Store
+        |> Ash.Query.for_read(:list_with_filters, %{sort: :popular})
+        |> Ash.read!(authorize?: false)
+        |> Enum.map(& &1.name)
+
+      # Only the relative order matters — the read is unscoped, so stores from
+      # sibling tests may ride along.
+      busy_at = Enum.find_index(names, &(&1 == "Busy Shop"))
+      quiet_at = Enum.find_index(names, &(&1 == "Quiet Shop"))
+      assert busy_at < quiet_at
+    end
+  end
 end
