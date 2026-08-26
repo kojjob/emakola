@@ -243,16 +243,18 @@ defmodule Emakola.Billing.Workers.StripeHandler do
          |> Ash.read(authorize?: false) do
       {:ok, memberships} ->
         Enum.each(memberships, fn membership ->
-          Emakola.Notifications.Notification
-          |> Ash.Changeset.for_create(:create, %{
-            type: :billing_warning,
-            title: "Payment Failed",
-            body:
-              "Your latest payment could not be processed. Please update your payment method to avoid service interruption.",
-            action_url: "/billing",
-            user_id: membership.user_id
-          })
-          |> Ash.create()
+          case Emakola.Accounts.get_user_by_id(membership.user_id, authorize?: false) do
+            {:ok, user} ->
+              Emakola.Notifications.notify(user, :billing_warning, %{
+                title: "Payment Failed",
+                body:
+                  "Your latest payment could not be processed. Please update your payment method to avoid service interruption.",
+                action_url: "/billing"
+              })
+
+            _ ->
+              :ok
+          end
         end)
 
       _ ->

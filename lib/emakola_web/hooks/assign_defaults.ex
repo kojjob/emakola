@@ -42,8 +42,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         Emakola.Accounts.Sessions.touch(user_session)
       end
 
-      {notifs, unread} =
-        if Phoenix.LiveView.connected?(socket), do: load_notifications(user.id), else: {[], 0}
+      {notifs, unread} = load_notifications(socket, user)
 
       {:ok,
        assign(socket,
@@ -109,7 +108,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   defp resolve_live_merchant(socket, merchant, impersonator) do
     store = load_merchant_store(merchant.id)
-    {notifs, unread} = load_notifications(nil)
+    {notifs, unread} = load_notifications(socket, merchant)
     # Defer the 4 stat-count queries to the connected mount — the disconnected
     # dead render throws them away (CLAUDE.md: no DB work in the dead render).
     stats =
@@ -169,13 +168,33 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp attach_notification_hook(socket) do
-    Phoenix.LiveView.attach_hook(
-      socket,
+    socket
+    |> Phoenix.LiveView.attach_hook(
       :notification_actions,
       :handle_event,
       &handle_notification_event/3
     )
+    |> Phoenix.LiveView.attach_hook(
+      :notification_arrivals,
+      :handle_info,
+      &handle_notification_info/2
+    )
   end
+
+  # The bell is in the layout, on every page, so arrivals cannot depend on any
+  # one LiveView subscribing. `:cont` on a non-match is load-bearing — halting
+  # would swallow each page's own messages.
+  defp handle_notification_info({:new_notification, notification}, socket) do
+    notifications = [notification | socket.assigns[:notifications] || []]
+
+    {:cont,
+     assign(socket,
+       notifications: Enum.take(notifications, 20),
+       unread_notification_count: (socket.assigns[:unread_notification_count] || 0) + 1
+     )}
+  end
+
+  defp handle_notification_info(_message, socket), do: {:cont, socket}
 
   defp load_merchant_store(merchant_id) do
     case Emakola.Accounts.get_merchant_store_membership(merchant_id, authorize?: false) do
@@ -186,26 +205,33 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp handle_notification_event("mark_all_notifications_read", _params, socket) do
-    notifs = socket.assigns[:notifications] || []
+    # One statement for the whole bell. The previous version looped over the
+    # 20 loaded rows, which both cost a query each and quietly left a 21st
+    # unread notification behind.
+    case notification_recipient(socket) do
+      nil ->
+        {:halt, socket}
 
-    updated =
-      Enum.map(notifs, fn notif ->
-        if is_nil(notif.read_at) do
-          case Emakola.Notifications.mark_as_read(notif, authorize?: false) do
-            {:ok, updated} -> updated
-            _ -> notif
-          end
-        else
-          notif
-        end
-      end)
+      recipient ->
+        Emakola.Notifications.mark_all_read_for(recipient)
+        now = DateTime.utc_now()
 
-    {:halt,
-     socket
-     |> assign(notifications: updated, unread_notification_count: 0)}
+        read =
+          Enum.map(socket.assigns[:notifications] || [], fn notification ->
+            %{notification | read_at: notification.read_at || now}
+          end)
+
+        {:halt, assign(socket, notifications: read, unread_notification_count: 0)}
+    end
   end
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
+
+  # Whichever actor this session belongs to. Both are never set at once —
+  # the merchant path nils current_user and vice versa.
+  defp notification_recipient(socket) do
+    socket.assigns[:current_merchant] || socket.assigns[:current_user]
+  end
 
   defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0, pending_orders: 0}
 
@@ -242,20 +268,20 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
 
-  defp load_notifications(user_id) do
-    case user_id do
-      nil ->
-        {[], 0}
+  # Deferred to the connected mount like the other counts — the dead render
+  # throws the result away. Subscribing here rather than in each LiveView
+  # because the bell lives in the layout and is on every page.
+  #
+  # The count is its own query rather than `Enum.count` over the loaded rows:
+  # the list is capped at 20, so counting it would cap the badge at 20 too.
+  defp load_notifications(socket, recipient) do
+    if Phoenix.LiveView.connected?(socket) && recipient do
+      Emakola.Notifications.subscribe(recipient)
 
-      uid ->
-        case Emakola.Notifications.list_notifications_by_user(uid, authorize?: false) do
-          {:ok, notifs} ->
-            unread = Enum.count(notifs, &is_nil(&1.read_at))
-            {notifs, unread}
-
-          _ ->
-            {[], 0}
-        end
+      {Emakola.Notifications.list_for(recipient),
+       Emakola.Notifications.unread_count_for(recipient)}
+    else
+      {[], 0}
     end
   rescue
     exception ->

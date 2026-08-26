@@ -1389,27 +1389,33 @@ ord_a3 =
 
 IO.puts("  Creating notifications...")
 
-Seeds.create!(Emakola.Notifications.Notification, :create, %{
-  type: :system_announcement,
-  title: "Welcome to Emakola!",
+# Addressed to merchant1, not user1. The block was always labelled "for
+# merchant1" but wrote `user1.id`, because until recipients became polymorphic
+# a merchant could not own a notification at all.
+Seeds.create!(Emakola.Notifications.Notification, :notify, %{
+  type: :system,
+  title: "Welcome to Makola!",
   body: "Your store is live. Start adding products and sharing your store link with customers.",
-  user_id: user1.id
+  recipient_kind: :merchant,
+  recipient_id: merchant1.id
 })
 
-Seeds.create!(Emakola.Notifications.Notification, :create, %{
-  type: :billing_updated,
-  title: "Plan upgraded to Growth",
-  body:
-    "Your subscription has been upgraded to the Growth plan. You now have access to rider dispatch and API features.",
-  user_id: user1.id
+Seeds.create!(Emakola.Notifications.Notification, :notify, %{
+  type: :new_message,
+  title: "Ama Mensah sent you a message",
+  body: "Is the Kente cloth still available?",
+  action_url: "/admin/messages",
+  recipient_kind: :merchant,
+  recipient_id: merchant1.id
 })
 
-Seeds.create!(Emakola.Notifications.Notification, :create, %{
-  type: :agent_completed,
+Seeds.create!(Emakola.Notifications.Notification, :notify, %{
+  type: :order_placed,
   title: "New order received",
   body: "Ama Mensah placed an order for Royal Adweneasa Kente Cloth (GH₵ 850.00)",
   action_url: "/admin/orders",
-  user_id: user1.id
+  recipient_kind: :merchant,
+  recipient_id: merchant1.id
 })
 
 # =============================================================================
