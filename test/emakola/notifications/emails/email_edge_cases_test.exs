@@ -388,7 +388,7 @@ defmodule Emakola.Notifications.Emails.EmailEdgeCasesTest do
       html = email.html_body
 
       assert html =~ "Track Your Order"
-      assert html =~ "/s/accra-fashion/track/#{order.order_number}"
+      assert html =~ "/accra-fashion/track/#{order.order_number}"
     end
 
     test "order confirmation HTML has store footer" do

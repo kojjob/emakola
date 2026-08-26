@@ -445,7 +445,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <a
-                  href={"/s/#{@selected.slug}"}
+                  href={EmakolaWeb.Storefront.Path.public_path(@selected.slug)}
                   target="_blank"
                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold text-blue-600 bg-white ring-1 ring-inset ring-gray-200 hover:bg-slate-50 transition-colors"
                 >

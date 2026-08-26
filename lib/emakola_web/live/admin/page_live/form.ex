@@ -365,7 +365,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
         <div class="flex items-center gap-3">
           <a
             :if={@action == :edit && @published}
-            href={"/s/#{@store.slug}/p/#{@slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/p/#{@slug}")}
             target="_blank"
             class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
           >

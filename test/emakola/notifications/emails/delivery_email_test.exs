@@ -139,7 +139,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmailTest do
       store = build_store(slug: "accra-fashion-hub")
       order = build_order(order_number: "ORD-20260325-DEL01")
       email = DeliveryEmail.order_delivered(order, build_customer(), store)
-      assert email.html_body =~ "/s/accra-fashion-hub/orders/ORD-20260325-DEL01/review"
+      assert email.html_body =~ "/accra-fashion-hub/orders/ORD-20260325-DEL01/review"
     end
 
     test "HTML body contains line item product titles" do

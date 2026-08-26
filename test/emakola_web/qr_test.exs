@@ -50,17 +50,17 @@ defmodule EmakolaWeb.QRTest do
     end
 
     test "store_url is the store's canonical home", %{base: base, store: store} do
-      assert QR.store_url(store) == base <> "/s/kente-shop"
+      assert QR.store_url(store) == base <> "/kente-shop"
     end
 
     test "order_tracking_url is store-scoped", %{base: base, store: store, order: order} do
-      assert QR.order_tracking_url(store, order) == base <> "/s/kente-shop/track/1001"
+      assert QR.order_tracking_url(store, order) == base <> "/kente-shop/track/1001"
     end
 
     test "product_url is store-scoped", %{base: base, store: store, product: product} do
       # Dual-use on purpose: the same square on a shelf label is a customer's
       # way to read about the item and the merchant's way to reach its stock.
-      assert QR.product_url(store, product) == base <> "/s/kente-shop/products/kente-wrap-dress"
+      assert QR.product_url(store, product) == base <> "/kente-shop/products/kente-wrap-dress"
     end
 
     test "store payloads follow Canonical onto subdomains once those go live", %{

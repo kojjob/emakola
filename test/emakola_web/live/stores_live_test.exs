@@ -29,8 +29,10 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      assert has_element?(view, ~s(a[href="/s/akosua-boutique"]))
-      assert has_element?(view, ~s(a[href="/s/kente-collective"]))
+      # The directory hands out the short form. /s/:slug still routes, it is
+      # just no longer the link we give people.
+      assert has_element?(view, ~s(a[href="/akosua-boutique"]))
+      assert has_element?(view, ~s(a[href="/kente-collective"]))
       assert has_element?(view, "#stores-grid")
     end
 
@@ -100,8 +102,8 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      assert has_element?(view, ~s(a[href="/s/live-shop"]))
-      refute has_element?(view, ~s(a[href="/s/hidden-shop"]))
+      assert has_element?(view, ~s(a[href="/live-shop"]))
+      refute has_element?(view, ~s(a[href="/hidden-shop"]))
     end
 
     test "shows empty state when no active stores exist", %{conn: conn} do
@@ -120,8 +122,8 @@ defmodule EmakolaWeb.StoresLiveTest do
       |> form("#stores-search-form", search: %{query: "coffee"})
       |> render_change()
 
-      assert has_element?(view, ~s(a[href="/s/coffee-world"]))
-      refute has_element?(view, ~s(a[href="/s/ankara-threads"]))
+      assert has_element?(view, ~s(a[href="/coffee-world"]))
+      refute has_element?(view, ~s(a[href="/ankara-threads"]))
     end
 
     test "theme filter chip narrows by theme_config[\"theme\"]", %{conn: conn} do
@@ -144,8 +146,8 @@ defmodule EmakolaWeb.StoresLiveTest do
       |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
       |> render_click()
 
-      assert has_element?(view, ~s(a[href="/s/beauty-spot"]))
-      refute has_element?(view, ~s(a[href="/s/tech-hub"]))
+      assert has_element?(view, ~s(a[href="/beauty-spot"]))
+      refute has_element?(view, ~s(a[href="/tech-hub"]))
     end
 
     test "region filter narrows by region", %{conn: conn} do
@@ -169,8 +171,8 @@ defmodule EmakolaWeb.StoresLiveTest do
       )
       |> render_change()
 
-      assert has_element?(view, ~s(a[href="/s/kumasi-crafts"]))
-      refute has_element?(view, ~s(a[href="/s/accra-goods"]))
+      assert has_element?(view, ~s(a[href="/kumasi-crafts"]))
+      refute has_element?(view, ~s(a[href="/accra-goods"]))
     end
 
     test "sort dropdown switches the order", %{conn: conn} do
@@ -185,8 +187,8 @@ defmodule EmakolaWeb.StoresLiveTest do
       )
       |> render_change()
 
-      assert has_element?(view, ~s(a[href="/s/aaa-shop"]))
-      assert has_element?(view, ~s(a[href="/s/zzz-shop"]))
+      assert has_element?(view, ~s(a[href="/aaa-shop"]))
+      assert has_element?(view, ~s(a[href="/zzz-shop"]))
     end
 
     test "featured carousel renders when at least one featured store exists", %{conn: conn} do
@@ -201,7 +203,7 @@ defmodule EmakolaWeb.StoresLiveTest do
       {:ok, view, _html} = live(conn, "/stores")
 
       assert has_element?(view, "#featured-stores")
-      assert has_element?(view, ~s(#featured-stores a[href="/s/carousel-star"]))
+      assert has_element?(view, ~s(#featured-stores a[href="/carousel-star"]))
     end
 
     test "renders the merchant CTA and shared marketing chrome", %{conn: conn} do
@@ -247,7 +249,7 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      assert has_element?(view, ~s(#featured-stores a[href="/s/top-shop"]))
+      assert has_element?(view, ~s(#featured-stores a[href="/top-shop"]))
       assert has_element?(view, "#featured-stores .hero-star-solid")
     end
   end
