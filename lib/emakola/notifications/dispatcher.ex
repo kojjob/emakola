@@ -285,10 +285,20 @@ defmodule Emakola.Notifications.Dispatcher do
   # The merchant's in-app bell. Only a new order: the later status events are
   # the merchant's own doing, and a bell that tells you what you just did is
   # noise. Free and instant, unlike the SMS the worker above may send.
-  defp notify_merchants(%{store_id: store_id, order_number: number}, :order_placed)
-       when is_binary(store_id) do
+  # Matched on store_id alone, with order_number fetched rather than
+  # destructured. Callers hand this function whatever they hold — protection
+  # holds pass a bare %{id:, store_id:} map — and a pattern naming
+  # order_number would simply not match those, skipping the notification with
+  # no error to show for it.
+  defp notify_merchants(%{store_id: store_id} = order, :order_placed) when is_binary(store_id) do
+    title =
+      case Map.get(order, :order_number) do
+        number when is_binary(number) -> "New order #{number}"
+        _ -> "New order"
+      end
+
     Emakola.Notifications.notify_store(store_id, :order_placed, %{
-      title: "New order #{number}",
+      title: title,
       action_url: "/admin/orders"
     })
   end

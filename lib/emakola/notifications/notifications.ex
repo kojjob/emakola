@@ -58,6 +58,7 @@ defmodule Emakola.Notifications do
       attrs
       |> Map.new()
       |> Map.merge(%{type: type, recipient_kind: kind, recipient_id: recipient.id})
+      |> Map.update(:title, nil, &truncate_title/1)
 
     with {:ok, notification} <-
            Notification
@@ -87,7 +88,21 @@ defmodule Emakola.Notifications do
   def notify_store(store_id, type, attrs \\ %{}) when is_binary(store_id) do
     store_id
     |> store_merchants()
-    |> Enum.each(&notify(&1, type, attrs))
+    |> Enum.each(fn merchant ->
+      case notify(merchant, type, attrs) do
+        {:ok, _notification} ->
+          :ok
+
+        # `notify/3` returns an error tuple rather than raising, so `Enum.each`
+        # would otherwise drop a validation failure on the floor: no exception,
+        # no row, and a worker reporting success. A title longer than the
+        # column allows is the realistic case.
+        {:error, reason} ->
+          Logger.error(
+            "[notifications] #{inspect(type)} for merchant #{merchant.id} failed: #{inspect(reason)}"
+          )
+      end
+    end)
 
     :ok
   rescue
@@ -95,6 +110,23 @@ defmodule Emakola.Notifications do
       Logger.error("[notifications] notify_store raised: #{Exception.message(exception)}")
       :ok
   end
+
+  # Titles are built from user data — "#{product.title} was taken down" — and
+  # the column caps at 255. Trimming here, at the one place every notification
+  # passes through, rather than at each call site: refusing would mean a
+  # merchant with a long product name silently gets no notification, and a
+  # 300-character title was never going to render in a dropdown anyway.
+  @title_limit 255
+
+  defp truncate_title(title) when is_binary(title) do
+    if String.length(title) > @title_limit do
+      String.slice(title, 0, @title_limit - 1) <> "…"
+    else
+      title
+    end
+  end
+
+  defp truncate_title(title), do: title
 
   defp store_merchants(store_id) do
     Emakola.Accounts.StoreMembership
@@ -157,8 +189,18 @@ defmodule Emakola.Notifications do
     |> Ash.Query.for_read(:unread_for_recipient, recipient_args(recipient))
     |> Ash.bulk_update(:mark_all_read, %{}, authorize?: false, return_errors?: true)
     |> case do
-      %Ash.BulkResult{status: status} when status in [:success, :notfound] -> :ok
-      %Ash.BulkResult{errors: errors} -> {:error, errors}
+      %Ash.BulkResult{status: status} when status in [:success, :notfound] ->
+        :ok
+
+      # `:partial` means some rows cleared and some did not. Reporting it as
+      # success would leave a badge showing zero over unread rows; reporting
+      # only `errors` without saying so would read as a total failure.
+      %Ash.BulkResult{status: :partial, errors: errors} ->
+        Logger.error("[notifications] mark_all_read cleared only some rows: #{inspect(errors)}")
+        {:error, errors}
+
+      %Ash.BulkResult{errors: errors} ->
+        {:error, errors}
     end
   end
 

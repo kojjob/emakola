@@ -63,6 +63,27 @@ defmodule Emakola.Notifications.NotifyTest do
       assert notification.action_url == "/admin/messages/abc"
     end
 
+    test "a long title is trimmed rather than refused", ctx do
+      # Titles are built from user data — "#{product.title} was taken down" —
+      # and `title` caps at 255. Refusing would mean a merchant with a long
+      # product name silently gets no notification at all.
+      long = String.duplicate("Adweneasa Kente ", 40)
+
+      assert {:ok, notification} =
+               Notifications.notify(ctx.merchant, :product_moderated, %{title: long})
+
+      assert String.length(notification.title) <= 255
+      assert String.starts_with?(notification.title, "Adweneasa Kente")
+      assert String.ends_with?(notification.title, "…")
+    end
+
+    test "a title that fits is left alone", ctx do
+      assert {:ok, notification} =
+               Notifications.notify(ctx.merchant, :order_placed, %{title: "New order ORD-1"})
+
+      assert notification.title == "New order ORD-1"
+    end
+
     test "refuses a type that is not in the vocabulary", ctx do
       assert {:error, _} = Notifications.notify(ctx.merchant, :not_a_real_event, %{title: "Hi"})
     end
