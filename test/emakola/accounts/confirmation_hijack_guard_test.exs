@@ -129,7 +129,9 @@ defmodule Emakola.Accounts.ConfirmationHijackGuardTest do
       |> Ash.Changeset.for_create(
         :register_with_oauth2,
         %{
-          user_info: %{"email" => email, "name" => "Ama"},
+          # `sub` is required now that customer OAuth stores the provider's
+          # stable id. Matching on email alone is what the advisory calls unsafe.
+          user_info: %{"email" => email, "name" => "Ama", "sub" => "google-#{email}"},
           oauth_tokens: %{"access_token" => "tok"}
         },
         tenant: store_id

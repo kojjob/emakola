@@ -46,7 +46,14 @@ defmodule EmakolaWeb.AuthControllerTest do
         Emakola.Customers.Customer
         |> Ash.Changeset.for_create(
           :register_with_oauth2,
-          %{user_info: %{"email" => "shopper@example.com", "name" => "Ama"}, oauth_tokens: %{}},
+          %{
+            user_info: %{
+              "email" => "shopper@example.com",
+              "name" => "Ama",
+              "sub" => "google-#{"shopper@example.com"}"
+            },
+            oauth_tokens: %{}
+          },
           tenant: store.id
         )
         |> Ash.create(authorize?: false)
