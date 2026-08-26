@@ -68,6 +68,33 @@ defmodule EmakolaWeb.Admin.MessagesNavTest do
     refute messages_link(html) =~ "sidebar-badge"
   end
 
+  test "a message arriving mid-session raises the badge without a refresh", ctx do
+    ama = Factory.create_customer!(ctx.store, %{name: "Ama"})
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ama.id)
+
+    {:ok, view, html} = live(ctx.conn, ~p"/dashboard")
+    refute messages_link(html) =~ "sidebar-badge"
+
+    {:ok, _} = Conversations.post_message(thread, :customer, ama.id, "Are you open?")
+
+    # No navigation, no reload — the merchant is sitting on the page.
+    anchor = messages_link(render(view))
+    assert anchor =~ "sidebar-badge"
+    assert anchor =~ "1"
+  end
+
+  test "a message to another shop leaves this badge alone mid-session", ctx do
+    {_other_merchant, other_store} = Factory.create_merchant_with_store!()
+    esi = Factory.create_customer!(other_store, %{name: "Esi"})
+    {:ok, other_thread} = Conversations.open_shop_thread(other_store.id, esi.id)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/dashboard")
+
+    {:ok, _} = Conversations.post_message(other_thread, :customer, esi.id, "Private")
+
+    refute messages_link(render(view)) =~ "sidebar-badge"
+  end
+
   test "another shop's unread messages stay out of this badge", ctx do
     {_other_merchant, other_store} = Factory.create_merchant_with_store!()
     esi = Factory.create_customer!(other_store, %{name: "Esi"})

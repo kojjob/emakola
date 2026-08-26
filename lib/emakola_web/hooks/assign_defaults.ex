@@ -111,6 +111,14 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   defp resolve_live_merchant(socket, merchant, impersonator) do
     store = load_merchant_store(merchant.id)
     {notifs, unread} = load_notifications(nil)
+
+    # The badge lives in the layout, on every admin page, so it cannot rely on
+    # any one LiveView subscribing. Store-wide topic rather than the
+    # per-conversation one: a merchant on the dashboard is in no thread.
+    if store && Phoenix.LiveView.connected?(socket) do
+      Emakola.Conversations.subscribe_store(store.id)
+    end
+
     # Defer the 4 stat-count queries to the connected mount — the disconnected
     # dead render throws them away (CLAUDE.md: no DB work in the dead render).
     stats =
@@ -132,6 +140,26 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       pending_order_count: stats.pending_orders,
       unread_message_count: stats.unread_messages
     )
+    |> attach_message_badge_hook()
+  end
+
+  # Recount on the store-wide signal and pass everything else through. This
+  # runs in every LiveView of the :app session, so `:cont` on a non-match is
+  # load-bearing — halting here would swallow each page's own messages.
+  defp attach_message_badge_hook(socket) do
+    Phoenix.LiveView.attach_hook(socket, :message_badge, :handle_info, fn
+      :store_messages_changed, socket ->
+        count =
+          case socket.assigns[:current_store] do
+            nil -> 0
+            store -> Emakola.Conversations.unread_total_for_store(store.id)
+          end
+
+        {:cont, assign(socket, unread_message_count: count)}
+
+      _message, socket ->
+        {:cont, socket}
+    end)
   end
 
   # `:none` (no/!impersonation), `:expired` (window elapsed → force exit), or

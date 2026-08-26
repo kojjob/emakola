@@ -46,6 +46,26 @@ defmodule Emakola.Conversations.MessageRateLimitTest do
     assert {:ok, _} = Conversations.post_message(ctx.thread, :merchant, ctx.merchant.id, "Reply")
   end
 
+  test "a merchant working through a busy inbox is not cut off", ctx do
+    # The merchant is the one actor who legitimately posts to many threads in
+    # a minute. A buyer has one thread per shop; a merchant clearing forty
+    # waiting conversations must not be silenced mid-shift.
+    threads =
+      Enum.map(1..40, fn i ->
+        buyer = create_customer!(ctx.store, %{name: "Buyer #{i}"})
+        {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, buyer.id)
+        thread
+      end)
+
+    results =
+      Enum.map(threads, fn thread ->
+        Conversations.post_message(thread, :merchant, ctx.merchant.id, "On its way")
+      end)
+
+    assert Enum.all?(results, &match?({:ok, _}, &1)),
+           "a merchant answering 40 buyers must not hit the buyer ceiling"
+  end
+
   test "a refused message is not written", ctx do
     limit = Conversations.message_limit()
     post_n(ctx.thread, :customer, ctx.customer.id, limit + 10)

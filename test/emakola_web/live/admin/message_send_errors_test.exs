@@ -38,8 +38,9 @@ defmodule EmakolaWeb.Admin.MessageSendErrorsTest do
   end
 
   test "being cut off by the limiter says so, and does not blame the merchant", ctx do
-    # Spend the merchant's allowance outside the LiveView.
-    for i <- 1..(Conversations.message_limit() + 1) do
+    # Spend the merchant's own allowance outside the LiveView. Merchants have
+    # a higher ceiling than buyers, so the kind has to be named explicitly.
+    for i <- 1..(Conversations.message_limit(:merchant) + 1) do
       Conversations.post_message(ctx.thread, :merchant, ctx.merchant.id, "burst #{i}")
     end
 
