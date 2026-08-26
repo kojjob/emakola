@@ -263,6 +263,7 @@ defmodule Emakola.Notifications.Dispatcher do
       {:ok, job} ->
         enqueue_push(order_id, event)
         maybe_broadcast(order, event)
+        notify_merchants(order, event)
         {:ok, job}
 
       {:error, reason} ->
@@ -280,6 +281,19 @@ defmodule Emakola.Notifications.Dispatcher do
     Logger.error("[notifications] cannot dispatch #{inspect(event)}: order has no :id")
     {:error, :missing_order_id}
   end
+
+  # The merchant's in-app bell. Only a new order: the later status events are
+  # the merchant's own doing, and a bell that tells you what you just did is
+  # noise. Free and instant, unlike the SMS the worker above may send.
+  defp notify_merchants(%{store_id: store_id, order_number: number}, :order_placed)
+       when is_binary(store_id) do
+    Emakola.Notifications.notify_store(store_id, :order_placed, %{
+      title: "New order #{number}",
+      action_url: "/admin/orders"
+    })
+  end
+
+  defp notify_merchants(_order, _event), do: :ok
 
   # Mobile push fires only on new orders (Phase 0). Failures are logged and
   # swallowed — push must never break the primary notification path.

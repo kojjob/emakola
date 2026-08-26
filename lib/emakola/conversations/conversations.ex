@@ -119,6 +119,7 @@ defmodule Emakola.Conversations do
       |> Ash.update(authorize?: false)
 
       Phoenix.PubSub.broadcast(Emakola.PubSub, topic(thread.id), {:new_message, message})
+      notify_other_side(thread, author_kind)
       schedule_nudge(thread, author_kind)
 
       {:ok, message}
@@ -230,6 +231,59 @@ defmodule Emakola.Conversations do
   defp unread?(inserted_at, since), do: DateTime.compare(inserted_at, since) == :gt
 
   defp topic(thread_id), do: "conversation:" <> thread_id
+
+  # An in-app bell for the side that did not write, immediately. This is the
+  # free half of telling someone: the SMS nudge below still waits ten minutes
+  # and still costs money, and is skipped entirely if the bell did its job and
+  # they read it in time.
+  #
+  # Never raises: a bell entry failing must not fail the send.
+  defp notify_other_side(%Thread{kind: :shop_buyer} = thread, :customer) do
+    with {:ok, customer} <- fetch(Emakola.Customers.Customer, thread.customer_id) do
+      Emakola.Notifications.notify_store(thread.store_id, :new_message, %{
+        title: "#{customer.name || "A buyer"} sent you a message",
+        action_url: "/admin/messages/#{thread.id}"
+      })
+    end
+
+    :ok
+  end
+
+  defp notify_other_side(%Thread{kind: :shop_buyer} = thread, :merchant) do
+    with {:ok, customer} <- fetch(Emakola.Customers.Customer, thread.customer_id),
+         {:ok, store} <- fetch(Emakola.Stores.Store, thread.store_id) do
+      Emakola.Notifications.notify(customer, :new_message, %{
+        title: "#{store.name} replied to you",
+        action_url: "/account/messages"
+      })
+    end
+
+    :ok
+  end
+
+  defp notify_other_side(%Thread{kind: :platform_merchant} = thread, :platform) do
+    with {:ok, merchant} <- fetch(Emakola.Accounts.Merchant, thread.merchant_id) do
+      Emakola.Notifications.notify(merchant, :new_message, %{
+        title: "Makola sent you a message",
+        action_url: "/admin/messages/#{thread.id}"
+      })
+    end
+
+    :ok
+  end
+
+  # Staff read the dashboard, not a bell — the same reason MessageNudgeWorker
+  # never sends them an SMS.
+  defp notify_other_side(_thread, _author_kind), do: :ok
+
+  defp fetch(resource, nil) when is_atom(resource), do: :error
+
+  defp fetch(resource, id) do
+    case Ash.get(resource, id, authorize?: false) do
+      {:ok, record} -> {:ok, record}
+      _ -> :error
+    end
+  end
 
   # Tell the OTHER side, later, and only if they still have not read it. The
   # delay plus Oban uniqueness is what stops a free in-app conversation from

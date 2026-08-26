@@ -38,6 +38,9 @@ defmodule Emakola.Notifications do
     end
   end
 
+  require Ash.Query
+  require Logger
+
   alias Emakola.Notifications.Notification
 
   @doc """
@@ -67,6 +70,50 @@ defmodule Emakola.Notifications do
       )
 
       {:ok, notification}
+    end
+  end
+
+  @doc """
+  Tells everyone who runs a store something.
+
+  Notifications belong to people, not shops, and most platform events —
+  payouts, verification, moderation — are keyed on a store. Every member is
+  told, not just the owner: a shop where only the owner hears about a
+  takedown is a shop where staff keep selling a delisted product.
+
+  Never raises. A notification failing must not fail the delivery job that
+  triggered it.
+  """
+  def notify_store(store_id, type, attrs \\ %{}) when is_binary(store_id) do
+    store_id
+    |> store_merchants()
+    |> Enum.each(&notify(&1, type, attrs))
+
+    :ok
+  rescue
+    exception ->
+      Logger.error("[notifications] notify_store raised: #{Exception.message(exception)}")
+      :ok
+  end
+
+  defp store_merchants(store_id) do
+    Emakola.Accounts.StoreMembership
+    |> Ash.Query.filter(store_id == ^store_id)
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, memberships} ->
+        memberships
+        |> Enum.map(& &1.merchant_id)
+        |> Enum.uniq()
+        |> Enum.flat_map(fn merchant_id ->
+          case Ash.get(Emakola.Accounts.Merchant, merchant_id, authorize?: false) do
+            {:ok, merchant} -> [merchant]
+            _ -> []
+          end
+        end)
+
+      _ ->
+        []
     end
   end
 
