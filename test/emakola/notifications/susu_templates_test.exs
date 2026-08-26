@@ -172,7 +172,7 @@ defmodule Emakola.Notifications.SusuTemplatesTest do
 
       assert msg =~ "ORD-20260330-SUSU01"
       assert msg =~ "complete"
-      assert msg =~ "/s/adom-boutique/track/ORD-20260330-SUSU01?t="
+      assert msg =~ "/adom-boutique/track/ORD-20260330-SUSU01?t="
     end
 
     test "the embedded token verifies to the order's id" do

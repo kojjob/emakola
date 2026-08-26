@@ -108,7 +108,6 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorker do
   defp build_payload(product, store) do
     variant = first_variant(product)
     image_url = first_image_url(product)
-    storefront_host = EmakolaWeb.Endpoint.url()
 
     %{
       retailer_id: product.id,
@@ -118,7 +117,7 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorker do
       currency: store.currency || "GHS",
       availability: availability(variant),
       image_url: image_url,
-      url: "#{storefront_host}/s/#{store.slug}/products/#{product.slug}"
+      url: EmakolaWeb.SEO.Canonical.product_url(store, product)
     }
   end
 

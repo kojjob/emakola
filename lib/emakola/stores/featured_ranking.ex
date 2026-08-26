@@ -23,14 +23,19 @@ defmodule Emakola.Stores.FeaturedRanking do
   def feature(store) do
     transact(fn ->
       order = featured_in_order()
-      set_meta!(store, %{featured: true, featured_rank: length(order) + 1})
+
+      set_meta!(store, %{
+        featured: true,
+        featured_at: DateTime.utc_now(),
+        featured_rank: length(order) + 1
+      })
     end)
   end
 
   @spec unfeature(Store.t()) :: {:ok, Store.t()} | {:error, term()}
   def unfeature(store) do
     transact(fn ->
-      updated = set_meta!(store, %{featured: false, featured_rank: nil})
+      updated = set_meta!(store, %{featured: false, featured_at: nil, featured_rank: nil})
       renumber!(featured_in_order())
       updated
     end)

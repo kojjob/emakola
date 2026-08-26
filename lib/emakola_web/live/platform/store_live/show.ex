@@ -282,7 +282,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
             />
           </div>
           <a
-            href={"/s/#{@store.slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
             target="_blank"
             class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold text-blue-600 bg-white ring-1 ring-inset ring-gray-200 hover:bg-slate-50 transition-colors shrink-0"
           >

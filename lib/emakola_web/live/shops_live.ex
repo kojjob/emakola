@@ -137,7 +137,7 @@ defmodule EmakolaWeb.ShopsLive do
             <.link
               :for={{id, store} <- @streams.stores}
               id={id}
-              navigate={"/s/#{store.slug}"}
+              navigate={EmakolaWeb.Storefront.Path.public_path(store.slug)}
               class="block rounded-xl border border-stone-200 p-5 transition hover:border-emerald-400 hover:shadow-sm"
             >
               <p class="font-semibold text-stone-900">{store.name}</p>

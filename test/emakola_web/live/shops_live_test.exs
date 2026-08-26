@@ -25,7 +25,10 @@ defmodule EmakolaWeb.ShopsLiveTest do
     assert has_element?(view, "#regional-shops[phx-update='stream'][data-count='3']")
 
     for store <- stores do
-      assert has_element?(view, "#stores-#{store.id}[href='/s/#{store.slug}']")
+      # The directory hands out the short form — makola.io/yourshop — because
+      # that is the link a merchant can say aloud or write on a poster. The
+      # /s/ route still serves, it is just no longer what we hand out.
+      assert has_element?(view, "#stores-#{store.id}[href='/#{store.slug}']")
     end
 
     assert html =~

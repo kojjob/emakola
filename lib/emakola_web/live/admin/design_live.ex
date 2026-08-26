@@ -141,7 +141,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
         subtitle="Customize buttons, cards, typography, and layout — preview live"
       >
         <a
-          href={"/s/#{@store.slug}/"}
+          href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/")}
           target="_blank"
           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control border border-border bg-surface text-sm font-semibold text-text hover:bg-surface-subtle transition-colors"
         >
