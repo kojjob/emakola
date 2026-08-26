@@ -58,14 +58,19 @@ defmodule Emakola.Marketing.Coupon do
     attribute :discount_value, :integer do
       default(0)
       public?(true)
+      # Pesewas or basis points depending on discount_type — negative either way
+      # would ADD to the customer's total at checkout (total = ... - discount).
+      constraints(min: 0)
     end
 
     attribute :max_discount_amount, :integer do
       public?(true)
+      constraints(min: 0)
     end
 
     attribute :minimum_order_amount, :integer do
       public?(true)
+      constraints(min: 0)
     end
 
     attribute :max_uses, :integer do
