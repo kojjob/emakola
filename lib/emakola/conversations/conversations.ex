@@ -189,6 +189,23 @@ defmodule Emakola.Conversations do
     end
   end
 
+  @doc """
+  How many messages across a store's whole inbox the merchant has not read.
+
+  One aggregate query, so the sidebar badge costs the same on a shop with ten
+  conversations and a shop with ten thousand messages.
+  """
+  def unread_total_for_store(store_id) when is_binary(store_id) do
+    Thread
+    |> Ash.Query.for_read(:for_store, %{store_id: store_id})
+    |> Ash.Query.load(:unread_for_merchant)
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, threads} -> Enum.sum_by(threads, & &1.unread_for_merchant)
+      _ -> 0
+    end
+  end
+
   @doc "Subscribes the calling process to a thread's new messages."
   def subscribe(thread_id) when is_binary(thread_id) do
     Phoenix.PubSub.subscribe(Emakola.PubSub, topic(thread_id))

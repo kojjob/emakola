@@ -54,7 +54,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
          onboarding_complete: true,
          notifications: notifs,
          unread_notification_count: unread,
-         pending_order_count: 0
+         pending_order_count: 0,
+         unread_message_count: 0
        )}
     else
       _ -> :error
@@ -128,7 +129,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       product_count: stats.products,
       order_count: stats.orders,
       customer_count: stats.customers,
-      pending_order_count: stats.pending_orders
+      pending_order_count: stats.pending_orders,
+      unread_message_count: stats.unread_messages
     )
   end
 
@@ -164,7 +166,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       onboarding_complete: false,
       notifications: [],
       unread_notification_count: 0,
-      pending_order_count: 0
+      pending_order_count: 0,
+      unread_message_count: 0
     )
   end
 
@@ -207,7 +210,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
 
-  defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+  defp load_store_stats(nil),
+    do: %{products: 0, orders: 0, customers: 0, pending_orders: 0, unread_messages: 0}
 
   defp load_store_stats(store) do
     {:ok, product_count} =
@@ -234,7 +238,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       products: product_count,
       orders: order_count,
       customers: customer_count,
-      pending_orders: pending_order_count
+      pending_orders: pending_order_count,
+      unread_messages: Emakola.Conversations.unread_total_for_store(store.id)
     }
   rescue
     exception ->

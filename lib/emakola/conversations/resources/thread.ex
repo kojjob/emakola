@@ -152,6 +152,24 @@ defmodule Emakola.Conversations.Thread do
     end
   end
 
+  aggregates do
+    # Counted in the database rather than by loading messages: this feeds the
+    # sidebar badge on every admin page, and summing rows in Elixir would make
+    # the cost of opening the dashboard grow with the shop's message history.
+    #
+    # `parent/1` reaches back to the thread row, which is what lets one query
+    # compare each message against that thread's own read mark.
+    count :unread_for_merchant, :messages do
+      filter(
+        expr(
+          author_kind != :merchant and
+            (is_nil(parent(merchant_last_read_at)) or
+               inserted_at > parent(merchant_last_read_at))
+        )
+      )
+    end
+  end
+
   identities do
     identity(:one_thread_per_buyer, [:store_id, :customer_id])
     identity(:one_thread_per_merchant, [:merchant_id])
