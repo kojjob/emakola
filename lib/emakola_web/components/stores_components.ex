@@ -219,6 +219,11 @@ defmodule EmakolaWeb.StoresComponents do
             <span class="truncate">{location(@store)}</span>
           </span>
 
+          <span :if={tenure(@store) != ""} class="inline-flex items-center gap-1.5">
+            <.icon name="hero-calendar" class="size-4 shrink-0 text-slate-400" />
+            {tenure(@store)}
+          </span>
+
           <span :if={product_count(@store) > 0} class="inline-flex items-center gap-1.5">
             <.icon name="hero-shopping-bag" class="size-4 text-amber-700" />
             {product_count(@store)} {if product_count(@store) == 1, do: "product", else: "products"}
@@ -354,6 +359,10 @@ defmodule EmakolaWeb.StoresComponents do
                 <span :if={location(store) != ""} class="inline-flex min-w-0 items-center gap-1.5">
                   <.icon name="hero-map-pin" class="size-4 shrink-0 text-amber-300" />
                   <span class="truncate">{location(store)}</span>
+                </span>
+                <span :if={tenure(store) != ""} class="inline-flex items-center gap-1.5">
+                  <.icon name="hero-calendar" class="size-4 shrink-0 text-slate-400" />
+                  {tenure(store)}
                 </span>
                 <span class="ml-auto inline-flex items-center gap-1 text-white">
                   Visit shop <.icon name="hero-arrow-right" class="size-3.5" />
@@ -898,6 +907,17 @@ defmodule EmakolaWeb.StoresComponents do
   end
 
   # ── Helpers ──
+
+  # "Since Mar 2026" from the store's own age. Longevity is the one trust
+  # signal a fly-by-night seller cannot fake quickly, so it earns a place on
+  # every card — as a number and a word, not a sentence, for readers who
+  # decode symbols faster than prose.
+  defp tenure(store) do
+    case Map.get(store, :inserted_at) do
+      %{year: _} = stamp -> "Since " <> Calendar.strftime(stamp, "%b %Y")
+      _missing -> ""
+    end
+  end
 
   defp location(store) do
     [Map.get(store, :city), region_label(Map.get(store, :region))]
