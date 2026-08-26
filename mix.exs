@@ -86,7 +86,7 @@ defmodule Emakola.MixProject do
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
-      {:ash_authentication, "~> 4.0"},
+      {:ash_authentication, "~> 4.14"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_json_api, "~> 1.4"},
       {:open_api_spex, "~> 3.16"},

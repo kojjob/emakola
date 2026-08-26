@@ -73,7 +73,10 @@ defmodule EmakolaWeb.SEO.Canonical do
         "#{scheme()}://#{slug}.#{sub_base}"
 
       _ ->
-        base() <> "/s/" <> slug
+        # The short form, not `/s/:slug`. Both route, but only one is a URL a
+        # merchant can read down a phone line — and `ResolveStoreByHost` now
+        # 301s the `/s/` form here anyway, so emitting it would just cost a hop.
+        base() <> "/" <> slug
     end
   end
 

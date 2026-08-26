@@ -473,7 +473,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                         {sm.role}
                       </span>
                       <a
-                        href={"/s/#{sm.store.slug}"}
+                        href={EmakolaWeb.Storefront.Path.public_path(sm.store.slug)}
                         target="_blank"
                         class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-0.5"
                       >
