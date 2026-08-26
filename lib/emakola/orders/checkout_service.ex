@@ -519,6 +519,27 @@ defmodule Emakola.Orders.CheckoutService do
     end)
   end
 
+  @doc """
+  True when any item in the cart is a digital download.
+
+  Distinct from `not requires_shipping?/1` on purpose: a mixed cart both
+  requires shipping AND contains a download, and the download half needs a
+  signed-in customer or its grant is minted with `customer_id: nil` and can
+  never be redeemed. An unknown or unloaded product counts as physical — the
+  failure mode of guessing "digital" is refusing a legitimate guest sale.
+  """
+  def has_digital?(variants) when map_size(variants) == 0, do: false
+
+  def has_digital?(variants) do
+    Enum.any?(variants, fn {_id, variant} ->
+      case variant.product do
+        %Ash.NotLoaded{} -> false
+        nil -> false
+        product -> product.product_type == :digital_download
+      end
+    end)
+  end
+
   defp run_checkout(store_id, items, variants, opts) do
     ships? = requires_shipping?(variants)
 

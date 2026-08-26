@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
 
       {slug, rest} ->
         case DomainResolver.primary_host(slug) do
-          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query(conn)}
+          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query_suffix(conn)}
           _ -> :passthrough
         end
     end
@@ -89,8 +89,8 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   defp join([]), do: ""
   defp join(segments), do: "/" <> Enum.join(segments, "/")
 
-  defp query(%{query_string: ""}), do: ""
-  defp query(%{query_string: q}), do: "?" <> q
+  defp query_suffix(%{query_string: ""}), do: ""
+  defp query_suffix(%{query_string: q}), do: "?" <> q
 
   defp origin(host) do
     scheme = URI.parse(EmakolaWeb.Endpoint.url()).scheme

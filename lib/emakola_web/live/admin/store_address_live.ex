@@ -12,6 +12,8 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Stores
 
   # A merchant with no store has nothing to configure here yet. RequireActiveStore
@@ -45,10 +47,19 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
     %{store: store, base: base} = socket.assigns
     host = "#{slugify(label)}.#{base}"
 
-    attrs = %{store_id: store.id, host: host, type: :subdomain, primary?: true}
+    # Host is not updatable, so "change" is create-then-replace — and the
+    # one-primary-per-store index makes the order load-bearing. The new row is
+    # created NON-primary (a second primary would violate the index and the
+    # re-claim used to hard-fail right here), the old address is retired only
+    # after the new one exists, and promotion happens last. A rejected label
+    # therefore leaves the old address fully intact.
+    attrs = %{store_id: store.id, host: host, type: :subdomain, primary?: false}
+    previous = socket.assigns.domain
 
     case Stores.create_store_domain(attrs, actor: actor(socket)) do
       {:ok, domain} ->
+        domain = domain |> retire_previous(previous, socket) |> promote(previous, socket)
+
         {:noreply,
          socket
          |> assign(domain: domain, error: nil)
@@ -56,6 +67,38 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
 
       {:error, error} ->
         {:noreply, assign(socket, error: error_message(error))}
+    end
+  end
+
+  defp retire_previous(domain, %{id: old_id, type: :subdomain} = previous, socket)
+       when old_id != domain.id do
+    case Stores.destroy_store_domain(previous, actor: actor(socket)) do
+      :ok ->
+        domain
+
+      {:error, error} ->
+        # The new address works either way; a lingering old row is cosmetic.
+        Logger.warning("[store_address] could not retire #{previous.host}: #{inspect(error)}")
+        domain
+    end
+  end
+
+  defp retire_previous(domain, _previous, _socket), do: domain
+
+  # Carries the old serve-in-place choice forward too — a merchant who turned
+  # their branded address on should not have it silently revert on a rename.
+  defp promote(domain, previous, socket) do
+    serve? = (previous && previous.serve_in_place?) || domain.serve_in_place?
+
+    case Stores.update_store_domain(domain, %{primary?: true, serve_in_place?: serve?},
+           actor: actor(socket)
+         ) do
+      {:ok, promoted} ->
+        promoted
+
+      {:error, error} ->
+        Logger.warning("[store_address] could not promote #{domain.host}: #{inspect(error)}")
+        domain
     end
   end
 
