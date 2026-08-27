@@ -16,7 +16,7 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorkerTest do
   alias Emakola.Stores.Store
   alias Emakola.Stores.Workers.DirectoryRankingWorker
 
-  defp equipped_store!(attrs \\ %{}) do
+  defp equipped_store!(attrs) do
     store =
       create_store!(
         Map.merge(
