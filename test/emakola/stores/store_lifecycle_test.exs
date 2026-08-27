@@ -140,7 +140,9 @@ defmodule Emakola.Stores.StoreLifecycleTest do
       {:ok, archived} =
         Stores.archive_store(
           Factory.create_store!(meta) |> then(&with_slot!.(&1, :spotlight)),
-          %{}, authorize?: false)
+          %{},
+          authorize?: false
+        )
 
       %{live: live, suspended: suspended, blocked: blocked, archived: archived}
     end
