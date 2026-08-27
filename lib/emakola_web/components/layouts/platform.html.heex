@@ -650,27 +650,27 @@
   /* ═══════════════════════════════════════════
      COLLAPSED STATE (desktop toggle)
      ═══════════════════════════════════════════ */
-  #platform-shell.collapsed .sidebar { width: 72px; }
-  #platform-shell.collapsed .nav-label,
-  #platform-shell.collapsed .nav-section-label,
-  #platform-shell.collapsed .sidebar-badge { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar { width: 72px; }
+  #platform-shell.collapsed:not(.mobile-open) .nav-label,
+  #platform-shell.collapsed:not(.mobile-open) .nav-section-label,
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-badge { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
 
-  #platform-shell.collapsed .sidebar-header { padding: 0 16px; justify-content: center; }
-  #platform-shell.collapsed .sidebar-header a { justify-content: center; }
-  #platform-shell.collapsed .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
-  #platform-shell.collapsed .collapse-icon { transform: rotate(180deg); }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0 16px; justify-content: center; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header a { justify-content: center; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-icon { transform: rotate(180deg); }
 
-  #platform-shell.collapsed .sidebar-link { justify-content: center; padding: 11px; gap: 0; }
-  #platform-shell.collapsed .sidebar-link::before { left: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link { justify-content: center; padding: 11px; gap: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::before { left: 0; }
 
-  #platform-shell.collapsed .sidebar-user { justify-content: center; padding: 8px; }
-  #platform-shell.collapsed .sidebar-user .nav-label { display: none; }
-  #platform-shell.collapsed .sidebar-user svg { display: none; }
-  #platform-shell.collapsed .sidebar-nav { padding: 8px 10px; }
-  #platform-shell.collapsed .sidebar-footer { padding: 8px 10px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user { justify-content: center; padding: 8px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user .nav-label { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user svg { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-nav { padding: 8px 10px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-footer { padding: 8px 10px; }
 
   /* Tooltips in collapsed state */
-  #platform-shell.collapsed .sidebar-link::after {
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::after {
     content: attr(title);
     position: absolute;
     left: calc(100% + 12px);
@@ -689,7 +689,7 @@
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-  #platform-shell.collapsed .sidebar-link:hover::after {
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link:hover::after {
     opacity: 1;
     transform: translateY(-50%) scale(1);
   }
