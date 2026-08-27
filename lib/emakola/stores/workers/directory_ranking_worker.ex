@@ -18,9 +18,10 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
   Cron-driven at 02:30 UTC (config.exs), matching every other poller here —
   no worker in this codebase uses `{:snooze, _}`.
 
-  Expired pins are treated as inert by `DirectorySlots` but are not yet
-  cleared or audited from here — that lands with the curation service, which
-  owns override writes and their audit trail.
+  Expired pins are cleared here — the nightly run is when an editorial
+  decision quietly lapses back to the computed answer — and each clearance
+  is audited as :directory_override_expired so the Directory Studio
+  timeline explains why a pin vanished overnight.
   """
 
   use Oban.Worker, queue: :default, max_attempts: 1
@@ -60,6 +61,7 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{}) do
     now = DateTime.utc_now()
+    clear_expired_pins!(now)
     conduct_marks = conduct_marks(now)
     overrides = existing_overrides()
 
@@ -170,6 +172,24 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
     )
     |> Emakola.Repo.all()
     |> MapSet.new()
+  end
+
+  # An expired pin lapses back to the computed answer, audited so the
+  # timeline explains why it vanished overnight.
+  defp clear_expired_pins!(now) do
+    DirectoryStanding
+    |> Ash.Query.filter(not is_nil(override_slot) and override_until < ^now)
+    |> Ash.read!(authorize?: false)
+    |> Enum.each(fn standing ->
+      standing
+      |> Ash.Changeset.for_update(:override, %{override_slot: nil, override_until: nil})
+      |> Ash.update!(authorize?: false)
+
+      Emakola.Accounts.PlatformAudit.log(:directory_override_expired, nil, %{
+        "store_id" => standing.store_id,
+        "expired_slot" => standing.override_slot && Atom.to_string(standing.override_slot)
+      })
+    end)
   end
 
   defp existing_overrides do
