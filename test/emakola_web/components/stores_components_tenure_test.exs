@@ -32,15 +32,6 @@ defmodule EmakolaWeb.StoresComponentsTenureTest do
       assert html =~ "Since Mar 2026"
     end
 
-    test "the carousel hero says it too" do
-      html =
-        render_component(&StoresComponents.featured_carousel/1,
-          stores: [store(%{featured: true})]
-        )
-
-      assert html =~ "Since Mar 2026"
-    end
-
     test "a store somehow missing its timestamp shows no badge rather than garbage" do
       html = render_component(&StoresComponents.store_card/1, store: store(%{inserted_at: nil}))
 

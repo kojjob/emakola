@@ -10,10 +10,15 @@ defmodule EmakolaWeb.Storefront.CartDefaultRendererTest do
   import Phoenix.LiveViewTest
   import Emakola.Factory
 
-  defp cart_with_item(conn) do
+  defp cart_with_item(conn, variant_attrs \\ %{}) do
     store = create_store!(%{slug: "stall-cart-#{System.unique_integer([:positive])}"})
     product = create_product!(store, %{title: "Kente Stole"})
-    create_variant!(product, store, %{price: 12_000, track_inventory: false, stock_quantity: 0})
+
+    create_variant!(
+      product,
+      store,
+      Map.merge(%{price: 12_000, track_inventory: false, stock_quantity: 0}, variant_attrs)
+    )
 
     product
     |> Ash.Changeset.for_update(:activate, %{})
@@ -53,6 +58,32 @@ defmodule EmakolaWeb.Storefront.CartDefaultRendererTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
 
     refute html =~ "Move to Wishlist"
+  end
+
+  test "the summary invents no tax and the total is the subtotal", %{conn: conn} do
+    {conn, store} = cart_with_item(conn)
+
+    {:ok, view, html} = live(conn, "/s/#{store.slug}/cart")
+
+    refute html =~ "Estimated Tax"
+    assert view |> element("#summary-total") |> render() =~ "GH₵ 120"
+  end
+
+  test "the placebo promo box is gone — coupons belong to checkout", %{conn: conn} do
+    {conn, store} = cart_with_item(conn)
+
+    {:ok, view, html} = live(conn, "/s/#{store.slug}/cart")
+
+    refute has_element?(view, "#promo-section")
+    refute html =~ "Promo Code"
+  end
+
+  test "a lone variant's SKU is never shown as its variant label", %{conn: conn} do
+    {conn, store} = cart_with_item(conn, %{sku: "EARN-TEST-99"})
+
+    {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
+
+    refute html =~ "EARN-TEST-99"
   end
 
   test "quantity steppers meet the 44px tap target", %{conn: conn} do
