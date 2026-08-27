@@ -7,7 +7,7 @@ defmodule EmakolaWeb.StoresComponents do
   - `filter_chips/1` — theme filter chips (All + one chip per registered theme).
   - `region_filter/1` — dropdown for Ghana regions.
   - `sort_dropdown/1` — Newest / A-Z / Most popular / Featured.
-  - `featured_carousel/1` — horizontal-scroll snap row of featured stores.
+  - `featured_spotlight/1` — the big hero plus the also-featured photo tiles.
   - `recently_viewed_strip/1` — 6-up horizontal strip from cookie.
   - `map_view/1` — Ghana SVG with regional pins (Phase 3).
   """
@@ -246,22 +246,19 @@ defmodule EmakolaWeb.StoresComponents do
   defp card_variant_class(:compact), do: ""
   defp card_variant_class(_), do: ""
 
-  # ── Featured carousel (horizontal snap) ──
+  # ── Featured spotlight (hero + photo tiles) ──
   #
-  # Renders a horizontally scrolling row of taller hero cards. Pure CSS
-  # scroll-snap; no JS hook needed. Each card uses the same color/logo
-  # treatment as `store_card/1` but with a larger cover and editorial
-  # vibe (tagline takes precedence over description).
+  # Pattern A from the approved stores redesign: rank one holds a big 3:2
+  # hero, the next few featured shops sit beside it as photo tiles. Nobody
+  # has to swipe to be seen, and the hero stays the loudest thing in the
+  # row because only one shop ever holds it.
 
-  attr :stores, :list, required: true
+  attr :hero, :map, required: true
+  attr :tiles, :list, default: []
 
-  def featured_carousel(assigns) do
+  def featured_spotlight(assigns) do
     ~H"""
-    <section
-      :if={@stores != []}
-      id="featured-stores"
-      class="border-b border-slate-200 bg-white py-12 sm:py-16"
-    >
+    <section id="featured-spotlight" class="border-b border-slate-200 bg-white py-12 sm:py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between gap-5">
           <div>
@@ -271,9 +268,6 @@ defmodule EmakolaWeb.StoresComponents do
             <h2 class="mt-2 font-headline text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
               Shops people should know
             </h2>
-            <p class="mt-2 text-sm text-slate-500 sm:text-base">
-              A closer look at merchants doing something special.
-            </p>
           </div>
           <a
             href="#main-grid"
@@ -283,92 +277,99 @@ defmodule EmakolaWeb.StoresComponents do
           </a>
         </div>
 
-        <div class="-mx-4 mt-7 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div class="flex min-w-max snap-x snap-mandatory gap-4 sm:gap-5">
-            <a
-              :for={store <- @stores}
-              href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
-              class="group relative block w-[82vw] max-w-[400px] shrink-0 snap-start overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_20px_50px_-30px_rgba(12,31,23,0.65)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-28px_rgba(12,31,23,0.5)]"
-            >
-              <div class="relative aspect-[4/3] overflow-hidden">
-                <%= if card_image_url(store) do %>
+        <div class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <a
+            id="featured-hero"
+            href={EmakolaWeb.Storefront.Path.public_path(@hero.slug)}
+            class="group relative block overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_32px_64px_-36px_rgba(12,31,23,0.55)]"
+            aria-label={"Visit #{@hero.name}"}
+          >
+            <div class="relative aspect-[4/5] sm:aspect-[3/2]">
+              <.optimized_image
+                src={card_image_url(@hero)}
+                alt={"#{@hero.name} shop photo"}
+                class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-black/5">
+              </div>
+
+              <div class="absolute left-5 top-5 flex flex-wrap gap-2">
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-950">
+                  <.icon name="hero-star-solid" class="size-3" /> Featured
+                </span>
+                <span
+                  :if={Map.get(@hero, :verified)}
+                  class="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-800"
+                >
+                  <.icon name="hero-check-badge-solid" class="size-3.5" /> Verified
+                </span>
+              </div>
+
+              <div class="absolute inset-x-5 bottom-5 flex flex-col items-start gap-3 sm:inset-x-8 sm:bottom-7 sm:flex-row sm:items-end sm:justify-between sm:gap-7">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/80">
+                    {theme_label(@hero)}
+                    <span :if={location(@hero) != ""}>&middot; {location(@hero)}</span>
+                    <span :if={product_count(@hero) > 0}>
+                      &middot; {product_count(@hero)} {if product_count(@hero) == 1,
+                        do: "product",
+                        else: "products"}
+                    </span>
+                  </p>
+                  <p class="mt-2 font-headline text-3xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl">
+                    {@hero.name}
+                  </p>
+                  <p
+                    :if={Map.get(@hero, :tagline) && @hero.tagline != ""}
+                    class="mt-2 line-clamp-2 max-w-md text-base text-white/90 sm:text-lg"
+                  >
+                    {@hero.tagline}
+                  </p>
+                </div>
+                <span class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#d4a843] px-6 py-3.5 text-base font-bold text-emerald-950 transition group-hover:bg-amber-300">
+                  Visit shop <.icon name="hero-arrow-right" class="size-4" />
+                </span>
+              </div>
+            </div>
+          </a>
+
+          <div class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                Also featured
+              </p>
+              <a href="#main-grid" class="text-sm font-bold text-emerald-700">
+                See all <.icon name="hero-arrow-down" class="inline size-3.5" />
+              </a>
+            </div>
+
+            <div id="featured-tiles" class="grid flex-1 grid-cols-2 gap-3">
+              <a
+                :for={store <- @tiles}
+                href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
+                class="group relative block overflow-hidden rounded-2xl bg-slate-200"
+                aria-label={"Visit #{store.name}"}
+              >
+                <div class="relative aspect-square">
                   <.optimized_image
                     src={card_image_url(store)}
                     alt={"#{store.name} shop photo"}
                     class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
-                <% else %>
-                  <div
-                    class="stores-card-pattern absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
-                    style={card_theme_vars(store)}
-                  >
+                  <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/10 to-transparent">
                   </div>
-                  <div class="absolute inset-0 flex items-center justify-center text-white/20">
-                    <.icon
-                      name="hero-building-storefront"
-                      class="size-24 transition duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                <% end %>
-
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent">
-                </div>
-
-                <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-amber-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-950">
-                  <.icon name="hero-star-solid" class="size-3" /> Featured
-                </span>
-
-                <div class="absolute inset-x-0 bottom-0 p-5">
-                  <div class="flex items-end gap-3">
-                    <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-                      <%= if store.logo_url && store.logo_url != "" do %>
-                        <img
-                          src={store.logo_url}
-                          alt={"#{store.name} logo"}
-                          class="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      <% else %>
-                        <span
-                          class="text-lg font-black text-store-accent"
-                          style={card_theme_vars(store)}
-                        >
-                          {String.first(store.name) |> String.upcase()}
-                        </span>
-                      <% end %>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="line-clamp-1 text-xl font-black tracking-tight text-white">
-                        {store.name}
-                      </p>
-                      <p
-                        :if={Map.get(store, :tagline) && store.tagline != ""}
-                        class="mt-0.5 line-clamp-1 text-sm text-white/75"
-                      >
-                        {store.tagline}
-                      </p>
-                    </div>
-                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur transition group-hover:bg-amber-300 group-hover:text-emerald-950">
-                      <.icon name="hero-arrow-up-right" class="size-4" />
-                    </span>
+                  <div class="absolute inset-x-3.5 bottom-3">
+                    <p class="line-clamp-1 text-base font-black tracking-tight text-white">
+                      {store.name}
+                    </p>
+                    <p class="mt-0.5 line-clamp-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white/75">
+                      {theme_label(store)}
+                      <span :if={location(store) != ""}>&middot; {location(store)}</span>
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              <div class="flex items-center gap-3 px-5 py-4 text-xs font-semibold text-slate-300">
-                <span :if={location(store) != ""} class="inline-flex min-w-0 items-center gap-1.5">
-                  <.icon name="hero-map-pin" class="size-4 shrink-0 text-amber-300" />
-                  <span class="truncate">{location(store)}</span>
-                </span>
-                <span :if={tenure(store) != ""} class="inline-flex items-center gap-1.5">
-                  <.icon name="hero-calendar" class="size-4 shrink-0 text-slate-400" />
-                  {tenure(store)}
-                </span>
-                <span class="ml-auto inline-flex items-center gap-1 text-white">
-                  Visit shop <.icon name="hero-arrow-right" class="size-3.5" />
-                </span>
-              </div>
-            </a>
+              </a>
+            </div>
           </div>
         </div>
       </div>

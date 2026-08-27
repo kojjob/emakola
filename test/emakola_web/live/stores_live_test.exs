@@ -191,20 +191,80 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, ~s(a[href="/zzz-shop"]))
     end
 
-    test "featured carousel renders when at least one featured store exists", %{conn: conn} do
+    test "the spotlight renders when at least one featured store exists", %{conn: conn} do
       Factory.create_store!(%{
         name: "Carousel Star",
         slug: "carousel-star",
         featured: true,
         featured_rank: 1,
+        logo_url: "https://cdn.example/carousel-star.png",
         tagline: "Hand-picked excellence"
       })
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      assert has_element?(view, "#featured-stores")
-      assert has_element?(view, ~s(#featured-stores a[href="/carousel-star"]))
+      assert has_element?(view, "#featured-spotlight")
+      assert has_element?(view, ~s(#featured-hero[href="/carousel-star"]))
     end
+
+    test "the hero is the top-ranked shop and the tiles carry the rest, nobody twice", %{
+      conn: conn
+    } do
+      for {name, rank} <- [{"Rank One", 1}, {"Rank Two", 2}, {"Rank Three", 3}] do
+        Factory.create_store!(%{
+          name: name,
+          slug: String.replace(String.downcase(name), " ", "-"),
+          featured: true,
+          featured_rank: rank,
+          logo_url: "https://cdn.example/#{rank}.png"
+        })
+      end
+
+      {:ok, view, html} = live(conn, "/stores")
+
+      # Date-seeded rotation picks the day's head; whoever leads, the hero
+      # holds exactly one shop and the tiles never repeat it.
+      assert has_element?(view, "#featured-hero")
+      [hero_name] = Regex.run(~r/Rank (?:One|Two|Three)/, hero_html(view)) |> List.wrap()
+
+      refute tile_html(view) =~ hero_name
+      assert html =~ "Market spotlight"
+    end
+
+    test "a featured shop without any photo never holds the hero", %{conn: conn} do
+      Factory.create_store!(%{
+        name: "No Photo Shop",
+        slug: "no-photo-shop",
+        featured: true,
+        featured_rank: 1
+      })
+
+      Factory.create_store!(%{
+        name: "Photo Shop",
+        slug: "photo-shop",
+        featured: true,
+        featured_rank: 2,
+        logo_url: "https://cdn.example/photo-shop.png"
+      })
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      # Rank one has no image; a giant gradient placeholder is not a hero.
+      # The slot passes to the best-ranked shop that can actually fill it.
+      assert has_element?(view, ~s(#featured-hero[href="/photo-shop"]))
+      refute has_element?(view, ~s(#featured-hero[href="/no-photo-shop"]))
+    end
+
+    test "the spotlight hides entirely when nothing is featured", %{conn: conn} do
+      Factory.create_store!(%{name: "Plain Shop", slug: "plain-shop"})
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      refute has_element?(view, "#featured-spotlight")
+    end
+
+    defp hero_html(view), do: view |> element("#featured-hero") |> render()
+    defp tile_html(view), do: view |> element("#featured-tiles") |> render()
 
     test "renders the merchant CTA and shared marketing chrome", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/stores")
@@ -220,6 +280,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "featured-apparel",
         featured: true,
         featured_rank: 1,
+        logo_url: "https://cdn.example/apparel.png",
         theme_config: %{"theme" => "fashion"}
       })
 
@@ -230,27 +291,28 @@ defmodule EmakolaWeb.StoresLiveTest do
       })
 
       {:ok, view, _html} = live(conn, "/stores")
-      assert has_element?(view, "#featured-stores")
+      assert has_element?(view, "#featured-spotlight")
 
       view
       |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
       |> render_click()
 
-      refute has_element?(view, "#featured-stores")
+      refute has_element?(view, "#featured-spotlight")
     end
 
-    test "featured stores show the Featured pill on their card", %{conn: conn} do
+    test "the hero carries the Featured pill and a working link", %{conn: conn} do
       Factory.create_store!(%{
         name: "Top Shop",
         slug: "top-shop",
         featured: true,
-        featured_rank: 1
+        featured_rank: 1,
+        logo_url: "https://cdn.example/top-shop.png"
       })
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      assert has_element?(view, ~s(#featured-stores a[href="/top-shop"]))
-      assert has_element?(view, "#featured-stores .hero-star-solid")
+      assert has_element?(view, ~s(#featured-hero[href="/top-shop"]))
+      assert has_element?(view, "#featured-hero .hero-star-solid")
     end
   end
 
