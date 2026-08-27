@@ -31,6 +31,8 @@ defmodule Emakola.Stores do
       define(:reactivate_store, action: :reactivate)
     end
 
+    resource(Emakola.Stores.DirectoryStanding)
+
     resource Emakola.Stores.StorePayoutAccount do
       define(:get_payout_account, action: :get_by_store, args: [:store_id])
       define(:create_payout_account, action: :create)
