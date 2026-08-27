@@ -496,9 +496,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     end) || List.first(variants)
   end
 
+  # A product without options has nothing to describe — an empty label, not
+  # the SKU: "EARN-0728fd5b" under a product title is stock-keeping noise to
+  # a customer.
   defp variant_label(variant, option_types, vov_map) do
     if option_types == [] do
-      variant.sku || "Default"
+      ""
     else
       vovs = Map.get(vov_map, variant.id, [])
 
