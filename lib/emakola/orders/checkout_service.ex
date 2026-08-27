@@ -320,12 +320,14 @@ defmodule Emakola.Orders.CheckoutService do
     raw = div(subtotal * coupon.discount_value, 10_000)
     capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
     # Never discount more than the subtotal, or the order total would go
-    # negative (defence in depth if a coupon slips past the 100% cap).
-    min(capped, subtotal)
+    # negative (defence in depth if a coupon slips past the 100% cap) — and
+    # never less than zero, or `total - discount` would CHARGE the customer
+    # extra (defence in depth behind the resource's min: 0 constraint).
+    capped |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
-    min(coupon.discount_value, subtotal)
+    coupon.discount_value |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :free_shipping}, _subtotal, delivery_fee) do
