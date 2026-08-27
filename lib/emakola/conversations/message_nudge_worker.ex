@@ -38,7 +38,7 @@ defmodule Emakola.Conversations.MessageNudgeWorker do
   require Ash.Query
 
   alias Emakola.Conversations
-  alias Emakola.Notifications.Reach
+  alias Emakola.Notifications.Preferences
 
   @delay_seconds 600
 
@@ -46,19 +46,58 @@ defmodule Emakola.Conversations.MessageNudgeWorker do
   def delay_seconds, do: @delay_seconds
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"thread_id" => thread_id, "side" => side}}) do
+  def perform(%Oban.Job{args: %{"thread_id" => thread_id, "side" => side} = args}) do
     with {:ok, side} <- cast_side(side),
          true <- Conversations.unread_count(thread_id, side) > 0,
          {:ok, person} <- recipient(thread_id, side) do
-      nudge(person, side)
+      now = parse_at(args["at"])
+
+      if Preferences.quiet?(person, :new_message, now) do
+        hold_until_morning(thread_id, side, person, now)
+      else
+        nudge(person, side)
+      end
     else
       # Read already, unknown side, or nobody to tell — all fine, all silent.
       _ -> :ok
     end
   end
 
+  # Held, never dropped. Someone who set quiet hours asked not to be woken,
+  # not to be kept in the dark — the same message goes out when the window
+  # ends.
+  #
+  # `replace` is load-bearing. This worker's uniqueness covers :scheduled over
+  # a 900s window, so a plain insert here conflicts with the nudge that is
+  # already in flight and is silently discarded — the merchant would then hear
+  # nothing at all, which is the opposite of holding. Replacing moves the
+  # existing job's clock instead.
+  defp hold_until_morning(thread_id, side, person, now) do
+    resume_at = Preferences.quiet_until(person, now)
+
+    %{"thread_id" => thread_id, "side" => to_string(side)}
+    |> new(scheduled_at: resume_at, replace: [scheduled: [:scheduled_at]])
+    |> Oban.insert()
+
+    :ok
+  end
+
+  # The clock is an argument so a quiet-hours test does not have to run at 2am.
+  defp parse_at(nil), do: DateTime.utc_now()
+
+  defp parse_at(iso) when is_binary(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, at, _offset} -> at
+      _ -> DateTime.utc_now()
+    end
+  end
+
   defp nudge(person, _side) do
-    if :sms in Reach.channels_for(person, :transactional) do
+    # Preferences rather than Reach alone: this is the one notification that
+    # costs the merchant money on every send, fired by the chattiest event in
+    # the system, so "I do not want an SMS for every message" has to mean it.
+    # Preferences already intersects with Reach, so a phone is still required.
+    if :sms in Preferences.channels_for(person, :new_message) do
       sms_provider().send_sms(
         person.phone,
         "You have a new message on Makola. Open your shop to read it.",

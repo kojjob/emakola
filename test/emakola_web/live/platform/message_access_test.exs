@@ -35,6 +35,61 @@ defmodule EmakolaWeb.Platform.MessageAccessTest do
     end
   end
 
+  describe "buyer threads in the staff inbox" do
+    setup %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_merchants])
+      {_merchant, store} = Factory.create_merchant_with_store!()
+      customer = Factory.create_customer!(store, %{name: "Ama Mensah"})
+
+      %{conn: conn, store: store, customer: customer}
+    end
+
+    test "a buyer's thread is listed, by their name", ctx do
+      {:ok, thread} = Conversations.open_platform_customer_thread(ctx.customer.id)
+      {:ok, _} = Conversations.post_message(thread, :customer, ctx.customer.id, "My order")
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/platform/messages")
+
+      assert html =~ "Ama Mensah"
+    end
+
+    test "staff can open it", ctx do
+      {:ok, thread} = Conversations.open_platform_customer_thread(ctx.customer.id)
+
+      {:ok, _} =
+        Conversations.post_message(thread, :customer, ctx.customer.id, "My order never came")
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/platform/messages/#{thread.id}")
+
+      assert html =~ "My order never came"
+    end
+
+    test "staff can reply, and the buyer is told", ctx do
+      {:ok, thread} = Conversations.open_platform_customer_thread(ctx.customer.id)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/platform/messages/#{thread.id}")
+
+      view
+      |> form("#message-form", message: %{body: "We are looking into it"})
+      |> render_submit()
+
+      {:ok, messages} = Conversations.list_messages(thread.id)
+      assert Enum.any?(messages, &(&1.body == "We are looking into it"))
+
+      types = ctx.customer |> Emakola.Notifications.list_for() |> Enum.map(& &1.type)
+      assert :new_message in types
+    end
+
+    test "a shop thread is still not reachable from the staff inbox", ctx do
+      # Staff read merchant and buyer conversations with Makola — not a
+      # merchant's private conversation with their own buyer.
+      {:ok, shop_thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+
+      assert {:error, {:live_redirect, %{to: "/platform/messages"}}} =
+               live(ctx.conn, ~p"/platform/messages/#{shop_thread.id}")
+    end
+  end
+
   describe "starting a conversation with a merchant" do
     setup %{conn: conn} do
       {conn, user, _session} = setup_platform_staff(conn, permissions: [:manage_merchants])
