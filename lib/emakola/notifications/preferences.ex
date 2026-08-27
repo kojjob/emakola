@@ -161,6 +161,33 @@ defmodule Emakola.Notifications.Preferences do
   @spec always_on() :: [atom()]
   def always_on, do: @always_on
 
+  @doc "Every event the settings page may offer a switch for."
+  @spec configurable_events() :: [atom()]
+  def configurable_events do
+    @defaults |> Map.keys() |> Enum.reject(&(&1 in @always_on)) |> Enum.sort()
+  end
+
+  @doc "Channels a person can switch, in the order they should be offered."
+  @spec switchable_channels() :: [channel()]
+  def switchable_channels, do: [:whatsapp, :sms, :email]
+
+  @doc """
+  Casts an event name that arrived from a form.
+
+  An allowlist rather than `String.to_atom/1`: these names come off the wire,
+  and the whole point of the settings page is that a person controls them.
+  """
+  @spec cast_event(term()) :: atom() | nil
+  def cast_event(value) when is_atom(value), do: value
+
+  def cast_event(value) do
+    Emakola.SafeAtom.to_atom_in(value, Map.keys(@defaults), nil)
+  end
+
+  @doc "Casts a channel name that arrived from a form."
+  @spec cast_channel_name(term()) :: channel() | nil
+  def cast_channel_name(value), do: cast_channel(value)
+
   # ── Private ──────────────────────────────────────────────────────
 
   defp wanted_channels(owner, event_type) do
