@@ -32,6 +32,20 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert message.author_kind == :customer
   end
 
+  test "a sent message shows once, not twice", ctx do
+    {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    view
+    |> form("#customer-message-form", message: %{body: "Do you have blue?"})
+    |> render_submit()
+
+    # The sender's own PubSub echo must not append a second copy.
+    {:ok, [thread]} = Conversations.list_shop_threads(ctx.store.id)
+    {:ok, [message]} = Conversations.list_messages(thread.id)
+    occurrences = length(String.split(render(view), ~s(id="customer-message-#{message.id}"))) - 1
+    assert occurrences == 1
+  end
+
   test "the shop's reply appears without a refresh", ctx do
     {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
     {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
