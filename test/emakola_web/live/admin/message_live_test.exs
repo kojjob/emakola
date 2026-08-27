@@ -59,6 +59,39 @@ defmodule EmakolaWeb.Admin.MessageLiveTest do
     assert List.last(messages).author_kind == :merchant
   end
 
+  test "a sent message shows once, not twice", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, _} = Conversations.post_message(thread, :customer, ctx.customer.id, "Is it ready?")
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/messages/#{thread.id}")
+
+    view |> form("#message-form", message: %{body: "Ready tomorrow."}) |> render_submit()
+
+    # The sender's own PubSub echo must not append a second copy of the
+    # message the submit already rendered.
+    {:ok, messages} = Conversations.list_messages(thread.id)
+    sent = List.last(messages)
+    occurrences = length(String.split(render(view), ~s(id="message-#{sent.id}"))) - 1
+    assert occurrences == 1
+  end
+
+  test "the inbox search filters threads by name", ctx do
+    other = create_customer!(ctx.store, %{name: "Yaw Ofori", phone: "+233209999999"})
+    {:ok, t1} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, t2} = Conversations.open_shop_thread(ctx.store.id, other.id)
+    {:ok, _} = Conversations.post_message(t1, :customer, ctx.customer.id, "First")
+    {:ok, _} = Conversations.post_message(t2, :customer, other.id, "Second")
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/messages")
+
+    render_change(element(view, "#inbox-search"), %{"q" => "Ama"})
+
+    # Scoped to the list: the topbar bell also carries the buyer's name.
+    inbox = render(element(view, "#chat-list"))
+    assert inbox =~ "Ama Mensah"
+    refute inbox =~ "Yaw Ofori"
+  end
+
   test "another store's thread is not readable", ctx do
     {_other_merchant, other_store} = create_merchant_with_store!()
     other_customer = create_customer!(other_store, %{name: "Someone Else"})
