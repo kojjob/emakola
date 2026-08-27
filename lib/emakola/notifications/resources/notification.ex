@@ -1,5 +1,17 @@
 defmodule Emakola.Notifications.Notification do
-  @moduledoc "Notification record tracking SMS, WhatsApp, and email delivery status per recipient."
+  @moduledoc """
+  One thing worth telling one person, waiting in their bell.
+
+  `recipient_kind` + `recipient_id` rather than three nullable foreign keys:
+  the recipient is a merchant, a customer, or Makola staff, and those live in
+  three different tables. Same shape as
+  `Emakola.Conversations.Message.author_kind`/`author_id`, which already
+  solves this problem here. The kind is a small fixed set, so a wrong value
+  cannot be written even though the id carries no database constraint.
+
+  Distinct from `Emakola.Notifications.Announcement`, which is one row
+  broadcast at every merchant. This is one row per recipient, and it is read.
+  """
   use Ash.Resource,
     domain: Emakola.Notifications,
     data_layer: AshPostgres.DataLayer
@@ -12,19 +24,37 @@ defmodule Emakola.Notifications.Notification do
   attributes do
     uuid_primary_key(:id)
 
+    # Commerce events, not the SaaS template's vocabulary this table arrived
+    # with. Anything added here also needs an icon and colour in
+    # `EmakolaWeb.LayoutHelpers`, or the bell renders it blank.
     attribute :type, :atom do
       constraints(
         one_of: [
-          :team_invite,
-          :team_removed,
+          :order_placed,
+          :order_status_changed,
+          :payment_received,
+          :payout_sent,
+          :new_message,
+          :verification_result,
+          :product_moderated,
+          :supplier_connection,
+          :announcement,
           :billing_warning,
-          :billing_updated,
-          :agent_completed,
-          :agent_failed,
-          :system_announcement
+          :system
         ]
       )
 
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :recipient_kind, :atom do
+      constraints(one_of: [:user, :merchant, :customer])
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :recipient_id, :uuid do
       allow_nil?(false)
       public?(true)
     end
@@ -46,20 +76,11 @@ defmodule Emakola.Notifications.Notification do
     timestamps()
   end
 
-  relationships do
-    belongs_to :user, Emakola.Accounts.User do
-      allow_nil?(false)
-      public?(true)
-    end
-  end
-
   actions do
     defaults([:read, :destroy])
 
-    create :create do
-      accept([:type, :title, :body, :action_url, :metadata])
-      argument(:user_id, :uuid, allow_nil?: false)
-      change(manage_relationship(:user_id, :user, type: :append))
+    create :notify do
+      accept([:type, :recipient_kind, :recipient_id, :title, :body, :action_url, :metadata])
     end
 
     update :mark_read do
@@ -67,20 +88,34 @@ defmodule Emakola.Notifications.Notification do
       change(set_attribute(:read_at, &DateTime.utc_now/0))
     end
 
+    read :for_recipient do
+      argument(:recipient_kind, :atom, allow_nil?: false)
+      argument(:recipient_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(recipient_kind == ^arg(:recipient_kind) and recipient_id == ^arg(:recipient_id))
+      )
+
+      prepare(build(sort: [inserted_at: :desc], limit: 20))
+    end
+
+    read :unread_for_recipient do
+      argument(:recipient_kind, :atom, allow_nil?: false)
+      argument(:recipient_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          recipient_kind == ^arg(:recipient_kind) and recipient_id == ^arg(:recipient_id) and
+            is_nil(read_at)
+        )
+      )
+    end
+
+    # Bulk rather than a per-record update the caller loops over: clearing a
+    # bell should be one statement, not one per unread row.
     update :mark_all_read do
       accept([])
       change(set_attribute(:read_at, &DateTime.utc_now/0))
-    end
-
-    read :unread do
-      argument(:user_id, :uuid, allow_nil?: false)
-      filter(expr(user_id == ^arg(:user_id) and is_nil(read_at)))
-    end
-
-    read :list_by_user do
-      argument(:user_id, :uuid, allow_nil?: false)
-      filter(expr(user_id == ^arg(:user_id)))
-      prepare(build(sort: [inserted_at: :desc], limit: 20))
     end
   end
 end

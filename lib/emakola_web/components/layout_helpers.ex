@@ -38,58 +38,75 @@ defmodule EmakolaWeb.LayoutHelpers do
 
   # --- Notification helpers used by the app layout template ---
 
+  # One row per notification type, feeding all five renderings below. These
+  # were five parallel function families keyed on the same atom, which is
+  # exactly how they drifted — a type could be added to one list and
+  # forgotten in the others, and the fallback made the omission invisible.
+  #
+  # Every type in `Emakola.Notifications.Notification`'s constraint needs a
+  # row here. Missing ones fall back to a neutral bell rather than rendering
+  # blank.
+  @notification_styles %{
+    order_placed: {:emerald, "shopping_bag"},
+    order_status_changed: {:blue, "local_shipping"},
+    payment_received: {:emerald, "payments"},
+    payout_sent: {:emerald, "account_balance"},
+    new_message: {:blue, "chat_bubble"},
+    verification_result: {:amber, "verified"},
+    product_moderated: {:red, "gavel"},
+    supplier_connection: {:amber, "handshake"},
+    announcement: {:emerald, "campaign"},
+    billing_warning: {:red, "warning"},
+    system: {:emerald, "notifications"}
+  }
+
+  @default_style {:emerald, "notifications"}
+
   @doc "Returns the border color class for a notification type."
-  def notification_border_class(:agent_completed), do: "border-emerald-600 bg-emerald-600/[0.03]"
-  def notification_border_class(:agent_failed), do: "border-red-600 bg-red-600/[0.03]"
-  def notification_border_class(:billing_warning), do: "border-red-600 bg-red-600/[0.03]"
-  def notification_border_class(:billing_updated), do: "border-amber-600 bg-amber-600/[0.03]"
-  def notification_border_class(:team_invite), do: "border-amber-600 bg-amber-600/[0.03]"
-  def notification_border_class(:team_removed), do: "border-red-600 bg-red-600/[0.03]"
-
-  def notification_border_class(:system_announcement),
-    do: "border-emerald-600 bg-emerald-600/[0.03]"
-
-  def notification_border_class(_), do: "border-emerald-600 bg-emerald-600/[0.03]"
+  def notification_border_class(type), do: type |> tone() |> border_class()
 
   @doc "Returns the unread dot color class for a notification type."
-  def notification_dot_class(:agent_completed), do: "bg-emerald-600"
-  def notification_dot_class(:agent_failed), do: "bg-red-600"
-  def notification_dot_class(:billing_warning), do: "bg-red-600"
-  def notification_dot_class(:billing_updated), do: "bg-amber-600"
-  def notification_dot_class(:team_invite), do: "bg-amber-600"
-  def notification_dot_class(:team_removed), do: "bg-red-600"
-  def notification_dot_class(:system_announcement), do: "bg-emerald-600"
-  def notification_dot_class(_), do: "bg-emerald-600"
+  def notification_dot_class(type), do: type |> tone() |> dot_class()
 
   @doc "Returns the icon background gradient class for a notification type."
-  def notification_icon_bg_class(:agent_completed), do: "from-emerald-500/20 to-emerald-500/5"
-  def notification_icon_bg_class(:agent_failed), do: "from-red-600/20 to-red-600/5"
-  def notification_icon_bg_class(:billing_warning), do: "from-red-600/20 to-red-600/5"
-  def notification_icon_bg_class(:billing_updated), do: "from-amber-600/20 to-amber-600/5"
-  def notification_icon_bg_class(:team_invite), do: "from-amber-600/20 to-amber-600/5"
-  def notification_icon_bg_class(:team_removed), do: "from-red-600/20 to-red-600/5"
-  def notification_icon_bg_class(:system_announcement), do: "from-emerald-600/20 to-emerald-600/5"
-  def notification_icon_bg_class(_), do: "from-emerald-600/20 to-emerald-600/5"
+  def notification_icon_bg_class(type), do: type |> tone() |> icon_bg_class()
 
   @doc "Returns the icon color class for a notification type."
-  def notification_icon_color_class(:agent_completed), do: "text-emerald-500"
-  def notification_icon_color_class(:agent_failed), do: "text-red-600"
-  def notification_icon_color_class(:billing_warning), do: "text-red-600"
-  def notification_icon_color_class(:billing_updated), do: "text-amber-600"
-  def notification_icon_color_class(:team_invite), do: "text-amber-600"
-  def notification_icon_color_class(:team_removed), do: "text-red-600"
-  def notification_icon_color_class(:system_announcement), do: "text-emerald-600"
-  def notification_icon_color_class(_), do: "text-emerald-600"
+  def notification_icon_color_class(type), do: type |> tone() |> icon_color_class()
 
   @doc "Returns the Material Symbol icon name for a notification type."
-  def notification_icon(:agent_completed), do: "check_circle"
-  def notification_icon(:agent_failed), do: "error"
-  def notification_icon(:billing_warning), do: "warning"
-  def notification_icon(:billing_updated), do: "receipt_long"
-  def notification_icon(:team_invite), do: "person_add"
-  def notification_icon(:team_removed), do: "person_remove"
-  def notification_icon(:system_announcement), do: "campaign"
-  def notification_icon(_), do: "notifications"
+  def notification_icon(type) do
+    {_tone, icon} = Map.get(@notification_styles, type, @default_style)
+    icon
+  end
+
+  defp tone(type) do
+    {tone, _icon} = Map.get(@notification_styles, type, @default_style)
+    tone
+  end
+
+  # Spelled out rather than interpolated. Tailwind scans source for complete
+  # class names, so a built string like "border-#{tone}-600" is never
+  # generated and the colour silently does not apply.
+  defp border_class(:emerald), do: "border-emerald-600 bg-emerald-600/[0.03]"
+  defp border_class(:red), do: "border-red-600 bg-red-600/[0.03]"
+  defp border_class(:amber), do: "border-amber-600 bg-amber-600/[0.03]"
+  defp border_class(:blue), do: "border-blue-600 bg-blue-600/[0.03]"
+
+  defp dot_class(:emerald), do: "bg-emerald-600"
+  defp dot_class(:red), do: "bg-red-600"
+  defp dot_class(:amber), do: "bg-amber-600"
+  defp dot_class(:blue), do: "bg-blue-600"
+
+  defp icon_bg_class(:emerald), do: "from-emerald-600/20 to-emerald-600/5"
+  defp icon_bg_class(:red), do: "from-red-600/20 to-red-600/5"
+  defp icon_bg_class(:amber), do: "from-amber-600/20 to-amber-600/5"
+  defp icon_bg_class(:blue), do: "from-blue-600/20 to-blue-600/5"
+
+  defp icon_color_class(:emerald), do: "text-emerald-600"
+  defp icon_color_class(:red), do: "text-red-600"
+  defp icon_color_class(:amber), do: "text-amber-600"
+  defp icon_color_class(:blue), do: "text-blue-600"
 
   @doc "Formats a datetime as relative time (e.g., '2m', '1h', '3d')."
   def relative_time(nil), do: ""

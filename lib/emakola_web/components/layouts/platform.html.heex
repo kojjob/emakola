@@ -123,9 +123,12 @@
         icon="megaphone"
         active={@active_nav == :announcements}
       />
-      <%!-- Announcements broadcast at merchants; Messages is the reply. --%>
+      <%!-- Announcements broadcast at merchants; Messages is the reply.
+           Gated on :manage_merchants to match Platform.MessageLive's own
+           on_mount — gating the link differently from the page shows some
+           staff a link that bounces them. --%>
       <.sidebar_link
-        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_announcements)}
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/messages"
         title="Messages"
         icon="chat_bubble"
@@ -397,25 +400,95 @@
 
         <div class="hidden md:block w-px h-8 bg-slate-200/60"></div>
 
-        <%!-- Notifications --%>
-        <button
-          class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-          aria-label="Notifications"
+        <%!-- Notifications. Was a bare button with no panel and no handler —
+             a control that looked live and did nothing. --%>
+        <% notifications = assigns[:notifications] || [] %>
+        <% unread_notifications = assigns[:unread_notification_count] || 0 %>
+        <div
+          id="platform-notification-dropdown"
+          class="relative"
+          phx-click-away={JS.hide(to: "#platform-notification-panel")}
         >
-          <svg
-            class="w-5 h-5 text-slate-500"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            viewBox="0 0 24 24"
+          <button
+            phx-click={JS.toggle(to: "#platform-notification-panel")}
+            class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Notifications"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-            />
-          </svg>
-        </button>
+            <svg
+              class="w-5 h-5 text-slate-500"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+              />
+            </svg>
+            <span
+              :if={unread_notifications > 0}
+              data-role="notification-count"
+              class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center"
+            >
+              {if unread_notifications > 9, do: "9+", else: unread_notifications}
+            </span>
+          </button>
+
+          <div
+            id="platform-notification-panel"
+            class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden z-50"
+          >
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <p class="text-sm font-semibold text-slate-700">Notifications</p>
+              <button
+                :if={unread_notifications > 0}
+                phx-click="mark_all_notifications_read"
+                class="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
+              >
+                Mark all read
+              </button>
+            </div>
+
+            <div class="max-h-96 overflow-y-auto">
+              <p :if={notifications == []} class="px-4 py-6 text-sm text-slate-400 text-center">
+                Nothing new
+              </p>
+
+              <.link
+                :for={notification <- notifications}
+                navigate={notification.action_url || "/platform"}
+                class={[
+                  "block px-4 py-3 border-l-2 hover:bg-slate-50 transition-colors",
+                  Layouts.notification_border_class(notification.type)
+                ]}
+              >
+                <div class="flex items-start gap-2">
+                  <span
+                    :if={is_nil(notification.read_at)}
+                    class={[
+                      "mt-1.5 w-1.5 h-1.5 rounded-full shrink-0",
+                      Layouts.notification_dot_class(notification.type)
+                    ]}
+                  >
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-slate-700 truncate">
+                      {notification.title}
+                    </p>
+                    <p :if={notification.body} class="text-xs text-slate-500 line-clamp-2">
+                      {notification.body}
+                    </p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                      {Layouts.relative_time(notification.inserted_at)}
+                    </p>
+                  </div>
+                </div>
+              </.link>
+            </div>
+          </div>
+        </div>
 
         <%!-- User dropdown --%>
         <% active_user = @current_merchant || @current_user %>

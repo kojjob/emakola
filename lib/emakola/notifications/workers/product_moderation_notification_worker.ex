@@ -40,6 +40,13 @@ defmodule Emakola.Notifications.Workers.ProductModerationNotificationWorker do
 
     case load_product(product_id) do
       {:ok, product} ->
+        # Every member, not just the owner: a shop where only the owner hears
+        # about a takedown is a shop where staff keep selling a delisted item.
+        Emakola.Notifications.notify_store(product.store_id, :product_moderated, %{
+          title: moderation_bell_title(event, product),
+          action_url: "/admin/products"
+        })
+
         results = [maybe_send_sms(product, event), maybe_send_email(product, event)]
 
         if Enum.any?(results, &match?({:error, _}, &1)) do
@@ -74,6 +81,9 @@ defmodule Emakola.Notifications.Workers.ProductModerationNotificationWorker do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  defp moderation_bell_title(:product_reinstated, product), do: "#{product.title} is back up"
+  defp moderation_bell_title(_taken_down, product), do: "#{product.title} was taken down"
 
   defp maybe_send_sms(%{store: %{contact_phone: phone} = store} = product, event)
        when is_binary(phone) and phone != "" do
