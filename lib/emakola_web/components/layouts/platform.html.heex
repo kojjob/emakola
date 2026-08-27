@@ -123,9 +123,12 @@
         icon="megaphone"
         active={@active_nav == :announcements}
       />
-      <%!-- Announcements broadcast at merchants; Messages is the reply. --%>
+      <%!-- Announcements broadcast at merchants; Messages is the reply.
+           Gated on :manage_merchants to match Platform.MessageLive's own
+           on_mount — gating the link differently from the page shows some
+           staff a link that bounces them. --%>
       <.sidebar_link
-        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_announcements)}
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/messages"
         title="Messages"
         icon="chat_bubble"

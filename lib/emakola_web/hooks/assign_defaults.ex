@@ -109,7 +109,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   defp resolve_live_merchant(socket, merchant, impersonator) do
     store = load_merchant_store(merchant.id)
-    {notifs, unread} = load_notifications(nil)
+    {notifs, unread} = load_notifications(socket, merchant)
 
     # The badge lives in the layout, on every admin page, so it cannot rely on
     # any one LiveView subscribing. Store-wide topic rather than the
@@ -257,6 +257,12 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
+
+  # Whichever actor this session belongs to. Both are never set at once —
+  # the merchant path nils current_user and vice versa.
+  defp notification_recipient(socket) do
+    socket.assigns[:current_merchant] || socket.assigns[:current_user]
+  end
 
   defp load_store_stats(nil),
     do: %{products: 0, orders: 0, customers: 0, pending_orders: 0, unread_messages: 0}

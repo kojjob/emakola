@@ -189,13 +189,13 @@ defmodule Emakola.Notifications do
     |> Ash.Query.for_read(:unread_for_recipient, recipient_args(recipient))
     |> Ash.bulk_update(:mark_all_read, %{}, authorize?: false, return_errors?: true)
     |> case do
-      %Ash.BulkResult{status: status} when status in [:success, :notfound] ->
+      %Ash.BulkResult{status: :success} ->
         :ok
 
-      # `:partial` means some rows cleared and some did not. Reporting it as
-      # success would leave a badge showing zero over unread rows; reporting
-      # only `errors` without saying so would read as a total failure.
-      %Ash.BulkResult{status: :partial, errors: errors} ->
+      # `:partial_success` means some rows cleared and some did not. Reporting
+      # it as success would leave a badge showing zero over unread rows;
+      # reporting only `errors` would read as a total failure.
+      %Ash.BulkResult{status: :partial_success, errors: errors} ->
         Logger.error("[notifications] mark_all_read cleared only some rows: #{inspect(errors)}")
         {:error, errors}
 
