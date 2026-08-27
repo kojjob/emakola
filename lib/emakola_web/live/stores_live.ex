@@ -25,6 +25,9 @@ defmodule EmakolaWeb.StoresLive do
     favorite_slugs = load_favorite_slugs(customer)
     recently_viewed_slugs = load_recently_viewed_slugs(session)
 
+    featured_stores = Directory.spotlight(load_featured(), Date.utc_today())
+    {hero, tiles} = split_spotlight(featured_stores)
+
     socket =
       socket
       |> assign(
@@ -34,7 +37,6 @@ defmodule EmakolaWeb.StoresLive do
         canonical_url: Canonical.url("/stores"),
         og_image: url(~p"/images/og-image.png"),
         json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
-        preload_image: "/images/landing/store-fruit.jpg",
         active_theme: "all",
         active_region: "",
         active_sort: "featured",
@@ -46,8 +48,11 @@ defmodule EmakolaWeb.StoresLive do
         has_more: true,
         stores_empty?: true,
         map_stores: [],
-        total_active: count_active_stores(),
-        featured_stores: Directory.spotlight(load_featured(), Date.utc_today()),
+        featured_stores: featured_stores,
+        spotlight_hero: hero,
+        spotlight_tiles: tiles,
+        # The hero photo is the page's LCP — preload it, not a static asset.
+        preload_image: hero && card_image_url(hero),
         rails: Directory.rails(),
         current_customer: customer,
         favorite_slugs: favorite_slugs,
@@ -181,129 +186,59 @@ defmodule EmakolaWeb.StoresLive do
 
         <main class="pt-16">
           <section id="stores-hero" class="stores-hero relative overflow-hidden bg-[#0c1f17]">
-            <div class="absolute inset-0 stores-market-grid opacity-25"></div>
-            <div class="absolute -left-32 top-10 size-80 rounded-full bg-emerald-400/10 blur-3xl">
+            <div class="absolute -right-36 -top-40 size-[28rem] rounded-full bg-[#d4a843]/15 blur-3xl">
             </div>
-            <div class="absolute -right-24 bottom-0 size-72 rounded-full bg-[#d4a843]/15 blur-3xl">
+            <div class="absolute -left-32 -bottom-44 size-[30rem] rounded-full bg-emerald-400/10 blur-3xl">
             </div>
 
-            <div class="relative mx-auto grid min-w-0 max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:gap-16 lg:px-8 lg:py-24">
-              <div class="stores-rise min-w-0 max-w-2xl">
-                <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e4bd63]">
-                  <.icon name="hero-building-storefront" class="size-4" /> Ghana's online market
-                </p>
-
-                <h1 class="font-headline text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl lg:text-7xl">
-                  Find a shop worth <span class="text-[#e4bd63]">coming back to.</span>
+            <div class="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+              <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+                <h1 class="stores-rise font-headline text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+                  Find a shop worth<br />
+                  <span class="text-[#e4bd63]">coming back to.</span>
                 </h1>
-
-                <p class="mt-6 max-w-xl text-base leading-7 text-[#b9c8bf] sm:text-lg">
-                  Browse independent shops across Ghana, discover what they sell, and pay
-                  with the methods you already use.
+                <p class="max-w-sm text-base leading-7 text-[#b9c8bf] sm:text-lg">
+                  Independent shops across Ghana. Pay with the methods you already use.
                 </p>
-
-                <.form
-                  for={@search_form}
-                  id="stores-search-form"
-                  phx-change="update_search"
-                  phx-submit="update_search"
-                  class="mt-8 max-w-xl"
-                >
-                  <div class="relative [&_.fieldset]:mb-0">
-                    <.icon
-                      name="hero-magnifying-glass"
-                      class="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-slate-400"
-                    />
-                    <.input
-                      field={@search_form[:query]}
-                      id="stores-search-input"
-                      type="search"
-                      phx-debounce="300"
-                      autocomplete="off"
-                      placeholder="Search shops, products or places"
-                      class="h-14 w-full rounded-2xl border border-white/10 bg-white pl-12 pr-28 text-[15px] font-medium text-slate-900 shadow-2xl shadow-black/20 outline-none placeholder:text-slate-400 focus:border-[#e4bd63] focus:ring-4 focus:ring-[#e4bd63]/20 sm:h-16 sm:pr-32 sm:text-base"
-                    />
-                    <button
-                      id="stores-search-submit"
-                      type="submit"
-                      class="absolute right-2 top-1/2 inline-flex h-10 -translate-y-1/2 items-center justify-center rounded-xl bg-[#d4a843] px-4 text-sm font-bold text-[#0c1f17] transition hover:bg-[#e4bd63] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4bd63] focus-visible:ring-offset-2 sm:h-12 sm:px-5"
-                    >
-                      Search
-                    </button>
-                  </div>
-                </.form>
-
-                <div class="mt-6 flex max-w-xl flex-wrap gap-x-6 gap-y-3 text-sm text-[#d7e0da]">
-                  <span class="flex items-center gap-2 whitespace-nowrap">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">
-                      <.icon name="hero-device-phone-mobile" class="size-4" />
-                    </span>
-                    Any phone
-                  </span>
-                  <span class="flex items-center gap-2 whitespace-nowrap">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#d4a843]/10 text-[#e4bd63]">
-                      <.icon name="hero-credit-card" class="size-4" />
-                    </span>
-                    MoMo + card
-                  </span>
-                  <span class="flex items-center gap-2 whitespace-nowrap">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-400/10 text-sky-300">
-                      <.icon name="hero-map-pin" class="size-4" />
-                    </span>
-                    Across Ghana
-                  </span>
-                </div>
               </div>
 
-              <div class="stores-rise stores-rise-delay relative mx-auto min-w-0 w-full max-w-xl">
-                <div class="grid h-[330px] min-w-0 grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] grid-rows-2 gap-3 sm:h-[430px] sm:gap-4">
-                  <figure class="group row-span-2 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl">
-                    <img
-                      src="/images/landing/store-fruit.jpg"
-                      alt="Fresh produce displayed at a Ghanaian market"
-                      class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                      fetchpriority="high"
-                    />
-                  </figure>
-                  <figure class="group min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 shadow-xl">
-                    <img
-                      src="/images/landing/store-tailor.jpg"
-                      alt="Ghanaian tailor working with patterned fabric"
-                      class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </figure>
-                  <figure class="group min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 shadow-xl">
-                    <img
-                      src="/images/landing/store-beauty.jpg"
-                      alt="Beauty merchant arranging products in her shop"
-                      class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </figure>
+              <.form
+                for={@search_form}
+                id="stores-search-form"
+                phx-change="update_search"
+                phx-submit="update_search"
+                class="mt-8 max-w-2xl"
+              >
+                <div class="relative [&_.fieldset]:mb-0">
+                  <.icon
+                    name="hero-magnifying-glass"
+                    class="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-slate-400"
+                  />
+                  <.input
+                    field={@search_form[:query]}
+                    id="stores-search-input"
+                    type="search"
+                    phx-debounce="300"
+                    autocomplete="off"
+                    placeholder="Search shops, products or places"
+                    class="h-14 w-full rounded-2xl border border-white/10 bg-white pl-12 pr-28 text-[15px] font-medium text-slate-900 shadow-2xl shadow-black/20 outline-none placeholder:text-slate-400 focus:border-[#e4bd63] focus:ring-4 focus:ring-[#e4bd63]/20 sm:h-16 sm:pr-32 sm:text-base"
+                  />
+                  <button
+                    id="stores-search-submit"
+                    type="submit"
+                    class="absolute right-2 top-1/2 inline-flex h-10 -translate-y-1/2 items-center justify-center rounded-xl bg-[#d4a843] px-4 text-sm font-bold text-[#0c1f17] transition hover:bg-[#e4bd63] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4bd63] focus-visible:ring-offset-2 sm:h-12 sm:px-5"
+                  >
+                    Search
+                  </button>
                 </div>
-
-                <div class="stores-float absolute -bottom-5 left-4 right-4 flex items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/95 p-4 shadow-2xl backdrop-blur sm:-left-7 sm:right-auto sm:min-w-72">
-                  <div class="flex items-center gap-3">
-                    <span class="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                      <.icon name="hero-squares-2x2" class="size-5" />
-                    </span>
-                    <div>
-                      <p class="text-xl font-black leading-none text-[#132219]">{@total_active}</p>
-                      <p class="mt-1 text-xs font-semibold text-slate-500">
-                        active {if @total_active == 1, do: "shop", else: "shops"} to explore
-                      </p>
-                    </div>
-                  </div>
-                  <.icon name="hero-arrow-trending-up" class="size-5 text-[#d4a843]" />
-                </div>
-              </div>
+              </.form>
             </div>
           </section>
 
-          <StoresComponents.featured_carousel
-            :if={!filters_active?(assigns)}
-            stores={@featured_stores}
+          <StoresComponents.featured_spotlight
+            :if={@spotlight_hero && !filters_active?(assigns)}
+            hero={@spotlight_hero}
+            tiles={@spotlight_tiles}
           />
 
           <section id="main-grid" class="scroll-mt-20 bg-[#f7f6f1]">
@@ -620,6 +555,36 @@ defmodule EmakolaWeb.StoresLive do
       0
   end
 
+  # The hero is the day's top-ranked featured shop WITH a photo; the next
+  # four with photos become the side tiles. A shop without a real image is
+  # skipped rather than rendered as a giant gradient placeholder — it stays
+  # featured in the grid, it just does not hold the big slot.
+  defp split_spotlight(featured) do
+    case Enum.filter(featured, &card_image_url/1) do
+      [] -> {nil, []}
+      [hero | rest] -> {hero, Enum.take(rest, 4)}
+    end
+  end
+
+  defp card_image_url(store) do
+    case Map.get(store, :card_image_url) do
+      url when is_binary(url) and url != "" -> url
+      _missing -> Map.get(store, :cover_image_url) || Map.get(store, :logo_url)
+    end
+  end
+
+  defp load_featured do
+    Store
+    |> Ash.Query.for_read(:list_featured, %{limit: 8})
+    |> Ash.Query.load([:card_image_url, :product_count])
+    |> Ash.Query.limit(8)
+    |> Ash.read!(authorize?: false)
+  rescue
+    exception ->
+      Logger.error("[stores_live] load_featured stores raised: #{Exception.message(exception)}")
+      []
+  end
+
   defp count_active_stores do
     Store
     |> Ash.Query.for_read(:list_active)
@@ -628,18 +593,6 @@ defmodule EmakolaWeb.StoresLive do
     exception ->
       Logger.error("[stores_live] count_active_stores raised: #{Exception.message(exception)}")
       0
-  end
-
-  defp load_featured do
-    Store
-    |> Ash.Query.for_read(:list_featured, %{limit: 8})
-    |> Ash.Query.load([:card_image_url])
-    |> Ash.Query.limit(8)
-    |> Ash.read!(authorize?: false)
-  rescue
-    exception ->
-      Logger.error("[stores_live] load_featured stores raised: #{Exception.message(exception)}")
-      []
   end
 
   defp load_theme_counts(socket) do
