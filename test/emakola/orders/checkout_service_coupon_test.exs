@@ -172,6 +172,21 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
       assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 50_000
     end
 
+    test "a negative fixed discount clamps to zero, never inflating the total" do
+      coupon = %{discount_type: :fixed_amount, discount_value: -50_000, max_discount_amount: nil}
+      assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 0
+    end
+
+    test "a negative percentage discount clamps to zero" do
+      coupon = %{discount_type: :percentage, discount_value: -1000, max_discount_amount: nil}
+      assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 0
+    end
+
+    test "a negative max_discount_amount clamps to zero" do
+      coupon = %{discount_type: :percentage, discount_value: 1000, max_discount_amount: -10_000}
+      assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 0
+    end
+
     test "free shipping returns delivery fee" do
       coupon = %{discount_type: :free_shipping, discount_value: 0, max_discount_amount: nil}
       assert CheckoutService.calculate_discount(coupon, 50_000, 2500) == 2500
