@@ -9,8 +9,6 @@ defmodule Emakola.Stores.DirectoryCurationTest do
 
   import Emakola.Factory
 
-  require Ash.Query
-
   alias Emakola.Stores.DirectoryCuration
   alias Emakola.Stores.DirectoryStanding
   alias Emakola.Stores.Store
