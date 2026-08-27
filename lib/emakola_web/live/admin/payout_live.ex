@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
   # Fixed display order for the accrual breakdown card, independent of
   # whichever roles happen to have splits.
-  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner]
+  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner, :affiliate]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -107,6 +107,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   defp role_label(:wholesaler), do: "Resales of your stock"
   defp role_label(:dropshipper), do: "Dropship margin"
   defp role_label(:credit_partner), do: "Credit repayment"
+  defp role_label(:affiliate), do: "Commission you paid"
 
   defp order_word(1), do: "order"
   defp order_word(_), do: "orders"

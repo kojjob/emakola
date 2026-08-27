@@ -145,8 +145,10 @@ defmodule Emakola.Suppliers.SalesSharing do
   # sale the shop made while its token sat in the buyer's session — tolerable
   # as an inflated analytic, indefensible once commission is paid on it.
   defp order_contains_product?(order, product_id) do
+    order_id = order.id
+
     Emakola.Orders.LineItem
-    |> Ash.Query.filter(order_id == ^order.id)
+    |> Ash.Query.filter(order_id == ^order_id)
     |> Ash.Query.load(:variant)
     |> Ash.read!(authorize?: false)
     |> Enum.any?(&(&1.variant && &1.variant.product_id == product_id))
