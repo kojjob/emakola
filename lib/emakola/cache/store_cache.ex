@@ -288,11 +288,22 @@ defmodule Emakola.Cache.StoreCache do
   end
 
   defp broadcast_remote(message) do
+    # Remote-only broadcast: the adapter fans out to OTHER nodes while the
+    # local effect was already applied directly, so a normal
+    # Phoenix.PubSub.broadcast/3 would double-apply it here. The cost of
+    # reaching past the public API is owning its shape: phoenix_pubsub 2.3
+    # added the default dispatcher as a third meta element, which broke the
+    # old 2-tuple match on every code path that rate-limits. Both shapes are
+    # accepted so a future change degrades to :pubsub_unavailable instead of
+    # a CaseClauseError.
     case Registry.meta(@pubsub, :pubsub) do
+      {:ok, {adapter, adapter_name, dispatcher}} ->
+        adapter.broadcast(adapter_name, @topic, message, dispatcher)
+
       {:ok, {adapter, adapter_name}} ->
         adapter.broadcast(adapter_name, @topic, message, Phoenix.PubSub)
 
-      :error ->
+      _ ->
         {:error, :pubsub_unavailable}
     end
   end
