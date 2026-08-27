@@ -102,8 +102,10 @@ defmodule Emakola.Conversations do
   """
   def get_platform_thread(thread_id) when is_binary(thread_id) do
     case Ash.get(Thread, thread_id, authorize?: false) do
-      {:ok, %Thread{kind: :platform_merchant} = thread} ->
-        {:ok, Ash.load!(thread, [:merchant], authorize?: false)}
+      # Both platform kinds, never :shop_buyer. Staff read what was said to
+      # Makola — not a merchant's private conversation with their own buyer.
+      {:ok, %Thread{kind: kind} = thread} when kind in [:platform_merchant, :platform_customer] ->
+        {:ok, Ash.load!(thread, [:merchant, :customer], authorize?: false)}
 
       _ ->
         {:error, :not_found}
