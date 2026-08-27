@@ -27,7 +27,6 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
   use Oban.Worker, queue: :default, max_attempts: 1
 
   require Ash.Query
-  require Logger
 
   alias Emakola.Stores.DirectoryEligibility
   alias Emakola.Stores.DirectoryScore
