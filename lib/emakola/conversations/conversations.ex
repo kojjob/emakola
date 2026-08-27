@@ -157,12 +157,13 @@ defmodule Emakola.Conversations do
   than a person plausibly types. The allowance is per author rather than per
   thread, so one abusive buyer cannot spend a shop's other conversations.
   """
-  def post_message(%Thread{} = thread, author_kind, author_id, body)
+  def post_message(%Thread{} = thread, author_kind, author_id, body, opts \\ [])
       when author_kind in [:merchant, :customer, :platform] do
     body = String.trim(body || "")
+    attachments = Keyword.get(opts, :attachments, [])
 
     with :ok <- check_message_rate(author_kind, author_id),
-         {:ok, message} <- create_message(thread, author_kind, author_id, body) do
+         {:ok, message} <- create_message(thread, author_kind, author_id, body, attachments, opts) do
       thread
       |> Ash.Changeset.for_update(:touch, %{last_message_at: message.inserted_at})
       |> Ash.update(authorize?: false)
@@ -301,15 +302,22 @@ defmodule Emakola.Conversations do
     end
   end
 
-  defp create_message(_thread, _kind, _id, ""), do: {:error, :empty_message}
+  # Nothing typed and nothing recorded is nothing. Kept as its own clause so
+  # the caller still gets :empty_message rather than a changeset error — the
+  # three inboxes map that to "Write something first."
+  defp create_message(_thread, _kind, _id, "", [], _opts), do: {:error, :empty_message}
 
-  defp create_message(thread, author_kind, author_id, body) do
+  defp create_message(thread, author_kind, author_id, body, attachments, opts) do
     Message
     |> Ash.Changeset.for_create(:post, %{
       thread_id: thread.id,
       author_kind: author_kind,
       author_id: author_id,
-      body: body
+      # A voice note has no words; store nil rather than an empty string so
+      # "has words" is one question, not two.
+      body: if(body == "", do: nil, else: body),
+      attachments: attachments,
+      posted_by_staff_id: Keyword.get(opts, :posted_by_staff_id)
     })
     |> Ash.create(authorize?: false)
   end
