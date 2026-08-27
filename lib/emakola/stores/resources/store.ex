@@ -214,6 +214,32 @@ defmodule Emakola.Stores.Store do
     # feature, cleared on unfeature; rank moves never touch it. Display-only
     # today — it exists so featured tenure is answerable from the day the
     # first shop was featured, not from the day someone asks.
+    # ── Directory read cache ──
+    # Written only by the featuring worker (and DirectoryCuration), read by
+    # the public slot queries so they stay plain indexed column filters. The
+    # standing row holds the explanation; these hold the answer.
+    #
+    # directory_eligible defaults TRUE — fail-open. A fail-closed default
+    # would empty the directory between this migration landing and the first
+    # worker run: an outage on deploy. The worker only flips it false for
+    # stores it has assessed and has evidence against.
+    attribute :directory_eligible, :boolean do
+      allow_nil?(false)
+      default(true)
+      public?(false)
+    end
+
+    attribute :directory_score, :integer do
+      allow_nil?(true)
+      public?(false)
+    end
+
+    attribute :directory_slot, :atom do
+      allow_nil?(true)
+      constraints(one_of: [:spotlight, :rising, :editors_pick, :promoted])
+      public?(false)
+    end
+
     attribute :featured_at, :utc_datetime_usec do
       allow_nil?(true)
       public?(true)
