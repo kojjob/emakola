@@ -515,4 +515,50 @@ defmodule Emakola.Performance.NPlusOneTest do
              "Expected 1 query for batch variant loading via IN clause, got #{query_count}"
     end
   end
+
+  describe "directory merit signals" do
+    @directory_signals [
+      :delivered_order_count_90d,
+      :cancelled_order_count_90d,
+      :last_order_at,
+      :last_product_published_at,
+      :successful_payment_count_90d,
+      :refunded_payment_count_90d,
+      :taken_down_product_count_90d,
+      :verified_review_count,
+      :verified_review_rating_sum,
+      :merchant_fault_return_count_90d,
+      :staff_refunded_hold_count_90d,
+      :payout_verified,
+      :kyc_approved
+    ]
+
+    test "loading every signal for 50 stores stays a bounded query count" do
+      stores = for _ <- 1..50, do: create_store!()
+
+      # Give a handful some real signal rows so the aggregates aren't
+      # trivially empty subqueries.
+      for store <- Enum.take(stores, 5) do
+        create_order!(store, %{status: :delivered})
+        create_payment!(store)
+      end
+
+      counter = start_query_counter()
+
+      {loaded, count} =
+        count_queries(counter, fn ->
+          Emakola.Stores.Store
+          |> Ash.Query.load(@directory_signals)
+          |> Ash.read!(authorize?: false)
+        end)
+
+      stop_query_counter(counter)
+
+      assert length(loaded) >= 50
+      # Aggregates compile to subqueries of ONE statement. The ceiling is
+      # deliberately loose — the failure mode being guarded against is one
+      # query per store per signal (650+), the CommercePassport mistake.
+      assert count <= 5, "expected a handful of queries, got #{count}"
+    end
+  end
 end
