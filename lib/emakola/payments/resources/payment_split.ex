@@ -38,7 +38,10 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner])
+      constraints(
+        one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner, :affiliate]
+      )
+
       allow_nil?(false)
       public?(true)
     end
@@ -54,6 +57,11 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :credit_agreement_id, :uuid do
+      public?(true)
+    end
+
+    # Which affiliate this allocation pays. Nil on every other role.
+    attribute :affiliate_id, :uuid do
       public?(true)
     end
 
@@ -219,7 +227,11 @@ defmodule Emakola.Payments.PaymentSplit do
     # must not be able to double-record an allocation. `nils_distinct?: false`
     # because supplier_id/credit_agreement_id are nil for most roles — two
     # :platform rows for the same payment must collide.
-    identity :unique_allocation, [:payment_id, :role, :supplier_id, :credit_agreement_id] do
+    # affiliate_id joins the discriminators for the same reason supplier_id and
+    # credit_agreement_id did: without it, two affiliates on one payment
+    # collide and the second is silently dropped rather than paid.
+    identity :unique_allocation,
+             [:payment_id, :role, :supplier_id, :credit_agreement_id, :affiliate_id] do
       nils_distinct?(false)
     end
   end
@@ -260,6 +272,7 @@ defmodule Emakola.Payments.PaymentSplit do
         :recipient_store_id,
         :supplier_id,
         :credit_agreement_id,
+        :affiliate_id,
         :subaccount_code,
         :amount,
         :recovery_amount,

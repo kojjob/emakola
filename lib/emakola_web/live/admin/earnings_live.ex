@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
 
   # Fixed display order for the by-source cards, independent of whichever
   # roles happen to have splits.
-  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner]
+  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner, :affiliate]
   @feed_limit 20
 
   @impl true
@@ -180,11 +180,13 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   defp accrual_label(:wholesaler, source), do: "Resale of your stock by #{source}"
   defp accrual_label(:dropshipper, _source), do: "Dropship margin"
   defp accrual_label(:credit_partner, _source), do: "Credit repayment"
+  defp accrual_label(:affiliate, _source), do: "Commission you paid"
 
   defp role_title(:merchant), do: "Your sales"
   defp role_title(:wholesaler), do: "Resales of your stock"
   defp role_title(:dropshipper), do: "Dropship margin"
   defp role_title(:credit_partner), do: "Credit repayment"
+  defp role_title(:affiliate), do: "Commission you paid"
 
   defp format_accrual_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
   defp format_accrual_date(_), do: "—"
@@ -193,6 +195,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   defp role_icon(:wholesaler), do: "hero-building-storefront"
   defp role_icon(:dropshipper), do: "hero-truck"
   defp role_icon(:credit_partner), do: "hero-credit-card"
+  defp role_icon(:affiliate), do: "hero-megaphone"
 
   # Slice colours, positional, mirroring PROVIDER_COLORS in
   # assets/js/hooks/chart_hook.js — a source's card wears the colour of its
