@@ -717,11 +717,41 @@ defmodule EmakolaWeb.Router do
       live "/:store_slug/recipes/:recipe_slug", RecipeLive
       live "/:store_slug/account", AccountLive
       live "/:store_slug/account/downloads", AccountDownloadsLive
+      live "/:store_slug/account/messages", CustomerMessagesLive
       live "/:store_slug/saved-stores", SavedStoresLive
       live "/:store_slug/wishlist", WishlistLive
       live "/:store_slug/track/:order_number", TrackingLive
       live "/:store_slug/p/:page_slug", PageLive
     end
+  end
+
+  # Customer auth + session for the short store URLs. Same surface as the
+  # /s/:store_slug scopes above — found missing by a production smoke test:
+  # checkout redirects a guest to store_path(slug, "/login"), which on the
+  # short dialect is /:slug/login, and that 404ed with a paid cart behind it.
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/:store_slug/auth/customer-session", CustomerSessionController, :create
+
+    live_session :storefront_auth_short,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
+        {EmakolaWeb.Hooks.ResolveStore, :short},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/:store_slug/login", CustomerLoginLive
+      live "/:store_slug/register", CustomerRegisterLive
+      live "/:store_slug/whatsapp", CustomerWhatsAppLive
+    end
+  end
+
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through :browser
+    delete "/:store_slug/auth/customer-session", CustomerSessionController, :delete
+    get "/:store_slug/auth/customer-logout", CustomerSessionController, :logout
+    get "/:store_slug/downloads/:id", DownloadController, :show
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

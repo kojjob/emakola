@@ -99,6 +99,24 @@ defmodule Emakola.Conversations.Message do
       prepare(build(sort: [inserted_at: :asc]))
     end
 
+    # The sidebar badge: every message across a store's inbox that the
+    # merchant has not seen, counted in the database. Reaching through
+    # `thread.` compares each message against its own thread's read mark, so
+    # this returns one number rather than one row per thread to sum in Elixir.
+    read :unread_for_store do
+      argument :store_id, :uuid do
+        allow_nil?(false)
+      end
+
+      filter(
+        expr(
+          thread.store_id == ^arg(:store_id) and thread.kind == :shop_buyer and
+            author_kind != :merchant and
+            (is_nil(thread.merchant_last_read_at) or inserted_at > thread.merchant_last_read_at)
+        )
+      )
+    end
+
     read :unread_for_thread do
       argument :thread_id, :uuid do
         allow_nil?(false)

@@ -160,9 +160,11 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   end
 
   defp parse_fee(fee_str) when is_binary(fee_str) do
-    case Float.parse(fee_str) do
-      {amount, _} -> round(amount * 100)
-      :error -> 0
+    # Money.parse_price rejects negatives and trailing garbage Float.parse let
+    # through — a "-5" fee would have SUBTRACTED from the order total.
+    case Emakola.Money.parse_price(fee_str) do
+      {:ok, pesewas} -> pesewas
+      _zero_skip_or_error -> 0
     end
   end
 
@@ -172,9 +174,10 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   # Optional GHS inputs: blank/invalid means "not configured" (nil), keeping
   # the zone on flat per-zone pricing.
   defp parse_optional_fee(fee_str) when is_binary(fee_str) do
-    case Float.parse(fee_str) do
-      {amount, _} -> round(amount * 100)
-      :error -> nil
+    case Emakola.Money.parse_price(fee_str) do
+      {:ok, pesewas} -> pesewas
+      :zero -> 0
+      _skip_or_error -> nil
     end
   end
 

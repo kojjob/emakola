@@ -44,7 +44,9 @@ defmodule EmakolaWeb.SidebarComponents do
     "photo" =>
       "M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z",
     "shield" =>
-      "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z",
+    "chat" =>
+      "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
   }
 
   @sidebar_icons_secondary %{
@@ -100,6 +102,7 @@ defmodule EmakolaWeb.SidebarComponents do
   attr :current_merchant, :any, default: nil
   attr :current_store, :any, default: nil
   attr :pending_order_count, :any, default: nil
+  attr :unread_message_count, :integer, default: 0
 
   def admin_sidebar(assigns) do
     ~H"""
@@ -300,6 +303,15 @@ defmodule EmakolaWeb.SidebarComponents do
           Customers & Marketing
         </p>
 
+        <%!-- First in the group: a buyer waiting on a reply is the most
+              time-sensitive thing on this list. --%>
+        <.sidebar_link
+          href="/admin/messages"
+          title="Messages"
+          icon="chat"
+          active={@active_nav == :messages}
+          badge={if @unread_message_count > 0, do: to_string(@unread_message_count)}
+        />
         <.sidebar_link
           href="/admin/customers"
           title="Customers"

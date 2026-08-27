@@ -108,18 +108,40 @@ defmodule Emakola.Conversations do
     end
   end
 
-  @doc "Posts a message and stamps the thread so inboxes sort correctly."
+  # Generous for a person typing and useless to a script. The two ceilings
+  # differ because the two sides fan out differently: a buyer has one thread
+  # per shop and never needs more than a conversational pace, while a merchant
+  # clearing a morning's worth of waiting buyers legitimately posts to dozens
+  # of threads in a minute. One shared ceiling would either be too loose to
+  # stop a script or tight enough to silence a merchant mid-shift.
+  @buyer_message_limit 30
+  @staff_message_limit 240
+  @message_window_ms 60_000
+
+  @doc "How many messages an author of `kind` may post per minute."
+  def message_limit(kind \\ :customer)
+  def message_limit(:customer), do: @buyer_message_limit
+  def message_limit(kind) when kind in [:merchant, :platform], do: @staff_message_limit
+
+  @doc """
+  Posts a message and stamps the thread so inboxes sort correctly.
+
+  Returns `{:error, :rate_limited}` when the author has been writing faster
+  than a person plausibly types. The allowance is per author rather than per
+  thread, so one abusive buyer cannot spend a shop's other conversations.
+  """
   def post_message(%Thread{} = thread, author_kind, author_id, body)
       when author_kind in [:merchant, :customer, :platform] do
     body = String.trim(body || "")
 
-    with {:ok, message} <- create_message(thread, author_kind, author_id, body) do
+    with :ok <- check_message_rate(author_kind, author_id),
+         {:ok, message} <- create_message(thread, author_kind, author_id, body) do
       thread
       |> Ash.Changeset.for_update(:touch, %{last_message_at: message.inserted_at})
       |> Ash.update(authorize?: false)
 
       Phoenix.PubSub.broadcast(Emakola.PubSub, topic(thread.id), {:new_message, message})
-      notify_other_side(thread, author_kind)
+      broadcast_store_change(thread)
       schedule_nudge(thread, author_kind)
 
       {:ok, message}
@@ -190,22 +212,65 @@ defmodule Emakola.Conversations do
     end
   end
 
+  @doc """
+  How many messages across a store's whole inbox the merchant has not read.
+
+  One aggregate query, so the sidebar badge costs the same on a shop with ten
+  conversations and a shop with ten thousand messages.
+  """
+  def unread_total_for_store(store_id) when is_binary(store_id) do
+    Message
+    |> Ash.Query.for_read(:unread_for_store, %{store_id: store_id})
+    |> Ash.count(authorize?: false)
+    |> case do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  end
+
   @doc "Subscribes the calling process to a thread's new messages."
   def subscribe(thread_id) when is_binary(thread_id) do
     Phoenix.PubSub.subscribe(Emakola.PubSub, topic(thread_id))
   end
 
+  @doc """
+  Subscribes to anything that changes a store's unread total.
+
+  Separate from `subscribe/1` because the sidebar badge is a store-wide
+  number: a merchant looking at the dashboard is subscribed to no individual
+  conversation, so the per-thread topic cannot reach them.
+  """
+  def subscribe_store(store_id) when is_binary(store_id) do
+    Phoenix.PubSub.subscribe(Emakola.PubSub, store_topic(store_id))
+  end
+
   @doc "Marks everything currently in the thread as seen by `side`."
   def mark_read(%Thread{} = thread, :merchant) do
-    thread
-    |> Ash.Changeset.for_update(:mark_merchant_read, %{})
-    |> Ash.update(authorize?: false)
+    result =
+      thread
+      |> Ash.Changeset.for_update(:mark_merchant_read, %{})
+      |> Ash.update(authorize?: false)
+
+    # Reading is the other half of the badge: opening a conversation has to
+    # drop the count as promptly as a new message raises it.
+    with {:ok, _} <- result, do: broadcast_store_change(thread)
+
+    result
   end
 
   def mark_read(%Thread{} = thread, side) when side in [:customer, :platform] do
     thread
     |> Ash.Changeset.for_update(:mark_counterpart_read, %{})
     |> Ash.update(authorize?: false)
+  end
+
+  defp check_message_rate(author_kind, author_id) do
+    key = "conversation_post:#{author_kind}:#{author_id}"
+
+    case Emakola.RateLimit.check_rate(key, message_limit(author_kind), @message_window_ms) do
+      {:allow, _count} -> :ok
+      {:deny, _retry_after_ms} -> {:error, :rate_limited}
+    end
   end
 
   defp create_message(_thread, _kind, _id, ""), do: {:error, :empty_message}
@@ -232,58 +297,16 @@ defmodule Emakola.Conversations do
 
   defp topic(thread_id), do: "conversation:" <> thread_id
 
-  # An in-app bell for the side that did not write, immediately. This is the
-  # free half of telling someone: the SMS nudge below still waits ten minutes
-  # and still costs money, and is skipped entirely if the bell did its job and
-  # they read it in time.
-  #
-  # Never raises: a bell entry failing must not fail the send.
-  defp notify_other_side(%Thread{kind: :shop_buyer} = thread, :customer) do
-    with {:ok, customer} <- fetch(Emakola.Customers.Customer, thread.customer_id) do
-      Emakola.Notifications.notify_store(thread.store_id, :new_message, %{
-        title: "#{customer.name || "A buyer"} sent you a message",
-        action_url: "/admin/messages/#{thread.id}"
-      })
-    end
+  defp store_topic(store_id), do: "store:#{store_id}:messages"
 
-    :ok
+  # Only shop threads belong to a store. A merchant's Makola support thread
+  # carries no store_id and must not raise a shop's buyer badge.
+  defp broadcast_store_change(%Thread{kind: :shop_buyer, store_id: store_id})
+       when is_binary(store_id) do
+    Phoenix.PubSub.broadcast(Emakola.PubSub, store_topic(store_id), :store_messages_changed)
   end
 
-  defp notify_other_side(%Thread{kind: :shop_buyer} = thread, :merchant) do
-    with {:ok, customer} <- fetch(Emakola.Customers.Customer, thread.customer_id),
-         {:ok, store} <- fetch(Emakola.Stores.Store, thread.store_id) do
-      Emakola.Notifications.notify(customer, :new_message, %{
-        title: "#{store.name} replied to you",
-        action_url: "/account/messages"
-      })
-    end
-
-    :ok
-  end
-
-  defp notify_other_side(%Thread{kind: :platform_merchant} = thread, :platform) do
-    with {:ok, merchant} <- fetch(Emakola.Accounts.Merchant, thread.merchant_id) do
-      Emakola.Notifications.notify(merchant, :new_message, %{
-        title: "Makola sent you a message",
-        action_url: "/admin/messages/#{thread.id}"
-      })
-    end
-
-    :ok
-  end
-
-  # Staff read the dashboard, not a bell — the same reason MessageNudgeWorker
-  # never sends them an SMS.
-  defp notify_other_side(_thread, _author_kind), do: :ok
-
-  defp fetch(resource, nil) when is_atom(resource), do: :error
-
-  defp fetch(resource, id) do
-    case Ash.get(resource, id, authorize?: false) do
-      {:ok, record} -> {:ok, record}
-      _ -> :error
-    end
-  end
+  defp broadcast_store_change(_thread), do: :ok
 
   # Tell the OTHER side, later, and only if they still have not read it. The
   # delay plus Oban uniqueness is what stops a free in-app conversation from

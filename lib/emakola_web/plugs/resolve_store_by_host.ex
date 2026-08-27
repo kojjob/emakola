@@ -71,7 +71,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
 
       {slug, rest} ->
         case DomainResolver.primary_host(slug) do
-          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query(conn)}
+          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query_suffix(conn)}
           _ -> short_move(conn, slug, rest)
         end
     end
@@ -91,7 +91,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
     if ReservedStoreSlugs.reserved?(slug) or not routed?(conn, target) do
       :passthrough
     else
-      {:redirect, target <> query(conn)}
+      {:redirect, target <> query_suffix(conn)}
     end
   end
 
@@ -112,8 +112,8 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   defp join([]), do: ""
   defp join(segments), do: "/" <> Enum.join(segments, "/")
 
-  defp query(%{query_string: ""}), do: ""
-  defp query(%{query_string: q}), do: "?" <> q
+  defp query_suffix(%{query_string: ""}), do: ""
+  defp query_suffix(%{query_string: q}), do: "?" <> q
 
   defp origin(host) do
     scheme = URI.parse(EmakolaWeb.Endpoint.url()).scheme

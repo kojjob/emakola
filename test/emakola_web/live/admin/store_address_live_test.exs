@@ -68,4 +68,32 @@ defmodule EmakolaWeb.Admin.StoreAddressLiveTest do
     {:ok, _view, html} = live(conn, ~p"/admin/settings/address")
     assert html =~ "coming soon"
   end
+
+  # "Change your address" used to submit the same create again — host is not
+  # updatable — so every re-claim quietly stacked another StoreDomain row and
+  # current_subdomain/2 then picked whichever Enum.find hit first.
+  test "re-claiming replaces the subdomain instead of stacking rows", %{
+    conn: conn,
+    store: store
+  } do
+    {:ok, view, _html} = live(conn, ~p"/admin/settings/address")
+
+    view |> element("form") |> render_submit(%{"label" => "first-name"})
+    view |> element("form") |> render_submit(%{"label" => "better-name"})
+
+    {:ok, domains} = Stores.list_store_domains(store.id, authorize?: false)
+    subdomains = Enum.filter(domains, &(&1.type == :subdomain))
+
+    assert [%{host: "better-name.makola.io"}] = subdomains
+  end
+
+  test "a failed re-claim keeps the existing address", %{conn: conn, store: store} do
+    {:ok, view, _html} = live(conn, ~p"/admin/settings/address")
+
+    view |> element("form") |> render_submit(%{"label" => "first-name"})
+    view |> element("form") |> render_submit(%{"label" => "admin"})
+
+    {:ok, domains} = Stores.list_store_domains(store.id, authorize?: false)
+    assert [%{host: "first-name.makola.io"}] = Enum.filter(domains, &(&1.type == :subdomain))
+  end
 end

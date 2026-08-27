@@ -38,6 +38,26 @@ defmodule EmakolaWeb.HostRoutingTest do
     %{store: store}
   end
 
+  # The failure branch used to collapse every error into redirect(to: "/") —
+  # but on a branded host "/" IS the storefront, which remounts through the
+  # same hook and fails the same way: a redirect loop. The plug layer learned
+  # this lesson long ago (its unknown-host redirect is absolute, with a comment
+  # saying exactly why); the hook layer had missed it.
+  describe "a broken store on its own subdomain" do
+    test "a suspended store's subdomain sends the visitor to the apex unavailable page", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, _} =
+        Emakola.Stores.suspend_store(store, %{reason: "test"}, authorize?: false)
+
+      conn = %{conn | host: "#{store.slug}.makola.io"}
+      conn = get(conn, "/")
+
+      assert redirected_to(conn, 302) == EmakolaWeb.Endpoint.url() <> "/store-unavailable"
+    end
+  end
+
   describe "GET / by host" do
     test "a store subdomain renders the storefront (not the landing page)", %{
       conn: conn,
