@@ -34,6 +34,7 @@ defmodule EmakolaWeb.DashboardLive do
         merchant_name: merchant_first_name(socket)
       )
       |> assign_setup_checklist()
+      |> assign_featuring_checklist()
 
     socket =
       if connected?(socket) do
@@ -135,6 +136,47 @@ defmodule EmakolaWeb.DashboardLive do
   # Computes the merchant setup checklist and assigns it for the
   # dashboard widget. Cheap (two count queries + struct introspection)
   # so we can recompute on every mount without dedicated invalidation.
+  # The featuring floor as a to-do list — shown once basic setup is done,
+  # so a brand-new merchant sees one list at a time. One store read with
+  # the aggregates; the same 90-day quiet rule (with the creation-date
+  # grace) the nightly worker applies.
+  defp assign_featuring_checklist(socket) do
+    case socket.assigns[:current_store] do
+      nil ->
+        assign(socket, featuring_items: [], featuring_eligible?: false)
+
+      store ->
+        loaded =
+          Ash.get!(Emakola.Stores.Store, store.id,
+            load: [:product_count, :payout_verified, :last_product_published_at, :last_order_at],
+            authorize?: false
+          )
+
+        active_recently? =
+          [loaded.last_product_published_at, loaded.last_order_at, loaded.inserted_at]
+          |> Enum.reject(&is_nil/1)
+          |> Enum.max(DateTime)
+          |> DateTime.diff(DateTime.utc_now(), :day)
+          |> Kernel.>=(-90)
+
+        items =
+          Emakola.Stores.FeaturingChecklist.items(loaded,
+            product_count: loaded.product_count,
+            payout_verified?: loaded.payout_verified,
+            active_recently?: active_recently?
+          )
+
+        assign(socket,
+          featuring_items: items,
+          featuring_eligible?: Emakola.Stores.FeaturingChecklist.eligible?(items)
+        )
+    end
+  rescue
+    exception ->
+      Logger.error("[dashboard] featuring checklist raised: #{Exception.message(exception)}")
+      assign(socket, featuring_items: [], featuring_eligible?: false)
+  end
+
   defp assign_setup_checklist(socket) do
     case socket.assigns[:current_store] do
       nil ->
@@ -192,6 +234,62 @@ defmodule EmakolaWeb.DashboardLive do
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
       <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
+
+      <section
+        :if={@featuring_items != [] && @setup_complete?}
+        id="featuring-checklist"
+        class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">
+              Get featured
+            </p>
+            <h2 class="mt-1 text-lg font-black tracking-tight text-slate-900">
+              <%= if @featuring_eligible? do %>
+                Your shop can be featured
+              <% else %>
+                What featuring needs
+              <% end %>
+            </h2>
+          </div>
+          <span
+            :if={@featuring_eligible?}
+            class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700"
+          >
+            <.icon name="hero-check-badge-solid" class="size-4" /> Ready
+          </span>
+        </div>
+
+        <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+          <li
+            :for={item <- @featuring_items}
+            class="flex items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-3"
+          >
+            <span
+              :if={item.done?}
+              class="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
+            >
+              <.icon name="hero-check" class="size-3.5" />
+            </span>
+            <span
+              :if={!item.done?}
+              class="size-6 shrink-0 rounded-full border-2 border-slate-300"
+            >
+            </span>
+            <span class={[
+              "text-sm font-semibold",
+              if(item.done?, do: "text-slate-400 line-through", else: "text-slate-800")
+            ]}>
+              {item.label}
+            </span>
+          </li>
+        </ul>
+
+        <p class="mt-3 text-xs text-slate-400">
+          Featured shops are picked automatically every night from shops that tick every box.
+        </p>
+      </section>
 
       <%!-- What needs doing, before any chart --%>
       <.work_queue

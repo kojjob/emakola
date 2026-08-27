@@ -403,4 +403,29 @@ defmodule EmakolaWeb.DashboardLiveTest do
 
     {conn, merchant, store}
   end
+
+  describe "featuring checklist" do
+    test "an incomplete shop sees what featuring needs, plainly", %{conn: conn} do
+      {conn, _merchant, store} = setup_authenticated_merchant(conn)
+
+      # Clear the setup checklist so the featuring one shows (one list at a
+      # time): theme, a product, a delivery zone, WhatsApp, a social link.
+      Factory.create_product!(store, status: :active)
+      Factory.create_delivery_zone!(store)
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{
+        whatsapp_number: "+233201234567",
+        instagram_url: "https://instagram.com/shop",
+        theme_config: %{"theme" => "market"}
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, "/dashboard")
+
+      assert html =~ "featuring-checklist" or html =~ "What featuring needs"
+      # The payout item cannot be ticked — no verified payout account exists.
+      assert html =~ "Add your MoMo payout"
+    end
+  end
 end

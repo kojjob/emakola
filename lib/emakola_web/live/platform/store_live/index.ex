@@ -137,6 +137,30 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     end)
   end
 
+  def handle_event("directory_exclude", %{"reason" => reason}, socket) do
+    authorized(socket, fn socket ->
+      curate(socket, fn standing, staff ->
+        DirectoryCuration.set_excluded(standing, !standing.override_excluded, reason, staff)
+      end)
+    end)
+  end
+
+  def handle_event("directory_pin", %{"slot" => slot, "reason" => reason}, socket) do
+    authorized(socket, fn socket ->
+      curate(socket, fn standing, staff ->
+        slot =
+          Emakola.SafeAtom.to_atom_in(slot, [:spotlight, :rising, :editors_pick, :clear], :clear)
+
+        DirectoryCuration.override_slot(
+          standing,
+          if(slot == :clear, do: nil, else: slot),
+          reason,
+          staff
+        )
+      end)
+    end)
+  end
+
   def handle_event("move_rank", %{"id" => id, "dir" => dir}, socket)
       when dir in ["up", "down"] do
     direction = if dir == "up", do: :up, else: :down
@@ -161,30 +185,6 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       {:ok, user} -> user
       {:error, _} -> nil
     end
-  end
-
-  def handle_event("directory_exclude", %{"reason" => reason}, socket) do
-    authorized(socket, fn socket ->
-      curate(socket, fn standing, staff ->
-        DirectoryCuration.set_excluded(standing, !standing.override_excluded, reason, staff)
-      end)
-    end)
-  end
-
-  def handle_event("directory_pin", %{"slot" => slot, "reason" => reason}, socket) do
-    authorized(socket, fn socket ->
-      curate(socket, fn standing, staff ->
-        slot =
-          Emakola.SafeAtom.to_atom_in(slot, [:spotlight, :rising, :editors_pick, :clear], :clear)
-
-        DirectoryCuration.override_slot(
-          standing,
-          if(slot == :clear, do: nil, else: slot),
-          reason,
-          staff
-        )
-      end)
-    end)
   end
 
   defp curate(socket, fun) do
