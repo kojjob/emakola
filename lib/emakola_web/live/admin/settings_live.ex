@@ -981,16 +981,28 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     """
   end
 
-  # -- Notifications tab (placeholder) --
+  # -- Notifications tab --
 
   defp notifications_tab(assigns) do
     ~H"""
     <div class="space-y-6">
       <.admin_card>
-        <h3 class="text-base font-bold text-slate-900 mb-5">Notification Preferences</h3>
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Notification Preferences</h3>
+            <p class="text-sm text-slate-500 mt-1">Choose how Makola reaches you</p>
+          </div>
+          <.link
+            navigate={~p"/admin/settings/notifications"}
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+          >
+            <.icon name="hero-bell" class="size-4" /> Manage
+          </.link>
+        </div>
         <p class="text-sm text-slate-500">
-          Notification settings will be available soon. You will be able to configure
-          SMS, WhatsApp, and email notifications for orders and inventory alerts.
+          Pick which of WhatsApp, SMS and email reach you for each thing that happens,
+          and set quiet hours so nothing rings your phone at night. Payouts and new
+          orders always get through.
         </p>
       </.admin_card>
     </div>

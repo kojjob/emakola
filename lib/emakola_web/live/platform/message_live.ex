@@ -1,12 +1,21 @@
 defmodule EmakolaWeb.Platform.MessageLive do
   @moduledoc """
-  Makola staff talking to merchants.
+  Makola staff talking to merchants and to buyers.
 
-  The same thread/message core as buyer messaging — only the two sides
-  differ. Announcements broadcast at merchants; this is the conversation
-  back, which is where a merchant tells you their payout is late.
+  The same thread/message core as shop messaging — only the two sides differ.
+  Announcements broadcast at merchants; this is the conversation back, which
+  is where a merchant tells you their payout is late, or a buyer tells you
+  about an order their shop cannot see.
 
-  Staff see every merchant thread and need no scoping check, so the gate is
+  One inbox for both on purpose: a merchant asking about a payout and a buyer
+  asking about the same order belong in the same queue. A merchant thread has
+  no customer and a customer thread has no merchant, so whichever side is
+  loaded names the conversation.
+
+  Shop threads never appear here. Staff read what was said to Makola, not a
+  merchant's private conversation with their own buyer.
+
+  Staff see every platform thread and need no scoping check, so the gate is
   the whole access control: `:manage_merchants`, the same permission that
   guards the merchant directory this conversation is started from. A merchant
   never opens a thread by id — theirs is found by their own merchant_id.
@@ -56,7 +65,7 @@ defmodule EmakolaWeb.Platform.MessageLive do
         if connected?(socket), do: Conversations.subscribe(thread.id)
         {:ok, thread} = Conversations.mark_read(thread, :platform)
         {:ok, messages} = Conversations.list_messages(thread.id)
-        thread = Ash.load!(thread, [:merchant], authorize?: false)
+        thread = Ash.load!(thread, [:merchant, :customer], authorize?: false)
 
         assign(socket, thread: thread, messages: messages, form: blank_form())
 
@@ -116,14 +125,15 @@ defmodule EmakolaWeb.Platform.MessageLive do
         </div>
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Messages</h1>
-          <p class="text-sm text-gray-500 mt-1">Conversations with merchants.</p>
+          <p class="text-sm text-gray-500 mt-1">Conversations with merchants and buyers.</p>
         </div>
       </div>
 
       <div :if={@threads == []} class="bg-white border border-gray-200 rounded-card p-12 text-center">
         <p class="text-lg font-semibold text-gray-900">No conversations yet</p>
         <p class="text-sm text-gray-500 mt-2">
-          Open one from a merchant's page when you need to reach them.
+          Open one from a merchant's page when you need to reach them. Buyers who write
+          to Makola appear here too.
         </p>
       </div>
 
@@ -141,7 +151,18 @@ defmodule EmakolaWeb.Platform.MessageLive do
             ]}
           >
             <div class="flex items-center justify-between gap-2">
-              <p class="font-semibold text-gray-900 truncate">{merchant_name(thread)}</p>
+              <div class="flex items-center gap-2 min-w-0">
+                <p class="font-semibold text-gray-900 truncate">{merchant_name(thread)}</p>
+                <span class={[
+                  "shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide",
+                  if(thread.kind == :platform_customer,
+                    do: "bg-blue-50 text-blue-700",
+                    else: "bg-slate-100 text-slate-600"
+                  )
+                ]}>
+                  {counterpart_label(thread)}
+                </span>
+              </div>
               <span
                 :if={unread > 0}
                 class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
@@ -202,10 +223,30 @@ defmodule EmakolaWeb.Platform.MessageLive do
     """
   end
 
+  # One inbox, two kinds of counterpart. A merchant thread has no customer and
+  # a customer thread has no merchant, so whichever side is loaded is the one
+  # this conversation is with.
+  defp merchant_name(%{kind: :platform_customer} = thread), do: customer_name(thread)
+
   defp merchant_name(%{merchant: %{name: name}}) when is_binary(name) and name != "", do: name
 
   defp merchant_name(%{merchant: %{email: email}}) when not is_nil(email),
     do: to_string(email)
 
   defp merchant_name(_thread), do: "Merchant"
+
+  defp customer_name(%{customer: %{name: name}}) when is_binary(name) and name != "", do: name
+
+  # to_string first — these are Ash.CiString, which String functions reject.
+  defp customer_name(%{customer: %{email: email}}) when not is_nil(email), do: to_string(email)
+
+  defp customer_name(%{customer: %{phone: phone}}) when is_binary(phone) and phone != "",
+    do: phone
+
+  defp customer_name(_thread), do: "Buyer"
+
+  # Which side of the platform a conversation is with, so staff can tell a
+  # merchant's payout question from a buyer's complaint at a glance.
+  defp counterpart_label(%{kind: :platform_customer}), do: "Buyer"
+  defp counterpart_label(_thread), do: "Merchant"
 end

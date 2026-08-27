@@ -14,6 +14,8 @@ defmodule Emakola.Notifications do
       define(:mark_as_read, action: :mark_read)
     end
 
+    resource(Emakola.Notifications.Settings)
+
     resource Emakola.Notifications.EmailLog do
       define(:create_email_log, action: :create)
       define(:list_email_logs, action: :read)
