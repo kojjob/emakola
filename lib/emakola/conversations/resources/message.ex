@@ -44,10 +44,26 @@ defmodule Emakola.Conversations.Message do
       public?(true)
     end
 
+    # Nullable since voice notes: a recording has no words. A message with
+    # neither words nor sound is refused by `content_present` below.
     attribute :body, :string do
+      allow_nil?(true)
+      public?(true)
+      constraints(max_length: 4000)
+    end
+
+    # Same shape as `Catalog.Review.images`: an attachment has no identity of
+    # its own, is never queried across messages, and dies with its message.
+    attribute :attachments, {:array, :map} do
+      default([])
       allow_nil?(false)
       public?(true)
-      constraints(min_length: 1, max_length: 4000)
+    end
+
+    # Who actually typed, when a staff member is impersonating a merchant.
+    # Without it the message is attributed to the merchant with no trace.
+    attribute :posted_by_staff_id, :uuid do
+      public?(true)
     end
 
     timestamps()
@@ -78,7 +94,9 @@ defmodule Emakola.Conversations.Message do
     defaults([:read])
 
     create :post do
-      accept([:thread_id, :author_kind, :author_id, :body])
+      accept([:thread_id, :author_kind, :author_id, :body, :attachments, :posted_by_staff_id])
+      validate(Emakola.Conversations.Validations.MessageHasContent)
+      validate(Emakola.Conversations.Validations.AttachmentsAreOurs)
     end
 
     read :for_thread do
