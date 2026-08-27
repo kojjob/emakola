@@ -456,11 +456,14 @@
                 Nothing new
               </p>
 
-              <.link
+              <button
                 :for={notification <- notifications}
-                navigate={notification.action_url || "/platform"}
+                type="button"
+                id={"notification-#{notification.id}"}
+                phx-click="open_notification"
+                phx-value-id={notification.id}
                 class={[
-                  "block px-4 py-3 border-l-2 hover:bg-slate-50 transition-colors",
+                  "block w-full text-left px-4 py-3 border-l-2 hover:bg-slate-50 transition-colors cursor-pointer",
                   Layouts.notification_border_class(notification.type)
                 ]}
               >
@@ -485,7 +488,7 @@
                     </p>
                   </div>
                 </div>
-              </.link>
+              </button>
             </div>
           </div>
         </div>
