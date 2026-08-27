@@ -508,8 +508,6 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       view |> element("#panel-featured-toggle") |> render_click()
       view |> element("#panel-verified-toggle") |> render_click()
 
-      require Ash.Query
-
       actions =
         Emakola.Accounts.PlatformAuditLog
         |> Ash.Query.for_read(:list_for_store, %{store_id: store.id})
