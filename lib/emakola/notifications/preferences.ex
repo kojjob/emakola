@@ -23,9 +23,6 @@ defmodule Emakola.Notifications.Preferences do
   alias Emakola.Notifications.Reach
   alias Emakola.Notifications.Settings
 
-  require Ash.Query
-  require Logger
-
   @type channel :: :in_app | :whatsapp | :sms | :email
 
   # Events a person may not switch off, and that quiet hours do not hold.

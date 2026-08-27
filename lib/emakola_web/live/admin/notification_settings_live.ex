@@ -114,63 +114,67 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
-      <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Notifications</h1>
-        <p class="text-sm text-slate-500 mt-1">
-          Choose how Makola reaches you. Messages in your dashboard are always on.
-        </p>
-      </div>
+    <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <.admin_page_header
+        title="Notifications"
+        subtitle="Choose how Makola reaches you. Messages in your dashboard are always on."
+        icon="hero-bell"
+      />
 
       <.form
         for={%{}}
         id="notification-preferences"
         phx-submit="save_preferences"
-        class="rounded-2xl border border-slate-200 bg-white overflow-hidden"
+        class="rounded-card border border-slate-200 bg-white overflow-hidden shadow-sm"
       >
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-500">
-            <tr>
-              <th class="text-left font-medium px-4 py-3">What happens</th>
-              <th :for={channel <- Preferences.switchable_channels()} class="font-medium px-3 py-3">
-                {channel_label(channel)}
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr :for={event <- Preferences.configurable_events()}>
-              <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
-              <td
-                :for={channel <- Preferences.switchable_channels()}
-                class="px-3 py-3 text-center"
-              >
-                <input type="hidden" name={"preferences[#{event}][#{channel}]"} value="false" />
-                <input
-                  type="checkbox"
-                  name={"preferences[#{event}][#{channel}]"}
-                  value="true"
-                  checked={channel in Map.get(@chosen, event, [])}
-                  class="w-4 h-4 rounded border-slate-300 text-emerald-600 cursor-pointer"
-                />
-              </td>
-            </tr>
+        <%!-- Scrolls on its own rather than pushing the page sideways: three
+             channel columns plus a label is wider than a phone. --%>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[28rem]">
+            <thead class="bg-slate-50 text-slate-500">
+              <tr>
+                <th class="text-left font-medium px-4 py-3">What happens</th>
+                <th :for={channel <- Preferences.switchable_channels()} class="font-medium px-3 py-3">
+                  {channel_label(channel)}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr :for={event <- Preferences.configurable_events()}>
+                <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
+                <td
+                  :for={channel <- Preferences.switchable_channels()}
+                  class="px-3 py-3 text-center"
+                >
+                  <input type="hidden" name={"preferences[#{event}][#{channel}]"} value="false" />
+                  <input
+                    type="checkbox"
+                    name={"preferences[#{event}][#{channel}]"}
+                    value="true"
+                    checked={channel in Map.get(@chosen, event, [])}
+                    aria-label={"#{channel_label(channel)} for #{event_label(event)}"}
+                    class="w-4 h-4 rounded border-slate-300 accent-primary cursor-pointer"
+                  />
+                </td>
+              </tr>
 
-            <tr :for={event <- Preferences.always_on()} class="bg-slate-50/60">
-              <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
-              <td
-                colspan={length(Preferences.switchable_channels())}
-                class="px-3 py-3 text-center text-xs text-slate-500"
-              >
-                Always on — {always_on_reason(event)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <tr :for={event <- Preferences.always_on()} class="bg-slate-50/60">
+                <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
+                <td
+                  colspan={length(Preferences.switchable_channels())}
+                  class="px-3 py-3 text-center text-xs text-slate-500"
+                >
+                  Always on — {always_on_reason(event)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
           <button
             type="submit"
-            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+            class="rounded-control bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer"
           >
             Save
           </button>
@@ -181,7 +185,7 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
         for={%{}}
         id="quiet-hours"
         phx-submit="save_quiet_hours"
-        class="rounded-2xl border border-slate-200 bg-white p-4 space-y-4"
+        class="rounded-card border border-slate-200 bg-white p-4 space-y-4 shadow-sm"
       >
         <div>
           <h2 class="text-base font-semibold text-slate-900">Quiet hours</h2>
@@ -198,7 +202,7 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
               type="time"
               name="quiet_hours[start]"
               value={@quiet_start}
-              class="rounded-lg border-slate-300 text-sm"
+              class="rounded-control border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </label>
           <label class="block">
@@ -207,12 +211,12 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
               type="time"
               name="quiet_hours[end]"
               value={@quiet_end}
-              class="rounded-lg border-slate-300 text-sm"
+              class="rounded-control border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </label>
           <button
             type="submit"
-            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+            class="rounded-control bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer"
           >
             Save
           </button>
