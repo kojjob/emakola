@@ -40,7 +40,11 @@ defmodule Emakola.Notifications.Preferences do
     order_status_changed: [:in_app],
     payment_received: [:in_app, :whatsapp, :sms],
     payout_sent: [:in_app, :whatsapp, :sms],
-    new_message: [:in_app, :whatsapp],
+    # SMS included so the default preserves what MessageNudgeWorker already
+    # did — it has always nudged anyone with a phone. Dropping it here would
+    # silently switch off a shipped feature for every merchant who never
+    # visits the settings page.
+    new_message: [:in_app, :whatsapp, :sms],
     verification_result: [:in_app, :whatsapp, :sms],
     product_moderated: [:in_app, :whatsapp],
     supplier_connection: [:in_app],
