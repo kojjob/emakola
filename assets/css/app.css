@@ -422,7 +422,10 @@ html.high-contrast {
     visibility: visible;
   }
   .admin-shell.mobile-open .sidebar {
+    /* Tailwind v4's -translate-x-full uses the `translate` property, not
+       `transform` — both must be reset or the sidebar stays off-canvas. */
     transform: translateX(0) !important;
+    translate: 0 !important;
     width: 280px;
   }
 
