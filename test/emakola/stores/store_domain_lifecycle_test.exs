@@ -256,4 +256,20 @@ defmodule Emakola.Stores.StoreDomainLifecycleTest do
       assert found.host == "kentekingdom.com"
     end
   end
+
+  # The FK had no on_delete, so deleting a store raised on its domain rows.
+  # Exercised at the SQL level because that is exactly what the migration
+  # changed — the DB itself now owns this invariant.
+  test "deleting a store takes its domain rows with it", %{store: store} do
+    _ = claim!(store, "cascade-check.com")
+
+    {:ok, store_uuid} = Ecto.UUID.dump(store.id)
+    Emakola.Repo.query!("DELETE FROM stores WHERE id = $1", [store_uuid])
+
+    assert {:ok, nil} =
+             Emakola.Stores.get_store_domain_by_host("cascade-check.com",
+               authorize?: false,
+               not_found_error?: false
+             )
+  end
 end

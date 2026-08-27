@@ -40,6 +40,28 @@ defmodule EmakolaWeb.Storefront.Path do
   def put_on_store_subdomain(false), do: put_mode(:subfolder)
 
   @doc """
+  The link to hand someone who is **not** in a storefront yet — the shops
+  directory, a platform admin "view store" button, an admin preview.
+
+  Always the short form. Those callers have no dialect to preserve (there is no
+  current storefront render), and `makola.io/yourshop` is the form a merchant
+  can say aloud, write on a poster, or paste into WhatsApp. Canonical, OG and
+  the sitemap still answer with the store's own origin via
+  `EmakolaWeb.SEO.Canonical`, so this changes what a visitor sees, not what
+  Google indexes.
+
+  Safe as a bare apex path because `Emakola.Stores.Changes.EnsureUniqueSlug`
+  refuses any slug that `EmakolaWeb.ReservedStoreSlugs` claims, so a store slug
+  can never shadow a real page.
+  """
+  @spec public_path(String.t()) :: String.t()
+  def public_path(slug) when is_binary(slug), do: "/" <> slug
+
+  @doc "As `public_path/1`, with a subpath: `/yourshop/products`."
+  @spec public_path(String.t(), String.t()) :: String.t()
+  def public_path(slug, subpath) when is_binary(slug), do: prefixed("/" <> slug, subpath)
+
+  @doc """
   Builds a storefront path for `subpath` under `slug`, in whichever form the
   current render was reached by. Every page links in its own dialect, so a
   visitor's URL shape never changes underneath them mid-visit.

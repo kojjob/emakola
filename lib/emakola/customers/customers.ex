@@ -7,6 +7,8 @@ defmodule Emakola.Customers do
   use Ash.Domain
 
   resources do
+    resource(Emakola.Customers.CustomerIdentity)
+
     resource Emakola.Customers.Customer do
       define(:create_customer, action: :create)
       define(:update_customer, action: :update)

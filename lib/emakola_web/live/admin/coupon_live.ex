@@ -837,11 +837,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
 
   defp parse_discount_value(:free_shipping, _value), do: 0
 
+  # "12.5" (percent) -> 1250 bps: the same x100 transform as GHS -> pesewas,
+  # so Money.parse_price does both. It rejects signs and trailing garbage that
+  # Float.parse silently accepted ("-500", "50abc").
   defp parse_discount_value(:percentage, value) do
-    case parse_number(value) do
-      nil -> 0
-      num -> round(num * 100)
-    end
+    parse_pesewas(value) || 0
   end
 
   defp parse_discount_value(:fixed_amount, value) do
@@ -851,20 +851,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
   defp parse_pesewas(nil), do: nil
   defp parse_pesewas(""), do: nil
 
-  defp parse_pesewas(value) do
-    case parse_number(value) do
-      nil -> nil
-      num -> round(num * 100)
-    end
-  end
-
-  defp parse_number(nil), do: nil
-  defp parse_number(""), do: nil
-
-  defp parse_number(value) when is_binary(value) do
-    case Float.parse(String.trim(value)) do
-      {num, _} -> num
-      :error -> nil
+  defp parse_pesewas(value) when is_binary(value) do
+    case Emakola.Money.parse_price(value) do
+      {:ok, pesewas} -> pesewas
+      :zero -> 0
+      _skip_or_error -> nil
     end
   end
 

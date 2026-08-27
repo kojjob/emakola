@@ -167,7 +167,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         subtitle="Pick a theme, customize colors, and preview live"
       >
         <a
-          href={"/s/#{@store.slug}/"}
+          href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/")}
           target="_blank"
           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control border border-border bg-surface text-sm font-semibold text-text hover:bg-surface-subtle transition-colors"
         >
@@ -375,7 +375,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                     Featured Products
                   </p>
                   <a
-                    href={"/s/#{@store.slug}/products"}
+                    href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/products")}
                     target="_blank"
                     rel="noopener"
                     class="text-xs font-medium hover:underline"

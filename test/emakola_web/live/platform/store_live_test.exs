@@ -231,7 +231,7 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
 
       assert has_element?(
                view,
-               ~s(#panel-directory-card a[href="/s/#{store.slug}"][target="_blank"])
+               ~s(#panel-directory-card a[href="/#{store.slug}"][target="_blank"])
              )
 
       # Clickability is CSS — guard structurally against the inert wrapper.

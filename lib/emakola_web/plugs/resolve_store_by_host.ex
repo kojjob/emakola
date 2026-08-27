@@ -27,6 +27,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
 
   alias Emakola.Stores
   alias Emakola.Stores.DomainResolver
+  alias EmakolaWeb.ReservedStoreSlugs
 
   @impl true
   def init(opts), do: opts
@@ -70,10 +71,32 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
 
       {slug, rest} ->
         case DomainResolver.primary_host(slug) do
-          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query(conn)}
-          _ -> :passthrough
+          host when is_binary(host) -> {:redirect, origin(host) <> rest <> query_suffix(conn)}
+          _ -> short_move(conn, slug, rest)
         end
     end
+  end
+
+  # No custom domain, but the store still should not live behind `/s/`. Move it
+  # to the short form so one URL shape is the only one anyone sees or shares.
+  #
+  # Only moved when the short form actually routes. `/s/:slug/sitemap.xml`,
+  # the customer auth callbacks and the product feeds have no short route, and
+  # 301-ing them would turn a working URL into a 404 that browsers then cache.
+  # Asking the router keeps this honest: add a short route later and it starts
+  # being covered, with nothing here to remember to update.
+  defp short_move(conn, slug, rest) do
+    target = "/" <> slug <> rest
+
+    if ReservedStoreSlugs.reserved?(slug) or not routed?(conn, target) do
+      :passthrough
+    else
+      {:redirect, target <> query_suffix(conn)}
+    end
+  end
+
+  defp routed?(conn, path) do
+    match?(%{}, Phoenix.Router.route_info(EmakolaWeb.Router, conn.method, path, conn.host))
   end
 
   # Only "/s/:slug/rest" identifies a store by path on the apex; everything else
@@ -89,8 +112,8 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   defp join([]), do: ""
   defp join(segments), do: "/" <> Enum.join(segments, "/")
 
-  defp query(%{query_string: ""}), do: ""
-  defp query(%{query_string: q}), do: "?" <> q
+  defp query_suffix(%{query_string: ""}), do: ""
+  defp query_suffix(%{query_string: q}), do: "?" <> q
 
   defp origin(host) do
     scheme = URI.parse(EmakolaWeb.Endpoint.url()).scheme

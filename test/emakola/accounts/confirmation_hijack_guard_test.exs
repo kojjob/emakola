@@ -66,7 +66,16 @@ defmodule Emakola.Accounts.ConfirmationHijackGuardTest do
       assert {:error, _} = register_merchant_oauth("victim@example.com")
     end
 
-    test "OAuth links onto a CONFIRMED account normally" do
+    # GHSA-777c-2fxx-qr28. ash_authentication 4.14 refuses to attach a NEW
+    # provider identity to a pre-existing local account by email alone, even a
+    # confirmed one — matching on email is the takeover primitive the advisory
+    # describes. Linking requires `trust_email_verified?`, opted into per
+    # provider, and we have not opted in: social login is dark, and Facebook in
+    # particular does not reliably assert email ownership.
+    #
+    # This test previously asserted the link SUCCEEDED. It now pins the refusal,
+    # because that is the safer behaviour and losing it silently is the risk.
+    test "OAuth will not attach itself to an existing account by email" do
       merchant = register_merchant_password!("owner@example.com")
 
       merchant
@@ -74,8 +83,18 @@ defmodule Emakola.Accounts.ConfirmationHijackGuardTest do
       |> Ash.Changeset.force_change_attribute(:confirmed_at, DateTime.utc_now())
       |> Ash.update!(authorize?: false)
 
-      assert {:ok, linked} = register_merchant_oauth("owner@example.com")
-      assert linked.id == merchant.id
+      assert {:error, %Ash.Error.Forbidden{errors: errors}} =
+               register_merchant_oauth("owner@example.com")
+
+      # The caller sees a generic "Authentication failed" — the reason is not
+      # leaked outward. The specific refusal lives in caused_by.
+      assert Enum.any?(errors, fn
+               %AshAuthentication.Errors.AuthenticationFailed{caused_by: %{message: m}} ->
+                 m =~ "could not be verified"
+
+               _ ->
+                 false
+             end)
     end
 
     test "a fresh-email OAuth registration is auto-confirmed — the provider verified it" do
@@ -110,7 +129,9 @@ defmodule Emakola.Accounts.ConfirmationHijackGuardTest do
       |> Ash.Changeset.for_create(
         :register_with_oauth2,
         %{
-          user_info: %{"email" => email, "name" => "Ama"},
+          # `sub` is required now that customer OAuth stores the provider's
+          # stable id. Matching on email alone is what the advisory calls unsafe.
+          user_info: %{"email" => email, "name" => "Ama", "sub" => "google-#{email}"},
           oauth_tokens: %{"access_token" => "tok"}
         },
         tenant: store_id

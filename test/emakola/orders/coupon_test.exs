@@ -30,6 +30,47 @@ defmodule Emakola.Marketing.CouponTest do
       assert coupon.active == true
     end
 
+    test "rejects a negative discount_value", %{store: store} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Coupon
+               |> Ash.Changeset.for_create(:create, %{
+                 store_id: store.id,
+                 code: "NEGATIVE",
+                 discount_type: :fixed_amount,
+                 discount_value: -50_000,
+                 active: true
+               })
+               |> Ash.create(authorize?: false)
+    end
+
+    test "rejects a negative max_discount_amount", %{store: store} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Coupon
+               |> Ash.Changeset.for_create(:create, %{
+                 store_id: store.id,
+                 code: "NEGCAP",
+                 discount_type: :percentage,
+                 discount_value: 1000,
+                 max_discount_amount: -10_000,
+                 active: true
+               })
+               |> Ash.create(authorize?: false)
+    end
+
+    test "rejects a negative minimum_order_amount", %{store: store} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Coupon
+               |> Ash.Changeset.for_create(:create, %{
+                 store_id: store.id,
+                 code: "NEGMIN",
+                 discount_type: :percentage,
+                 discount_value: 1000,
+                 minimum_order_amount: -5_000,
+                 active: true
+               })
+               |> Ash.create(authorize?: false)
+    end
+
     test "upcases code on create", %{store: store} do
       assert {:ok, coupon} =
                Coupon

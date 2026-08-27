@@ -77,8 +77,8 @@ defmodule EmakolaWeb.CustomDomainRoutingTest do
   end
 
   describe "canonical URL" do
-    test "falls back to the apex subfolder with no custom domain", %{store: store} do
-      assert Canonical.store_url(store) =~ "/s/#{store.slug}"
+    test "falls back to the apex short URL with no custom domain", %{store: store} do
+      assert Canonical.store_url(store) =~ "/#{store.slug}"
     end
 
     test "becomes the primary custom domain", %{store: store} do
@@ -97,14 +97,14 @@ defmodule EmakolaWeb.CustomDomainRoutingTest do
 
     test "ignores a domain that is live but not primary", %{store: store} do
       _ = live_domain!(store, "kentekingdom.com")
-      assert Canonical.store_url(store) =~ "/s/#{store.slug}"
+      assert Canonical.store_url(store) =~ "/#{store.slug}"
     end
 
     test "ignores a domain that is primary but no longer live", %{store: store} do
       domain = live_domain!(store, "kentekingdom.com", primary?: true)
       {:ok, _} = Stores.expire_store_domain(domain, %{reason: "revoked"}, authorize?: false)
 
-      assert Canonical.store_url(store) =~ "/s/#{store.slug}"
+      assert Canonical.store_url(store) =~ "/#{store.slug}"
     end
 
     # Scope limit: StoreAddressLive marks subdomain claims primary?, so without
@@ -127,7 +127,7 @@ defmodule EmakolaWeb.CustomDomainRoutingTest do
     end
 
     test "reflects activation immediately, not after the cache TTL", %{store: store} do
-      assert Canonical.store_url(store) =~ "/s/#{store.slug}"
+      assert Canonical.store_url(store) =~ "/#{store.slug}"
 
       _ = live_domain!(store, "kentekingdom.com", primary?: true)
 

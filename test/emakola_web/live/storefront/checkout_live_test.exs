@@ -1028,6 +1028,91 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
              |> Ash.read!(authorize?: false) == []
     end
 
+    # Found by the production smoke test: the gate keyed on requires_shipping,
+    # which a physical item flips true — so a MIXED cart sailed past it and the
+    # digital line item minted a customer_id: nil grant nobody can ever redeem.
+    # Taking money for an unredeemable download is the exact thing the gate
+    # exists to prevent, so a mixed guest cart must be refused too.
+    test "a guest is refused a MIXED digital+physical cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      assert Emakola.Orders.Order
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.read!(authorize?: false) == []
+    end
+
+    test "a signed-in customer CAN buy a mixed cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+      {conn, _customer} = sign_in_customer(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Ama Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(orders) == 1
+    end
+
     # Regression: phone-first guest checkout for physical goods is the dominant
     # Ghana flow and must stay untouched.
     test "a guest can still check out a physical cart", %{
