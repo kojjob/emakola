@@ -463,6 +463,7 @@ defmodule Emakola.Stores.Store do
              :archive,
              :reactivate,
              :update_directory_meta,
+             :set_directory_standing,
              :increment_view_count
            ]) do
       forbid_if(always())
@@ -648,6 +649,13 @@ defmodule Emakola.Stores.Store do
 
     update :update_directory_meta do
       accept([:featured, :featured_at, :featured_rank, :verified])
+    end
+
+    # The ranking worker's cache write. Separate from :update_directory_meta
+    # so the worker cannot touch the featured flag and the Directory Studio
+    # cannot touch the computed cache by accident.
+    update :set_directory_standing do
+      accept([:directory_eligible, :directory_score, :directory_slot])
     end
 
     # ── Platform lifecycle actions ──
