@@ -725,7 +725,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     </span>
                   </div>
 
-                  <form phx-submit="directory_pin" class="flex items-center gap-2 p-4">
+                  <.form
+                    for={%{}}
+                    as={:directory_pin}
+                    phx-submit="directory_pin"
+                    class="flex items-center gap-2 p-4"
+                  >
                     <select
                       name="slot"
                       id="panel-pin-slot"
@@ -750,9 +755,14 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     >
                       Pin
                     </button>
-                  </form>
+                  </.form>
 
-                  <form phx-submit="directory_exclude" class="flex items-center gap-2 p-4">
+                  <.form
+                    for={%{}}
+                    as={:directory_exclude}
+                    phx-submit="directory_exclude"
+                    class="flex items-center gap-2 p-4"
+                  >
                     <input
                       type="text"
                       name="reason"
@@ -773,7 +783,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     >
                       {if @standing.override_excluded, do: "Readmit", else: "Exclude"}
                     </button>
-                  </form>
+                  </.form>
                 </div>
                 <p class="text-xs text-gray-400 mt-3">
                   Pins lapse after 30 days. Exclusions hold until readmitted. Every change is

@@ -238,7 +238,7 @@ defmodule EmakolaWeb.DashboardLive do
       <section
         :if={@featuring_items != [] && @setup_complete?}
         id="featuring-checklist"
-        class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+        class="rounded-card border border-border bg-surface p-5 sm:p-6"
       >
         <div class="flex items-center justify-between gap-4">
           <div>
@@ -264,11 +264,11 @@ defmodule EmakolaWeb.DashboardLive do
         <ul class="mt-4 grid gap-2 sm:grid-cols-2">
           <li
             :for={item <- @featuring_items}
-            class="flex items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-3"
+            class="flex items-center gap-3 rounded-card bg-slate-50 px-3.5 py-3"
           >
             <span
               :if={item.done?}
-              class="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
+              class="flex size-6 shrink-0 items-center justify-center rounded-full bg-success text-white"
             >
               <.icon name="hero-check" class="size-3.5" />
             </span>
