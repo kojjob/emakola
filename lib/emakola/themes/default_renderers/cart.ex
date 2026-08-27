@@ -27,8 +27,8 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
   - `:store` — resolved store struct
   - `:cart` — list of cart line items
   - `:cart_count` — total quantity
-  - `:cart_total` — running subtotal in pesewas
-  - `:coupon`, `:discount`, `:coupon_error`, `:coupon_input` — coupon UI state
+  - `:cart_subtotal`, `:cart_total` — item total in pesewas (shipping and
+    coupons are applied at checkout, and no tax is charged anywhere)
   - `:flash` — Phoenix flash messages
   """
 
@@ -172,7 +172,10 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                     >
                       {item.product_title}
                     </.link>
-                    <div :if={item.variant_info} class="mt-2 space-y-0.5">
+                    <div
+                      :if={item.variant_info not in [nil, ""] && item.variant_info != item.sku}
+                      class="mt-2 space-y-0.5"
+                    >
                       <p class="text-xs sm:text-sm text-[#78716C]">{item.variant_info}</p>
                     </div>
                     <p class="mt-2 text-base font-semibold text-cta-dark sm:hidden">
@@ -257,91 +260,6 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                 <div class="flex justify-between">
                   <span class="text-[#78716C]">Shipping</span>
                   <span class="font-medium text-cta-dark">Calculated at checkout</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-[#78716C]">Estimated Tax</span>
-                  <span id="summary-tax" class="font-medium text-cta-dark">
-                    {Currency.format_price(@cart_tax, @store.currency)}
-                  </span>
-                </div>
-              </div>
-
-              <div class="border-t border-[#E7E5E4] my-5"></div>
-              
-    <!-- Promo Code -->
-              <div id="promo-section">
-                <label
-                  for="promo-input"
-                  class="block text-xs font-semibold tracking-wider uppercase text-[#44403C] mb-2"
-                >
-                  Promo Code
-                </label>
-                <form phx-submit="apply_promo" class="flex gap-2">
-                  <input
-                    id="promo-input"
-                    name="promo"
-                    type="text"
-                    placeholder="Enter code"
-                    disabled={@promo_code != nil}
-                    class="flex-1 h-10 px-3 text-sm border border-[#E7E5E4] rounded-lg bg-transparent text-cta-dark placeholder:text-[#78716C]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-store-accent transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                    autocomplete="off"
-                  />
-                  <button
-                    type="submit"
-                    disabled={@promo_code != nil}
-                    class="h-10 px-5 text-xs font-semibold tracking-wider uppercase bg-cta-dark text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Apply
-                  </button>
-                </form>
-                <div :if={@promo_code} id="promo-success" class="mt-3 promo-success">
-                  <div class="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                    <svg
-                      class="w-4 h-4 text-[#16A34A] flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="text-xs font-medium text-green-800">
-                      {@promo_code} applied
-                    </span>
-                    <button
-                      type="button"
-                      phx-click="remove_promo"
-                      class="ml-auto text-green-600 hover:text-green-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none rounded"
-                      aria-label="Remove promo code"
-                    >
-                      <svg
-                        class="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div :if={@promo_error} id="promo-error" class="mt-2">
-                  <p class="text-xs text-[#DC2626]">{@promo_error}</p>
-                </div>
-              </div>
-              
-    <!-- Discount line -->
-              <div :if={@cart_discount > 0} id="discount-line" class="mt-4">
-                <div class="flex justify-between text-sm">
-                  <span class="text-[#16A34A] font-medium">Discount (10%)</span>
-                  <span id="summary-discount" class="font-medium text-[#16A34A]">
-                    -{Currency.format_price(@cart_discount, @store.currency)}
-                  </span>
                 </div>
               </div>
 
