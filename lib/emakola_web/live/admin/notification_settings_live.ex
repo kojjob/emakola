@@ -16,6 +16,7 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Notifications.Preferences
+  alias EmakolaWeb.LayoutHelpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -45,28 +46,39 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   defp format_time(nil), do: ""
   defp format_time(%Time{} = time), do: time |> Time.to_string() |> String.slice(0, 5)
 
+  # One tap, saved. No Save button to find, understand and remember — this
+  # page is read by people who do not read fluently, and a switch that is
+  # already on is its own confirmation.
   @impl true
-  def handle_event("save_preferences", %{"preferences" => params}, socket) do
+  def handle_event(
+        "toggle_channel",
+        %{"notification" => event_name, "channel" => channel_name},
+        socket
+      ) do
     merchant = socket.assigns.current_merchant
 
-    # Only events this page offers, cast through an allowlist — the names
-    # arrive from the client.
-    Enum.each(params, fn {event_name, channels} ->
-      case Preferences.cast_event(event_name) do
-        nil ->
-          :ok
+    # Both names arrive from the client. Allowlists, and the event must be one
+    # this page actually offers — an always-on event has no switch, so a
+    # request to change one is forged and is ignored rather than honoured.
+    with event when not is_nil(event) <- Preferences.cast_event(event_name),
+         true <- event in Preferences.configurable_events(),
+         channel when not is_nil(channel) <- Preferences.cast_channel_name(channel_name) do
+      current = Preferences.channels_for(merchant, event)
 
-        event ->
-          if event in Preferences.configurable_events() do
-            Preferences.put_channels(merchant, event, checked_channels(channels))
-          end
-      end
-    end)
+      wanted =
+        if channel in current do
+          List.delete(current, channel)
+        else
+          [channel | current]
+        end
 
-    {:noreply,
-     socket
-     |> put_flash(:info, "Saved.")
-     |> load()}
+      # in_app is never stored — channels_for/3 always adds it back.
+      Preferences.put_channels(merchant, event, wanted -- [:in_app])
+
+      {:noreply, load(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   def handle_event("save_quiet_hours", %{"quiet_hours" => params}, socket) do
@@ -89,17 +101,6 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   # Unmatched events must not crash the page.
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
-  # `in_app` is never in the form, so it is never removed here — it is added
-  # back by `Preferences.channels_for/3` regardless of what is stored.
-  defp checked_channels(channels) when is_map(channels) do
-    channels
-    |> Enum.filter(fn {_name, value} -> value in ["true", "on", true] end)
-    |> Enum.map(fn {name, _value} -> Preferences.cast_channel_name(name) end)
-    |> Enum.reject(&is_nil/1)
-  end
-
-  defp checked_channels(_channels), do: []
-
   # Blank clears the window rather than erroring: "I no longer want quiet
   # hours" is a normal thing to express with an empty field.
   defp parse_time(value) when value in [nil, ""], do: nil
@@ -121,65 +122,118 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
         icon="hero-bell"
       />
 
-      <.form
-        for={%{}}
+      <div
         id="notification-preferences"
-        phx-submit="save_preferences"
         class="rounded-card border border-slate-200 bg-white overflow-hidden shadow-sm"
       >
         <%!-- Scrolls on its own rather than pushing the page sideways: three
              channel columns plus a label is wider than a phone. --%>
         <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[28rem]">
-            <thead class="bg-slate-50 text-slate-500">
+          <table class="w-full text-sm min-w-[30rem]">
+            <thead class="bg-slate-50/80 border-b border-slate-200">
               <tr>
-                <th class="text-left font-medium px-4 py-3">What happens</th>
-                <th :for={channel <- Preferences.switchable_channels()} class="font-medium px-3 py-3">
-                  {channel_label(channel)}
+                <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3">
+                  What happens
+                </th>
+                <th
+                  :for={channel <- Preferences.switchable_channels()}
+                  class="px-3 py-3 w-24"
+                >
+                  <div class="flex flex-col items-center gap-1">
+                    <span class="material-symbols-outlined text-lg text-slate-400">
+                      {channel_icon(channel)}
+                    </span>
+                    <span class="text-[11px] font-semibold text-slate-500">
+                      {channel_label(channel)}
+                    </span>
+                  </div>
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr :for={event <- Preferences.configurable_events()}>
-                <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
-                <td
-                  :for={channel <- Preferences.switchable_channels()}
-                  class="px-3 py-3 text-center"
-                >
-                  <input type="hidden" name={"preferences[#{event}][#{channel}]"} value="false" />
-                  <input
-                    type="checkbox"
-                    name={"preferences[#{event}][#{channel}]"}
-                    value="true"
-                    checked={channel in Map.get(@chosen, event, [])}
-                    aria-label={"#{channel_label(channel)} for #{event_label(event)}"}
-                    class="w-4 h-4 rounded border-slate-300 accent-primary cursor-pointer"
-                  />
+              <tr
+                :for={event <- Preferences.configurable_events()}
+                class="hover:bg-slate-50/60 transition-colors"
+              >
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class={[
+                      "shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center",
+                      LayoutHelpers.notification_icon_bg_class(event)
+                    ]}>
+                      <span class={[
+                        "material-symbols-outlined text-lg",
+                        LayoutHelpers.notification_icon_color_class(event)
+                      ]}>
+                        {LayoutHelpers.notification_icon(event)}
+                      </span>
+                    </div>
+                    <span class="font-medium text-slate-800">{event_label(event)}</span>
+                  </div>
+                </td>
+                <td :for={channel <- Preferences.switchable_channels()} class="px-3 py-3">
+                  <div class="flex justify-center">
+                    <button
+                      type="button"
+                      phx-click="toggle_channel"
+                      phx-value-notification={event}
+                      phx-value-channel={channel}
+                      role="switch"
+                      aria-checked={to_string(channel in Map.get(@chosen, event, []))}
+                      aria-label={"#{channel_label(channel)} for #{event_label(event)}"}
+                      class={[
+                        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer",
+                        if(channel in Map.get(@chosen, event, []),
+                          do: "bg-primary",
+                          else: "bg-surface-subtle border border-border"
+                        )
+                      ]}
+                    >
+                      <span class={[
+                        "inline-block size-4 transform rounded-full bg-white shadow transition-transform",
+                        if(channel in Map.get(@chosen, event, []),
+                          do: "translate-x-6",
+                          else: "translate-x-1"
+                        )
+                      ]} />
+                    </button>
+                  </div>
                 </td>
               </tr>
 
-              <tr :for={event <- Preferences.always_on()} class="bg-slate-50/60">
-                <td class="px-4 py-3 text-slate-700">{event_label(event)}</td>
+              <tr :for={event <- Preferences.always_on()} class="bg-slate-50/40">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class={[
+                      "shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center",
+                      LayoutHelpers.notification_icon_bg_class(event)
+                    ]}>
+                      <span class={[
+                        "material-symbols-outlined text-lg",
+                        LayoutHelpers.notification_icon_color_class(event)
+                      ]}>
+                        {LayoutHelpers.notification_icon(event)}
+                      </span>
+                    </div>
+                    <span class="font-medium text-slate-800">{event_label(event)}</span>
+                  </div>
+                </td>
                 <td
                   colspan={length(Preferences.switchable_channels())}
-                  class="px-3 py-3 text-center text-xs text-slate-500"
+                  class="px-3 py-3"
                 >
-                  Always on — {always_on_reason(event)}
+                  <div class="flex flex-col items-center gap-0.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
+                      <span class="material-symbols-outlined text-sm">lock</span> Always on
+                    </span>
+                    <span class="text-[11px] text-slate-400">{always_on_reason(event)}</span>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
-          <button
-            type="submit"
-            class="rounded-control bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer"
-          >
-            Save
-          </button>
-        </div>
-      </.form>
+      </div>
 
       <.form
         for={%{}}
@@ -229,6 +283,10 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   defp channel_label(:whatsapp), do: "WhatsApp"
   defp channel_label(:sms), do: "SMS"
   defp channel_label(:email), do: "Email"
+
+  defp channel_icon(:whatsapp), do: "chat"
+  defp channel_icon(:sms), do: "sms"
+  defp channel_icon(:email), do: "mail"
 
   defp event_label(:new_message), do: "Someone messages you"
   defp event_label(:order_status_changed), do: "An order changes"

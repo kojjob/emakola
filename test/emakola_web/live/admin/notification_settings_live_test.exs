@@ -37,14 +37,20 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLiveTest do
     assert html =~ "Notifications"
   end
 
-  test "switching a channel off records it", ctx do
+  # One tap, saved. No Save button to find and forget — the audience for this
+  # page does not read fluently.
+  defp toggle(view, event, channel) do
+    view
+    |> element(
+      ~s([phx-click="toggle_channel"][phx-value-notification="#{event}"][phx-value-channel="#{channel}"])
+    )
+    |> render_click()
+  end
+
+  test "switching a channel off records it immediately", ctx do
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/notifications")
 
-    view
-    |> form("#notification-preferences",
-      preferences: %{"new_message" => %{"sms" => "false", "whatsapp" => "true"}}
-    )
-    |> render_submit()
+    toggle(view, "new_message", "sms")
 
     channels = Preferences.channels_for(ctx.merchant, :new_message)
 
@@ -57,13 +63,17 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLiveTest do
 
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/notifications")
 
-    view
-    |> form("#notification-preferences",
-      preferences: %{"new_message" => %{"sms" => "true", "whatsapp" => "true"}}
-    )
-    |> render_submit()
+    toggle(view, "new_message", "sms")
 
     assert :sms in Preferences.channels_for(ctx.merchant, :new_message)
+  end
+
+  test "a switch reflects its state to screen readers", ctx do
+    {:ok, _view, html} = live(ctx.conn, ~p"/admin/settings/notifications")
+
+    # A bare toggle is a div to a screen reader without these.
+    assert html =~ ~s(role="switch")
+    assert html =~ ~s(aria-checked)
   end
 
   test "an event that cannot be silenced offers no switch", ctx do
@@ -73,7 +83,26 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLiveTest do
     # nothing is exactly the placebo this project forbids — so it is shown as
     # fixed, with a reason, and no toggle.
     assert html =~ "Always on"
-    refute html =~ ~s(name="preferences[payout_sent])
+    refute html =~ ~s(phx-value-notification="payout_sent")
+  end
+
+  test "a forged event name changes nothing", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/notifications")
+
+    # The names arrive from the client; only the configurable list is honoured.
+    render_click(view, "toggle_channel", %{"notification" => "payout_sent", "channel" => "sms"})
+    render_click(view, "toggle_channel", %{"notification" => "nonsense", "channel" => "sms"})
+
+    assert Preferences.settings(ctx.merchant).overrides == %{}
+  end
+
+  test "each event carries an icon, not just a label", ctx do
+    {:ok, _view, html} = live(ctx.conn, ~p"/admin/settings/notifications")
+
+    # Merchants here often do not read fluently — the same icon language the
+    # notification bell uses.
+    assert html =~ "material-symbols-outlined"
+    assert html =~ "chat_bubble"
   end
 
   test "saving quiet hours records them", ctx do
@@ -104,11 +133,7 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLiveTest do
 
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/notifications")
 
-    view
-    |> form("#notification-preferences",
-      preferences: %{"new_message" => %{"sms" => "false", "whatsapp" => "false"}}
-    )
-    |> render_submit()
+    toggle(view, "new_message", "sms")
 
     assert Preferences.settings(other).overrides == %{}
   end
