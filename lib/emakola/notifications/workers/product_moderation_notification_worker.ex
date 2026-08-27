@@ -35,17 +35,24 @@ defmodule Emakola.Notifications.Workers.ProductModerationNotificationWorker do
   end
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"product_id" => product_id, "event" => event_string}}) do
+  def perform(%Oban.Job{
+        args: %{"product_id" => product_id, "event" => event_string},
+        attempt: attempt
+      }) do
     event = Emakola.SafeAtom.to_atom_in(event_string, @events, :product_taken_down)
 
     case load_product(product_id) do
       {:ok, product} ->
         # Every member, not just the owner: a shop where only the owner hears
         # about a takedown is a shop where staff keep selling a delisted item.
-        Emakola.Notifications.notify_store(product.store_id, :product_moderated, %{
-          title: moderation_bell_title(event, product),
-          action_url: "/admin/products"
-        })
+        # First attempt only — the :notify create has no uniqueness, so a
+        # retry after a failed send would mint the bell rows again.
+        if attempt <= 1 do
+          Emakola.Notifications.notify_store(product.store_id, :product_moderated, %{
+            title: moderation_bell_title(event, product),
+            action_url: "/admin/products"
+          })
+        end
 
         results = [maybe_send_sms(product, event), maybe_send_email(product, event)]
 
