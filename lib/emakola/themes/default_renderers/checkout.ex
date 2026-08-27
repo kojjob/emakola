@@ -805,7 +805,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         <h3 class="text-sm font-semibold text-stone-900 truncate">
                           {item.product_title}
                         </h3>
-                        <p :if={item[:variant_info]} class="text-xs text-stone-500 mt-0.5">
+                        <p
+                          :if={
+                            item[:variant_info] not in [nil, ""] &&
+                              item[:variant_info] != item[:sku]
+                          }
+                          class="text-xs text-stone-500 mt-0.5"
+                        >
                           {item[:variant_info]}
                         </p>
                         <p class="text-xs text-stone-500">Qty: {item.quantity}</p>
