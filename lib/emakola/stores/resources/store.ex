@@ -571,26 +571,48 @@ defmodule Emakola.Stores.Store do
 
     read :list_featured do
       argument(:limit, :integer, default: 8)
-      filter(expr(active == true and status == :active and featured == true and kind == :shop))
+      # directory_eligible is the worker-maintained floor. Fail-open default
+      # true, so staff picks show until the worker has evidence otherwise —
+      # and "must bar a shop from every featured slot" includes this one.
+      filter(
+        expr(
+          active == true and status == :active and featured == true and kind == :shop and
+            directory_eligible == true
+        )
+      )
+
       prepare(build(sort: [featured_rank: :asc_nils_last, view_count: :desc]))
       pagination(offset?: true, default_limit: 8, max_page_size: 50, required?: false)
+    end
+
+    # ── Worker-assigned slot reads ──
+    # Plain indexed column filters over the cache the nightly ranking worker
+    # maintains. Empty until the worker has run — callers fall back to the
+    # staff-featured list, so a fresh deploy never shows a blank page.
+
+    read :list_spotlight do
+      argument(:limit, :integer, default: 6)
+      filter(expr(active == true and status == :active and directory_slot == :spotlight))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
+    end
+
+    read :list_rising do
+      argument(:limit, :integer, default: 12)
+      filter(expr(active == true and status == :active and directory_slot == :rising))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
+    end
+
+    # Written in its final form; returns [] until placement is ever sold.
+    read :list_promoted do
+      argument(:limit, :integer, default: 4)
+      filter(expr(active == true and status == :active and directory_slot == :promoted))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
     end
 
     read :list_recent do
       argument(:limit, :integer, default: 6)
       filter(expr(active == true and status == :active and kind == :shop))
       prepare(build(sort: [inserted_at: :desc]))
-    end
-
-    read :list_editor_picks do
-      filter(
-        expr(
-          active == true and status == :active and not is_nil(featured_rank) and
-            featured_rank <= 6
-        )
-      )
-
-      prepare(build(sort: [featured_rank: :asc]))
     end
 
     # Workhorse for the main grid. Filters by theme (string in

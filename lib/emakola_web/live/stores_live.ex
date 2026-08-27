@@ -25,7 +25,16 @@ defmodule EmakolaWeb.StoresLive do
     favorite_slugs = load_favorite_slugs(customer)
     recently_viewed_slugs = load_recently_viewed_slugs(session)
 
-    featured_stores = Directory.spotlight(load_featured(), Date.utc_today())
+    # The worker-ranked spotlight is the preferred source; until the nightly
+    # run has ever executed it is empty, and the staff-featured list carries
+    # the page exactly as before. Both rotate daily on the date seed.
+    spotlight_pool =
+      case load_slot(:list_spotlight) do
+        [] -> load_featured()
+        ranked -> ranked
+      end
+
+    featured_stores = Directory.spotlight(spotlight_pool, Date.utc_today())
     {hero, tiles} = split_spotlight(featured_stores)
 
     socket =
@@ -571,6 +580,17 @@ defmodule EmakolaWeb.StoresLive do
       url when is_binary(url) and url != "" -> url
       _missing -> Map.get(store, :cover_image_url) || Map.get(store, :logo_url)
     end
+  end
+
+  defp load_slot(action) do
+    Store
+    |> Ash.Query.for_read(action)
+    |> Ash.Query.load([:card_image_url, :product_count])
+    |> Ash.read!(authorize?: false)
+  rescue
+    exception ->
+      Logger.error("[stores_live] #{action} raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_featured do
