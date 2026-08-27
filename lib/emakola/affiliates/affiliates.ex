@@ -26,10 +26,12 @@ defmodule Emakola.Affiliates do
   use Ash.Domain
 
   alias Emakola.Accounts.PhoneAuth
-  alias Emakola.Affiliates.Affiliate
+  alias Emakola.Affiliates.{Affiliate, AffiliateLink, AffiliateProgramme}
 
   resources do
     resource(Affiliate)
+    resource(AffiliateProgramme)
+    resource(AffiliateLink)
   end
 
   # transfer_destination/1 maps a provider string to a Paystack bank code.
