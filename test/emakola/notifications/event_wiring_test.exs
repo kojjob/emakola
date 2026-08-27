@@ -114,6 +114,44 @@ defmodule Emakola.Notifications.EventWiringTest do
       assert titles_for(staff_merchant) == ["New order"]
     end
 
+    test "telling a bigger team costs a fixed number of queries", ctx do
+      for _ <- 1..2 do
+        staff = create_merchant!()
+
+        Emakola.Accounts.StoreMembership
+        |> Ash.Changeset.for_create(:create, %{
+          merchant_id: staff.id,
+          store_id: ctx.store.id,
+          role: :staff
+        })
+        |> Ash.create!(authorize?: false)
+      end
+
+      test_pid = self()
+      handler_id = "notify-store-queries-#{System.unique_integer([:positive])}"
+
+      :telemetry.attach(
+        handler_id,
+        [:emakola, :repo, :query],
+        fn _event, _measurements, _meta, _config ->
+          if self() == test_pid, do: send(test_pid, :repo_query)
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      :ok = Notifications.notify_store(ctx.store.id, :order_placed, %{title: "New order"})
+
+      :telemetry.detach(handler_id)
+
+      # One membership read, one merchant read, and one bulk insert (whose
+      # transaction adds a begin and a commit) — the cost must not grow with
+      # the size of the team, because this runs inline in checkout's
+      # order_placed dispatch.
+      assert count_queries() <= 5
+    end
+
     test "a store with no members is not an error", ctx do
       orphan = create_store!()
 
@@ -160,6 +198,14 @@ defmodule Emakola.Notifications.EventWiringTest do
 
       assert types_for(ctx.merchant) == [:product_moderated]
       assert titles_for(ctx.merchant) == ["Kente Cloth was taken down"]
+    end
+  end
+
+  defp count_queries(count \\ 0) do
+    receive do
+      :repo_query -> count_queries(count + 1)
+    after
+      0 -> count
     end
   end
 end

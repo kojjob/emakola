@@ -39,6 +39,19 @@ defmodule Emakola.Notifications.Workers.VerificationStatusNotificationWorkerTest
                perform_job(Worker, %{"store_id" => store.id, "event" => "verification_approved"})
     end
 
+    test "a retried job does not ring the bell twice" do
+      {merchant, store} =
+        Factory.create_merchant_with_store!(%{contact_phone: "+233201234567"})
+
+      expect(Emakola.SMSProviderMock, :send_sms, 2, fn _, _, _ -> {:error, :provider_down} end)
+
+      args = %{"store_id" => store.id, "event" => "verification_approved"}
+      assert {:error, _} = perform_job(Worker, args, attempt: 1)
+      assert {:error, _} = perform_job(Worker, args, attempt: 2)
+
+      assert [_only_one] = Emakola.Notifications.list_for(merchant)
+    end
+
     test "skips SMS gracefully when the store has no contact phone" do
       store = Factory.create_store!(%{contact_email: "shop@example.com"})
 

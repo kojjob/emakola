@@ -298,7 +298,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   rescue
     exception ->
       Logger.error("[assign_defaults] load_store_stats raised: #{Exception.message(exception)}")
-      %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+      load_store_stats(nil)
   end
 
   # Deferred to the connected mount like the other counts — the dead render

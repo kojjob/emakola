@@ -86,29 +86,58 @@ defmodule Emakola.Notifications do
   triggered it.
   """
   def notify_store(store_id, type, attrs \\ %{}) when is_binary(store_id) do
-    store_id
-    |> store_merchants()
-    |> Enum.each(fn merchant ->
-      case notify(merchant, type, attrs) do
-        {:ok, _notification} ->
-          :ok
+    shared =
+      attrs
+      |> Map.new()
+      |> Map.merge(%{type: type, recipient_kind: :merchant})
+      |> Map.update(:title, nil, &truncate_title/1)
 
-        # `notify/3` returns an error tuple rather than raising, so `Enum.each`
-        # would otherwise drop a validation failure on the floor: no exception,
-        # no row, and a worker reporting success. A title longer than the
-        # column allows is the realistic case.
-        {:error, reason} ->
-          Logger.error(
-            "[notifications] #{inspect(type)} for merchant #{merchant.id} failed: #{inspect(reason)}"
-          )
-      end
-    end)
+    inputs =
+      store_id
+      |> store_merchants()
+      |> Enum.map(&Map.put(shared, :recipient_id, &1.id))
 
-    :ok
+    # One insert for the whole team, not one per member: this runs inline in
+    # checkout's order_placed dispatch, where every extra round-trip sits
+    # between the buyer tapping Pay and the confirmation screen.
+    case inputs do
+      [] ->
+        :ok
+
+      inputs ->
+        inputs
+        |> Ash.bulk_create(Notification, :notify,
+          authorize?: false,
+          return_records?: true,
+          return_errors?: true
+        )
+        |> broadcast_bulk_result(type)
+    end
   rescue
     exception ->
       Logger.error("[notifications] notify_store raised: #{Exception.message(exception)}")
       :ok
+  end
+
+  # A bulk create returns whatever rows it managed to insert even on partial
+  # failure; each one still gets its real-time push, and each failure is
+  # logged rather than dropped — no exception, no row, and a worker reporting
+  # success is how a validation slip goes unnoticed. A title longer than the
+  # column allows is the realistic case.
+  defp broadcast_bulk_result(%Ash.BulkResult{records: records, errors: errors}, type) do
+    Enum.each(records || [], fn notification ->
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        topic(:merchant, notification.recipient_id),
+        {:new_notification, notification}
+      )
+    end)
+
+    Enum.each(errors || [], fn error ->
+      Logger.error("[notifications] #{inspect(type)} for store member failed: #{inspect(error)}")
+    end)
+
+    :ok
   end
 
   # Titles are built from user data — "#{product.title} was taken down" — and
@@ -137,15 +166,25 @@ defmodule Emakola.Notifications do
         memberships
         |> Enum.map(& &1.merchant_id)
         |> Enum.uniq()
-        |> Enum.flat_map(fn merchant_id ->
-          case Ash.get(Emakola.Accounts.Merchant, merchant_id, authorize?: false) do
-            {:ok, merchant} -> [merchant]
-            _ -> []
-          end
-        end)
+        |> read_merchants()
 
       _ ->
         []
+    end
+  end
+
+  # One id-in-list read rather than a get per membership. Still a read of the
+  # merchant table, not a shortcut through membership.merchant_id: a
+  # membership row whose merchant no longer resolves must not be notified.
+  defp read_merchants([]), do: []
+
+  defp read_merchants(merchant_ids) do
+    Emakola.Accounts.Merchant
+    |> Ash.Query.filter(id in ^merchant_ids)
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, merchants} -> merchants
+      _ -> []
     end
   end
 
