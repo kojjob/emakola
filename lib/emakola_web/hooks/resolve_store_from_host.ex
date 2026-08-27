@@ -19,32 +19,52 @@ defmodule EmakolaWeb.Hooks.ResolveStoreFromHost do
   alias EmakolaWeb.Helpers.StoreResolver
 
   def on_mount(:default, _params, session, socket) do
-    with slug when is_binary(slug) <- session["store_host_slug"],
-         {:ok, store} <- StoreResolver.resolve(slug) do
-      theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}, store)
-      theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
-
-      if connected?(socket) do
-        Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store.id}:theme")
-      end
-
-      EmakolaWeb.Storefront.Path.put_on_store_subdomain(true)
-
-      {:cont,
-       socket
-       |> assign(:store, store)
-       |> assign(:theme, theme)
-       |> assign(:theme_module, theme_module)
-       |> assign(:theme_fonts, theme_module.fonts())
-       |> assign(:on_store_subdomain?, true)
-       |> attach_hook(:theme_update, :handle_info, &handle_theme_update/2)}
-    else
-      _ ->
-        {:halt,
-         socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
+    case resolve(session) do
+      {:ok, store} -> mount_store(store, socket)
+      error -> bail(error, socket)
     end
+  end
+
+  defp resolve(session) do
+    case session["store_host_slug"] do
+      slug when is_binary(slug) -> StoreResolver.resolve(slug)
+      _ -> {:error, :no_slug}
+    end
+  end
+
+  defp mount_store(store, socket) do
+    theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}, store)
+    theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store.id}:theme")
+    end
+
+    EmakolaWeb.Storefront.Path.put_on_store_subdomain(true)
+
+    {:cont,
+     socket
+     |> assign(:store, store)
+     |> assign(:theme, theme)
+     |> assign(:theme_module, theme_module)
+     |> assign(:theme_fonts, theme_module.fonts())
+     |> assign(:on_store_subdomain?, true)
+     |> attach_hook(:theme_update, :handle_info, &handle_theme_update/2)}
+  end
+
+  # On a branded host "/" IS the storefront, which remounts through this very
+  # hook and fails the same way — a redirect loop. Every failure must leave the
+  # host entirely, so the redirect is absolute to the apex. The plug layer
+  # (ResolveStoreHost) learned this same lesson first; keep them consistent.
+  defp bail({:error, :unavailable}, socket) do
+    {:halt, redirect(socket, external: EmakolaWeb.Endpoint.url() <> "/store-unavailable")}
+  end
+
+  defp bail(_error, socket) do
+    {:halt,
+     socket
+     |> put_flash(:error, "Store not found")
+     |> redirect(external: EmakolaWeb.Endpoint.url() <> "/")}
   end
 
   defp handle_theme_update({:theme_updated, updated_store}, socket) do

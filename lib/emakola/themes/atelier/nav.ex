@@ -321,7 +321,7 @@ defmodule Emakola.Themes.Atelier.Nav do
               Shop All
             </a>
             <a
-              href={store_path(@store.slug, "/collections")}
+              href={store_path(@store.slug, "/products")}
               class="block px-3 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               Collections
