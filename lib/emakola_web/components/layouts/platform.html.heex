@@ -757,4 +757,33 @@
     #platform-shell .nav-label,
     #platform-shell .collapse-icon { transition: none !important; }
   }
+
+  /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+     that shove icons off-center, and the hover tooltips can never render
+     (the aside clips them) yet their boxes create a phantom horizontal
+     scrollbar — so labels leave the layout and tooltips are disabled. */
+  #platform-shell.collapsed:not(.mobile-open) .nav-label,
+  #platform-shell.collapsed:not(.mobile-open) .nav-section-label,
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  #platform-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-btn { position: static; margin-left: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::after { content: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-nav { overflow-x: hidden; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+       that shove icons off-center, and the hover tooltips can never render
+       (the aside clips them) yet their boxes create a phantom horizontal
+       scrollbar — so labels leave the layout and tooltips are disabled. */
+        #platform-shell:not(.expanded) .nav-label,
+        #platform-shell:not(.expanded) .nav-section-label,
+        #platform-shell:not(.expanded) .sidebar-badge,
+        #platform-shell:not(.expanded) .store-selector svg:last-child { display: none; }
+        #platform-shell:not(.expanded) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        #platform-shell:not(.expanded) .collapse-btn { position: static; margin-left: 0; }
+        #platform-shell:not(.expanded) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+        #platform-shell:not(.expanded) .sidebar-link::after { content: none; }
+        #platform-shell:not(.expanded) .sidebar-nav { overflow-x: hidden; }
+  }
 </style>

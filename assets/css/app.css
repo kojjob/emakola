@@ -465,6 +465,36 @@ html.high-contrast {
     .admin-shell:not(.expanded) .sidebar-link:hover::after { opacity: 1; transform: translateY(-50%) scale(1); }
   }
 
+
+  /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+     that shove icons off-center, and the hover tooltips can never render
+     (the aside clips them) yet their boxes create a phantom horizontal
+     scrollbar — so labels leave the layout and tooltips are disabled. */
+  .admin-shell.collapsed:not(.mobile-open) .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .nav-section-label,
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-btn { position: static; margin-left: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::after { content: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-nav { overflow-x: hidden; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+       that shove icons off-center, and the hover tooltips can never render
+       (the aside clips them) yet their boxes create a phantom horizontal
+       scrollbar — so labels leave the layout and tooltips are disabled. */
+        .admin-shell:not(.expanded) .nav-label,
+        .admin-shell:not(.expanded) .nav-section-label,
+        .admin-shell:not(.expanded) .sidebar-badge,
+        .admin-shell:not(.expanded) .store-selector svg:last-child { display: none; }
+        .admin-shell:not(.expanded) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        .admin-shell:not(.expanded) .collapse-btn { position: static; margin-left: 0; }
+        .admin-shell:not(.expanded) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+        .admin-shell:not(.expanded) .sidebar-link::after { content: none; }
+        .admin-shell:not(.expanded) .sidebar-nav { overflow-x: hidden; }
+  }
+
   /* ═══════════════════════════════════════════
      ANIMATIONS & POLISH
      ═══════════════════════════════════════════ */
