@@ -302,6 +302,17 @@ defmodule Emakola.Stores.Store do
   relationships do
     has_many :store_memberships, Emakola.Accounts.StoreMembership
     has_many :products, Emakola.Catalog.Product
+
+    # ── Directory signal sources ──
+    # These exist so the featuring worker can load every merit signal for the
+    # whole population in one query. Nothing storefront-facing loads them.
+    has_many :orders, Emakola.Orders.Order
+    has_many :returns, Emakola.Orders.Return
+    has_many :reviews, Emakola.Catalog.Review
+    has_many :payments, Emakola.Payments.Payment
+    has_many :protection_holds, Emakola.Payments.ProtectionHold
+    has_one :payout_account, Emakola.Stores.StorePayoutAccount
+    has_one :verification, Emakola.Stores.StoreVerification
   end
 
   aggregates do
@@ -317,6 +328,73 @@ defmodule Emakola.Stores.Store do
     first :card_image_url, [:products, :images], :url do
       filter(expr(product.status == :active))
       sort(inserted_at: :desc)
+    end
+
+    # ── Directory merit signals ──
+    # Inputs to DirectoryScore and DirectoryEligibility, loaded in one shot by
+    # the nightly featuring worker. 90-day windows because the directory
+    # rewards recent behaviour, not lifetime totals.
+
+    count :delivered_order_count_90d, :orders do
+      filter(expr(status == :delivered and inserted_at > ago(90, :day)))
+    end
+
+    count :cancelled_order_count_90d, :orders do
+      filter(expr(status == :cancelled and inserted_at > ago(90, :day)))
+    end
+
+    max(:last_order_at, :orders, :inserted_at)
+
+    max(:last_product_published_at, :products, :published_at)
+
+    count :successful_payment_count_90d, :payments do
+      filter(expr(status == :success and inserted_at > ago(90, :day)))
+    end
+
+    # :partially_refunded is not a Payment status — partial refunds live in
+    # refunded_amount > 0 alongside status: :success, so both shapes count.
+    count :refunded_payment_count_90d, :payments do
+      filter(expr((status == :refunded or refunded_amount > 0) and inserted_at > ago(90, :day)))
+    end
+
+    count :taken_down_product_count_90d, :products do
+      filter(expr(moderation_status == :taken_down and moderation_at > ago(90, :day)))
+    end
+
+    # Reviews count regardless of :status — a merchant can hide a bad review,
+    # and a hidden one-star still counts against merit. verified_purchase is
+    # the gate, enforced by PurchaseVerifier plus a unique identity.
+    count :verified_review_count, :reviews do
+      filter(expr(verified_purchase == true))
+    end
+
+    sum :verified_review_rating_sum, :reviews, :rating do
+      filter(expr(verified_purchase == true))
+    end
+
+    # :changed_mind is deliberately absent — a buyer changing their mind is
+    # not the merchant's fault.
+    count :merchant_fault_return_count_90d, :returns do
+      filter(
+        expr(
+          reason in [:defective, :wrong_item, :not_as_described] and status == :refunded and
+            inserted_at > ago(90, :day)
+        )
+      )
+    end
+
+    count :staff_refunded_hold_count_90d, :protection_holds do
+      filter(expr(resolution == :refunded_by_staff and inserted_at > ago(90, :day)))
+    end
+
+    exists :payout_verified, :payout_account do
+      filter(expr(verification_status == :verified))
+    end
+
+    # Reads the real KYC record, never the manual Store.verified boolean an
+    # admin can set with no verification behind it.
+    exists :kyc_approved, :verification do
+      filter(expr(status == :approved))
     end
   end
 

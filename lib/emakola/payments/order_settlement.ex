@@ -84,6 +84,7 @@ defmodule Emakola.Payments.OrderSettlement do
         if valid_shares?(allocations) do
           allocations =
             allocations
+            |> Emakola.Affiliates.Commission.carve(order)
             |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
             |> RefundLiability.reserve!()
 
@@ -179,7 +180,10 @@ defmodule Emakola.Payments.OrderSettlement do
   end
 
   defp finalize_internal(order, store_id, allocations) do
-    carved = Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(allocations, store_id)
+    carved =
+      allocations
+      |> Emakola.Affiliates.Commission.carve(order)
+      |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
 
     cond do
       # An aggressive discount can drive a non-platform allocation negative;
@@ -235,6 +239,7 @@ defmodule Emakola.Payments.OrderSettlement do
               },
               %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
             ]
+            |> Emakola.Affiliates.Commission.carve(order)
             |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
             |> RefundLiability.reserve!()
 
@@ -299,12 +304,15 @@ defmodule Emakola.Payments.OrderSettlement do
 
     recorded =
       MapSet.new(existing, fn split ->
-        {split.role, split.supplier_id, split.credit_agreement_id}
+        {split.role, split.supplier_id, split.credit_agreement_id, split.affiliate_id}
       end)
 
     allocations
     |> Enum.reject(fn alloc ->
-      key = {alloc.role, Map.get(alloc, :supplier_id), Map.get(alloc, :credit_agreement_id)}
+      key =
+        {alloc.role, Map.get(alloc, :supplier_id), Map.get(alloc, :credit_agreement_id),
+         Map.get(alloc, :affiliate_id)}
+
       MapSet.member?(recorded, key)
     end)
     |> Enum.each(fn alloc ->
@@ -316,6 +324,7 @@ defmodule Emakola.Payments.OrderSettlement do
           recipient_store_id: Map.get(alloc, :recipient_store_id),
           supplier_id: Map.get(alloc, :supplier_id),
           credit_agreement_id: Map.get(alloc, :credit_agreement_id),
+          affiliate_id: Map.get(alloc, :affiliate_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
           amount: alloc.amount,
           settlement_method:

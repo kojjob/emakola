@@ -82,6 +82,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      # An empty cart (disconnected mount) resolves to true and keeps rendering
      # the address form, as before.
      |> assign(:requires_shipping, CheckoutService.requires_shipping?(dispatch_variants))
+     |> assign(:has_digital_items, CheckoutService.has_digital?(dispatch_variants))
      |> assign(:utm_attribution, utm_attribution)
      |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
@@ -260,8 +261,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       # A guest's grant is created with customer_id: nil and can never be
       # redeemed — the emailed-token flow does not exist. Taking the money
       # would be taking it for nothing, so refuse before creating anything.
-      # Physical guest checkout, the dominant Ghana flow, is untouched.
-      not socket.assigns.requires_shipping and is_nil(socket.assigns[:current_customer]) ->
+      # Keyed on "contains any download", not "needs no shipping": a MIXED
+      # cart requires shipping and still mints an unredeemable grant. Purely
+      # physical guest checkout, the dominant Ghana flow, is untouched.
+      socket.assigns.has_digital_items and is_nil(socket.assigns[:current_customer]) ->
         {:noreply,
          socket
          |> assign(:processing, false)
