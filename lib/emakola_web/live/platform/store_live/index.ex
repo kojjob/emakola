@@ -689,108 +689,6 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 </p>
               </div>
 
-              <div :if={@standing} id="panel-standing" class="mt-6">
-                <h3 class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">
-                  Featuring standing
-                </h3>
-                <div class="rounded-2xl ring-1 ring-inset ring-gray-200 divide-y divide-gray-100 bg-white">
-                  <div class="flex items-center gap-3.5 p-4">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-100 text-slate-500 shrink-0">
-                      <.icon name="hero-chart-bar" class="size-[18px]" />
-                    </span>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-semibold text-gray-900">
-                        Score
-                        <span id="panel-standing-score" class="tabular-nums">{@standing.score}</span>
-                        / 1000
-                      </p>
-                      <p class="text-xs text-gray-400 mt-0.5">
-                        <%= if @standing.eligible do %>
-                          Eligible for every featured slot
-                        <% else %>
-                          Barred: {Enum.map_join(
-                            @standing.disqualifiers,
-                            ", ",
-                            &humanize_disqualifier/1
-                          )}
-                        <% end %>
-                      </p>
-                    </div>
-                    <span
-                      :if={@standing.slot}
-                      id="panel-standing-slot"
-                      class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-700 shrink-0"
-                    >
-                      {@standing.override_slot || @standing.slot}
-                    </span>
-                  </div>
-
-                  <.form
-                    for={%{}}
-                    as={:directory_pin}
-                    phx-submit="directory_pin"
-                    class="flex items-center gap-2 p-4"
-                  >
-                    <select
-                      name="slot"
-                      id="panel-pin-slot"
-                      class="h-9 rounded-[10px] border-gray-200 text-sm text-gray-700"
-                    >
-                      <option value="clear">Clear pin</option>
-                      <option value="spotlight">Pin: Spotlight</option>
-                      <option value="rising">Pin: Rising</option>
-                      <option value="editors_pick">Pin: Editors pick</option>
-                    </select>
-                    <input
-                      type="text"
-                      name="reason"
-                      id="panel-pin-reason"
-                      placeholder="Reason (required)"
-                      class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
-                    />
-                    <button
-                      type="submit"
-                      id="panel-pin-submit"
-                      class="h-9 rounded-[10px] bg-slate-900 px-3.5 text-sm font-semibold text-white"
-                    >
-                      Pin
-                    </button>
-                  </.form>
-
-                  <.form
-                    for={%{}}
-                    as={:directory_exclude}
-                    phx-submit="directory_exclude"
-                    class="flex items-center gap-2 p-4"
-                  >
-                    <input
-                      type="text"
-                      name="reason"
-                      id="panel-exclude-reason"
-                      placeholder="Reason (required)"
-                      class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
-                    />
-                    <button
-                      type="submit"
-                      id="panel-exclude-toggle"
-                      class={[
-                        "h-9 rounded-[10px] px-3.5 text-sm font-semibold",
-                        if(@standing.override_excluded,
-                          do: "bg-emerald-600 text-white",
-                          else: "bg-rose-600 text-white"
-                        )
-                      ]}
-                    >
-                      {if @standing.override_excluded, do: "Readmit", else: "Exclude"}
-                    </button>
-                  </.form>
-                </div>
-                <p class="text-xs text-gray-400 mt-3">
-                  Pins lapse after 30 days. Exclusions hold until readmitted. Every change is
-                  logged with its reason.
-                </p>
-              </div>
-
               <%!-- Directory preview --%>
               <div class="w-full xl:w-[280px] shrink-0">
                 <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -816,6 +714,107 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     else: "Not shown on the public directory right now."}
                 </p>
               </div>
+            </div>
+            <div :if={@standing} id="panel-standing" class="mt-7">
+              <h3 class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">
+                Featuring standing
+              </h3>
+              <div class="rounded-2xl ring-1 ring-inset ring-gray-200 divide-y divide-gray-100 bg-white">
+                <div class="flex items-center gap-3.5 p-4">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-100 text-slate-500 shrink-0">
+                    <.icon name="hero-chart-bar" class="size-[18px]" />
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">
+                      Score
+                      <span id="panel-standing-score" class="tabular-nums">{@standing.score}</span>
+                      / 1000
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                      <%= if @standing.eligible do %>
+                        Eligible for every featured slot
+                      <% else %>
+                        Barred: {Enum.map_join(
+                          @standing.disqualifiers,
+                          ", ",
+                          &humanize_disqualifier/1
+                        )}
+                      <% end %>
+                    </p>
+                  </div>
+                  <span
+                    :if={@standing.slot}
+                    id="panel-standing-slot"
+                    class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-700 shrink-0"
+                  >
+                    {@standing.override_slot || @standing.slot}
+                  </span>
+                </div>
+
+                <.form
+                  for={%{}}
+                  as={:directory_pin}
+                  phx-submit="directory_pin"
+                  class="flex items-center gap-2 p-4"
+                >
+                  <select
+                    name="slot"
+                    id="panel-pin-slot"
+                    class="h-9 rounded-[10px] border-gray-200 text-sm text-gray-700"
+                  >
+                    <option value="clear">Clear pin</option>
+                    <option value="spotlight">Pin: Spotlight</option>
+                    <option value="rising">Pin: Rising</option>
+                    <option value="editors_pick">Pin: Editors pick</option>
+                  </select>
+                  <input
+                    type="text"
+                    name="reason"
+                    id="panel-pin-reason"
+                    placeholder="Reason (required)"
+                    class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    id="panel-pin-submit"
+                    class="h-9 rounded-[10px] bg-slate-900 px-3.5 text-sm font-semibold text-white"
+                  >
+                    Pin
+                  </button>
+                </.form>
+
+                <.form
+                  for={%{}}
+                  as={:directory_exclude}
+                  phx-submit="directory_exclude"
+                  class="flex items-center gap-2 p-4"
+                >
+                  <input
+                    type="text"
+                    name="reason"
+                    id="panel-exclude-reason"
+                    placeholder="Reason (required)"
+                    class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    id="panel-exclude-toggle"
+                    class={[
+                      "h-9 rounded-[10px] px-3.5 text-sm font-semibold",
+                      if(@standing.override_excluded,
+                        do: "bg-emerald-600 text-white",
+                        else: "bg-rose-600 text-white"
+                      )
+                    ]}
+                  >
+                    {if @standing.override_excluded, do: "Readmit", else: "Exclude"}
+                  </button>
+                </.form>
+              </div>
+              <p class="text-xs text-gray-400 mt-3">
+                Pins lapse after 30 days. Exclusions hold until readmitted. Every change is
+                logged with its reason.
+              </p>
             </div>
           </div>
 
