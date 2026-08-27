@@ -34,6 +34,29 @@ defmodule Emakola.Conversations do
     |> Ash.create(authorize?: false)
   end
 
+  @doc """
+  The thread between Makola and one buyer. Idempotent.
+
+  Separate from their shop thread: a complaint about the shop, or about money
+  the shop cannot see, has nowhere else to go.
+  """
+  def open_platform_customer_thread(customer_id) when is_binary(customer_id) do
+    Thread
+    |> Ash.Changeset.for_create(:open_platform_customer, %{customer_id: customer_id})
+    |> Ash.create(authorize?: false)
+  end
+
+  @doc "A buyer's own Makola thread, or nil."
+  def platform_customer_thread_for(customer_id) when is_binary(customer_id) do
+    Thread
+    |> Ash.Query.for_read(:platform_for_customer, %{customer_id: customer_id})
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, thread} -> thread
+      _ -> nil
+    end
+  end
+
   @doc "A store's buyer threads, most recently active first."
   def list_shop_threads(store_id) when is_binary(store_id) do
     with {:ok, threads} <-
@@ -50,7 +73,9 @@ defmodule Emakola.Conversations do
            Thread
            |> Ash.Query.for_read(:all_platform, %{})
            |> Ash.read(authorize?: false) do
-      {:ok, Ash.load!(threads, [:merchant], authorize?: false)}
+      # Both sides loaded: a merchant thread has no customer and a customer
+      # thread has no merchant, so the inbox reads whichever is set.
+      {:ok, Ash.load!(threads, [:merchant, :customer], authorize?: false)}
     end
   end
 
@@ -336,6 +361,17 @@ defmodule Emakola.Conversations do
     :ok
   end
 
+  defp notify_other_side(%Thread{kind: :platform_customer} = thread, :platform) do
+    with {:ok, customer} <- fetch(Emakola.Customers.Customer, thread.customer_id) do
+      Emakola.Notifications.notify(customer, :new_message, %{
+        title: "Makola replied to you",
+        action_url: "/account/messages"
+      })
+    end
+
+    :ok
+  end
+
   defp notify_other_side(%Thread{kind: :platform_merchant} = thread, :platform) do
     with {:ok, merchant} <- fetch(Emakola.Accounts.Merchant, thread.merchant_id) do
       Emakola.Notifications.notify(merchant, :new_message, %{
@@ -381,6 +417,9 @@ defmodule Emakola.Conversations do
   # writing on a platform thread schedules nothing.
   defp other_side(%Thread{kind: :platform_merchant}, :platform), do: :merchant
   defp other_side(%Thread{kind: :platform_merchant}, _author), do: nil
+  # Staff are never nudged, so a buyer writing to Makola schedules nothing.
+  defp other_side(%Thread{kind: :platform_customer}, :platform), do: :customer
+  defp other_side(%Thread{kind: :platform_customer}, _author), do: nil
   defp other_side(%Thread{kind: :shop_buyer}, :merchant), do: :customer
   defp other_side(%Thread{kind: :shop_buyer}, :customer), do: :merchant
   defp other_side(_thread, _author), do: nil
