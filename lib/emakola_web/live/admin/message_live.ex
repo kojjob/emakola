@@ -17,7 +17,16 @@ defmodule EmakolaWeb.Admin.MessageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Messages", active_nav: :messages, query: "")}
+    {:ok,
+     assign(socket,
+       page_title: "Messages",
+       active_nav: :messages,
+       query: "",
+       # to_form without :as keeps the input's bare name ("q"), so
+       # handle_event("search", %{"q" => _}) is unchanged. The guard tests
+       # forbid raw form tags in admin/platform LiveViews.
+       search_form: to_form(%{"q" => ""})
+     )}
   end
 
   @impl true
@@ -97,7 +106,29 @@ defmodule EmakolaWeb.Admin.MessageLive do
     end
   end
 
+  # A merchant reaching Makola first. Their thread rode in this inbox from the
+  # start, but only once it existed — and only staff could create one, so a
+  # merchant with a question had nowhere to ask it.
+  #
+  # The merchant comes from the session, never a parameter, so this can only
+  # ever open the caller's own thread. Opening is idempotent.
   @impl true
+  def handle_event("contact_makola", _params, socket) do
+    case socket.assigns[:current_merchant] do
+      %{id: merchant_id} ->
+        case Conversations.open_platform_thread(merchant_id) do
+          {:ok, thread} ->
+            {:noreply, push_navigate(socket, to: ~p"/admin/messages/#{thread.id}")}
+
+          _ ->
+            {:noreply, put_flash(socket, :error, "Could not open that conversation.")}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("send", %{"message" => %{"body" => body}}, socket) do
     thread = socket.assigns.thread
     merchant = socket.assigns.current_merchant
@@ -167,6 +198,18 @@ defmodule EmakolaWeb.Admin.MessageLive do
         subtitle="Talk to your buyers. These messages are free."
       />
 
+      <%!-- Always available, not only when the inbox is empty: the question a
+            merchant needs to ask Makola rarely arrives on a quiet day. --%>
+      <div class="flex justify-end -mt-2 mb-4">
+        <button
+          type="button"
+          phx-click="contact_makola"
+          class="inline-flex items-center gap-2 rounded-control border border-border bg-white hover:bg-surface-subtle px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors cursor-pointer"
+        >
+          <.icon name="hero-lifebuoy" class="size-4 text-primary" /> Ask Makola for help
+        </button>
+      </div>
+
       <div :if={@threads == []} class="bg-white border border-border rounded-card p-12 text-center">
         <div class="w-16 h-16 rounded-card bg-primary-soft flex items-center justify-center mx-auto mb-5">
           <.icon name="hero-chat-bubble-left-right" class="size-8 text-primary" />
@@ -183,7 +226,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         <div class="flex flex-col border-b lg:border-b-0 lg:border-r border-slate-100 min-h-0">
           <div class="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 shrink-0">
             <.initials_avatar :if={@current_store} name={@current_store.name} />
-            <form id="inbox-search" phx-change="search" class="flex-1">
+            <.form for={@search_form} id="inbox-search" phx-change="search" class="flex-1">
               <input
                 type="search"
                 name="q"
@@ -193,7 +236,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
                 aria-label="Search conversations"
                 class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
               />
-            </form>
+            </.form>
           </div>
 
           <div id="chat-list" class="flex-1 overflow-y-auto min-h-0 px-3 py-3.5">

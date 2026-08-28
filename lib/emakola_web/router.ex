@@ -529,6 +529,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/verification", Admin.VerificationLive
       live "/admin/payouts", Admin.PayoutLive
       live "/admin/earnings", Admin.EarningsLive
+      live "/admin/settings/notifications", Admin.NotificationSettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
       live "/admin/settings/address", Admin.StoreAddressLive
       live "/admin/settings/domain", Admin.StoreDomainLive

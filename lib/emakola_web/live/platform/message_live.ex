@@ -1,12 +1,21 @@
 defmodule EmakolaWeb.Platform.MessageLive do
   @moduledoc """
-  Makola staff talking to merchants.
+  Makola staff talking to merchants and to buyers.
 
-  The same thread/message core as buyer messaging — only the two sides
-  differ. Announcements broadcast at merchants; this is the conversation
-  back, which is where a merchant tells you their payout is late.
+  The same thread/message core as shop messaging — only the two sides differ.
+  Announcements broadcast at merchants; this is the conversation back, which
+  is where a merchant tells you their payout is late, or a buyer tells you
+  about an order their shop cannot see.
 
-  Staff see every merchant thread and need no scoping check, so the gate is
+  One inbox for both on purpose: a merchant asking about a payout and a buyer
+  asking about the same order belong in the same queue. A merchant thread has
+  no customer and a customer thread has no merchant, so whichever side is
+  loaded names the conversation.
+
+  Shop threads never appear here. Staff read what was said to Makola, not a
+  merchant's private conversation with their own buyer.
+
+  Staff see every platform thread and need no scoping check, so the gate is
   the whole access control: `:manage_merchants`, the same permission that
   guards the merchant directory this conversation is started from. A merchant
   never opens a thread by id — theirs is found by their own merchant_id.
@@ -25,7 +34,16 @@ defmodule EmakolaWeb.Platform.MessageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Messages", active_nav: :messages, query: "")}
+    {:ok,
+     assign(socket,
+       page_title: "Messages",
+       active_nav: :messages,
+       query: "",
+       # to_form without :as keeps the input's bare name ("q"), so
+       # handle_event("search", %{"q" => _}) is unchanged. The guard tests
+       # forbid raw form tags in admin/platform LiveViews.
+       search_form: to_form(%{"q" => ""})
+     )}
   end
 
   @impl true
@@ -58,7 +76,7 @@ defmodule EmakolaWeb.Platform.MessageLive do
         if connected?(socket), do: Conversations.subscribe(thread.id)
         {:ok, thread} = Conversations.mark_read(thread, :platform)
         {:ok, messages} = Conversations.list_messages(thread.id)
-        thread = Ash.load!(thread, [:merchant], authorize?: false)
+        thread = Ash.load!(thread, [:merchant, :customer], authorize?: false)
 
         assign(socket, thread: thread, messages: messages, form: blank_form())
 
@@ -128,7 +146,8 @@ defmodule EmakolaWeb.Platform.MessageLive do
       <div :if={@threads == []} class="bg-white border border-gray-200 rounded-card p-12 text-center">
         <p class="text-lg font-semibold text-gray-900">No conversations yet</p>
         <p class="text-sm text-gray-500 mt-2">
-          Open one from a merchant's page when you need to reach them.
+          Open one from a merchant's page when you need to reach them. Buyers who write
+          to Makola appear here too.
         </p>
       </div>
 
@@ -143,7 +162,7 @@ defmodule EmakolaWeb.Platform.MessageLive do
               name={staff_name(@current_user)}
               tint="bg-gradient-to-br from-blue-400 to-blue-600 text-white"
             />
-            <form id="inbox-search" phx-change="search" class="flex-1">
+            <.form for={@search_form} id="inbox-search" phx-change="search" class="flex-1">
               <input
                 type="search"
                 name="q"
@@ -153,7 +172,7 @@ defmodule EmakolaWeb.Platform.MessageLive do
                 aria-label="Search conversations"
                 class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
               />
-            </form>
+            </.form>
           </div>
 
           <div id="chat-list" class="flex-1 overflow-y-auto min-h-0 px-3 py-3.5">
@@ -176,12 +195,24 @@ defmodule EmakolaWeb.Platform.MessageLive do
               <.initials_avatar name={merchant_name(thread)} size="size-9.5" text="text-xs" />
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline justify-between gap-2">
-                  <p class={[
-                    "truncate text-[13.5px] font-semibold",
-                    if(@thread && @thread.id == thread.id, do: "text-white", else: "text-slate-900")
-                  ]}>
-                    {merchant_name(thread)}
-                  </p>
+                  <div class="flex min-w-0 items-baseline gap-1.5">
+                    <p class={[
+                      "truncate text-[13.5px] font-semibold",
+                      if(@thread && @thread.id == thread.id, do: "text-white", else: "text-slate-900")
+                    ]}>
+                      {merchant_name(thread)}
+                    </p>
+                    <span class={[
+                      "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                      cond do
+                        @thread && @thread.id == thread.id -> "bg-white/20 text-white"
+                        thread.kind == :platform_customer -> "bg-blue-50 text-blue-700"
+                        true -> "bg-slate-100 text-slate-600"
+                      end
+                    ]}>
+                      {counterpart_label(thread)}
+                    </span>
+                  </div>
                   <span class={[
                     "shrink-0 text-[10.5px]",
                     if(@thread && @thread.id == thread.id,
@@ -223,6 +254,7 @@ defmodule EmakolaWeb.Platform.MessageLive do
               <p class="text-[11.5px] text-slate-400 truncate">{merchant_email(@thread)}</p>
             </div>
             <.link
+              :if={@thread.kind != :platform_customer}
               navigate={~p"/platform/merchants"}
               class="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300"
             >
@@ -289,8 +321,14 @@ defmodule EmakolaWeb.Platform.MessageLive do
     user.email |> to_string() |> String.split("@") |> hd()
   end
 
+  defp merchant_email(%{kind: :platform_customer} = thread), do: customer_name(thread)
   defp merchant_email(%{merchant: %{email: email}}) when not is_nil(email), do: to_string(email)
   defp merchant_email(_thread), do: ""
+
+  # One inbox, two kinds of counterpart. A merchant thread has no customer and
+  # a customer thread has no merchant, so whichever side is loaded is the one
+  # this conversation is with.
+  defp merchant_name(%{kind: :platform_customer} = thread), do: customer_name(thread)
 
   defp merchant_name(%{merchant: %{name: name}}) when is_binary(name) and name != "", do: name
 
@@ -298,4 +336,19 @@ defmodule EmakolaWeb.Platform.MessageLive do
     do: to_string(email)
 
   defp merchant_name(_thread), do: "Merchant"
+
+  defp customer_name(%{customer: %{name: name}}) when is_binary(name) and name != "", do: name
+
+  # to_string first — these are Ash.CiString, which String functions reject.
+  defp customer_name(%{customer: %{email: email}}) when not is_nil(email), do: to_string(email)
+
+  defp customer_name(%{customer: %{phone: phone}}) when is_binary(phone) and phone != "",
+    do: phone
+
+  defp customer_name(_thread), do: "Buyer"
+
+  # Which side of the platform a conversation is with, so staff can tell a
+  # merchant's payout question from a buyer's complaint at a glance.
+  defp counterpart_label(%{kind: :platform_customer}), do: "Buyer"
+  defp counterpart_label(_thread), do: "Merchant"
 end
