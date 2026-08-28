@@ -40,6 +40,7 @@ defmodule EmakolaWeb.ChatComponents do
   attr :group, :map, required: true, doc: "one group_messages/1 entry"
   attr :own?, :boolean, required: true, doc: "written by the side looking at the page"
   attr :read_at, :any, default: nil, doc: "the other side's read cursor, for ticks"
+  attr :id_prefix, :string, default: "message", doc: "DOM id prefix for each bubble"
   slot :avatar, required: true
 
   def chat_group(assigns) do
@@ -51,7 +52,7 @@ defmodule EmakolaWeb.ChatComponents do
       <div class={["flex flex-col gap-1.5 max-w-[72%] lg:max-w-[62%]", @own? && "items-end"]}>
         <div
           :for={{message, index} <- Enum.with_index(@group.messages)}
-          id={"message-#{message.id}"}
+          id={"#{@id_prefix}-#{message.id}"}
           class={[
             "px-4 py-2.5 text-sm leading-relaxed break-words",
             if(@own?,

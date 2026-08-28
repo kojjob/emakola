@@ -13,6 +13,34 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "the setup celebration" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "finishing every step earns one banner, dismissable for good", ctx do
+      complete_setup!(ctx.store)
+
+      {:ok, view, html} = live(ctx.conn, ~p"/dashboard")
+      assert html =~ "Your shop is ready"
+
+      view |> element("#setup-celebration-dismiss") |> render_click()
+      refute render(view) =~ "Your shop is ready"
+
+      # The dismissal survives a fresh visit.
+      {:ok, _view, html} = live(ctx.conn, ~p"/dashboard")
+      refute html =~ "Your shop is ready"
+    end
+
+    test "an unfinished setup shows the journey strip, not the banner", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/dashboard")
+
+      assert html =~ "Set up your shop"
+      refute html =~ "Your shop is ready"
+    end
+  end
+
   describe "a browser holding both logins" do
     test "the platform staff session does not shadow the merchant login", %{conn: conn} do
       {conn, _merchant, _store} = setup_authenticated_merchant(conn)
@@ -454,5 +482,24 @@ defmodule EmakolaWeb.DashboardLiveTest do
       # The payout item cannot be ticked — no verified payout account exists.
       assert html =~ "Add your MoMo payout"
     end
+  end
+
+  # Ticks every setup step: theme + whatsapp + social on the store,
+  # plus one product and one delivery zone.
+  defp complete_setup!(store) do
+    Factory.create_product!(store, %{status: :active})
+    Factory.create_delivery_zone!(store)
+
+    store
+    |> Ash.Changeset.for_update(
+      :update_settings,
+      %{
+        theme_config: %{"theme" => "market"},
+        whatsapp_number: "+233201112222",
+        instagram_url: "https://instagram.com/testshop"
+      },
+      authorize?: false
+    )
+    |> Ash.update!()
   end
 end

@@ -19,6 +19,8 @@ defmodule EmakolaWeb.SetupChecklistComponent do
   import EmakolaWeb.CoreComponents, only: [icon: 1]
 
   attr :steps, :list, required: true, doc: "list returned by SetupChecklist.steps/2"
+  attr :celebrated?, :boolean, default: true, doc: "the all-done banner was already dismissed"
+  attr :shop_path, :string, default: nil, doc: "public storefront path, for the See my shop link"
 
   def setup_checklist(assigns) do
     completed = Enum.count(assigns.steps, & &1.done?)
@@ -33,6 +35,46 @@ defmodule EmakolaWeb.SetupChecklistComponent do
       |> assign(:next_step, Enum.find(assigns.steps, &(!&1.done?)))
 
     ~H"""
+    <div
+      :if={@all_done && !@celebrated?}
+      id="setup-celebration"
+      class="flex flex-col gap-4 rounded-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 sm:flex-row sm:items-center sm:gap-5 sm:px-6"
+    >
+      <svg width="44" height="44" viewBox="0 0 64 64" class="shrink-0" aria-hidden="true">
+        <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="7" />
+        <path
+          d="M22 33l7 7 13-14"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <div class="flex-1">
+        <p class="text-base font-extrabold text-white">Your shop is ready</p>
+        <p class="text-xs text-white/85 mt-0.5">All {@total} setup steps are done.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <.link
+          :if={@shop_path}
+          navigate={@shop_path}
+          class="rounded-control border border-white/30 bg-white/15 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-white/25"
+        >
+          See my shop
+        </.link>
+        <button
+          id="setup-celebration-dismiss"
+          type="button"
+          phx-click="dismiss_setup_celebration"
+          aria-label="Dismiss"
+          class="flex size-9 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white cursor-pointer"
+        >
+          <.icon name="hero-x-mark" class="size-4" />
+        </button>
+      </div>
+    </div>
+
     <div
       :if={!@all_done}
       id="setup-journey"

@@ -46,6 +46,18 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert occurrences == 1
   end
 
+  test "the conversation renders as grouped chat bubbles", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, first} = Conversations.post_message(thread, :customer, ctx.customer.id, "Hello")
+    {:ok, _} = Conversations.post_message(thread, :customer, ctx.customer.id, "Anyone there?")
+
+    {:ok, _view, html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    # Grouped: the buyer's own run of messages carries one read receipt.
+    assert html =~ ~s(id="customer-message-#{first.id}")
+    assert html =~ ~s(data-read="false")
+  end
+
   test "the shop's reply appears without a refresh", ctx do
     {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
     {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
