@@ -85,7 +85,6 @@ defmodule EmakolaWeb.StoresComponents do
         target={@target}
         rel={@target == "_blank" && "noopener"}
         class="relative block aspect-[16/10] overflow-hidden bg-slate-200"
-        aria-label={"Visit #{@store.name}"}
       >
         <%= if card_image_url(@store) do %>
           <.optimized_image
@@ -184,7 +183,7 @@ defmodule EmakolaWeb.StoresComponents do
                 (!Map.get(@store, :tagline) || @store.tagline == "") &&
                   (!Map.get(@store, :description) || @store.description == "")
               }
-              class="mt-1 min-h-10 text-sm leading-5 text-slate-400"
+              class="mt-1 min-h-10 text-sm leading-5 text-slate-500"
             >
               Independent shop on Makola
             </p>
@@ -282,12 +281,13 @@ defmodule EmakolaWeb.StoresComponents do
             id="featured-hero"
             href={EmakolaWeb.Storefront.Path.public_path(@hero.slug)}
             class="group relative block overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_32px_64px_-36px_rgba(12,31,23,0.55)]"
-            aria-label={"Visit #{@hero.name}"}
           >
             <div class="relative aspect-[4/5] sm:aspect-[3/2]">
+              <%!-- The LCP element: lazy-loading it cost 10s of LCP on 4G. --%>
               <.optimized_image
                 src={card_image_url(@hero)}
                 alt={"#{@hero.name} shop photo"}
+                priority={:high}
                 class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-black/5">
@@ -348,7 +348,6 @@ defmodule EmakolaWeb.StoresComponents do
                 :for={store <- @tiles}
                 href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
                 class="group relative block overflow-hidden rounded-2xl bg-slate-200"
-                aria-label={"Visit #{store.name}"}
               >
                 <div class="relative aspect-square">
                   <.optimized_image

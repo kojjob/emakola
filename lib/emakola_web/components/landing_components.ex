@@ -229,7 +229,7 @@ defmodule EmakolaWeb.LandingComponents do
   defp footer_column(assigns) do
     ~H"""
     <div>
-      <h4 class="text-sm font-semibold text-[#f1f5f9] mb-4">{@title}</h4>
+      <h3 class="text-sm font-semibold text-[#f1f5f9] mb-4">{@title}</h3>
       <ul class="space-y-2">
         <li :for={l <- @link}>
           <a
