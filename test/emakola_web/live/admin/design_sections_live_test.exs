@@ -764,6 +764,63 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     end
   end
 
+  describe "section photos (Market)" do
+    setup %{conn: conn} do
+      {merchant, store} = create_merchant_with_store!()
+
+      store =
+        store
+        |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "market"}})
+        |> Ash.update!(authorize?: false)
+
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      %{conn: conn, store: store}
+    end
+
+    test "an image field offers a photo upload, and the photo lands in the layout",
+         %{conn: conn, store: store} do
+      {:ok, view, html} = live(conn, "/admin/design/sections")
+
+      assert html =~ "Use a photo"
+
+      view
+      |> element(
+        ~s([phx-click="pick_photo"][phx-value-id="market/hero"][phx-value-field="image_url"])
+      )
+      |> render_click()
+
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "/uploads/#{path}"}
+      end)
+
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      view
+      |> file_input(~s(#section-settings-form-market\\/hero), :section_image, [
+        %{
+          name: "stall.jpg",
+          content: File.read!("priv/static/images/icons/icon-192.png"),
+          type: "image/jpeg"
+        }
+      ])
+      |> render_upload("stall.jpg")
+
+      view |> element(~s(button[phx-click="publish"])) |> render_click()
+
+      saved = HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "market")
+      hero = Enum.find(saved, &(&1["id"] == "market/hero"))
+      assert %{"settings" => %{"image_url" => url}} = hero
+      assert String.starts_with?(url, "/uploads/sections/")
+      assert String.contains?(url, "stall")
+    end
+  end
+
   describe "preview interactivity guard (Atelier)" do
     setup %{conn: conn} do
       {merchant, store} = create_merchant_with_store!()
