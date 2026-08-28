@@ -45,12 +45,19 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
   end
 
   defp check_store_inventory(store, threshold) do
+    # A variant whose stock recovered gets its stamp cleared, so the NEXT
+    # drop below the threshold is news again.
+    clear_recovered(store.id, threshold)
+
+    # Only variants not yet alerted about — the drop is the event, not the
+    # state. Yesterday's low stock stays quiet until it is restocked.
     low_stock_variants =
       Emakola.Catalog.Variant
       |> Ash.Query.filter(
         stock_quantity < ^threshold and
           track_inventory == true and
-          store_id == ^store.id
+          store_id == ^store.id and
+          is_nil(low_stock_alerted_at)
       )
       |> Ash.Query.load(:product)
       |> Ash.read!(authorize?: false)
@@ -71,7 +78,33 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
       send_merchant_email_alerts(store, low_stock_variants)
       send_merchant_sms_digest(store, length(low_stock_variants))
       send_merchant_whatsapp_digest(store, length(low_stock_variants))
+      stamp_alerted(low_stock_variants)
     end
+  end
+
+  defp stamp_alerted(variants) do
+    import Ecto.Query
+
+    ids = Enum.map(variants, & &1.id)
+
+    Emakola.Repo.update_all(
+      from(v in "variants", where: v.id in type(^ids, {:array, :binary_id})),
+      set: [low_stock_alerted_at: DateTime.utc_now()]
+    )
+  end
+
+  defp clear_recovered(store_id, threshold) do
+    import Ecto.Query
+
+    Emakola.Repo.update_all(
+      from(v in "variants",
+        where:
+          v.store_id == type(^store_id, :binary_id) and
+            not is_nil(v.low_stock_alerted_at) and
+            v.stock_quantity >= ^threshold
+      ),
+      set: [low_stock_alerted_at: nil]
+    )
   end
 
   defp variant_product_title(%{product: %{title: title}}) when is_binary(title), do: title

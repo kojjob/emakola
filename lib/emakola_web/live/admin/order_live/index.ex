@@ -283,116 +283,42 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           external
         />
       <% else %>
-        <%!-- Desktop Table --%>
-        <.admin_card padding={:none} class="hidden md:block overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50/50">
-                  <th class="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Order ID
-                  </th>
-                  <th class="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th class="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th class="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th class="px-4 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th class="px-4 py-3.5 w-12"><span class="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr
-                  :for={order <- @orders}
-                  class="hover:bg-slate-50 transition-colors"
-                >
-                  <td class="px-4 py-3.5">
-                    <.link
-                      navigate={~p"/admin/orders/#{order.id}"}
-                      class="font-mono text-xs font-medium text-primary hover:text-primary-hover"
-                    >
-                      {order.order_number}
-                    </.link>
-                  </td>
-                  <td class="px-4 py-3.5 text-slate-500 whitespace-nowrap">
-                    {format_date(order.inserted_at)}
-                  </td>
-                  <td class="px-4 py-3.5">
-                    <div class="min-w-0">
-                      <p class="text-sm font-medium text-slate-800 truncate">
-                        {customer_name(order)}
-                      </p>
-                      <p class="text-xs text-slate-400 truncate">
-                        {customer_email(order)}
-                      </p>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3.5 font-mono text-sm font-medium text-slate-800">
-                    {format_price(order.total, order.currency)}
-                  </td>
-                  <td class="px-4 py-3.5">
-                    <.status_badge status={order.status} variant={:order} />
-                  </td>
-                  <td class="px-4 py-3.5">
-                    <.link
-                      navigate={~p"/admin/orders/#{order.id}"}
-                      class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors inline-block"
-                      aria-label={"View order #{order.order_number}"}
-                    >
-                      <svg
-                        class="w-4 h-4 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                        />
-                      </svg>
-                    </.link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <%!-- One responsive list of rows a merchant can act on: waiting
+              orders carry the amber edge and the page's only loud button;
+              everything else is a quiet status chip. --%>
+        <.admin_card padding={:none} class="overflow-hidden">
+          <div class="divide-y divide-slate-50">
+            <div
+              :for={order <- @orders}
+              id={"order-row-#{order.id}"}
+              class={[
+                "flex items-center gap-3.5 px-4 py-3.5 sm:px-5 transition-colors hover:bg-slate-50/60",
+                order.status == :pending && "shadow-[inset_4px_0_0_theme(colors.amber.500)]"
+              ]}
+            >
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-emerald-700">
+                {order_initials(order)}
+              </div>
+              <.link navigate={~p"/admin/orders/#{order.id}"} class="min-w-0 flex-1">
+                <p class="truncate text-sm font-bold text-slate-900">{customer_name(order)}</p>
+                <p class="truncate font-mono text-[11px] text-slate-400">
+                  {order.order_number} · {format_date(order.inserted_at)}
+                </p>
+              </.link>
+              <p class="shrink-0 text-[15px] font-extrabold text-slate-900 tabular-nums">
+                {format_price(order.total, order.currency)}
+              </p>
+              <.link
+                :if={order.status == :pending}
+                navigate={~p"/admin/orders/#{order.id}"}
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-600/25 transition-colors hover:bg-primary-hover"
+              >
+                Send it <.icon name="hero-arrow-right" class="size-3" />
+              </.link>
+              <.status_badge :if={order.status != :pending} status={order.status} variant={:order} />
+            </div>
           </div>
         </.admin_card>
-
-        <%!-- Mobile Cards --%>
-        <div class="md:hidden space-y-3">
-          <.link
-            :for={order <- @orders}
-            navigate={~p"/admin/orders/#{order.id}"}
-            class="block bg-surface rounded-card border border-border shadow-sm p-4 hover:shadow-sm
-                   hover:border-slate-300 transition-all"
-          >
-            <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p class="font-mono text-xs font-medium text-primary">
-                  {order.order_number}
-                </p>
-                <p class="text-sm font-medium text-slate-800 mt-1">
-                  {customer_name(order)}
-                </p>
-              </div>
-              <.status_badge status={order.status} variant={:order} />
-            </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-400">{format_date(order.inserted_at)}</span>
-              <span class="font-mono font-semibold text-slate-800">
-                {format_price(order.total, order.currency)}
-              </span>
-            </div>
-          </.link>
-        </div>
 
         <%!-- The list is a window, not the whole table. Without this the page
         simply stopped at the limit with no hint that older orders existed. --%>
@@ -561,6 +487,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   defp status_label(:all), do: "All"
   defp status_label(:pending), do: "Pending"
+
   defp status_label(:confirmed), do: "Confirmed"
   defp status_label(:processing), do: "Processing"
   defp status_label(:shipped), do: "Shipped"
@@ -582,6 +509,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   defp customer_name(%{customer: %{name: name}}) when is_binary(name), do: name
   defp customer_name(_), do: "Unknown"
 
-  defp customer_email(%{customer: %{email: email}}) when is_binary(email), do: email
-  defp customer_email(_), do: ""
+  defp order_initials(order) do
+    order
+    |> customer_name()
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
+    |> case do
+      "" -> "?"
+      initials -> initials
+    end
+  end
 end
