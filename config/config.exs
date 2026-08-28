@@ -139,9 +139,18 @@ config :emakola,
     Emakola.Affiliates
   ]
 
-# JSON:API content type (ash_json_api)
+# The app's single :mime block — a second `config :mime` elsewhere would
+# silently replace this map, so every custom type lives here.
+# vnd.api+json: ash_json_api. audio/mp4 + audio/ogg: chat attachments —
+# iOS voice notes are .m4a, some Android recorders emit .ogg, and
+# allow_upload refuses extensions the MIME table cannot type.
+# (Changing this table requires: mix deps.clean mime --build)
 config :mime,
-  types: %{"application/vnd.api+json" => ["json"]},
+  types: %{
+    "application/vnd.api+json" => ["json"],
+    "audio/mp4" => ["m4a"],
+    "audio/ogg" => ["ogg"]
+  },
   extensions: %{"json" => "application/vnd.api+json"}
 
 # Token signing secret is set per environment: dev.exs/test.exs use a

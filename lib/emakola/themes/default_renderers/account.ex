@@ -565,14 +565,25 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             <p class="text-sm font-semibold text-cta-dark">
               {Currency.format_price(order.total, @store.currency)}
             </p>
-            <span class={[
-              "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize",
-              status_badge_classes(order.status)
-            ]}>
+            <span
+              :if={tracker_stage(order.status) == nil}
+              id={"order-chip-#{order.id}"}
+              class={[
+                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize",
+                status_badge_classes(order.status)
+              ]}
+            >
               {order.status}
             </span>
           </div>
         </div>
+
+        <.order_tracker
+          :if={stage = tracker_stage(order.status)}
+          id={"order-tracker-#{order.id}"}
+          stage={stage}
+          theme={@theme}
+        />
 
         <%!-- Return actions for delivered orders --%>
         <div
@@ -722,11 +733,78 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
     end
   end
 
+  @tracker_steps ["Placed", "Packing", "On the way", "Delivered"]
+
+  defp tracker_stage(:pending), do: 1
+  defp tracker_stage(:confirmed), do: 1
+  defp tracker_stage(:processing), do: 2
+  defp tracker_stage(:shipped), do: 3
+  defp tracker_stage(_), do: nil
+
+  attr :id, :string, required: true
+  attr :stage, :integer, required: true
+  attr :theme, :any, default: nil
+
+  defp order_tracker(assigns) do
+    assigns =
+      assign(assigns,
+        steps: @tracker_steps,
+        accent: CssColor.safe_css_color(assigns.theme && assigns.theme.colors.primary, "#B45309")
+      )
+
+    ~H"""
+    <div id={@id} data-stage={@stage} class="mt-4 pt-4 border-t border-stone-100">
+      <div class="relative flex justify-between px-1.5">
+        <div class="absolute top-[7px] left-4 right-4 h-[3px] rounded-full bg-stone-200"></div>
+        <div
+          class="absolute top-[7px] left-4 h-[3px] rounded-full"
+          style={"background-color: #{@accent}; width: calc((100% - 2rem) * #{(@stage - 1) * 100}/300)"}
+        >
+        </div>
+        <div
+          :for={{label, index} <- Enum.with_index(@steps, 1)}
+          class="relative flex flex-col items-center gap-1"
+        >
+          <div
+            :if={index < @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white"
+            style={"background-color: #{@accent}; box-shadow: 0 0 0 1px #{@accent}40"}
+          >
+          </div>
+          <div
+            :if={index == @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white bg-white"
+            style={"box-shadow: 0 0 0 2px #{@accent}"}
+          >
+          </div>
+          <div
+            :if={index > @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white bg-stone-100 shadow-[0_0_0_1px_theme(colors.stone.200)]"
+          >
+          </div>
+          <span
+            :if={index == @stage}
+            class="text-[10px] font-bold text-cta-dark"
+          >
+            {label}
+          </span>
+          <span
+            :if={index < @stage}
+            class="text-[10px] font-semibold"
+            style={"color: #{@accent}"}
+          >
+            {label}
+          </span>
+          <span :if={index > @stage} class="text-[10px] font-medium text-stone-400">
+            {label}
+          </span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp status_badge_classes(:delivered), do: "bg-green-50 text-green-700"
-  defp status_badge_classes(:shipped), do: "bg-blue-50 text-blue-700"
-  defp status_badge_classes(:processing), do: "bg-amber-50 text-amber-700"
-  defp status_badge_classes(:confirmed), do: "bg-blue-50 text-blue-600"
   defp status_badge_classes(:cancelled), do: "bg-red-50 text-red-700"
-  defp status_badge_classes(:pending), do: "bg-stone-50 text-stone-700"
   defp status_badge_classes(_), do: "bg-stone-50 text-stone-700"
 end

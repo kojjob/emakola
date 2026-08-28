@@ -79,6 +79,56 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
       assert html =~ "delivered"
     end
 
+    test "an in-progress order shows the delivery tracker", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order =
+        Factory.create_order!(store, %{customer_id: customer.id, status: :processing})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+
+      assert has_element?(view, "#order-tracker-#{order.id}[data-stage='2']")
+
+      tracker = element(view, "#order-tracker-#{order.id}") |> render()
+      assert tracker =~ "Placed"
+      assert tracker =~ "Packing"
+      assert tracker =~ "On the way"
+      assert tracker =~ "Delivered"
+    end
+
+    test "a shipped order tracker stands at the on-the-way step", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = Factory.create_order!(store, %{customer_id: customer.id, status: :shipped})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+
+      assert has_element?(view, "#order-tracker-#{order.id}[data-stage='3']")
+    end
+
+    test "delivered and cancelled orders show a status chip, not a tracker", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      delivered =
+        Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      cancelled =
+        Factory.create_order!(store, %{customer_id: customer.id, status: :cancelled})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+
+      refute has_element?(view, "#order-tracker-#{delivered.id}")
+      refute has_element?(view, "#order-tracker-#{cancelled.id}")
+      assert has_element?(view, "#order-chip-#{delivered.id}", "delivered")
+      assert has_element?(view, "#order-chip-#{cancelled.id}", "cancelled")
+    end
+
     test "displays order totals with GHS currency", %{
       conn: conn,
       store: store,
