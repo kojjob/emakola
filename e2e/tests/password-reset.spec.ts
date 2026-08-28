@@ -67,6 +67,12 @@ test.describe("Merchant password reset", () => {
       { timeout: 10_000 }
     );
 
+    // session_live? kills tokens issued in the same whole second as the
+    // reset's sessions_valid_from cutoff (deliberately — same-second OLD
+    // tokens must die). Humans never log back in within one second;
+    // Playwright does, and the fresh session bounces. Wait out the second.
+    await page.waitForTimeout(1100);
+
     await page.locator("input[name='user[email]']").fill(EMAIL);
     await page.locator("input[name='user[password]']").fill(NEW_PASSWORD);
     await page.getByRole("button", { name: "Sign In" }).click();
