@@ -39,6 +39,35 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert message.author_kind == :customer
   end
 
+  test "a buyer sends a picture to the shop", ctx do
+    {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+      {:ok, "/uploads/#{path}"}
+    end)
+
+    # The upload lands in the LiveView's channel process, not the test's.
+    Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+    view
+    |> file_input("#customer-message-form", :chat_media, [
+      %{
+        name: "receipt.jpg",
+        content: File.read!("priv/static/images/icons/icon-192.png"),
+        type: "image/jpeg"
+      }
+    ])
+    |> render_upload("receipt.jpg")
+
+    view |> form("#customer-message-form", message: %{body: ""}) |> render_submit()
+
+    assert {:ok, [thread]} = Conversations.list_shop_threads(ctx.store.id)
+    assert {:ok, [message]} = Conversations.list_messages(thread.id)
+    assert [%{"url" => url}] = message.attachments
+    assert String.contains?(url, "receipt")
+    assert render(view) =~ ~s(<img src="#{url}")
+  end
+
   test "the shop's photo reply renders in the buyer chat", ctx do
     {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
 

@@ -18,7 +18,11 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "Messages", form: blank_form(), active: :shop) |> load()}
+    {:ok,
+     socket
+     |> assign(page_title: "Messages", form: blank_form(), active: :shop)
+     |> EmakolaWeb.ChatMedia.allow()
+     |> load()}
   end
 
   defp blank_form, do: to_form(%{"body" => ""}, as: :message)
@@ -70,12 +74,22 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   def handle_event("send", %{"message" => %{"body" => body}}, socket) do
     with %{id: customer_id} <- socket.assigns[:current_customer],
          {:ok, thread} <- open_for_send(socket, customer_id),
-         {:ok, _message} <- Conversations.post_message(thread, :customer, customer_id, body) do
+         attachments = EmakolaWeb.ChatMedia.consume(socket, thread.id),
+         {:ok, _message} <-
+           Conversations.post_message(thread, :customer, customer_id, body,
+             attachments: attachments
+           ) do
       {:noreply, socket |> assign(form: blank_form()) |> load()}
     else
       {:error, reason} -> {:noreply, put_flash(socket, :error, send_error_message(reason))}
       _ -> {:noreply, put_flash(socket, :error, "That message did not send. Try again.")}
     end
+  end
+
+  def handle_event("validate_media", _params, socket), do: {:noreply, socket}
+
+  def handle_event("cancel_media", %{"ref" => ref}, socket) do
+    {:noreply, Phoenix.LiveView.cancel_upload(socket, :chat_media, ref)}
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
@@ -245,8 +259,13 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
           </.chat_group>
         </div>
 
-        <.form for={@form} id="customer-message-form" phx-submit="send">
-          <.chat_composer form={@form} />
+        <.form
+          for={@form}
+          id="customer-message-form"
+          phx-submit="send"
+          phx-change="validate_media"
+        >
+          <.chat_composer form={@form} media={@uploads.chat_media} />
         </.form>
       </div>
     </div>
