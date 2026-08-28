@@ -110,8 +110,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      # 1 header <tr> + 50 order rows
-      assert length(String.split(html, "<tr")) - 1 == 51
+      assert length(String.split(html, ~s(id="order-row-))) - 1 == 50
     end
 
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
