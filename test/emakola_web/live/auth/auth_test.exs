@@ -47,6 +47,27 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert render(view) =~ "Welcome back"
     end
 
+    test "the login attempt limit reads from config so shared-IP suites can raise it",
+         %{conn: conn} do
+      Application.put_env(:emakola, :auth_login_rate_limit, 2)
+      on_exit(fn -> Application.delete_env(:emakola, :auth_login_rate_limit) end)
+
+      {:ok, view, _html} = live(conn, "/auth/login")
+
+      for _attempt <- 1..2 do
+        view
+        |> form("form", user: %{email: "nobody@example.com", password: "wrong"})
+        |> render_submit()
+      end
+
+      denied_html =
+        view
+        |> form("form", user: %{email: "nobody@example.com", password: "wrong"})
+        |> render_submit()
+
+      assert denied_html =~ "Too many login attempts"
+    end
+
     test "login with invalid credentials does not redirect", %{conn: conn} do
       create_user!(email: "test@example.com", password: "Password123!")
 
