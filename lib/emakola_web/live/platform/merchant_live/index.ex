@@ -227,7 +227,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
   defp store_count(m), do: length(m.stores || [])
 
-  defp role_class(:owner), do: "bg-blue-100 text-blue-700"
+  defp role_class(:owner), do: "bg-slate-100 text-slate-600"
   defp role_class(:admin), do: "bg-violet-100 text-violet-700"
   defp role_class(_), do: "bg-slate-100 text-slate-600"
 
@@ -281,7 +281,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
               id="merchant-search"
               placeholder="Search name, email, business, phone..."
               phx-debounce="300"
-              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
             />
           </.form>
           <div class="flex items-center gap-1.5">
@@ -322,7 +322,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                 class={[
                   "rounded-[10px] transition-colors",
                   if(@selected_merchant && @selected_merchant.id == m.id,
-                    do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                    do: "bg-emerald-50/60 shadow-[inset_3px_0_0_theme(colors.emerald.600)]",
                     else: "hover:bg-slate-50"
                   )
                 ]}
@@ -333,7 +333,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                   phx-value-id={m.id}
                   class="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
                 >
-                  <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0 overflow-hidden">
+                  <div class="w-9 h-9 rounded-full bg-primary-soft flex items-center justify-center text-emerald-700 text-sm font-bold shrink-0 overflow-hidden">
                     <img
                       :if={m.avatar_url}
                       src={m.avatar_url}
@@ -350,20 +350,16 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                       {m.email}
                     </span>
                   </span>
-                  <span class="flex flex-col items-end gap-1 shrink-0">
-                    <span class={[
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold",
-                      if(confirmed?(m),
-                        do: "bg-green-100 text-green-700",
-                        else: "bg-amber-100 text-amber-700"
-                      )
-                    ]}>
-                      {if confirmed?(m), do: "Confirmed", else: "Pending"}
-                    </span>
+                  <span class="flex flex-col items-end gap-1.5 shrink-0">
                     <span
-                      :if={store_count(m) > 0}
-                      class="inline-flex px-1.5 py-px rounded text-[10px] font-medium bg-slate-100 text-slate-500"
+                      class={[
+                        "h-2 w-2 rounded-full",
+                        if(confirmed?(m), do: "bg-emerald-500", else: "bg-amber-500")
+                      ]}
+                      title={if confirmed?(m), do: "Confirmed", else: "Pending"}
                     >
+                    </span>
+                    <span :if={store_count(m) > 0} class="text-[10px] font-medium text-slate-400">
                       {store_count(m)} {if store_count(m) == 1, do: "store", else: "stores"}
                     </span>
                   </span>
@@ -379,110 +375,108 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
               title="No merchant selected"
               description="Choose a merchant from the list."
             />
-            <div :if={@selected_merchant} class="space-y-6 max-w-2xl">
+            <div :if={@selected_merchant} class="space-y-7">
               <% m = @selected_merchant %>
-              <div class="flex items-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold shrink-0 overflow-hidden">
-                  <img
-                    :if={m.avatar_url}
-                    src={m.avatar_url}
-                    alt=""
-                    class="w-full h-full object-cover"
-                  />
-                  <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
+              <div class="flex flex-col gap-4 xl:flex-row xl:items-center">
+                <div class="flex min-w-0 flex-1 items-center gap-4">
+                  <div class="w-14 h-14 rounded-full bg-primary-soft flex items-center justify-center text-emerald-700 text-lg font-extrabold shrink-0 overflow-hidden">
+                    <img
+                      :if={m.avatar_url}
+                      src={m.avatar_url}
+                      alt=""
+                      class="w-full h-full object-cover"
+                    />
+                    <span :if={is_nil(m.avatar_url)}>{initials(m)}</span>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2.5">
+                      <h3 class="text-xl font-extrabold text-slate-900 truncate">{m.name || "—"}</h3>
+                      <span class={[
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+                        if(confirmed?(m),
+                          do: "bg-emerald-50 text-emerald-700",
+                          else: "bg-amber-100 text-amber-700"
+                        )
+                      ]}>
+                        {if confirmed?(m), do: "Confirmed", else: "Pending"}
+                      </span>
+                    </div>
+                    <p class="mt-0.5 truncate text-[13px] text-slate-500">
+                      {m.email} · joined {Calendar.strftime(m.inserted_at, "%b %d, %Y")}
+                    </p>
+                  </div>
                 </div>
-                <div class="min-w-0">
-                  <h3 class="text-lg font-semibold text-gray-900 truncate">{m.name || "—"}</h3>
-                  <p class="text-sm text-gray-500 truncate">{m.email}</p>
-                  <span class={[
-                    "inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-xs font-medium",
-                    if(confirmed?(m),
-                      do: "bg-green-100 text-green-700",
-                      else: "bg-amber-100 text-amber-700"
-                    )
-                  ]}>
-                    {if confirmed?(m), do: "Confirmed", else: "Pending"}
-                  </span>
+
+                <div
+                  :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+                  class="flex shrink-0 gap-2"
+                >
+                  <button
+                    type="button"
+                    phx-click="message_merchant"
+                    phx-value-id={m.id}
+                    class="inline-flex items-center gap-2 rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-emerald-600/25 transition-colors hover:bg-primary-hover cursor-pointer"
+                  >
+                    <.icon name="hero-chat-bubble-left-right" class="size-4" /> Message
+                  </button>
+                  <.form for={%{}} action={~p"/platform/impersonate/#{m.id}"} method="post">
+                    <button
+                      type="submit"
+                      class="inline-flex items-center gap-2 rounded-[10px] border-[1.5px] border-gray-200 bg-white px-4 py-2.5 text-[13px] font-bold text-slate-700 transition-colors hover:border-gray-300 cursor-pointer"
+                    >
+                      <.icon name="hero-user" class="size-4" /> Log in as merchant
+                    </button>
+                  </.form>
                 </div>
               </div>
 
-              <button
-                :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
-                type="button"
-                phx-click="message_merchant"
-                phx-value-id={m.id}
-                class="w-full rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
-              >
-                Message this merchant
-              </button>
-
-              <.form
-                :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
-                for={%{}}
-                action={~p"/platform/impersonate/#{m.id}"}
-                method="post"
-              >
-                <button
-                  type="submit"
-                  class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                >
-                  Log in as this merchant
-                </button>
-              </.form>
-
-              <dl class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <dt class="text-gray-400">Business</dt>
-                  <dd class="text-gray-900">{m.business_name || "—"}</dd>
-                </div>
-                <div>
-                  <dt class="text-gray-400">Phone</dt>
-                  <dd class="text-gray-900">{m.phone || "—"}</dd>
-                </div>
-                <div>
-                  <dt class="text-gray-400">Joined</dt>
-                  <dd class="text-gray-900">{Calendar.strftime(m.inserted_at, "%b %d, %Y")}</dd>
-                </div>
-                <div>
-                  <dt class="text-gray-400">Stores</dt>
-                  <dd class="text-gray-900">{length(m.store_memberships)}</dd>
-                </div>
-              </dl>
+              <div>
+                <h4 class="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">
+                  Details
+                </h4>
+                <dl class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  <.detail_tile label="Business" value={m.business_name} />
+                  <.detail_tile label="Phone" value={m.phone} />
+                  <.detail_tile label="Joined" value={Calendar.strftime(m.inserted_at, "%b %d, %Y")} />
+                  <.detail_tile label="Stores" value={to_string(length(m.store_memberships))} />
+                </dl>
+              </div>
 
               <div>
-                <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <h4 class="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-slate-400">
                   Stores
                 </h4>
                 <div :if={m.store_memberships == []} class="text-sm text-gray-400">
                   This merchant has no stores yet.
                 </div>
-                <ul class="space-y-2">
+                <ul
+                  :if={m.store_memberships != []}
+                  class="divide-y divide-slate-50 overflow-hidden rounded-xl border border-slate-100"
+                >
                   <li
                     :for={sm <- m.store_memberships}
-                    class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100"
+                    class="flex items-center gap-3.5 bg-white px-4 py-3.5"
                   >
-                    <div class="min-w-0">
-                      <p class="font-medium text-gray-900 truncate">{sm.store.name}</p>
-                      <p class="text-xs text-gray-400 font-mono truncate">{sm.store.slug}</p>
+                    <div class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] bg-primary-soft text-sm font-extrabold text-emerald-700">
+                      {sm.store.name |> String.first() |> String.upcase()}
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span class={[
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide",
-                        role_class(sm.role)
-                      ]}>
-                        {sm.role}
-                      </span>
-                      <a
-                        href={EmakolaWeb.Storefront.Path.public_path(sm.store.slug)}
-                        target="_blank"
-                        class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-0.5"
-                      >
-                        View
-                        <span class="material-symbols-outlined" style="font-size: 13px;">
-                          open_in_new
-                        </span>
-                      </a>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-bold text-slate-900">{sm.store.name}</p>
+                      <p class="truncate font-mono text-[11.5px] text-slate-400">{sm.store.slug}</p>
                     </div>
+                    <span class={[
+                      "rounded-md px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide",
+                      role_class(sm.role)
+                    ]}>
+                      {sm.role}
+                    </span>
+                    <a
+                      href={EmakolaWeb.Storefront.Path.public_path(sm.store.slug)}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 text-[12.5px] font-bold text-emerald-600 hover:text-emerald-700"
+                    >
+                      Storefront <.icon name="hero-arrow-up-right" class="size-3" />
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -495,6 +489,21 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   end
 
   # ── Function components ─────────────────────────────────
+
+  attr :label, :string, required: true
+  attr :value, :string, default: nil
+
+  defp detail_tile(assigns) do
+    ~H"""
+    <div class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3.5">
+      <dt class="text-[11px] font-bold text-slate-400">{@label}</dt>
+      <dd :if={@value not in [nil, ""]} class="mt-1 text-sm font-bold text-slate-900">{@value}</dd>
+      <dd :if={@value in [nil, ""]} class="mt-1 text-sm font-semibold italic text-slate-300">
+        Not added yet
+      </dd>
+    </div>
+    """
+  end
 
   attr :filter, :string, required: true
   attr :active, :atom, required: true
@@ -512,7 +521,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       class={[
         "px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
         if(@is_active,
-          do: "bg-blue-600 text-white",
+          do: "bg-slate-900 text-white",
           else: "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
         )
       ]}
