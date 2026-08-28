@@ -612,7 +612,7 @@ defmodule EmakolaWeb.StoresComponents do
                   </svg>
                   <span class="truncate font-medium text-slate-700">{location(store)}</span>
                 </div>
-                <span :if={location(store) == ""} class="text-slate-400 italic">
+                <span :if={location(store) == ""} class="text-slate-500 italic">
                   Just opened
                 </span>
                 <span class="inline-flex items-center gap-1 text-emerald-700 font-bold whitespace-nowrap group-hover:gap-1.5 transition-all">
