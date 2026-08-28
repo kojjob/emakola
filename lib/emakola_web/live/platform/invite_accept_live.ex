@@ -111,7 +111,7 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
       <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
         <div class="w-full max-w-md">
           <div class="flex items-center justify-center gap-2 mb-8">
-            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-8 w-auto" />
             <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
           </div>
 

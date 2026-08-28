@@ -5,15 +5,15 @@ defmodule EmakolaWeb.BrandComponentsTest do
 
   alias EmakolaWeb.BrandComponents
 
-  # The roof is the one path present in every variant — assert on it rather than
-  # on the whole mark, so re-drawing the counter never breaks these tests.
-  @roof ~s(d="M32 7 L59 23 H5 Z")
+  # The slit is the one path present in every variant — assert on it rather than
+  # on the whole mark, so re-tuning the teeth never breaks these tests.
+  @slit ~s(d="M31 11 C27 21 27 43 30 53")
 
   describe "logo_mark/1" do
-    test "renders the stall mark, still, by default" do
+    test "renders the coin mark, still, by default" do
       html = render_component(&BrandComponents.logo_mark/1, [])
 
-      assert html =~ @roof
+      assert html =~ @slit
       refute html =~ "logo-reveal"
       refute html =~ "logo-loading"
     end
@@ -29,23 +29,25 @@ defmodule EmakolaWeb.BrandComponentsTest do
         html = render_component(&BrandComponents.logo_mark/1, motion: motion)
 
         assert html =~ class, "expected #{motion} to render #{class}"
-        assert html =~ @roof
+        assert html =~ @slit
       end
     end
 
-    test "the loading state draws separate scallops so they can ripple" do
-      html = render_component(&BrandComponents.logo_mark/1, motion: "loading")
+    test "the ten teeth are individually animatable in every state" do
+      for motion <- ~w(none reveal loading awaiting paid splash) do
+        html = render_component(&BrandComponents.logo_mark/1, motion: motion)
 
-      # Six individually animatable scallops, not the one-piece valance path.
-      assert html |> String.split(~s(class="logo-scallop")) |> length() == 7
+        assert html |> String.split(~s(class="logo-tooth")) |> length() == 11,
+               "expected #{motion} to draw ten separate teeth"
+      end
     end
 
-    test "the awaiting state adds a coin, drawn behind the roof so it falls in" do
+    test "the awaiting state adds a coin, drawn after the face so it lands on the shell" do
       html = render_component(&BrandComponents.logo_mark/1, motion: "awaiting")
 
       assert html =~ "logo-coin"
-      # Painted before the roof, so the roof hides it on the way down.
-      assert :binary.match(html, "logo-coin") < :binary.match(html, "logo-roof")
+      # Painted after the face, so it stays visible until it sinks into the slit.
+      assert :binary.match(html, "logo-face") < :binary.match(html, "logo-coin")
     end
 
     test "the paid state adds the tick, and nothing else does" do
@@ -57,16 +59,14 @@ defmodule EmakolaWeb.BrandComponentsTest do
       html = render_component(&BrandComponents.logo_mark/1, motion: "reveal")
 
       refute html =~ "logo-coin"
-      refute html =~ "logo-scallop"
+      refute html =~ "logo-tick"
     end
 
-    test "the reversed tone paints structure in snow for dark surfaces" do
+    test "the coin is tone-invariant — gold and ink read on light and dark alike" do
       dark = render_component(&BrandComponents.logo_mark/1, tone: "reversed")
       light = render_component(&BrandComponents.logo_mark/1, [])
 
-      assert dark =~ "#f1f5f9"
-      refute dark =~ "#0c1526"
-      assert light =~ "#0c1526"
+      assert dark == light
     end
 
     test "gold stays gold in both tones — it is the one fixed colour" do
@@ -123,7 +123,7 @@ defmodule EmakolaWeb.BrandComponentsTest do
     test "passes tone and size through to the mark" do
       html = render_component(&BrandComponents.brand_loader/1, tone: "reversed", size: 72)
 
-      assert html =~ "#f1f5f9"
+      assert html =~ "#d4a843"
       assert html =~ ~s(width="72")
     end
 
