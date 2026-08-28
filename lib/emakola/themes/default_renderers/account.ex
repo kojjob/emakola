@@ -164,6 +164,13 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                 style="color: #44403C"
               >
                 Messages
+                <span
+                  :if={(assigns[:unread_notification_count] || 0) > 0}
+                  data-role="customer-unread"
+                  class="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                >
+                  {@unread_notification_count}
+                </span>
               </.link>
               <.link
                 navigate={store_path(@store.slug, "/account/downloads")}
@@ -179,6 +186,10 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           <div class="flex-1 min-w-0">
             <%!-- PROFILE TAB --%>
             <div :if={@active_tab == "profile"} class="space-y-10">
+              <.notifications_section
+                notifications={assigns[:notifications] || []}
+                store={@store}
+              />
               <.profile_section customer={@customer} theme={@theme} />
               <.recent_orders_section
                 orders={@orders}
@@ -329,6 +340,45 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
   end
 
   # -- Components --
+
+  # Only shown when there is something to show: an empty "Updates" heading on
+  # a first visit is noise, and this sits above the profile.
+  attr :notifications, :list, required: true
+  attr :store, :any, required: true
+
+  defp notifications_section(assigns) do
+    ~H"""
+    <section :if={@notifications != []}>
+      <h2 class="text-2xl font-semibold mb-6 text-cta-dark">Updates</h2>
+
+      <ul class="space-y-2">
+        <li
+          :for={notification <- Enum.take(@notifications, 5)}
+          class={[
+            "flex items-start gap-3 rounded-xl border p-4",
+            if(is_nil(notification.read_at),
+              do: "bg-white border-stone-200",
+              else: "bg-stone-50/60 border-stone-100"
+            )
+          ]}
+        >
+          <span
+            :if={is_nil(notification.read_at)}
+            class="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0"
+            aria-label="Unread"
+          >
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-stone-800">{notification.title}</p>
+            <p :if={notification.body} class="text-sm text-stone-500 mt-0.5">
+              {notification.body}
+            </p>
+          </div>
+        </li>
+      </ul>
+    </section>
+    """
+  end
 
   defp profile_section(assigns) do
     ~H"""

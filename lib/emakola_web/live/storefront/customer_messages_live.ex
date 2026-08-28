@@ -16,43 +16,58 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "Messages", form: blank_form()) |> load()}
+    {:ok, socket |> assign(page_title: "Messages", form: blank_form(), active: :shop) |> load()}
   end
 
   defp blank_form, do: to_form(%{"body" => ""}, as: :message)
 
+  # Two conversations, one page: the shop, and Makola. A complaint about the
+  # shop — or about money the shop cannot see — has to go somewhere the shop
+  # is not reading.
   defp load(socket) do
-    with %{id: customer_id} <- socket.assigns[:current_customer],
-         %{id: store_id} <- socket.assigns[:store],
+    case socket.assigns[:current_customer] do
+      %{id: customer_id} -> load_thread(socket, socket.assigns.active, customer_id)
+      _ -> assign(socket, thread: nil, messages: [])
+    end
+  end
+
+  defp load_thread(socket, :platform, customer_id) do
+    open(socket, Conversations.platform_customer_thread_for(customer_id))
+  end
+
+  defp load_thread(socket, :shop, customer_id) do
+    with %{id: store_id} <- socket.assigns[:store],
          {:ok, threads} <- Conversations.list_shop_threads(store_id) do
-      thread = Enum.find(threads, &(&1.customer_id == customer_id))
-
-      messages =
-        case thread do
-          nil ->
-            []
-
-          thread ->
-            if connected?(socket), do: Conversations.subscribe(thread.id)
-            Conversations.mark_read(thread, :customer)
-            {:ok, messages} = Conversations.list_messages(thread.id)
-            messages
-        end
-
-      assign(socket, thread: thread, messages: messages)
+      open(socket, Enum.find(threads, &(&1.customer_id == customer_id)))
     else
       _ -> assign(socket, thread: nil, messages: [])
     end
   end
 
-  @impl true
-  def handle_event("send", %{"message" => %{"body" => body}}, socket) do
-    customer = socket.assigns[:current_customer]
-    store = socket.assigns[:store]
+  # Opened lazily on the first message, so a buyer who never writes leaves no
+  # empty thread behind.
+  defp open(socket, nil), do: assign(socket, thread: nil, messages: [])
 
-    with %{id: customer_id} <- customer,
-         %{id: store_id} <- store,
-         {:ok, thread} <- Conversations.open_shop_thread(store_id, customer_id),
+  defp open(socket, thread) do
+    if connected?(socket), do: Conversations.subscribe(thread.id)
+    Conversations.mark_read(thread, :customer)
+    {:ok, messages} = Conversations.list_messages(thread.id)
+
+    assign(socket, thread: thread, messages: messages)
+  end
+
+  @impl true
+  def handle_event("open_platform_thread", _params, socket) do
+    {:noreply, socket |> assign(active: :platform) |> load()}
+  end
+
+  def handle_event("open_shop_thread", _params, socket) do
+    {:noreply, socket |> assign(active: :shop) |> load()}
+  end
+
+  def handle_event("send", %{"message" => %{"body" => body}}, socket) do
+    with %{id: customer_id} <- socket.assigns[:current_customer],
+         {:ok, thread} <- open_for_send(socket, customer_id),
          {:ok, _message} <- Conversations.post_message(thread, :customer, customer_id, body) do
       {:noreply, socket |> assign(form: blank_form()) |> load()}
     else
@@ -62,6 +77,17 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  defp open_for_send(%{assigns: %{active: :platform}}, customer_id) do
+    Conversations.open_platform_customer_thread(customer_id)
+  end
+
+  defp open_for_send(socket, customer_id) do
+    case socket.assigns[:store] do
+      %{id: store_id} -> Conversations.open_shop_thread(store_id, customer_id)
+      _ -> :error
+    end
+  end
 
   # One flash per cause. A buyer told to "write something first" after being
   # rate limited retypes a message that was never the problem.
@@ -88,8 +114,39 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold text-slate-900">Message the shop</h1>
+      <h1 class="text-2xl font-bold text-slate-900">Messages</h1>
       <p class="text-sm text-slate-500 mt-2">Ask about your order. It is free to write here.</p>
+
+      <%!-- Two conversations, because a complaint about the shop cannot go to
+            the shop. Buttons rather than links: neither thread exists until
+            something is written in it. --%>
+      <div class="mt-5 inline-flex rounded-xl border border-slate-200 bg-white p-1">
+        <button
+          type="button"
+          phx-click="open_shop_thread"
+          class={[
+            "px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+            if(@active == :shop, do: "bg-slate-900 text-white", else: "text-slate-600")
+          ]}
+        >
+          {@store.name}
+        </button>
+        <button
+          type="button"
+          phx-click="open_platform_thread"
+          class={[
+            "px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+            if(@active == :platform, do: "bg-slate-900 text-white", else: "text-slate-600")
+          ]}
+        >
+          Makola
+        </button>
+      </div>
+
+      <p :if={@active == :platform} class="text-sm text-slate-500 mt-3">
+        Write to Makola when the shop cannot help — a payment that never arrived,
+        or an order that never came.
+      </p>
 
       <div class="mt-6 bg-white border border-slate-200 rounded-2xl">
         <div id="customer-messages" class="p-5 space-y-3 max-h-[55vh] overflow-y-auto">
