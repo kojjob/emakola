@@ -60,7 +60,11 @@ defmodule EmakolaWeb.Platform.MessageLiveTest do
       {:ok, _} =
         Conversations.post_message(thread, :merchant, ctx.merchant.id, "",
           attachments: [
-            %{"url" => "/uploads/chat/receipt.jpg", "content_type" => "image/jpeg", "name" => "receipt.jpg"}
+            %{
+              "url" => "/uploads/chat/receipt.jpg",
+              "content_type" => "image/jpeg",
+              "name" => "receipt.jpg"
+            }
           ]
         )
 

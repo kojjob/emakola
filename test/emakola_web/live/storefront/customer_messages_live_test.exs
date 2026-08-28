@@ -45,7 +45,11 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     {:ok, _} =
       Conversations.post_message(thread, :merchant, Ecto.UUID.generate(), "Here it is",
         attachments: [
-          %{"url" => "/uploads/chat/cloth.jpg", "content_type" => "image/jpeg", "name" => "cloth.jpg"}
+          %{
+            "url" => "/uploads/chat/cloth.jpg",
+            "content_type" => "image/jpeg",
+            "name" => "cloth.jpg"
+          }
         ]
       )
 

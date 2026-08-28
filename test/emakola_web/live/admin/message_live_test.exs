@@ -81,9 +81,21 @@ defmodule EmakolaWeb.Admin.MessageLiveTest do
     {:ok, _} =
       Conversations.post_message(thread, :customer, ctx.customer.id, "",
         attachments: [
-          %{"url" => "/uploads/chat/pic.jpg", "content_type" => "image/jpeg", "name" => "pic.jpg"},
-          %{"url" => "/uploads/chat/note.m4a", "content_type" => "audio/mp4", "name" => "note.m4a"},
-          %{"url" => "/uploads/chat/clip.mp4", "content_type" => "video/mp4", "name" => "clip.mp4"}
+          %{
+            "url" => "/uploads/chat/pic.jpg",
+            "content_type" => "image/jpeg",
+            "name" => "pic.jpg"
+          },
+          %{
+            "url" => "/uploads/chat/note.m4a",
+            "content_type" => "audio/mp4",
+            "name" => "note.m4a"
+          },
+          %{
+            "url" => "/uploads/chat/clip.mp4",
+            "content_type" => "video/mp4",
+            "name" => "clip.mp4"
+          }
         ]
       )
 
