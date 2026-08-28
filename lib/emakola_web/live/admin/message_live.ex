@@ -17,7 +17,16 @@ defmodule EmakolaWeb.Admin.MessageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Messages", active_nav: :messages, query: "")}
+    {:ok,
+     assign(socket,
+       page_title: "Messages",
+       active_nav: :messages,
+       query: "",
+       # to_form without :as keeps the input's bare name ("q"), so
+       # handle_event("search", %{"q" => _}) is unchanged. The guard tests
+       # forbid raw form tags in admin/platform LiveViews.
+       search_form: to_form(%{"q" => ""})
+     )}
   end
 
   @impl true
@@ -183,7 +192,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         <div class="flex flex-col border-b lg:border-b-0 lg:border-r border-slate-100 min-h-0">
           <div class="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 shrink-0">
             <.initials_avatar :if={@current_store} name={@current_store.name} />
-            <form id="inbox-search" phx-change="search" class="flex-1">
+            <.form for={@search_form} id="inbox-search" phx-change="search" class="flex-1">
               <input
                 type="search"
                 name="q"
@@ -193,7 +202,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
                 aria-label="Search conversations"
                 class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500"
               />
-            </form>
+            </.form>
           </div>
 
           <div id="chat-list" class="flex-1 overflow-y-auto min-h-0 px-3 py-3.5">
