@@ -147,9 +147,9 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders")
 
-      # Use the order number link specifically (has font-mono class)
+      # The row's name/number block is the link now.
       view
-      |> element("a.font-mono[href='/admin/orders/#{order.id}']")
+      |> element("#order-row-#{order.id} a[href='/admin/orders/#{order.id}']", order.order_number)
       |> render_click()
 
       assert_redirect(view, "/admin/orders/#{order.id}")
