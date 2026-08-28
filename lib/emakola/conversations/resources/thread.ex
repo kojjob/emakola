@@ -34,7 +34,7 @@ defmodule Emakola.Conversations.Thread do
     attribute :kind, :atom do
       allow_nil?(false)
       public?(true)
-      constraints(one_of: [:shop_buyer, :platform_merchant])
+      constraints(one_of: [:shop_buyer, :platform_merchant, :platform_customer])
     end
 
     # Set on :shop_buyer threads only.
@@ -129,9 +129,27 @@ defmodule Emakola.Conversations.Thread do
       change(set_attribute(:counterpart_last_read_at, &DateTime.utc_now/0))
     end
 
+    create :open_platform_customer do
+      accept([:customer_id])
+      change(set_attribute(:kind, :platform_customer))
+      upsert?(true)
+      upsert_identity(:one_thread_per_kind_per_customer)
+    end
+
+    # Both platform kinds, because staff work one inbox. A merchant asking
+    # about a payout and a buyer asking about the same order belong in the
+    # same queue.
     read :all_platform do
-      filter(expr(kind == :platform_merchant))
+      filter(expr(kind == :platform_merchant or kind == :platform_customer))
       prepare(build(sort: [last_message_at: :desc_nils_last]))
+    end
+
+    read :platform_for_customer do
+      argument :customer_id, :uuid do
+        allow_nil?(false)
+      end
+
+      filter(expr(customer_id == ^arg(:customer_id) and kind == :platform_customer))
     end
 
     read :platform_for_merchant do
@@ -155,5 +173,10 @@ defmodule Emakola.Conversations.Thread do
   identities do
     identity(:one_thread_per_buyer, [:store_id, :customer_id])
     identity(:one_thread_per_merchant, [:merchant_id])
+
+    # `kind` is in the key rather than `store_id`, because a platform thread
+    # has no store and NULLs do not collide. Safe because a customer row
+    # belongs to exactly one store, so a customer has at most one shop thread.
+    identity(:one_thread_per_kind_per_customer, [:kind, :customer_id])
   end
 end

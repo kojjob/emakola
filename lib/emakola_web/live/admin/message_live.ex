@@ -106,7 +106,29 @@ defmodule EmakolaWeb.Admin.MessageLive do
     end
   end
 
+  # A merchant reaching Makola first. Their thread rode in this inbox from the
+  # start, but only once it existed — and only staff could create one, so a
+  # merchant with a question had nowhere to ask it.
+  #
+  # The merchant comes from the session, never a parameter, so this can only
+  # ever open the caller's own thread. Opening is idempotent.
   @impl true
+  def handle_event("contact_makola", _params, socket) do
+    case socket.assigns[:current_merchant] do
+      %{id: merchant_id} ->
+        case Conversations.open_platform_thread(merchant_id) do
+          {:ok, thread} ->
+            {:noreply, push_navigate(socket, to: ~p"/admin/messages/#{thread.id}")}
+
+          _ ->
+            {:noreply, put_flash(socket, :error, "Could not open that conversation.")}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("send", %{"message" => %{"body" => body}}, socket) do
     thread = socket.assigns.thread
     merchant = socket.assigns.current_merchant
@@ -175,6 +197,18 @@ defmodule EmakolaWeb.Admin.MessageLive do
         title="Messages"
         subtitle="Talk to your buyers. These messages are free."
       />
+
+      <%!-- Always available, not only when the inbox is empty: the question a
+            merchant needs to ask Makola rarely arrives on a quiet day. --%>
+      <div class="flex justify-end -mt-2 mb-4">
+        <button
+          type="button"
+          phx-click="contact_makola"
+          class="inline-flex items-center gap-2 rounded-control border border-border bg-white hover:bg-surface-subtle px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors cursor-pointer"
+        >
+          <.icon name="hero-lifebuoy" class="size-4 text-primary" /> Ask Makola for help
+        </button>
+      </div>
 
       <div :if={@threads == []} class="bg-white border border-border rounded-card p-12 text-center">
         <div class="w-16 h-16 rounded-card bg-primary-soft flex items-center justify-center mx-auto mb-5">
