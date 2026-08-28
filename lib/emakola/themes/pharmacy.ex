@@ -69,9 +69,8 @@ defmodule Emakola.Themes.Pharmacy do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Professional Pharmacy Services You Can Trust",
-        subtitle:
-          "Providing expert pharmacy care you can rely on. We are here to support your health every step of the way.",
+        title: "Everything you need, in one place",
+        subtitle: "We are here to help, every step of the way.",
         cta_text: "Explore Now",
         cta_url: "/products"
       },

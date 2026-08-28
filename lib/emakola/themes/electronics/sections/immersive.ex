@@ -24,7 +24,21 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :immersive_grid, Enum.take(assigns[:products] || [], 4))
+    products = assigns[:products] || []
+    grid = Enum.take(products, 4)
+
+    # The promo panel shows the shop's own goods — the fifth product's photo
+    # (first not already in the grid), else any product photo, else a neutral
+    # storefront glyph. Never a stock image of goods this shop does not sell.
+    panel_image =
+      (Enum.drop(products, 4) ++ grid)
+      |> Enum.map(&Shared.first_image/1)
+      |> Enum.find(&is_binary/1)
+
+    assigns =
+      assigns
+      |> assign(:immersive_grid, grid)
+      |> assign(:panel_image, panel_image)
 
     ~H"""
     <%!-- IMMERSIVE: split grid + lifestyle --%>
@@ -35,7 +49,7 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-8">
           <h2 class="electronics-heading text-3xl sm:text-4xl font-extrabold text-[#134E4A]">
-            Immersive Sound,<br />Unmatched Comfort
+            More from<br />{@store.name}
           </h2>
           <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#E5E7EB] text-xs font-semibold text-[#134E4A]">
             <span class="material-symbols-outlined" style="font-size: 14px;">filter_list</span>
@@ -47,14 +61,26 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
             <Shared.product_card :for={product <- @immersive_grid} product={product} store={@store} />
           </div>
           <div class="aspect-square lg:aspect-auto rounded-2xl overflow-hidden bg-gradient-to-br from-[#0F4A45] via-[#134E4A] to-[#0E3F3B] relative">
-            <span class="absolute inset-0 flex items-center justify-center">
+            <img
+              :if={@panel_image}
+              src={@panel_image}
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              :if={@panel_image}
+              class="absolute inset-0 bg-gradient-to-t from-[#0E3F3B]/90 via-transparent to-transparent"
+            >
+            </div>
+            <span :if={!@panel_image} class="absolute inset-0 flex items-center justify-center">
               <span class="material-symbols-outlined text-[#0EA5E9]/30" style="font-size: 200px;">
-                headphones
+                storefront
               </span>
             </span>
             <div class="absolute bottom-6 left-6 right-6">
               <p class="electronics-heading text-2xl font-bold text-white mb-1">
-                Premium audio gear
+                See the whole range
               </p>
               <%!-- Was "Hand-picked for clarity, comfort, and battery life." —
                    an assertion that someone at this shop auditioned the gear on

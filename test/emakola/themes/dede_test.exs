@@ -250,7 +250,7 @@ defmodule Emakola.Themes.DedeTest do
       html = render_nav()
 
       assert html =~
-               ~r/<a[^>]*href="\/s\/dede-kitchen\/products"[^>]*aria-label="Search the menu"/
+               ~r/<a[^>]*href="\/s\/dede-kitchen\/products"[^>]*aria-label="Search the shop"/
 
       refute html =~ "phx-click"
     end
@@ -332,7 +332,7 @@ defmodule Emakola.Themes.DedeTest do
       html = render_section(Hero, %{store: @component_store})
 
       assert html =~ ~s(href="/s/dede-kitchen/products")
-      assert html =~ "See the menu"
+      assert html =~ "Shop now"
     end
 
     test "WhatsApp ordering is a first-class hero action when the number exists" do
@@ -559,7 +559,7 @@ defmodule Emakola.Themes.DedeTest do
         })
 
       assert html =~ "Know when the pot lands"
-      refute html =~ "Fresh pot alerts"
+      refute html =~ "Hear it first"
     end
   end
 

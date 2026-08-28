@@ -122,7 +122,7 @@ defmodule Emakola.Themes.HomeLiving.Shared do
             <span class="home-living-heading text-2xl font-bold">{@store.name}</span>
             <p class="text-sm text-white/65 leading-relaxed mt-4 max-w-md">
               {@store.description ||
-                "Modern furniture and home goods, made for the way you live."}
+                "Good things for your home and your day."}
             </p>
             <div class="flex items-center gap-3 mt-6">
               <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">

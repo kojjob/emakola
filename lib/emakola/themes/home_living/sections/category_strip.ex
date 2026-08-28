@@ -27,10 +27,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :rooms, rooms_items(assigns.theme))
+    assigns = assign(assigns, :rooms, rooms_items(assigns.theme, assigns[:categories] || []))
 
     ~H"""
-    <section class="bg-white py-10 sm:py-12 border-b border-[#E5E7EB]">
+    <section :if={@rooms != []} class="bg-white py-10 sm:py-12 border-b border-[#E5E7EB]">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
           <div class="lg:col-span-3">
@@ -41,7 +41,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
           <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <a
               :for={room <- @rooms}
-              href={store_path(@store.slug, "/products")}
+              href={store_path(@store.slug, Item.field(room, :href) || "/products")}
               class="group bg-[#F3F4F6] rounded-2xl p-4 sm:p-5 hover:bg-[#1F2937] hover:text-white transition-colors min-h-[120px] flex flex-col justify-between"
             >
               <span
@@ -61,19 +61,20 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
     """
   end
 
-  defp rooms_items(theme) do
+  # The grid used to invent four furniture rooms for every shop wearing the
+  # theme. The default is now the store's real categories; a shop with none
+  # shows no grid at all.
+  defp rooms_items(theme, categories) do
     case get_in(theme, [:rooms, :items]) do
-      items when is_list(items) and items != [] -> items
-      _ -> default_rooms()
-    end
-  end
+      items when is_list(items) and items != [] ->
+        items
 
-  defp default_rooms do
-    [
-      %{name: "Living Room", icon: "weekend", slug: "living"},
-      %{name: "Bedroom", icon: "bed", slug: "bedroom"},
-      %{name: "Kitchen", icon: "blender", slug: "kitchen"},
-      %{name: "Bathroom", icon: "bathtub", slug: "bath"}
-    ]
+      _ ->
+        categories
+        |> Enum.take(4)
+        |> Enum.map(fn category ->
+          %{name: category.name, icon: "category", href: "/category/#{category.slug}"}
+        end)
+    end
   end
 end
