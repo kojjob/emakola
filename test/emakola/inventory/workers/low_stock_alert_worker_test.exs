@@ -19,6 +19,28 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerTest do
   end
 
   describe "perform/1" do
+    test "the same low stock alerts once, not every morning", %{store: store} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, stock_quantity: 2, sku: "ONCE-001")
+      drain_mailbox()
+
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+      assert_email_sent(fn email -> email.subject =~ "Low Stock Alert" end)
+
+      # Tomorrow morning, stock unchanged: the merchant hears nothing new.
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+      refute_email_sent()
+
+      # Restocked, then sold down again: that is news, and alerts again.
+      restock!(variant, 50)
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+      refute_email_sent()
+
+      restock!(variant, 1)
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+      assert_email_sent(fn email -> email.subject =~ "Low Stock Alert" end)
+    end
+
     test "finds variants below the default threshold", %{store: store} do
       product = Factory.create_product!(store)
       _low = Factory.create_variant!(product, store, stock_quantity: 3, sku: "LOW-001")
@@ -185,6 +207,26 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerTest do
   defp flush_swoosh_mailbox do
     receive do
       {:email, _} -> flush_swoosh_mailbox()
+    after
+      0 -> :ok
+    end
+  end
+
+  defp restock!(variant, quantity) do
+    import Ecto.Query
+
+    {1, _} =
+      Emakola.Repo.update_all(
+        from(v in "variants", where: v.id == type(^variant.id, :binary_id)),
+        set: [stock_quantity: quantity]
+      )
+  end
+
+  # Factory setup sends onboarding email; the assertions below must only see
+  # the worker's own.
+  defp drain_mailbox do
+    receive do
+      {:email, _} -> drain_mailbox()
     after
       0 -> :ok
     end
