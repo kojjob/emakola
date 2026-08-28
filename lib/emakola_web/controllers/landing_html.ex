@@ -466,7 +466,11 @@ defmodule EmakolaWeb.LandingHTML do
           Questions, answered
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <details :for={{question, answer} <- @faqs} class="group bg-[#f7f8fa] rounded-xl p-5">
+          <details
+            :for={{question, answer} <- @faqs}
+            name="faq"
+            class="group bg-[#f7f8fa] rounded-xl p-5"
+          >
             <summary class="cursor-pointer text-base font-semibold text-[#0c1526] list-none flex items-center justify-between gap-3">
               {question}
               <span
