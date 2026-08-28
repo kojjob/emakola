@@ -266,17 +266,21 @@ defmodule EmakolaWeb.ChatComponents do
       </p>
 
       <div class="flex items-center gap-2.5 bg-white rounded-xl p-2 pl-4 shadow-md shadow-slate-900/5 ring-1 ring-slate-200/60">
-        <label
+        <%!-- A div, not a label: an input nested in a label double-activates in
+              Chrome and the second activation can swallow the picker dialog.
+              The full-size transparent input is also the only shape iOS
+              Safari reliably opens. --%>
+        <div
           :if={@media}
-          class="relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
-          aria-label="Attach a photo, sound, or video"
+          class="relative flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
         >
           <.icon name="hero-paper-clip" class="size-5" />
           <.live_file_input
             upload={@media}
+            aria-label="Attach a photo, sound, or video"
             class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
-        </label>
+        </div>
         <input
           type="text"
           name={@input_name}
