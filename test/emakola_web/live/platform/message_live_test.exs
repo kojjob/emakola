@@ -54,6 +54,21 @@ defmodule EmakolaWeb.Platform.MessageLiveTest do
       assert message.author_kind == :platform
     end
 
+    test "media attachments render in the staff thread", ctx do
+      {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
+
+      {:ok, _} =
+        Conversations.post_message(thread, :merchant, ctx.merchant.id, "",
+          attachments: [
+            %{"url" => "/uploads/chat/receipt.jpg", "content_type" => "image/jpeg", "name" => "receipt.jpg"}
+          ]
+        )
+
+      {:ok, _view, html} = live(ctx.staff_conn, ~p"/platform/messages/#{thread.id}")
+
+      assert html =~ ~s(<img src="/uploads/chat/receipt.jpg")
+    end
+
     test "a sent message shows once, not twice", ctx do
       {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
 

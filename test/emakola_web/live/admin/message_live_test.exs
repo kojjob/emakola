@@ -75,6 +75,57 @@ defmodule EmakolaWeb.Admin.MessageLiveTest do
     assert occurrences == 1
   end
 
+  test "media attachments render as playable bubbles", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+
+    {:ok, _} =
+      Conversations.post_message(thread, :customer, ctx.customer.id, "",
+        attachments: [
+          %{"url" => "/uploads/chat/pic.jpg", "content_type" => "image/jpeg", "name" => "pic.jpg"},
+          %{"url" => "/uploads/chat/note.m4a", "content_type" => "audio/mp4", "name" => "note.m4a"},
+          %{"url" => "/uploads/chat/clip.mp4", "content_type" => "video/mp4", "name" => "clip.mp4"}
+        ]
+      )
+
+    {:ok, _view, html} = live(ctx.conn, ~p"/admin/messages/#{thread.id}")
+
+    assert html =~ ~s(<img src="/uploads/chat/pic.jpg")
+    assert html =~ ~s(<audio controls)
+    assert html =~ ~s(<video controls)
+  end
+
+  test "a message can be only a picture", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, _} = Conversations.post_message(thread, :customer, ctx.customer.id, "Hi")
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/messages/#{thread.id}")
+
+    Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+      {:ok, "/uploads/#{path}"}
+    end)
+
+    # The upload lands in the LiveView's channel process, not the test's.
+    Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+    view
+    |> file_input("#message-form", :chat_media, [
+      %{
+        name: "kente.jpg",
+        content: File.read!("priv/static/images/icons/icon-192.png"),
+        type: "image/jpeg"
+      }
+    ])
+    |> render_upload("kente.jpg")
+
+    view |> form("#message-form", message: %{body: ""}) |> render_submit()
+
+    {:ok, messages} = Conversations.list_messages(thread.id)
+    last = List.last(messages)
+    assert [%{"url" => url}] = last.attachments
+    assert String.contains?(url, "kente")
+    assert render(view) =~ ~s(<img src="#{url}")
+  end
+
   test "the inbox search filters threads by name", ctx do
     other = create_customer!(ctx.store, %{name: "Yaw Ofori", phone: "+233209999999"})
     {:ok, t1} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)

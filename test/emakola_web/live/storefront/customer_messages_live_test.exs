@@ -19,6 +19,13 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     %{conn: conn, store: store, customer: customer}
   end
 
+  test "a visitor without an account is invited to sign in, not given a dead form", ctx do
+    {:ok, _view, html} = live(build_conn(), "/s/#{ctx.store.slug}/account/messages")
+
+    assert html =~ "Sign in to message the shop"
+    refute html =~ "customer-message-form"
+  end
+
   test "a buyer writes to the shop", ctx do
     {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
 
@@ -30,6 +37,21 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert {:ok, [message]} = Conversations.list_messages(thread.id)
     assert message.body == "Do you have blue?"
     assert message.author_kind == :customer
+  end
+
+  test "the shop's photo reply renders in the buyer chat", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+
+    {:ok, _} =
+      Conversations.post_message(thread, :merchant, Ecto.UUID.generate(), "Here it is",
+        attachments: [
+          %{"url" => "/uploads/chat/cloth.jpg", "content_type" => "image/jpeg", "name" => "cloth.jpg"}
+        ]
+      )
+
+    {:ok, _view, html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    assert html =~ ~s(<img src="/uploads/chat/cloth.jpg")
   end
 
   test "a sent message shows once, not twice", ctx do
