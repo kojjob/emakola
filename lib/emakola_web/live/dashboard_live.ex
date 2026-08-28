@@ -69,6 +69,19 @@ defmodule EmakolaWeb.DashboardLive do
 
   def handle_info(_, socket), do: {:noreply, socket}
 
+  def handle_event("dismiss_setup_celebration", _params, socket) do
+    merchant = socket.assigns.current_merchant
+
+    preferences = Map.put(merchant.preferences || %{}, "setup_celebrated", true)
+
+    {:ok, merchant} =
+      merchant
+      |> Ash.Changeset.for_update(:update_profile, %{preferences: preferences})
+      |> Ash.update(authorize?: false)
+
+    {:noreply, assign(socket, current_merchant: merchant, setup_celebrated?: true)}
+  end
+
   def handle_event("change_period", %{"period" => period}, socket) when period in @periods do
     socket = socket |> assign(period: period) |> load_dashboard_data() |> push_chart_events()
     {:noreply, socket}
@@ -177,10 +190,17 @@ defmodule EmakolaWeb.DashboardLive do
       assign(socket, featuring_items: [], featuring_eligible?: false)
   end
 
+  defp setup_celebrated?(socket) do
+    case socket.assigns[:current_merchant] do
+      %{preferences: %{"setup_celebrated" => true}} -> true
+      _ -> false
+    end
+  end
+
   defp assign_setup_checklist(socket) do
     case socket.assigns[:current_store] do
       nil ->
-        assign(socket, setup_steps: [], setup_complete?: true)
+        assign(socket, setup_steps: [], setup_complete?: true, setup_celebrated?: true)
 
       store ->
         product_count = count_products(store.id)
@@ -194,7 +214,8 @@ defmodule EmakolaWeb.DashboardLive do
 
         assign(socket,
           setup_steps: steps,
-          setup_complete?: Enum.all?(steps, & &1.done?)
+          setup_complete?: Enum.all?(steps, & &1.done?),
+          setup_celebrated?: setup_celebrated?(socket)
         )
     end
   end
@@ -233,7 +254,12 @@ defmodule EmakolaWeb.DashboardLive do
       />
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
-      <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
+      <.setup_checklist
+        :if={@setup_steps != []}
+        steps={@setup_steps}
+        celebrated?={@setup_celebrated?}
+        shop_path={@current_store && "/s/#{@current_store.slug}"}
+      />
 
       <section
         :if={@featuring_items != [] && @setup_complete?}
@@ -261,30 +287,24 @@ defmodule EmakolaWeb.DashboardLive do
           </span>
         </div>
 
-        <ul class="mt-4 grid gap-2 sm:grid-cols-2">
-          <li
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span
             :for={item <- @featuring_items}
-            class="flex items-center gap-3 rounded-card bg-slate-50 px-3.5 py-3"
+            :if={item.done?}
+            class="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3.5 py-2 text-xs font-semibold text-emerald-700 line-through"
           >
-            <span
-              :if={item.done?}
-              class="flex size-6 shrink-0 items-center justify-center rounded-full bg-success text-white"
-            >
-              <.icon name="hero-check" class="size-3.5" />
-            </span>
-            <span
-              :if={!item.done?}
-              class="size-6 shrink-0 rounded-full border-2 border-slate-300"
-            >
-            </span>
-            <span class={[
-              "text-sm font-semibold",
-              if(item.done?, do: "text-slate-400 line-through", else: "text-slate-800")
-            ]}>
-              {item.label}
-            </span>
-          </li>
-        </ul>
+            <.icon name="hero-check" class="size-3.5" />
+            {item.label}
+          </span>
+          <span
+            :for={item <- @featuring_items}
+            :if={!item.done?}
+            class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-slate-700"
+          >
+            <span class="size-3.5 shrink-0 rounded-full border-2 border-slate-300"></span>
+            {item.label}
+          </span>
+        </div>
 
         <p class="mt-3 text-xs text-slate-400">
           Featured shops are picked automatically every night from shops that tick every box.
@@ -298,59 +318,84 @@ defmodule EmakolaWeb.DashboardLive do
         open_returns={@open_returns}
       />
 
-      <.kpi_cards
+      <.money_row
         loading={@loading}
+        period={@period}
         total_revenue={@total_revenue}
         revenue_change={@revenue_change}
         order_count={@order_count}
         orders_change={@orders_change}
         customer_count={@customer_count}
         customers_change={@customers_change}
-        avg_order_value={@avg_order_value}
-        aov_change={@aov_change}
       />
 
-      <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-8 space-y-6">
-          <.chart_card
-            id="revenue-chart"
-            title="Revenue"
-            chart_type="revenue-bar"
-            chart_data={@revenue_chart}
-          />
-          <.chart_card
-            id="orders-chart"
-            title="Orders"
-            chart_type="orders-line"
-            chart_data={@orders_chart}
-          />
-        </div>
-        <div class="lg:col-span-4 space-y-6">
-          <.alerts_panel
-            pending_orders={@pending_orders}
-            low_stock_count={@low_stock_count}
-            failed_payments={@failed_payments}
-          />
-          <.chart_card
-            id="top-products-chart"
-            title="Top Products"
-            chart_type="top-products-horizontal"
-            chart_data={@top_products_chart}
-            height="h-48"
-          />
-          <.chart_card
-            id="customers-chart"
-            title="New Customers"
-            chart_type="customers-line"
-            chart_data={@customers_chart}
-            height="h-48"
-          />
-        </div>
+      <section class={[
+        "grid grid-cols-1 gap-6",
+        @best_sellers != [] && "lg:grid-cols-[1.6fr_1fr]"
+      ]}>
+        <.money_bars chart={@revenue_chart} loading={@loading} />
+        <.best_sellers_panel best_sellers={@best_sellers} />
       </section>
 
-      <.best_sellers_panel best_sellers={@best_sellers} />
-
       <.recent_orders_table recent_orders={@recent_orders} />
+
+      <%!-- The analyst's view, one tap away instead of first --%>
+      <div class="flex justify-center">
+        <button
+          id="more-numbers-toggle"
+          type="button"
+          phx-click={Phoenix.LiveView.JS.toggle_class("hidden", to: "#more-numbers")}
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300 transition-colors cursor-pointer"
+        >
+          <.icon name="hero-chart-bar" class="size-4 text-slate-400" /> See more numbers
+        </button>
+      </div>
+
+      <section id="more-numbers" class="hidden space-y-6">
+        <.kpi_cards
+          loading={@loading}
+          total_revenue={@total_revenue}
+          revenue_change={@revenue_change}
+          order_count={@order_count}
+          orders_change={@orders_change}
+          customer_count={@customer_count}
+          customers_change={@customers_change}
+          avg_order_value={@avg_order_value}
+          aov_change={@aov_change}
+        />
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8">
+            <.chart_card
+              id="orders-chart"
+              title="Orders"
+              chart_type="orders-line"
+              chart_data={@orders_chart}
+            />
+          </div>
+          <div class="lg:col-span-4 space-y-6">
+            <.alerts_panel
+              pending_orders={@pending_orders}
+              low_stock_count={@low_stock_count}
+              failed_payments={@failed_payments}
+            />
+            <.chart_card
+              id="top-products-chart"
+              title="Top Products"
+              chart_type="top-products-horizontal"
+              chart_data={@top_products_chart}
+              height="h-48"
+            />
+            <.chart_card
+              id="customers-chart"
+              title="New Customers"
+              chart_type="customers-line"
+              chart_data={@customers_chart}
+              height="h-48"
+            />
+          </div>
+        </div>
+      </section>
     </div>
     """
   end

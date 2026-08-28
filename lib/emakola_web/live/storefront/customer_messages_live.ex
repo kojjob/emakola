@@ -12,6 +12,8 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.ChatComponents
+
   alias Emakola.Conversations
 
   @impl true
@@ -124,19 +126,21 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold text-slate-900">Messages</h1>
+      <h1 class="text-2xl font-bold text-slate-900">Message the shop</h1>
       <p class="text-sm text-slate-500 mt-2">Ask about your order. It is free to write here.</p>
 
-      <%!-- Two conversations, because a complaint about the shop cannot go to
-            the shop. Buttons rather than links: neither thread exists until
-            something is written in it. --%>
-      <div class="mt-5 inline-flex rounded-xl border border-slate-200 bg-white p-1">
+      <%!-- Two conversations, one page: the shop, and Makola. A complaint
+            about the shop has to go somewhere the shop is not reading. --%>
+      <div class="mt-5 flex gap-2">
         <button
           type="button"
           phx-click="open_shop_thread"
           class={[
-            "px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-            if(@active == :shop, do: "bg-slate-900 text-white", else: "text-slate-600")
+            "rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer",
+            if(@active == :shop,
+              do: "bg-emerald-600 text-white",
+              else: "bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300"
+            )
           ]}
         >
           {@store.name}
@@ -145,60 +149,80 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
           type="button"
           phx-click="open_platform_thread"
           class={[
-            "px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-            if(@active == :platform, do: "bg-slate-900 text-white", else: "text-slate-600")
+            "rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer",
+            if(@active == :platform,
+              do: "bg-emerald-600 text-white",
+              else: "bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300"
+            )
           ]}
         >
           Makola
         </button>
       </div>
 
-      <p :if={@active == :platform} class="text-sm text-slate-500 mt-3">
-        Write to Makola when the shop cannot help — a payment that never arrived,
-        or an order that never came.
-      </p>
-
-      <div class="mt-6 bg-white border border-slate-200 rounded-2xl">
-        <div id="customer-messages" class="p-5 space-y-3 max-h-[55vh] overflow-y-auto">
-          <p :if={@messages == []} class="text-sm text-slate-500 text-center py-8">
-            No messages yet. Write the first one.
-          </p>
-
-          <div
-            :for={message <- @messages}
-            id={"customer-message-#{message.id}"}
-            class={["flex", if(message.author_kind == :customer, do: "justify-end", else: "")]}
-          >
-            <div class={[
-              "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
-              if(message.author_kind == :customer,
-                do: "bg-emerald-600 text-white",
-                else: "bg-slate-100 text-slate-900"
-              )
-            ]}>
-              {message.body}
-            </div>
+      <div class="mt-3 overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/60">
+        <div class="flex items-center gap-3 border-b border-slate-100 bg-white px-5 py-3">
+          <.initials_avatar name={counterpart_name(@active, @store)} />
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-slate-900 truncate">
+              {counterpart_name(@active, @store)}
+            </p>
+            <p :if={@active == :shop} class="text-[11.5px] text-slate-400">
+              Replies land right here.
+            </p>
+            <p :if={@active == :platform} class="text-[11.5px] text-slate-400">
+              The shop cannot read this.
+            </p>
           </div>
         </div>
 
-        <.form
-          for={@form}
-          id="customer-message-form"
-          phx-submit="send"
-          class="p-4 border-t border-slate-200 flex items-end gap-3"
+        <div
+          id="customer-messages"
+          class="max-h-[55vh] space-y-4 overflow-y-auto bg-slate-50 px-4 py-5 sm:px-5"
         >
-          <div class="flex-1">
-            <.input field={@form[:body]} label="Your message" placeholder="Type your message" />
+          <div :if={@messages == []} class="flex flex-col items-center gap-2 py-8 text-center">
+            <div class="flex size-11 items-center justify-center rounded-full bg-white shadow-sm">
+              <.icon name="hero-chat-bubble-left-right" class="size-5 text-slate-300" />
+            </div>
+            <p class="text-sm text-slate-500">No messages yet. Write the first one.</p>
           </div>
-          <button
-            type="submit"
-            class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
+
+          <.chat_group
+            :for={group <- group_messages(@messages)}
+            group={group}
+            own?={group.author_kind == :customer}
+            read_at={@thread && @thread.merchant_last_read_at}
+            id_prefix="customer-message"
           >
-            Send
-          </button>
+            <:avatar>
+              <.initials_avatar
+                :if={group.author_kind == :customer}
+                name={buyer_name(@current_customer)}
+                size="size-8"
+                text="text-[11px]"
+              />
+              <.initials_avatar
+                :if={group.author_kind != :customer}
+                name={counterpart_name(@active, @store)}
+                size="size-8"
+                text="text-[11px]"
+              />
+            </:avatar>
+          </.chat_group>
+        </div>
+
+        <.form for={@form} id="customer-message-form" phx-submit="send">
+          <.chat_composer form={@form} />
         </.form>
       </div>
     </div>
     """
   end
+
+  defp buyer_name(%{name: name}) when is_binary(name) and name != "", do: name
+  defp buyer_name(_customer), do: "You"
+
+  defp counterpart_name(:platform, _store), do: "Makola"
+  defp counterpart_name(_active, %{name: name}), do: name
+  defp counterpart_name(_active, _store), do: "The shop"
 end
