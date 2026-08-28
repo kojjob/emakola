@@ -111,8 +111,9 @@ window.addEventListener("phx:close-modal", (e) => {
   if (el) liveSocket.execJS(el, el.getAttribute("phx-remove"))
 })
 
-// Register service worker for PWA
-if ("serviceWorker" in navigator) {
+// Register service worker for PWA. Never in dev: its cache-first asset
+// strategy serves stale CSS/JS over every live change.
+if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
   navigator.serviceWorker.register("/sw.js").catch(() => {})
 }
 

@@ -456,11 +456,14 @@
                 Nothing new
               </p>
 
-              <.link
+              <button
                 :for={notification <- notifications}
-                navigate={notification.action_url || "/platform"}
+                type="button"
+                id={"notification-#{notification.id}"}
+                phx-click="open_notification"
+                phx-value-id={notification.id}
                 class={[
-                  "block px-4 py-3 border-l-2 hover:bg-slate-50 transition-colors",
+                  "block w-full text-left px-4 py-3 border-l-2 hover:bg-slate-50 transition-colors cursor-pointer",
                   Layouts.notification_border_class(notification.type)
                 ]}
               >
@@ -485,7 +488,7 @@
                     </p>
                   </div>
                 </div>
-              </.link>
+              </button>
             </div>
           </div>
         </div>
@@ -647,27 +650,27 @@
   /* ═══════════════════════════════════════════
      COLLAPSED STATE (desktop toggle)
      ═══════════════════════════════════════════ */
-  #platform-shell.collapsed .sidebar { width: 72px; }
-  #platform-shell.collapsed .nav-label,
-  #platform-shell.collapsed .nav-section-label,
-  #platform-shell.collapsed .sidebar-badge { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar { width: 72px; }
+  #platform-shell.collapsed:not(.mobile-open) .nav-label,
+  #platform-shell.collapsed:not(.mobile-open) .nav-section-label,
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-badge { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
 
-  #platform-shell.collapsed .sidebar-header { padding: 0 16px; justify-content: center; }
-  #platform-shell.collapsed .sidebar-header a { justify-content: center; }
-  #platform-shell.collapsed .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
-  #platform-shell.collapsed .collapse-icon { transform: rotate(180deg); }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0 16px; justify-content: center; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header a { justify-content: center; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-icon { transform: rotate(180deg); }
 
-  #platform-shell.collapsed .sidebar-link { justify-content: center; padding: 11px; gap: 0; }
-  #platform-shell.collapsed .sidebar-link::before { left: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link { justify-content: center; padding: 11px; gap: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::before { left: 0; }
 
-  #platform-shell.collapsed .sidebar-user { justify-content: center; padding: 8px; }
-  #platform-shell.collapsed .sidebar-user .nav-label { display: none; }
-  #platform-shell.collapsed .sidebar-user svg { display: none; }
-  #platform-shell.collapsed .sidebar-nav { padding: 8px 10px; }
-  #platform-shell.collapsed .sidebar-footer { padding: 8px 10px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user { justify-content: center; padding: 8px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user .nav-label { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user svg { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-nav { padding: 8px 10px; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-footer { padding: 8px 10px; }
 
   /* Tooltips in collapsed state */
-  #platform-shell.collapsed .sidebar-link::after {
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::after {
     content: attr(title);
     position: absolute;
     left: calc(100% + 12px);
@@ -686,7 +689,7 @@
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-  #platform-shell.collapsed .sidebar-link:hover::after {
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link:hover::after {
     opacity: 1;
     transform: translateY(-50%) scale(1);
   }
@@ -704,7 +707,10 @@
     visibility: visible;
   }
   #platform-shell.mobile-open .sidebar {
+    /* Tailwind v4's -translate-x-full uses the `translate` property, not
+       `transform` — both must be reset or the sidebar stays off-canvas. */
     transform: translateX(0) !important;
+    translate: 0 !important;
     width: 280px;
   }
 
@@ -750,5 +756,34 @@
     #platform-shell .sidebar-link,
     #platform-shell .nav-label,
     #platform-shell .collapse-icon { transition: none !important; }
+  }
+
+  /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+     that shove icons off-center, and the hover tooltips can never render
+     (the aside clips them) yet their boxes create a phantom horizontal
+     scrollbar — so labels leave the layout and tooltips are disabled. */
+  #platform-shell.collapsed:not(.mobile-open) .nav-label,
+  #platform-shell.collapsed:not(.mobile-open) .nav-section-label,
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  #platform-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { display: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  #platform-shell.collapsed:not(.mobile-open) .collapse-btn { position: static; margin-left: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-link::after { content: none; }
+  #platform-shell.collapsed:not(.mobile-open) .sidebar-nav { overflow-x: hidden; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+       that shove icons off-center, and the hover tooltips can never render
+       (the aside clips them) yet their boxes create a phantom horizontal
+       scrollbar — so labels leave the layout and tooltips are disabled. */
+        #platform-shell:not(.expanded) .nav-label,
+        #platform-shell:not(.expanded) .nav-section-label,
+        #platform-shell:not(.expanded) .sidebar-badge,
+        #platform-shell:not(.expanded) .store-selector svg:last-child { display: none; }
+        #platform-shell:not(.expanded) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        #platform-shell:not(.expanded) .collapse-btn { position: static; margin-left: 0; }
+        #platform-shell:not(.expanded) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+        #platform-shell:not(.expanded) .sidebar-link::after { content: none; }
+        #platform-shell:not(.expanded) .sidebar-nav { overflow-x: hidden; }
   }
 </style>

@@ -69,6 +69,16 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
   defp send_error_message(:rate_limited), do: "You are sending too fast. Wait a moment."
   defp send_error_message(_other), do: "That message did not send. Try again."
 
+  # The sender receives their own broadcast too; the submit already rendered
+  # that message, so appending the echo would show it twice.
+  defp append_message(socket, message) do
+    if Enum.any?(socket.assigns.messages, &(&1.id == message.id)) do
+      socket
+    else
+      assign(socket, messages: socket.assigns.messages ++ [message])
+    end
+  end
+
   @impl true
   def handle_info({:new_message, message}, socket) do
     thread = socket.assigns[:thread]
@@ -76,7 +86,7 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
     if thread && message.thread_id == thread.id do
       # The buyer is looking at the thread, so the shop's reply is read.
       Conversations.mark_read(thread, :customer)
-      {:noreply, assign(socket, messages: socket.assigns.messages ++ [message])}
+      {:noreply, append_message(socket, message)}
     else
       {:noreply, socket}
     end

@@ -42,6 +42,63 @@ defmodule EmakolaWeb.Platform.MessageLiveTest do
       assert message.author_kind == :platform
     end
 
+    test "a sent message shows once, not twice", ctx do
+      {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
+
+      {:ok, view, _html} = live(ctx.staff_conn, ~p"/platform/messages/#{thread.id}")
+
+      view
+      |> form("#message-form", message: %{body: "Your payout is on the way."})
+      |> render_submit()
+
+      # The sender's own PubSub echo must not append a second copy.
+      {:ok, [message]} = Conversations.list_messages(thread.id)
+      occurrences = length(String.split(render(view), ~s(id="message-#{message.id}"))) - 1
+      assert occurrences == 1
+    end
+
+    test "an open thread links to the merchant directory", ctx do
+      {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
+
+      {:ok, _view, html} = live(ctx.staff_conn, ~p"/platform/messages/#{thread.id}")
+
+      assert html =~ ~s(href="/platform/merchants")
+    end
+
+    test "the inbox search filters merchants by name", ctx do
+      {other, _store} = create_merchant_with_store!(%{name: "Bead Palace"})
+      {:ok, mine} = Conversations.open_platform_thread(ctx.merchant.id)
+      {:ok, theirs} = Conversations.open_platform_thread(other.id)
+      {:ok, _} = Conversations.post_message(mine, :merchant, ctx.merchant.id, "Hello")
+      {:ok, _} = Conversations.post_message(theirs, :merchant, other.id, "Hi there")
+
+      {:ok, view, _html} = live(ctx.staff_conn, ~p"/platform/messages")
+
+      # A merchant's display name falls back to their email.
+      mine_name = to_string(ctx.merchant.email)
+      other_name = to_string(other.email)
+
+      render_change(element(view, "#inbox-search"), %{"q" => mine_name})
+
+      inbox = render(element(view, "#chat-list"))
+      assert inbox =~ mine_name
+      refute inbox =~ other_name
+    end
+
+    test "a staff message shows read only after the merchant reads it", ctx do
+      {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
+
+      {:ok, message} =
+        Conversations.post_message(thread, :platform, Ecto.UUID.generate(), "Hello")
+
+      {:ok, _view, html} = live(ctx.staff_conn, ~p"/platform/messages/#{thread.id}")
+      assert html =~ ~s(id="read-#{message.id}" data-read="false")
+
+      {:ok, _} = Conversations.mark_read(thread, :merchant)
+      {:ok, _view, html} = live(ctx.staff_conn, ~p"/platform/messages/#{thread.id}")
+      assert html =~ ~s(id="read-#{message.id}" data-read="true")
+    end
+
     test "lists merchants who have written", ctx do
       {:ok, thread} = Conversations.open_platform_thread(ctx.merchant.id)
 

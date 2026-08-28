@@ -355,37 +355,37 @@ html.high-contrast {
   /* ═══════════════════════════════════════════
      COLLAPSED STATE (desktop toggle)
      ═══════════════════════════════════════════ */
-  .admin-shell.collapsed .sidebar {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar {
     width: 72px;
   }
-  .admin-shell.collapsed .nav-label,
-  .admin-shell.collapsed .nav-section-label,
-  .admin-shell.collapsed .sidebar-badge,
-  .admin-shell.collapsed .store-selector .nav-label,
-  .admin-shell.collapsed .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+  .admin-shell.collapsed:not(.mobile-open) .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .nav-section-label,
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
 
-  .admin-shell.collapsed .sidebar-header { padding: 0 16px; justify-content: center; }
-  .admin-shell.collapsed .sidebar-header a { justify-content: center; }
-  .admin-shell.collapsed .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
-  .admin-shell.collapsed .collapse-icon { transform: rotate(180deg); }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0 16px; justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header a { justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-icon { transform: rotate(180deg); }
 
-  .admin-shell.collapsed .sidebar-link {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link {
     justify-content: center;
     padding: 11px;
     gap: 0;
   }
-  .admin-shell.collapsed .sidebar-link::before { left: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::before { left: 0; }
 
-  .admin-shell.collapsed .store-selector { padding: 8px; justify-content: center; }
-  .admin-shell.collapsed .store-selector > div { justify-content: center; }
-  .admin-shell.collapsed .sidebar-user { justify-content: center; padding: 8px; }
-  .admin-shell.collapsed .sidebar-user .nav-label { display: none; }
-  .admin-shell.collapsed .sidebar-user svg { display: none; }
-  .admin-shell.collapsed .sidebar-nav { padding: 8px 10px; }
-  .admin-shell.collapsed .sidebar-footer { padding: 8px 10px; }
+  .admin-shell.collapsed:not(.mobile-open) .store-selector { padding: 8px; justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .store-selector > div { justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user { justify-content: center; padding: 8px; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user .nav-label { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user svg { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-nav { padding: 8px 10px; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-footer { padding: 8px 10px; }
 
   /* Tooltip on hover (collapsed) */
-  .admin-shell.collapsed .sidebar-link::after {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::after {
     content: attr(title);
     position: absolute;
     left: calc(100% + 12px);
@@ -404,7 +404,7 @@ html.high-contrast {
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-  .admin-shell.collapsed .sidebar-link:hover::after {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link:hover::after {
     opacity: 1;
     transform: translateY(-50%) scale(1);
   }
@@ -422,7 +422,10 @@ html.high-contrast {
     visibility: visible;
   }
   .admin-shell.mobile-open .sidebar {
+    /* Tailwind v4's -translate-x-full uses the `translate` property, not
+       `transform` — both must be reset or the sidebar stays off-canvas. */
     transform: translateX(0) !important;
+    translate: 0 !important;
     width: 280px;
   }
 
@@ -460,6 +463,36 @@ html.high-contrast {
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .admin-shell:not(.expanded) .sidebar-link:hover::after { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+
+
+  /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+     that shove icons off-center, and the hover tooltips can never render
+     (the aside clips them) yet their boxes create a phantom horizontal
+     scrollbar — so labels leave the layout and tooltips are disabled. */
+  .admin-shell.collapsed:not(.mobile-open) .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .nav-section-label,
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-btn { position: static; margin-left: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::after { content: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-nav { overflow-x: hidden; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+       that shove icons off-center, and the hover tooltips can never render
+       (the aside clips them) yet their boxes create a phantom horizontal
+       scrollbar — so labels leave the layout and tooltips are disabled. */
+        .admin-shell:not(.expanded) .nav-label,
+        .admin-shell:not(.expanded) .nav-section-label,
+        .admin-shell:not(.expanded) .sidebar-badge,
+        .admin-shell:not(.expanded) .store-selector svg:last-child { display: none; }
+        .admin-shell:not(.expanded) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        .admin-shell:not(.expanded) .collapse-btn { position: static; margin-left: 0; }
+        .admin-shell:not(.expanded) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+        .admin-shell:not(.expanded) .sidebar-link::after { content: none; }
+        .admin-shell:not(.expanded) .sidebar-nav { overflow-x: hidden; }
   }
 
   /* ═══════════════════════════════════════════

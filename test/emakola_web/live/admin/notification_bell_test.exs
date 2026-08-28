@@ -93,4 +93,46 @@ defmodule EmakolaWeb.Admin.NotificationBellTest do
 
     assert Notifications.unread_count_for(other) == 1
   end
+
+  describe "clicking a notification" do
+    test "goes to its action_url and marks it read", ctx do
+      {:ok, notification} =
+        Notifications.notify(ctx.merchant, :order_placed, %{
+          title: "New order from Ama",
+          action_url: "/admin/orders"
+        })
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/dashboard")
+
+      view
+      |> element("#notification-#{notification.id}")
+      |> render_click()
+
+      assert_redirect(view, "/admin/orders")
+
+      reread = Ash.get!(Emakola.Notifications.Notification, notification.id, authorize?: false)
+      refute is_nil(reread.read_at)
+    end
+
+    test "falls back to the messages page when it carries no link", ctx do
+      {:ok, notification} =
+        Notifications.notify(ctx.merchant, :new_message, %{title: "Ama wrote to you"})
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/dashboard")
+
+      view
+      |> element("#notification-#{notification.id}")
+      |> render_click()
+
+      assert_redirect(view, "/admin/messages")
+    end
+
+    test "the dropdown links to the full messages page", ctx do
+      {:ok, _} = Notifications.notify(ctx.merchant, :new_message, %{title: "Ama wrote"})
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/dashboard")
+
+      assert html =~ ~s(href="/admin/messages")
+    end
+  end
 end
