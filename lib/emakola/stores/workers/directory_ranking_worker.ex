@@ -32,6 +32,7 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
   alias Emakola.Stores.DirectoryScore
   alias Emakola.Stores.DirectorySlots
   alias Emakola.Stores.DirectoryStanding
+  alias Emakola.Stores.Workers.DirectoryRankingWorker.DropEmail
   alias Emakola.Stores.Store
 
   # A shop is "young" — eligible for the rising slot — for its first month.
@@ -79,7 +80,21 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
       end
 
     write!(verdicts, slot_by_id, now)
+    notify_drops(verdicts, overrides)
     :ok
+  end
+
+  # A shop that HELD eligibility and lost it tonight gets told why, once.
+  # First assessments and shops staying ineligible are not news. Runs after
+  # the transaction commits — a mail failure never rolls back a verdict.
+  defp notify_drops(verdicts, previous) do
+    Enum.each(verdicts, fn verdict ->
+      was_eligible? = get_in(previous, [verdict.store.id, :eligible]) == true
+
+      if was_eligible? and not verdict.eligible? do
+        DropEmail.send_drop(verdict.store, verdict.disqualifiers)
+      end
+    end)
   end
 
   # ── Assessment ─────────────────────────────────────────────────────────
@@ -197,6 +212,7 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
     |> Map.new(fn standing ->
       {standing.store_id,
        Map.take(standing, [
+         :eligible,
          :override_slot,
          :override_excluded,
          :override_until,
