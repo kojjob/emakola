@@ -27,13 +27,21 @@
     {
       "id": "page-logo-archive",
       "name": "Logo explorations"
+    },
+    {
+      "id": "page-stationery",
+      "name": "Stationery"
+    },
+    {
+      "id": "page-deck",
+      "name": "Pitch deck"
     }
   ],
   "artboards": [
     {
       "file": "Main.dc.html",
       "page": "page-logo",
-      "title": "Canopy — primary identity",
+      "title": "Cowrie Coin — primary identity",
       "x": 0,
       "y": 0,
       "w": 1200,
@@ -204,6 +212,94 @@
       "y": 0,
       "w": 1320,
       "h": 720
+    },
+    {
+      "file": "Letterhead.dc.html",
+      "page": "page-stationery",
+      "x": 0,
+      "y": 0,
+      "w": 794,
+      "h": 1123,
+      "print": "fixed",
+      "title": "Letterhead — A4"
+    },
+    {
+      "file": "Invoice.dc.html",
+      "page": "page-stationery",
+      "x": 914,
+      "y": 0,
+      "w": 794,
+      "h": 1123,
+      "print": "fixed",
+      "title": "Invoice — A4"
+    },
+    {
+      "file": "Envelope.dc.html",
+      "page": "page-stationery",
+      "x": 1828,
+      "y": 0,
+      "w": 832,
+      "h": 416,
+      "print": "fixed",
+      "title": "Envelope — DL"
+    },
+    {
+      "file": "EmailSignature.dc.html",
+      "page": "page-stationery",
+      "x": 1828,
+      "y": 536,
+      "w": 700,
+      "h": 400,
+      "title": "Email signature"
+    },
+    {
+      "file": "BusinessCard.dc.html",
+      "page": "page-stationery",
+      "x": 2780,
+      "y": 0,
+      "w": 794,
+      "h": 1000,
+      "title": "Business card"
+    },
+    {
+      "file": "Receipt.dc.html",
+      "page": "page-stationery",
+      "x": 3694,
+      "y": 0,
+      "w": 420,
+      "h": 740,
+      "print": "fixed",
+      "title": "Receipt"
+    },
+    {
+      "file": "DeckTitle.dc.html",
+      "page": "page-deck",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — title"
+    },
+    {
+      "file": "DeckSection.dc.html",
+      "page": "page-deck",
+      "x": 1400,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — section"
+    },
+    {
+      "file": "DeckContent.dc.html",
+      "page": "page-deck",
+      "x": 2800,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — content"
     }
   ],
   "annotations": [
@@ -213,7 +309,7 @@
       "x": 0,
       "y": -190,
       "w": 560,
-      "text": "Canopy is the mark. Decided 2026-08-24.\n\nIt appears in every email header, both favicon cuts, all three social sizes and the one-pager — change it here and it changes in 34 places, so treat this sheet as the source.\n\nThe six directions and the redraw record are on the Logo explorations page."
+      "text": "Cowrie Coin is the mark. Decided 2026-08-28 after the logo re-opened (the Canopy record moved to the archive pages).\n\nIt appears in every email header, both favicon cuts, all three social sizes, the one-pager and the whole Stationery page - change it here and it changes everywhere, so treat this sheet as the source.\n\nThe full round-2 exploration (11 directions) lives on the Logo Explorations v2 canvas."
     },
     {
       "id": "note-email",
@@ -253,7 +349,7 @@
       "x": 0,
       "y": -190,
       "w": 560,
-      "text": "Kept as the record of why, not as live options.\n\nCanopy won. The other five stay here so the next person does not re-open a settled decision — and so the cowrie is on file if the brand ever wants it."
+      "text": "Kept as the record of why, not as live options.\n\nCanopy won round 1 (2026-08-24) and shipped into the app. The decision was re-opened 2026-08-28 and Cowrie Coin won round 2 — the cowrie that was on file here became the mark. The full round-2 record lives on the Logo Explorations v2 canvas."
     },
     {
       "id": "note-motion",
@@ -262,10 +358,26 @@
       "y": -190,
       "w": 600,
       "text": "These artboards are playing right now — the reveal loops every 3.4s so you can watch it.\n\nPure SVG + CSS. No Lottie, no JSON, no JavaScript, no extra network request. Lift the <style> block and the six paths straight into the app.\n\nMotion is opt-in: keyframes sit inside prefers-reduced-motion: no-preference, so the mark is authored in its finished state and never renders as an empty box."
+    },
+    {
+      "id": "note-stationery",
+      "page": "page-stationery",
+      "x": 3694,
+      "y": 800,
+      "w": 300,
+      "text": "Letterhead, invoice, envelope, card, signature, receipt.\nEvery real fact sits in [BRACKETS]; amounts are sample data. No fee percentages, no merchant counts - ever."
+    },
+    {
+      "id": "note-deck",
+      "page": "page-deck",
+      "x": 0,
+      "y": 800,
+      "w": 300,
+      "text": "Three slide masters, 16:9. Duplicate an artboard per slide.\nSystem stack on export - PDF cannot embed Archivo, so headlines carry ~10% slack."
     }
   ],
   "launch": {
     "view": "canvas",
-    "page": "page-motion"
+    "page": "page-logo"
   }
 }

@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    th { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8896ab; text-align: left; padding: 0 0 10px; border-bottom: 2px solid #0c1526; }
+    td { font-size: 14px; color: #334155; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 794px; height: 1123px; box-sizing: border-box; background: #ffffff; color: #0f172a; padding: 56px 64px 0; display: flex; flex-direction: column;">
+
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 26px; border-bottom: 2px solid #d4a843;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg viewBox="0 0 64 64" width="40" height="40" role="img" aria-label="Makola.io mark">
+        <circle cx="32" cy="32" r="26" fill="#d4a843"/>
+        <path d="M31 11 C27 21 27 43 30 53" stroke="#0c1526" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <g stroke="#0c1526" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M26.5 17 L22.5 15.5"/><path d="M25.2 24 L20.8 23"/><path d="M24.8 31 L20.2 30.7"/><path d="M25 38 L20.6 38.5"/><path d="M26 45 L22 46.5"/>
+          <path d="M34 17.5 L38 16"/><path d="M33 24.5 L37.3 23.6"/><path d="M32.7 31.5 L37 31.3"/><path d="M32.9 38.5 L37 39"/><path d="M33.8 45.5 L37.6 46.8"/>
+        </g>
+      </svg>
+      <span style="font-size: 26px; font-weight: 800; font-stretch: 116%; letter-spacing: -0.02em; color: #0c1526;">Makola<span style="color: #b98a1f;">.io</span></span>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 30px; font-weight: 800; letter-spacing: 0.04em; color: #0c1526;">INVOICE</div>
+      <div style="font-size: 13px; color: #64748b; padding-top: 4px;">No. [INVOICE NUMBER] &middot; [DATE]</div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 60px; padding: 30px 0 34px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8896ab;">From</span>
+      <span style="font-size: 14px; font-weight: 700; color: #0c1526;">Makola.io</span>
+      <span style="font-size: 13px; line-height: 1.55; color: #64748b;">[STREET ADDRESS]<br>Accra, Ghana &middot; [EMAIL]</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8896ab;">Billed to</span>
+      <span style="font-size: 14px; font-weight: 700; color: #0c1526;">[MERCHANT / CUSTOMER NAME]</span>
+      <span style="font-size: 13px; line-height: 1.55; color: #64748b;">[ADDRESS]<br>[PHONE]</span>
+    </div>
+    <div style="margin-left: auto; background: #f7f2e6; border-radius: 12px; padding: 16px 22px; text-align: right; align-self: flex-start;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8896ab;">Amount due</div>
+      <div style="font-size: 32px; font-weight: 800; color: #0c1526; font-variant-numeric: tabular-nums;">GH₵ 460.00</div>
+      <div style="font-size: 12px; color: #64748b;">by [DUE DATE]</div>
+    </div>
+  </div>
+
+  <table cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <tr><th>Description</th><th class="num" style="text-align: right;">Qty</th><th class="num" style="text-align: right;">Unit</th><th class="num" style="text-align: right;">Amount</th></tr>
+    <tr><td>[ITEM — e.g. monthly plan, sample data]</td><td class="num">1</td><td class="num">GH₵ 240.00</td><td class="num">GH₵ 240.00</td></tr>
+    <tr><td>[ITEM — sample data]</td><td class="num">2</td><td class="num">GH₵ 110.00</td><td class="num">GH₵ 220.00</td></tr>
+  </table>
+
+  <div style="display: flex; justify-content: flex-end; padding-top: 18px;">
+    <div style="width: 260px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #64748b;"><span>Subtotal</span><span style="font-variant-numeric: tabular-nums;">GH₵ 460.00</span></div>
+      <div style="display: flex; justify-content: space-between; font-size: 17px; font-weight: 800; color: #0c1526; border-top: 2px solid #0c1526; padding-top: 10px;"><span>Total</span><span style="font-variant-numeric: tabular-nums;">GH₵ 460.00</span></div>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; align-items: flex-end;">
+    <div style="width: 100%; background: #f8fafc; border-radius: 12px; padding: 18px 22px; margin-bottom: 28px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8896ab; padding-bottom: 6px;">How to pay</div>
+      <div style="font-size: 13px; line-height: 1.6; color: #475569;">[PAYMENT INSTRUCTIONS — MoMo number, bank details, or pay link]</div>
+    </div>
+  </div>
+
+  <div style="background: #0c1526; margin: 0 -64px; padding: 16px 64px; display: flex; align-items: center; justify-content: space-between;">
+    <span style="font-size: 12px; color: #8896ab;">Thank you for doing business with Makola.io</span>
+    <span style="font-size: 12px; font-weight: 700; color: #d4a843;">makola.io</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
