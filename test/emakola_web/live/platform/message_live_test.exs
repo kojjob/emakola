@@ -24,7 +24,8 @@ defmodule EmakolaWeb.Platform.MessageLiveTest do
   describe "a browser holding both logins" do
     test "the merchant login does not shadow the staff session here", ctx do
       # Platform pages keep staff-first resolution; the merchant token rides along.
-      {conn, _merchant, _store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(ctx.staff_conn)
+      {conn, _merchant, _store} =
+        Emakola.LiveViewHelpers.setup_authenticated_merchant(ctx.staff_conn)
 
       {:ok, _view, html} = live(conn, ~p"/platform/messages")
 
