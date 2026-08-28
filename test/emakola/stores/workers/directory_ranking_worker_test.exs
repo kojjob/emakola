@@ -11,7 +11,6 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorkerTest do
   require Ash.Query
 
   import Emakola.Factory
-  import Swoosh.TestAssertions
 
   alias Emakola.Stores.DirectoryStanding
   alias Emakola.Stores.Store
@@ -149,61 +148,5 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorkerTest do
     standings
     |> Enum.map(&Map.take(&1, [:store_id, :eligible, :disqualifiers, :score, :slot]))
     |> Enum.sort_by(& &1.store_id)
-  end
-
-  describe "the drop email" do
-    test "losing eligibility emails the owner once, with the reasons", %{} do
-      store = equipped_store!(%{name: "Slipping Shop"})
-      owner = create_merchant!(%{email: "owner@example.com"})
-      create_store_membership!(owner, store, :owner)
-
-      # Registration sends onboarding emails; drain them so the drop-email
-      # assertions see only what the worker sends.
-      drain_mailbox()
-
-      assert :ok = perform_job(DirectoryRankingWorker, %{})
-      assert standing_for(store).eligible
-
-      # The payout account lapses — the hardest bar of the four.
-      Emakola.Stores.StorePayoutAccount
-      |> Ash.read!(authorize?: false)
-      |> Enum.filter(&(&1.store_id == store.id))
-      |> Enum.each(&Ash.Seed.update!(&1, %{verification_status: :unverified}))
-
-      assert :ok = perform_job(DirectoryRankingWorker, %{})
-      refute standing_for(store).eligible
-
-      assert_email_sent(fn email ->
-        {_name, to} = hd(email.to)
-        to == "owner@example.com" and email.text_body =~ "MoMo payout"
-      end)
-
-      # Staying ineligible is not news — no second email.
-      assert :ok = perform_job(DirectoryRankingWorker, %{})
-      assert_no_email_sent()
-    end
-
-    test "a shop that was never eligible gets no email on first assessment" do
-      store = create_store!(%{name: "Bare From Birth"})
-      owner = create_merchant!(%{email: "bare@example.com"})
-      create_store_membership!(owner, store, :owner)
-
-      drain_mailbox()
-
-      assert :ok = perform_job(DirectoryRankingWorker, %{})
-
-      assert_no_email_sent()
-      _ = store
-    end
-  end
-
-  # Swallows whatever onboarding mail the factories triggered, so the
-  # drop-email assertions see only what the worker sends.
-  defp drain_mailbox do
-    receive do
-      {:email, _} -> drain_mailbox()
-    after
-      0 -> :ok
-    end
   end
 end

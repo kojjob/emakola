@@ -858,94 +858,81 @@ html.high-contrast {
 }
 
 /* ── Makola mark motion ──────────────────────────────────────────────────────
-   Drives EmakolaWeb.BrandComponents.logo_mark/1. The mark is a market stall,
-   so it assembles like one: roof, awning, posts, counter.
+   Drives EmakolaWeb.BrandComponents.logo_mark/1. The mark is a cowrie struck
+   as a coin — one face, one slit, ten teeth — so it moves like money: struck,
+   shimmering, received.
 
    Three rules hold this together:
      1. Every part is authored in its finished state. Keyframes live behind
         prefers-reduced-motion, so stillness yields the mark, not a blank box.
-     2. transform-box: fill-box on every child — without it an SVG element
-        scales from the viewBox corner instead of its own, and the mark slides
-        off rather than unfurling.
+     2. transform-box: fill-box on every animated element — without it an SVG
+        element scales from the viewBox corner instead of its own, and the
+        mark slides off rather than unfurling.
      3. Only transform and opacity animate. The one exception is .logo-paid's
-        counter, which animates fill; it fires once on one element, so the
+        face, which animates fill; it fires once on one element, so the
         uncomposited repaint costs nothing. Do not reuse it in a loop.
    ────────────────────────────────────────────────────────────────────────── */
 @layer components {
-  .logo-reveal > *,
-  .logo-loading > *,
-  .logo-awaiting > *,
-  .logo-paid > *,
-  .logo-splash > * {
+  .logo-reveal *,
+  .logo-loading *,
+  .logo-awaiting *,
+  .logo-paid *,
+  .logo-splash * {
     transform-box: fill-box;
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* The stall goes up — 1.1s, first paint only. */
-    .logo-reveal .logo-roof {
-      animation: makola-roof 460ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
-    }
-
-    /* The awning alone overshoots, so the cloth settles like cloth. */
-    .logo-reveal .logo-valance {
-      transform-origin: center top;
-      animation: makola-unfurl 350ms cubic-bezier(0.3, 0.9, 0.4, 1.25) 300ms both;
-    }
-
-    .logo-reveal .logo-post-l,
-    .logo-reveal .logo-post-r {
-      transform-origin: center top;
-      animation: makola-grow 280ms cubic-bezier(0.2, 0.8, 0.3, 1) 520ms both;
-    }
-
-    .logo-reveal .logo-post-r {
-      animation-delay: 570ms;
-    }
-
-    .logo-reveal .logo-bar {
+    /* The coin is struck — 1.1s, first paint only. */
+    .logo-reveal .logo-face {
       transform-origin: center center;
-      animation: makola-widen 250ms cubic-bezier(0.2, 0.8, 0.3, 1) 700ms both;
+      animation: makola-strike 420ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
     }
 
-    .logo-reveal .logo-front {
+    .logo-reveal .logo-slit {
       transform-origin: center top;
-      animation: makola-unfurl 280ms cubic-bezier(0.2, 0.8, 0.3, 1) 820ms both;
+      animation: makola-draw 320ms cubic-bezier(0.3, 0.9, 0.4, 1) 340ms both;
     }
 
-    /* Working — the awning ripples. This is our spinner. */
-    .logo-loading .logo-scallop {
-      transform-origin: center top;
-      animation: makola-ripple 1.25s ease-in-out infinite;
+    .logo-reveal .logo-tooth {
+      transform-origin: center center;
+      animation: makola-bite 220ms cubic-bezier(0.2, 0.8, 0.3, 1.3) both;
     }
 
-    .logo-loading .logo-scallop:nth-of-type(2) {
-      animation-delay: 80ms;
+    .logo-reveal .logo-tooth:nth-of-type(1) { animation-delay: 560ms; }
+    .logo-reveal .logo-tooth:nth-of-type(6) { animation-delay: 590ms; }
+    .logo-reveal .logo-tooth:nth-of-type(2) { animation-delay: 620ms; }
+    .logo-reveal .logo-tooth:nth-of-type(7) { animation-delay: 650ms; }
+    .logo-reveal .logo-tooth:nth-of-type(3) { animation-delay: 680ms; }
+    .logo-reveal .logo-tooth:nth-of-type(8) { animation-delay: 710ms; }
+    .logo-reveal .logo-tooth:nth-of-type(4) { animation-delay: 740ms; }
+    .logo-reveal .logo-tooth:nth-of-type(9) { animation-delay: 770ms; }
+    .logo-reveal .logo-tooth:nth-of-type(5) { animation-delay: 800ms; }
+    .logo-reveal .logo-tooth:nth-of-type(10) { animation-delay: 830ms; }
+
+    /* Working — the teeth shimmer down the shell. This is our spinner. */
+    .logo-loading .logo-tooth {
+      transform-origin: center center;
+      animation: makola-shimmer 1.25s ease-in-out infinite;
     }
 
-    .logo-loading .logo-scallop:nth-of-type(3) {
-      animation-delay: 160ms;
-    }
+    .logo-loading .logo-tooth:nth-of-type(6) { animation-delay: 40ms; }
+    .logo-loading .logo-tooth:nth-of-type(2) { animation-delay: 90ms; }
+    .logo-loading .logo-tooth:nth-of-type(7) { animation-delay: 130ms; }
+    .logo-loading .logo-tooth:nth-of-type(3) { animation-delay: 180ms; }
+    .logo-loading .logo-tooth:nth-of-type(8) { animation-delay: 220ms; }
+    .logo-loading .logo-tooth:nth-of-type(4) { animation-delay: 270ms; }
+    .logo-loading .logo-tooth:nth-of-type(9) { animation-delay: 310ms; }
+    .logo-loading .logo-tooth:nth-of-type(5) { animation-delay: 360ms; }
+    .logo-loading .logo-tooth:nth-of-type(10) { animation-delay: 400ms; }
 
-    .logo-loading .logo-scallop:nth-of-type(4) {
-      animation-delay: 240ms;
-    }
-
-    .logo-loading .logo-scallop:nth-of-type(5) {
-      animation-delay: 320ms;
-    }
-
-    .logo-loading .logo-scallop:nth-of-type(6) {
-      animation-delay: 400ms;
-    }
-
-    /* Payment pending — a coin falls in through the front of the stall. */
+    /* Payment pending — a coin falls and sinks into the slit. */
     .logo-awaiting .logo-coin {
-      animation: makola-coin 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      animation: makola-coin-drop 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
     }
 
-    /* Paid — the counter turns green and a tick lands. Plays once. */
-    .logo-paid .logo-bar {
-      animation: makola-flash 900ms ease-in-out 120ms both;
+    /* Paid — the face flashes green and a tick lands. Plays once. */
+    .logo-paid .logo-face {
+      animation: makola-face-flash 900ms ease-in-out 120ms both;
     }
 
     .logo-paid .logo-tick {
@@ -961,74 +948,67 @@ html.high-contrast {
   }
 }
 
-@keyframes makola-roof {
+@keyframes makola-strike {
   from {
-    transform: translateY(-20px);
+    transform: scale(0.55);
     opacity: 0;
   }
 }
 
-@keyframes makola-unfurl {
+@keyframes makola-draw {
   from {
     transform: scaleY(0);
     opacity: 0;
   }
 }
 
-@keyframes makola-grow {
+@keyframes makola-bite {
   from {
-    transform: scaleY(0);
+    transform: scale(0);
+    opacity: 0;
   }
 }
 
-@keyframes makola-widen {
-  from {
-    transform: scaleX(0);
-  }
-}
-
-@keyframes makola-ripple {
+@keyframes makola-shimmer {
   0%,
   100% {
-    transform: scaleY(1);
+    transform: scale(1);
+    opacity: 1;
   }
 
   45% {
-    transform: scaleY(0.42);
+    transform: scale(0.4);
+    opacity: 0.35;
   }
 }
 
-@keyframes makola-coin {
+@keyframes makola-coin-drop {
   0% {
-    transform: translateY(-44px);
+    transform: translateY(-34px);
     opacity: 0;
   }
 
-  12% {
+  14% {
     opacity: 1;
   }
 
-  62% {
-    transform: translateY(2px);
-  }
-
-  72% {
-    transform: translateY(-3px);
-  }
-
-  82% {
+  58% {
     transform: translateY(0);
     opacity: 1;
   }
 
-  95%,
+  80% {
+    transform: translateY(5px) scale(0.45);
+    opacity: 0;
+  }
+
   100% {
-    transform: translateY(0);
+    transform: translateY(5px) scale(0.45);
     opacity: 0;
   }
 }
 
-@keyframes makola-flash {
+@keyframes makola-face-flash {
   0%,
   100% {
     fill: #d4a843;
