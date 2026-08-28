@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1240, "h": 480 },
+    { "file": "Incumbents.dc.html", "x": 1320, "y": 0, "w": 760, "h": 480 },
+    { "file": "NkyinkyimM.dc.html", "x": 0, "y": 600, "w": 760, "h": 640 },
+    { "file": "CowrieEvolved.dc.html", "x": 840, "y": 600, "w": 760, "h": 640 },
+    { "file": "MarketBasket.dc.html", "x": 1680, "y": 600, "w": 760, "h": 640 },
+    { "file": "RooflineM.dc.html", "x": 0, "y": 1360, "w": 760, "h": 640 },
+    { "file": "WordmarkCoin.dc.html", "x": 840, "y": 1360, "w": 760, "h": 640 },
+    { "file": "ConvergingPaths.dc.html", "x": 1680, "y": 1360, "w": 760, "h": 640 }
+  ],
+  "annotations": [
+    { "id": "round2-brief", "x": 2160, "y": 20, "w": 280, "text": "Round 2 - logo re-opened 2026-08-28.\nPick ONE direction; it becomes the production mark and the whole kit rebuilds around it.\nCanopy stays live in-app until the swap PR. Losing directions join the record." }
+  ],
+  "launch": { "view": "canvas" }
+}
