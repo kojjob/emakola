@@ -126,112 +126,81 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
         id="notification-preferences"
         class="rounded-card border border-slate-200 bg-white overflow-hidden shadow-sm"
       >
-        <%!-- Scrolls on its own rather than pushing the page sideways: three
-             channel columns plus a label is wider than a phone. --%>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[30rem]">
-            <thead class="bg-slate-50/80 border-b border-slate-200">
-              <tr>
-                <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-4 py-3">
-                  What happens
-                </th>
-                <th
-                  :for={channel <- Preferences.switchable_channels()}
-                  class="px-3 py-3 w-24"
-                >
-                  <div class="flex flex-col items-center gap-1">
-                    <span class="material-symbols-outlined text-lg text-slate-400">
-                      {channel_icon(channel)}
-                    </span>
-                    <span class="text-[11px] font-semibold text-slate-500">
-                      {channel_label(channel)}
-                    </span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                :for={event <- Preferences.configurable_events()}
-                class="hover:bg-slate-50/60 transition-colors"
-              >
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
-                    <div class={[
-                      "shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center",
-                      LayoutHelpers.notification_icon_bg_class(event)
-                    ]}>
-                      <span class={[
-                        "material-symbols-outlined text-lg",
-                        LayoutHelpers.notification_icon_color_class(event)
-                      ]}>
-                        {LayoutHelpers.notification_icon(event)}
-                      </span>
-                    </div>
-                    <span class="font-medium text-slate-800">{event_label(event)}</span>
-                  </div>
-                </td>
-                <td :for={channel <- Preferences.switchable_channels()} class="px-3 py-3">
-                  <div class="flex justify-center">
-                    <button
-                      type="button"
-                      phx-click="toggle_channel"
-                      phx-value-notification={event}
-                      phx-value-channel={channel}
-                      role="switch"
-                      aria-checked={to_string(channel in Map.get(@chosen, event, []))}
-                      aria-label={"#{channel_label(channel)} for #{event_label(event)}"}
-                      class={[
-                        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer",
-                        if(channel in Map.get(@chosen, event, []),
-                          do: "bg-primary",
-                          else: "bg-surface-subtle border border-border"
-                        )
-                      ]}
-                    >
-                      <span class={[
-                        "inline-block size-4 transform rounded-full bg-white shadow transition-transform",
-                        if(channel in Map.get(@chosen, event, []),
-                          do: "translate-x-6",
-                          else: "translate-x-1"
-                        )
-                      ]} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+        <div class="px-5 pt-4 pb-3">
+          <h2 class="text-base font-extrabold text-slate-900">What Makola tells you about</h2>
+          <p class="mt-0.5 text-[12.5px] text-slate-500">
+            Tap a channel to turn it on or off for each event.
+          </p>
+        </div>
 
-              <tr :for={event <- Preferences.always_on()} class="bg-slate-50/40">
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
-                    <div class={[
-                      "shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center",
-                      LayoutHelpers.notification_icon_bg_class(event)
-                    ]}>
-                      <span class={[
-                        "material-symbols-outlined text-lg",
-                        LayoutHelpers.notification_icon_color_class(event)
-                      ]}>
-                        {LayoutHelpers.notification_icon(event)}
-                      </span>
-                    </div>
-                    <span class="font-medium text-slate-800">{event_label(event)}</span>
-                  </div>
-                </td>
-                <td
-                  colspan={length(Preferences.switchable_channels())}
-                  class="px-3 py-3"
-                >
-                  <div class="flex flex-col items-center gap-0.5">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
-                      <span class="material-symbols-outlined text-sm">lock</span> Always on
-                    </span>
-                    <span class="text-[11px] text-slate-400">{always_on_reason(event)}</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          :for={event <- Preferences.configurable_events()}
+          class="flex flex-col gap-3 border-t border-slate-100 px-5 py-3.5 sm:flex-row sm:items-center"
+        >
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <div class={[
+              "shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center",
+              LayoutHelpers.notification_icon_bg_class(event)
+            ]}>
+              <span class={[
+                "material-symbols-outlined text-xl",
+                LayoutHelpers.notification_icon_color_class(event)
+              ]}>
+                {LayoutHelpers.notification_icon(event)}
+              </span>
+            </div>
+            <span class="text-sm font-bold text-slate-900">{event_label(event)}</span>
+          </div>
+          <div class="flex shrink-0 flex-wrap gap-1.5">
+            <button
+              :for={channel <- Preferences.switchable_channels()}
+              type="button"
+              phx-click="toggle_channel"
+              phx-value-notification={event}
+              phx-value-channel={channel}
+              role="switch"
+              aria-checked={to_string(channel in Map.get(@chosen, event, []))}
+              aria-label={"#{channel_label(channel)} for #{event_label(event)}"}
+              class={[
+                "inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-bold transition-colors cursor-pointer",
+                if(channel in Map.get(@chosen, event, []),
+                  do: "bg-primary text-white",
+                  else: "border border-border bg-white text-slate-400 hover:border-slate-300"
+                )
+              ]}
+            >
+              <.icon
+                :if={channel in Map.get(@chosen, event, [])}
+                name="hero-check"
+                class="size-3"
+              />
+              {channel_label(channel)}
+            </button>
+          </div>
+        </div>
+
+        <div
+          :for={event <- Preferences.always_on()}
+          class="flex items-center gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5"
+        >
+          <div class={[
+            "shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center",
+            LayoutHelpers.notification_icon_bg_class(event)
+          ]}>
+            <span class={[
+              "material-symbols-outlined text-xl",
+              LayoutHelpers.notification_icon_color_class(event)
+            ]}>
+              {LayoutHelpers.notification_icon(event)}
+            </span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <span class="text-sm font-bold text-slate-900">{event_label(event)}</span>
+            <p class="text-[11.5px] text-slate-400">{always_on_reason(event)}</p>
+          </div>
+          <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+            <span class="material-symbols-outlined text-sm">lock</span> Always on
+          </span>
         </div>
       </div>
 
@@ -241,12 +210,17 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
         phx-submit="save_quiet_hours"
         class="rounded-card border border-slate-200 bg-white p-4 space-y-4 shadow-sm"
       >
-        <div>
-          <h2 class="text-base font-semibold text-slate-900">Quiet hours</h2>
-          <p class="text-sm text-slate-500 mt-1">
-            Nothing will ring your phone between these times. It waits, and reaches you
-            after. Money and new orders always get through.
-          </p>
+        <div class="flex items-center gap-3.5">
+          <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-900">
+            <span class="material-symbols-outlined text-xl text-amber-400">bedtime</span>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">Quiet hours</h2>
+            <p class="text-[12.5px] text-slate-500">
+              Nothing rings your phone between these times — it waits, and reaches
+              you after. Money and new orders always get through.
+            </p>
+          </div>
         </div>
 
         <div class="flex items-end gap-4">
@@ -283,10 +257,6 @@ defmodule EmakolaWeb.Admin.NotificationSettingsLive do
   defp channel_label(:whatsapp), do: "WhatsApp"
   defp channel_label(:sms), do: "SMS"
   defp channel_label(:email), do: "Email"
-
-  defp channel_icon(:whatsapp), do: "chat"
-  defp channel_icon(:sms), do: "sms"
-  defp channel_icon(:email), do: "mail"
 
   defp event_label(:new_message), do: "Someone messages you"
   defp event_label(:order_status_changed), do: "An order changes"
