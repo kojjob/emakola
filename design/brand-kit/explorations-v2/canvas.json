@@ -16,7 +16,7 @@
     { "file": "GenSources.dc.html", "x": 1680, "y": 3100, "w": 760, "h": 640 }
   ],
   "annotations": [
-    { "id": "round2-brief", "x": 2160, "y": 20, "w": 280, "text": "Round 2 - logo re-opened 2026-08-28.\nPick ONE of the eleven directions; it becomes the production mark and the whole kit rebuilds around it.\nRows 1-2 (01-06): first pass. Row 3-4 (07-11): mined from 27 Monid-generated composition studies, redrawn by hand - see the Provenance board.\nCanopy stays live in-app until the swap PR." }
+    { "id": "round2-brief", "x": 2160, "y": 20, "w": 280, "text": "DECIDED 2026-08-28: direction 09, Cowrie Coin.\nProduction SVGs: design/brand-kit/cowrie-coin*.svg. The brand-kit canvas is rebuilt around it (emails, social, print, stationery, deck).\nRows 1-2 (01-06): first pass. Rows 3-4 (07-11): mined from 27 Monid-generated composition studies, redrawn by hand - see the Provenance board.\nCanopy stays live in-app until the swap PR." }
   ],
   "launch": { "view": "canvas" }
 }
