@@ -111,6 +111,7 @@ defmodule Emakola.MixProject do
 
       # S3-compatible file storage
       {:ex_aws, "~> 2.5"},
+      {:vix, "~> 0.41"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
 

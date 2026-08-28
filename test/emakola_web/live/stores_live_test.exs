@@ -36,6 +36,27 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, "#stores-grid")
     end
 
+    test "grid cards serve the webp medium variant when one exists", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Variant Shop", slug: "variant-shop"})
+      product = Factory.create_product!(store, %{title: "Photographed"})
+      Factory.create_variant!(product, store)
+
+      product
+      |> Ash.Changeset.for_update(:activate, %{})
+      |> Ash.update!(authorize?: false)
+
+      Factory.create_image!(product, store)
+      |> Ash.Changeset.for_update(:mark_processed, %{
+        thumbnail_url: "https://s3.example.com/test/photo_thumb.webp",
+        medium_url: "https://s3.example.com/test/photo_medium.webp"
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "photo_medium.webp"
+    end
+
     test "directory cards keep their favorite button", %{conn: conn} do
       Factory.create_store!(%{name: "Fave Guard Shop", slug: "fave-guard-shop"})
 

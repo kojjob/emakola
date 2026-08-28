@@ -155,6 +155,20 @@ defmodule Emakola.Catalog.Image do
 
       # A new image can take position 0 — revoke.
       change(Emakola.Catalog.Changes.RevokeSnapVerified)
+
+      # Kick off webp variant generation. after_transaction, not
+      # after_action: the job row must not sit inside the image's own
+      # transaction, and a queue failure must not roll back the upload.
+      change(
+        after_transaction(fn
+          _changeset, {:ok, image}, _context ->
+            Emakola.Workers.ImageProcessorWorker.enqueue(image.id)
+            {:ok, image}
+
+          _changeset, error, _context ->
+            error
+        end)
+      )
     end
 
     update :update do

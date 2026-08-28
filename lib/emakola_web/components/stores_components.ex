@@ -975,10 +975,12 @@ defmodule EmakolaWeb.StoresComponents do
   # else nil and the themed gradient pattern renders.
   defp card_image_url(store) do
     cover = Map.get(store, :cover_image_url)
+    product_medium = Map.get(store, :card_image_medium_url)
     product_photo = Map.get(store, :card_image_url)
 
     cond do
       is_binary(cover) and cover != "" -> cover
+      is_binary(product_medium) and product_medium != "" -> product_medium
       is_binary(product_photo) and product_photo != "" -> product_photo
       true -> nil
     end
