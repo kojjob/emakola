@@ -50,6 +50,28 @@ defmodule EmakolaWeb.Storefront.FaqLiveTest do
              |> LazyHTML.text() =~ ~s("FAQPage")
     end
 
+    test "questions form a single-open accordion", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Accordion Shop", slug: "accordion-faq"})
+
+      Factory.create_page_content!(store, %{
+        faq_items: [
+          %{"question" => "First?", "answer" => "One."},
+          %{"question" => "Second?", "answer" => "Two."}
+        ]
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/faq")
+
+      # Native <details> siblings that share a `name` are mutually exclusive:
+      # opening one answer closes the other, no JavaScript.
+      names =
+        Regex.scan(~r/<details[^>]*\bname="([^"]+)"/, html)
+        |> Enum.map(fn [_, name] -> name end)
+
+      assert length(names) == 2
+      assert Enum.uniq(names) == ["faq"]
+    end
+
     test "drops blank FAQ rows from a half-filled form", %{conn: conn} do
       store = Factory.create_store!(%{name: "Blank FAQ", slug: "blank-faq"})
 

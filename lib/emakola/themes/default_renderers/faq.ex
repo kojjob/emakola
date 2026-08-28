@@ -50,6 +50,7 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
       <div class="space-y-3">
         <details
           :for={item <- @faq_items}
+          name="faq"
           class="bg-white rounded-xl border border-stone-200 group"
         >
           <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
