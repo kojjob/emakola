@@ -13,6 +13,18 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "a browser holding both logins" do
+    test "the platform staff session does not shadow the merchant login", %{conn: conn} do
+      {conn, _merchant, _store} = setup_authenticated_merchant(conn)
+      # The same person signs into the platform in the same browser.
+      {conn, _staff, _session} = Emakola.LiveViewHelpers.setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#dashboard-greeting")
+    end
+  end
+
   describe "dashboard page" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)

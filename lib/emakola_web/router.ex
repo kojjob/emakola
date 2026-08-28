@@ -484,7 +484,7 @@ defmodule EmakolaWeb.Router do
     live_session :app,
       layout: {EmakolaWeb.Layouts, :app},
       on_mount: [
-        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.AssignDefaults, :merchant},
         {EmakolaWeb.Hooks.RequireAuth, :default},
         {EmakolaWeb.Hooks.RequireActiveStore, :default},
         {EmakolaWeb.Hooks.MerchantAnnouncements, :default}
@@ -580,7 +580,7 @@ defmodule EmakolaWeb.Router do
     # can see why without a redirect loop.
     live_session :app_store_locked,
       on_mount: [
-        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.AssignDefaults, :merchant},
         {EmakolaWeb.Hooks.RequireAuth, :default}
       ] do
       live "/store-locked", MerchantStoreLockedLive
