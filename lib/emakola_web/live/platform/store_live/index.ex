@@ -19,6 +19,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
   alias Emakola.Accounts.PlatformPermissions
+  alias Emakola.Stores.DirectoryCuration
   alias Emakola.Stores.FeaturedRanking
   alias Emakola.Stores.Store
 
@@ -38,6 +39,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       |> assign(:stores_count, 0)
       |> assign(:stores_loaded?, false)
       |> assign(:selected, nil)
+      |> assign(:standing, nil)
       |> assign(:truncated?, false)
       |> stream(:stores, [], dom_id: &"store-#{&1.id}")
 
@@ -135,6 +137,30 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     end)
   end
 
+  def handle_event("directory_exclude", %{"reason" => reason}, socket) do
+    authorized(socket, fn socket ->
+      curate(socket, fn standing, staff ->
+        DirectoryCuration.set_excluded(standing, !standing.override_excluded, reason, staff)
+      end)
+    end)
+  end
+
+  def handle_event("directory_pin", %{"slot" => slot, "reason" => reason}, socket) do
+    authorized(socket, fn socket ->
+      curate(socket, fn standing, staff ->
+        slot =
+          Emakola.SafeAtom.to_atom_in(slot, [:spotlight, :rising, :editors_pick, :clear], :clear)
+
+        DirectoryCuration.override_slot(
+          standing,
+          if(slot == :clear, do: nil, else: slot),
+          reason,
+          staff
+        )
+      end)
+    end)
+  end
+
   def handle_event("move_rank", %{"id" => id, "dir" => dir}, socket)
       when dir in ["up", "down"] do
     direction = if dir == "up", do: :up, else: :down
@@ -159,6 +185,44 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       {:ok, user} -> user
       {:error, _} -> nil
     end
+  end
+
+  defp curate(socket, fun) do
+    case socket.assigns.standing do
+      nil ->
+        {:noreply,
+         put_flash(socket, :error, "No featuring record yet — the nightly run creates one.")}
+
+      standing ->
+        case fun.(standing, socket.assigns.current_user) do
+          {:ok, _} ->
+            {:noreply,
+             socket
+             |> assign(:standing, load_standing(standing.store_id))
+             |> put_flash(:info, "Featuring updated.")}
+
+          {:error, :reason_required} ->
+            {:noreply, put_flash(socket, :error, "A reason is required.")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Featuring update failed.")}
+        end
+    end
+  end
+
+  defp humanize_disqualifier(:abandoned), do: "gone quiet"
+  defp humanize_disqualifier(:incomplete), do: "incomplete shopfront"
+  defp humanize_disqualifier(:no_payout), do: "no verified payout"
+  defp humanize_disqualifier(:conduct), do: "conduct on record"
+
+  defp load_standing(store_id) do
+    require Ash.Query
+
+    Emakola.Stores.DirectoryStanding
+    |> Ash.Query.filter(store_id == ^store_id)
+    |> Ash.read_one!(authorize?: false)
+  rescue
+    _exception -> nil
   end
 
   defp audit(socket, action, store) do
@@ -237,6 +301,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     |> assign(:stores_count, length(filtered))
     |> assign(:stores_loaded?, true)
     |> assign(:selected, selected)
+    |> assign(:standing, selected && load_standing(selected.id))
     |> assign(:featured_position, featured_position)
     |> stream(:stores, Enum.map(filtered, &store_row(&1, selected)), reset: true)
   end
@@ -649,6 +714,107 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     else: "Not shown on the public directory right now."}
                 </p>
               </div>
+            </div>
+            <div :if={@standing} id="panel-standing" class="mt-7">
+              <h3 class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">
+                Featuring standing
+              </h3>
+              <div class="rounded-2xl ring-1 ring-inset ring-gray-200 divide-y divide-gray-100 bg-white">
+                <div class="flex items-center gap-3.5 p-4">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-100 text-slate-500 shrink-0">
+                    <.icon name="hero-chart-bar" class="size-[18px]" />
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">
+                      Score
+                      <span id="panel-standing-score" class="tabular-nums">{@standing.score}</span>
+                      / 1000
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                      <%= if @standing.eligible do %>
+                        Eligible for every featured slot
+                      <% else %>
+                        Barred: {Enum.map_join(
+                          @standing.disqualifiers,
+                          ", ",
+                          &humanize_disqualifier/1
+                        )}
+                      <% end %>
+                    </p>
+                  </div>
+                  <span
+                    :if={@standing.slot}
+                    id="panel-standing-slot"
+                    class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-700 shrink-0"
+                  >
+                    {@standing.override_slot || @standing.slot}
+                  </span>
+                </div>
+
+                <.form
+                  for={%{}}
+                  as={:directory_pin}
+                  phx-submit="directory_pin"
+                  class="flex items-center gap-2 p-4"
+                >
+                  <select
+                    name="slot"
+                    id="panel-pin-slot"
+                    class="h-9 rounded-[10px] border-gray-200 text-sm text-gray-700"
+                  >
+                    <option value="clear">Clear pin</option>
+                    <option value="spotlight">Pin: Spotlight</option>
+                    <option value="rising">Pin: Rising</option>
+                    <option value="editors_pick">Pin: Editors pick</option>
+                  </select>
+                  <input
+                    type="text"
+                    name="reason"
+                    id="panel-pin-reason"
+                    placeholder="Reason (required)"
+                    class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    id="panel-pin-submit"
+                    class="h-9 rounded-[10px] bg-slate-900 px-3.5 text-sm font-semibold text-white"
+                  >
+                    Pin
+                  </button>
+                </.form>
+
+                <.form
+                  for={%{}}
+                  as={:directory_exclude}
+                  phx-submit="directory_exclude"
+                  class="flex items-center gap-2 p-4"
+                >
+                  <input
+                    type="text"
+                    name="reason"
+                    id="panel-exclude-reason"
+                    placeholder="Reason (required)"
+                    class="h-9 flex-1 min-w-0 rounded-[10px] border-gray-200 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    id="panel-exclude-toggle"
+                    class={[
+                      "h-9 rounded-[10px] px-3.5 text-sm font-semibold",
+                      if(@standing.override_excluded,
+                        do: "bg-emerald-600 text-white",
+                        else: "bg-rose-600 text-white"
+                      )
+                    ]}
+                  >
+                    {if @standing.override_excluded, do: "Readmit", else: "Exclude"}
+                  </button>
+                </.form>
+              </div>
+              <p class="text-xs text-gray-400 mt-3">
+                Pins lapse after 30 days. Exclusions hold until readmitted. Every change is
+                logged with its reason.
+              </p>
             </div>
           </div>
 

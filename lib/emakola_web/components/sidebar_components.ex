@@ -695,7 +695,13 @@ defmodule EmakolaWeb.SidebarComponents do
             <div class="overflow-y-auto max-h-[360px] divide-y divide-slate-50">
               <%= if length(notifs) > 0 do %>
                 <%= for notif <- notifs do %>
-                  <div class={"flex gap-3 px-5 py-3.5 hover:bg-slate-50/80 transition-colors #{if is_nil(notif.read_at), do: "bg-emerald-50/30", else: ""}"}>
+                  <button
+                    type="button"
+                    id={"notification-#{notif.id}"}
+                    phx-click="open_notification"
+                    phx-value-id={notif.id}
+                    class={"w-full text-left flex gap-3 px-5 py-3.5 hover:bg-slate-50/80 transition-colors cursor-pointer #{if is_nil(notif.read_at), do: "bg-emerald-50/30", else: ""}"}
+                  >
                     <div class={"shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center #{EmakolaWeb.LayoutHelpers.notification_icon_bg_class(notif.type)}"}>
                       <span class={"material-symbols-outlined text-lg #{EmakolaWeb.LayoutHelpers.notification_icon_color_class(notif.type)}"}>
                         {EmakolaWeb.LayoutHelpers.notification_icon(notif.type)}
@@ -719,7 +725,7 @@ defmodule EmakolaWeb.SidebarComponents do
                         {EmakolaWeb.LayoutHelpers.relative_time(notif.inserted_at)}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 <% end %>
               <% else %>
                 <div class="px-5 py-10 text-center">
@@ -730,12 +736,18 @@ defmodule EmakolaWeb.SidebarComponents do
                 </div>
               <% end %>
             </div>
-            <div class="border-t border-slate-100 px-5 py-3">
+            <div class="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+              <a
+                href="/admin/messages"
+                class="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                View all messages
+              </a>
               <a
                 href="/admin/settings"
                 class="text-xs font-medium text-slate-500 hover:text-emerald-600 transition-colors"
               >
-                Notification settings
+                Settings
               </a>
             </div>
           </div>

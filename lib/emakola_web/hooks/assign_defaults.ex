@@ -18,13 +18,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
-    socket =
-      assign(socket,
-        active_nav: :dashboard,
-        setup_banner_dismissed: false,
-        impersonator: nil,
-        robots: "noindex, nofollow"
-      )
+    socket = base_assigns(socket)
 
     case resolve_platform_session(socket, session["platform_session_token"]) do
       {:ok, socket} ->
@@ -33,6 +27,39 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       :error ->
         resolve_merchant_token(socket, session["user_token"], session)
     end
+  end
+
+  # Merchant admin surfaces. A browser often holds both logins — the same
+  # person runs the platform and a shop — and here the merchant login must
+  # win, or a platform session shadows it and every merchant page bounces
+  # to a login that cannot fix anything (RequireAuth's contract, enforced).
+  def on_mount(:merchant, _params, session, socket) do
+    socket = base_assigns(socket)
+
+    case resolve_merchant_token(socket, session["user_token"], session) do
+      {:cont, %{assigns: %{current_merchant: %{}}} = socket} ->
+        {:cont, socket}
+
+      {:halt, socket} ->
+        {:halt, socket}
+
+      {:cont, socket} ->
+        # No merchant login. Resolve staff so shared chrome still knows who
+        # is looking; RequireAuth will still ask them to log in as a merchant.
+        case resolve_platform_session(socket, session["platform_session_token"]) do
+          {:ok, socket} -> {:cont, attach_notification_hook(socket)}
+          :error -> {:cont, socket}
+        end
+    end
+  end
+
+  defp base_assigns(socket) do
+    assign(socket,
+      active_nav: :dashboard,
+      setup_banner_dismissed: false,
+      impersonator: nil,
+      robots: "noindex, nofollow"
+    )
   end
 
   defp resolve_platform_session(socket, signed_token) do
@@ -256,7 +283,40 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   end
 
+  # Clicking a notification is the read receipt AND the navigation — the row
+  # goes where its action_url points, or to the actor's inbox when it has
+  # none. Rendered by both bells (admin topbar, platform layout), handled
+  # once here.
+  defp handle_notification_event("open_notification", %{"id" => id}, socket) do
+    notifications = socket.assigns[:notifications] || []
+
+    case Enum.find(notifications, &(&1.id == id)) do
+      nil ->
+        {:halt, socket}
+
+      notification ->
+        if is_nil(notification.read_at), do: Emakola.Notifications.mark_read(notification)
+        now = DateTime.utc_now()
+
+        updated =
+          Enum.map(notifications, fn n ->
+            if n.id == id, do: %{n | read_at: n.read_at || now}, else: n
+          end)
+
+        unread = Enum.count(updated, &is_nil(&1.read_at))
+
+        {:halt,
+         socket
+         |> assign(notifications: updated, unread_notification_count: unread)
+         |> Phoenix.LiveView.push_navigate(to: notification.action_url || inbox_path(socket))}
+    end
+  end
+
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
+
+  defp inbox_path(socket) do
+    if socket.assigns[:current_merchant], do: "/admin/messages", else: "/platform/messages"
+  end
 
   # Whichever actor this session belongs to. Both are never set at once —
   # the merchant path nils current_user and vice versa.

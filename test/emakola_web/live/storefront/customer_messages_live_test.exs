@@ -32,6 +32,32 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert message.author_kind == :customer
   end
 
+  test "a sent message shows once, not twice", ctx do
+    {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    view
+    |> form("#customer-message-form", message: %{body: "Do you have blue?"})
+    |> render_submit()
+
+    # The sender's own PubSub echo must not append a second copy.
+    {:ok, [thread]} = Conversations.list_shop_threads(ctx.store.id)
+    {:ok, [message]} = Conversations.list_messages(thread.id)
+    occurrences = length(String.split(render(view), ~s(id="customer-message-#{message.id}"))) - 1
+    assert occurrences == 1
+  end
+
+  test "the conversation renders as grouped chat bubbles", ctx do
+    {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
+    {:ok, first} = Conversations.post_message(thread, :customer, ctx.customer.id, "Hello")
+    {:ok, _} = Conversations.post_message(thread, :customer, ctx.customer.id, "Anyone there?")
+
+    {:ok, _view, html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")
+
+    # Grouped: the buyer's own run of messages carries one read receipt.
+    assert html =~ ~s(id="customer-message-#{first.id}")
+    assert html =~ ~s(data-read="false")
+  end
+
   test "the shop's reply appears without a refresh", ctx do
     {:ok, thread} = Conversations.open_shop_thread(ctx.store.id, ctx.customer.id)
     {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/account/messages")

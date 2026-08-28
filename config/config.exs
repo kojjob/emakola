@@ -17,7 +17,14 @@ config :emakola,
 # claim a platform host as a custom domain. One list, two readers.
 config :emakola,
        :apex_hosts,
-       ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+       ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1) ++
+         if(config_env() == :dev,
+           # Dev-only: containerized browsers and phones on the LAN reach the
+           # admin through these; without them every non-localhost host is
+           # treated as a store domain and admin routes 404.
+           do: ~w(host.docker.internal),
+           else: []
+         )
 
 # Configure the endpoint
 config :emakola, EmakolaWeb.Endpoint,

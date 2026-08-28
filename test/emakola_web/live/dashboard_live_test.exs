@@ -13,6 +13,46 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "the setup celebration" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "finishing every step earns one banner, dismissable for good", ctx do
+      complete_setup!(ctx.store)
+
+      {:ok, view, html} = live(ctx.conn, ~p"/dashboard")
+      assert html =~ "Your shop is ready"
+
+      view |> element("#setup-celebration-dismiss") |> render_click()
+      refute render(view) =~ "Your shop is ready"
+
+      # The dismissal survives a fresh visit.
+      {:ok, _view, html} = live(ctx.conn, ~p"/dashboard")
+      refute html =~ "Your shop is ready"
+    end
+
+    test "an unfinished setup shows the journey strip, not the banner", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/dashboard")
+
+      assert html =~ "Set up your shop"
+      refute html =~ "Your shop is ready"
+    end
+  end
+
+  describe "a browser holding both logins" do
+    test "the platform staff session does not shadow the merchant login", %{conn: conn} do
+      {conn, _merchant, _store} = setup_authenticated_merchant(conn)
+      # The same person signs into the platform in the same browser.
+      {conn, _staff, _session} = Emakola.LiveViewHelpers.setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#dashboard-greeting")
+    end
+  end
+
   describe "dashboard page" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)
@@ -122,16 +162,31 @@ defmodule EmakolaWeb.DashboardLiveTest do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
       assert html =~ "Today"
-      assert html =~ "7 Days"
-      assert html =~ "30 Days"
-      assert html =~ "All Time"
+      assert html =~ "This week"
+      assert html =~ "This month"
+      assert html =~ "All time"
+    end
+
+    test "money row leads with revenue in plain words", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#money-made", "Money made")
+      assert has_element?(view, "#money-orders", "Orders")
+      assert has_element?(view, "#money-buyers", "Buyers")
+    end
+
+    test "detailed numbers hide behind one toggle", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#more-numbers.hidden")
+      assert has_element?(view, "#more-numbers-toggle")
     end
 
     test "renders chart canvases with hooks", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
       assert html =~ ~s(phx-hook="ChartHook")
-      assert html =~ ~s(id="revenue-chart")
+      assert html =~ ~s(id="money-bars")
       assert html =~ ~s(id="orders-chart")
       assert html =~ ~s(id="customers-chart")
       assert html =~ ~s(id="top-products-chart")
@@ -161,7 +216,7 @@ defmodule EmakolaWeb.DashboardLiveTest do
     test "period toggle updates data", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard")
 
-      html = element(view, "button", "30 Days") |> render_click()
+      html = element(view, "button", "This month") |> render_click()
 
       assert html =~ "Dashboard"
     end
@@ -402,5 +457,49 @@ defmodule EmakolaWeb.DashboardLiveTest do
       |> Plug.Conn.put_session(:user_token, token)
 
     {conn, merchant, store}
+  end
+
+  describe "featuring checklist" do
+    test "an incomplete shop sees what featuring needs, plainly", %{conn: conn} do
+      {conn, _merchant, store} = setup_authenticated_merchant(conn)
+
+      # Clear the setup checklist so the featuring one shows (one list at a
+      # time): theme, a product, a delivery zone, WhatsApp, a social link.
+      Factory.create_product!(store, status: :active)
+      Factory.create_delivery_zone!(store)
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{
+        whatsapp_number: "+233201234567",
+        instagram_url: "https://instagram.com/shop",
+        theme_config: %{"theme" => "market"}
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, "/dashboard")
+
+      assert html =~ "featuring-checklist" or html =~ "What featuring needs"
+      # The payout item cannot be ticked — no verified payout account exists.
+      assert html =~ "Add your MoMo payout"
+    end
+  end
+
+  # Ticks every setup step: theme + whatsapp + social on the store,
+  # plus one product and one delivery zone.
+  defp complete_setup!(store) do
+    Factory.create_product!(store, %{status: :active})
+    Factory.create_delivery_zone!(store)
+
+    store
+    |> Ash.Changeset.for_update(
+      :update_settings,
+      %{
+        theme_config: %{"theme" => "market"},
+        whatsapp_number: "+233201112222",
+        instagram_url: "https://instagram.com/testshop"
+      },
+      authorize?: false
+    )
+    |> Ash.update!()
   end
 end
