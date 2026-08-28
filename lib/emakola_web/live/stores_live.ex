@@ -308,6 +308,7 @@ defmodule EmakolaWeb.StoresLive do
                         field={@filter_form[:region]}
                         id="stores-region-filter"
                         type="select"
+                        aria-label="Filter by region"
                         options={StoresComponents.regions()}
                         class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
                       />
@@ -322,6 +323,7 @@ defmodule EmakolaWeb.StoresLive do
                         field={@filter_form[:sort]}
                         id="stores-sort-filter"
                         type="select"
+                        aria-label="Sort stores"
                         options={StoresComponents.sorts()}
                         class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
                       />
