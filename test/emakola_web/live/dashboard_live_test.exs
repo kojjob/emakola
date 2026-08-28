@@ -122,16 +122,31 @@ defmodule EmakolaWeb.DashboardLiveTest do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
       assert html =~ "Today"
-      assert html =~ "7 Days"
-      assert html =~ "30 Days"
-      assert html =~ "All Time"
+      assert html =~ "This week"
+      assert html =~ "This month"
+      assert html =~ "All time"
+    end
+
+    test "money row leads with revenue in plain words", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#money-made", "Money made")
+      assert has_element?(view, "#money-orders", "Orders")
+      assert has_element?(view, "#money-buyers", "Buyers")
+    end
+
+    test "detailed numbers hide behind one toggle", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, "#more-numbers.hidden")
+      assert has_element?(view, "#more-numbers-toggle")
     end
 
     test "renders chart canvases with hooks", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
       assert html =~ ~s(phx-hook="ChartHook")
-      assert html =~ ~s(id="revenue-chart")
+      assert html =~ ~s(id="money-bars")
       assert html =~ ~s(id="orders-chart")
       assert html =~ ~s(id="customers-chart")
       assert html =~ ~s(id="top-products-chart")
@@ -161,7 +176,7 @@ defmodule EmakolaWeb.DashboardLiveTest do
     test "period toggle updates data", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard")
 
-      html = element(view, "button", "30 Days") |> render_click()
+      html = element(view, "button", "This month") |> render_click()
 
       assert html =~ "Dashboard"
     end

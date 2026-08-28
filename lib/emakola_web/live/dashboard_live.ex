@@ -298,59 +298,84 @@ defmodule EmakolaWeb.DashboardLive do
         open_returns={@open_returns}
       />
 
-      <.kpi_cards
+      <.money_row
         loading={@loading}
+        period={@period}
         total_revenue={@total_revenue}
         revenue_change={@revenue_change}
         order_count={@order_count}
         orders_change={@orders_change}
         customer_count={@customer_count}
         customers_change={@customers_change}
-        avg_order_value={@avg_order_value}
-        aov_change={@aov_change}
       />
 
-      <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-8 space-y-6">
-          <.chart_card
-            id="revenue-chart"
-            title="Revenue"
-            chart_type="revenue-bar"
-            chart_data={@revenue_chart}
-          />
-          <.chart_card
-            id="orders-chart"
-            title="Orders"
-            chart_type="orders-line"
-            chart_data={@orders_chart}
-          />
-        </div>
-        <div class="lg:col-span-4 space-y-6">
-          <.alerts_panel
-            pending_orders={@pending_orders}
-            low_stock_count={@low_stock_count}
-            failed_payments={@failed_payments}
-          />
-          <.chart_card
-            id="top-products-chart"
-            title="Top Products"
-            chart_type="top-products-horizontal"
-            chart_data={@top_products_chart}
-            height="h-48"
-          />
-          <.chart_card
-            id="customers-chart"
-            title="New Customers"
-            chart_type="customers-line"
-            chart_data={@customers_chart}
-            height="h-48"
-          />
-        </div>
+      <section class={[
+        "grid grid-cols-1 gap-6",
+        @best_sellers != [] && "lg:grid-cols-[1.6fr_1fr]"
+      ]}>
+        <.money_bars chart={@revenue_chart} loading={@loading} />
+        <.best_sellers_panel best_sellers={@best_sellers} />
       </section>
 
-      <.best_sellers_panel best_sellers={@best_sellers} />
-
       <.recent_orders_table recent_orders={@recent_orders} />
+
+      <%!-- The analyst's view, one tap away instead of first --%>
+      <div class="flex justify-center">
+        <button
+          id="more-numbers-toggle"
+          type="button"
+          phx-click={Phoenix.LiveView.JS.toggle_class("hidden", to: "#more-numbers")}
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300 transition-colors cursor-pointer"
+        >
+          <.icon name="hero-chart-bar" class="size-4 text-slate-400" /> See more numbers
+        </button>
+      </div>
+
+      <section id="more-numbers" class="hidden space-y-6">
+        <.kpi_cards
+          loading={@loading}
+          total_revenue={@total_revenue}
+          revenue_change={@revenue_change}
+          order_count={@order_count}
+          orders_change={@orders_change}
+          customer_count={@customer_count}
+          customers_change={@customers_change}
+          avg_order_value={@avg_order_value}
+          aov_change={@aov_change}
+        />
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8">
+            <.chart_card
+              id="orders-chart"
+              title="Orders"
+              chart_type="orders-line"
+              chart_data={@orders_chart}
+            />
+          </div>
+          <div class="lg:col-span-4 space-y-6">
+            <.alerts_panel
+              pending_orders={@pending_orders}
+              low_stock_count={@low_stock_count}
+              failed_payments={@failed_payments}
+            />
+            <.chart_card
+              id="top-products-chart"
+              title="Top Products"
+              chart_type="top-products-horizontal"
+              chart_data={@top_products_chart}
+              height="h-48"
+            />
+            <.chart_card
+              id="customers-chart"
+              title="New Customers"
+              chart_type="customers-line"
+              chart_data={@customers_chart}
+              height="h-48"
+            />
+          </div>
+        </div>
+      </section>
     </div>
     """
   end

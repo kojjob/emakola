@@ -62,10 +62,11 @@ defmodule EmakolaWeb.DashboardComponents do
     """
   end
 
+  # Words a merchant says, not analyst ranges.
   defp period_label("today"), do: "Today"
-  defp period_label("week"), do: "7 Days"
-  defp period_label("month"), do: "30 Days"
-  defp period_label("all"), do: "All Time"
+  defp period_label("week"), do: "This week"
+  defp period_label("month"), do: "This month"
+  defp period_label("all"), do: "All time"
   defp period_label(other), do: other
 
   @doc """
@@ -83,79 +84,87 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def work_queue(assigns) do
     ~H"""
-    <.admin_card padding={:none} class="p-5">
-      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Do these now</h2>
-
-      <div class="divide-y divide-slate-100">
-        <.work_queue_row
+    <section :if={@pending_orders > 0 or @sold_out_count > 0 or @open_returns > 0}>
+      <div class="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
+        <.work_tile
           :if={@pending_orders > 0}
           id="work-queue-orders"
           icon="hero-shopping-bag"
-          icon_class="bg-warning-soft text-warning"
-          label="Confirm new orders"
+          tint="bg-primary-soft text-primary"
+          edge="shadow-[inset_4px_0_0_theme(colors.emerald.600)]"
+          label="Orders to send"
           count={@pending_orders}
-          action="Confirm"
+          action="Send"
           href="/admin/orders"
         />
-        <.work_queue_row
+        <.work_tile
           :if={@sold_out_count > 0}
           id="work-queue-stock"
           icon="hero-cube"
-          icon_class="bg-danger-soft text-danger"
-          label="Restock sold-out items"
+          tint="bg-amber-100 text-amber-600"
+          edge="shadow-[inset_4px_0_0_theme(colors.amber.600)]"
+          label="Items sold out"
           count={@sold_out_count}
           action="Restock"
           href="/admin/inventory"
         />
-        <.work_queue_row
+        <.work_tile
           :if={@open_returns > 0}
           id="work-queue-returns"
           icon="hero-arrow-uturn-left"
-          icon_class="bg-info-soft text-info"
-          label="Review return requests"
+          tint="bg-rose-100 text-rose-600"
+          edge="shadow-[inset_4px_0_0_theme(colors.rose.600)]"
+          label="Returns to answer"
           count={@open_returns}
-          action="Review"
+          action="Answer"
           href="/admin/returns"
         />
       </div>
+    </section>
 
-      <div
-        :if={@pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0}
-        id="work-queue-all-clear"
-        class="flex items-center gap-3 py-2"
-      >
-        <div class="w-10 h-10 rounded-full bg-success-soft flex items-center justify-center shrink-0">
-          <.icon name="hero-check" class="size-5 text-success" />
-        </div>
-        <p class="text-sm font-medium text-slate-700">Nothing to do — nice work</p>
+    <div
+      :if={@pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0}
+      id="work-queue-all-clear"
+      class="flex items-center gap-4 rounded-card border border-border bg-surface px-6 py-4"
+    >
+      <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-success-soft">
+        <.icon name="hero-check" class="size-5 text-success" />
       </div>
-    </.admin_card>
+      <div class="flex-1">
+        <p class="text-sm font-bold text-slate-900">Nothing to do — nice work</p>
+        <p class="text-xs text-slate-500 mt-0.5">New orders and questions show here.</p>
+      </div>
+    </div>
     """
   end
 
   attr :id, :string, required: true
   attr :icon, :string, required: true
-  attr :icon_class, :string, required: true
+  attr :tint, :string, required: true
+  attr :edge, :string, required: true
   attr :label, :string, required: true
   attr :count, :integer, required: true
   attr :action, :string, required: true
   attr :href, :string, required: true
 
-  defp work_queue_row(assigns) do
+  defp work_tile(assigns) do
     ~H"""
-    <div id={@id} class="flex items-center gap-3 py-3">
-      <div class={["w-10 h-10 rounded-full flex items-center justify-center shrink-0", @icon_class]}>
-        <.icon name={@icon} class="size-5" />
+    <div
+      id={@id}
+      class={["flex items-center gap-4 rounded-card border border-border bg-surface p-5", @edge]}
+    >
+      <div class={["flex size-[52px] shrink-0 items-center justify-center rounded-card", @tint]}>
+        <.icon name={@icon} class="size-6" />
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold text-slate-900 truncate">{@label}</p>
-        <p class="text-xs text-slate-500 tabular-nums">{@count} waiting</p>
+        <p class="text-[26px] leading-none font-black text-slate-900 tabular-nums">{@count}</p>
+        <p class="mt-1 text-[13px] font-bold text-slate-700 truncate">{@label}</p>
       </div>
       <.link
         navigate={@href}
-        class="shrink-0 inline-flex items-center px-3 py-1.5 rounded-control bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition-colors"
+        class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-primary px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover"
       >
-        {@action}
+        {@action} <.icon name="hero-arrow-right" class="size-3" />
       </.link>
     </div>
     """
@@ -190,7 +199,9 @@ defmodule EmakolaWeb.DashboardComponents do
             <.icon :if={!product.image_url} name="hero-photo" class="size-6 text-slate-400" />
           </div>
           <p class="mt-2 text-sm font-medium text-slate-900 truncate">{product.title}</p>
-          <p class="text-xs text-slate-500 tabular-nums">{product.quantity} sold</p>
+          <span class="mt-1 inline-flex rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-extrabold text-emerald-700 tabular-nums">
+            {product.quantity} sold
+          </span>
         </div>
       </div>
     </.admin_card>
@@ -282,73 +293,57 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def recent_orders_table(assigns) do
     ~H"""
-    <.admin_card padding={:none} class="overflow-hidden">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-xl text-primary">receipt_long</span>
-          <h2 class="text-base font-bold text-slate-800">Recent Orders</h2>
-        </div>
+    <.admin_card padding={:none} class="p-5 sm:p-6">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-[15px] font-extrabold text-slate-900">Latest orders</h2>
         <.link
           navigate="/admin/orders"
-          class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
+          class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover"
         >
-          View all <span class="material-symbols-outlined text-base">arrow_forward</span>
+          See all <.icon name="hero-arrow-right" class="size-3" />
         </.link>
       </div>
 
-      <%= if @recent_orders == [] do %>
-        <div class="px-6 py-16 text-center">
-          <span class="material-symbols-outlined text-4xl text-slate-200 mb-3 block">
-            receipt_long
-          </span>
-          <p class="text-sm font-medium text-slate-500">No orders yet</p>
-          <p class="text-xs text-slate-400 mt-1">Orders will appear here as customers place them</p>
+      <div :if={@recent_orders == []} class="py-12 text-center">
+        <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-slate-50">
+          <.icon name="hero-shopping-bag" class="size-6 text-slate-300" />
         </div>
-      <% else %>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-slate-100">
-                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr :for={order <- @recent_orders} class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-3">
-                  <.link
-                    navigate={"/admin/orders/#{order.id}"}
-                    class="text-sm font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    {order.order_number}
-                  </.link>
-                </td>
-                <td class="px-6 py-3 text-sm text-slate-600">
-                  {customer_display_name(order)}
-                </td>
-                <td class="px-6 py-3 text-sm text-slate-900 font-medium text-right tabular-nums">
-                  {format_money(order.total)}
-                </td>
-                <td class="px-6 py-3 text-right">
-                  <.status_badge status={order.status} variant={:order} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
+        <p class="text-sm font-semibold text-slate-500">No orders yet</p>
+        <p class="mt-1 text-xs text-slate-400">Orders show here as buyers place them</p>
+      </div>
+
+      <div :if={@recent_orders != []} class="mt-2 divide-y divide-slate-50">
+        <.link
+          :for={order <- @recent_orders}
+          navigate={"/admin/orders/#{order.id}"}
+          class="flex items-center gap-3.5 py-3 transition-colors hover:bg-slate-50/60"
+        >
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-emerald-700">
+            {buyer_initials(order)}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-bold text-slate-900">{customer_display_name(order)}</p>
+            <p class="text-xs text-slate-400">
+              {order.order_number} · {EmakolaWeb.LayoutHelpers.relative_time(order.inserted_at)}
+            </p>
+          </div>
+          <p class="shrink-0 text-[15px] font-extrabold text-slate-900 tabular-nums">
+            {format_money(order.total)}
+          </p>
+          <.status_badge status={order.status} variant={:order} />
+        </.link>
+      </div>
     </.admin_card>
     """
+  end
+
+  defp buyer_initials(order) do
+    order
+    |> customer_display_name()
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
   end
 
   defp customer_display_name(order) do

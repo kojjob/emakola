@@ -147,6 +147,224 @@ defmodule EmakolaWeb.DashboardMetricComponents do
     """
   end
 
+  @doc """
+  The headline money row: one big revenue card and two count tiles.
+
+  Built for merchants who read slowly — no percentages, no four-card grid.
+  Direction is an arrow plus a short sentence ("More than last week"); the
+  precise deltas stay available under "See more numbers".
+  """
+  attr :period, :string, required: true
+  attr :total_revenue, :integer, required: true
+  attr :revenue_change, :float, default: nil
+  attr :order_count, :integer, required: true
+  attr :orders_change, :float, default: nil
+  attr :customer_count, :integer, required: true
+  attr :customers_change, :float, default: nil
+  attr :loading, :boolean, default: false
+
+  def money_row(assigns) do
+    ~H"""
+    <section class="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] gap-4">
+      <div
+        id="money-made"
+        class="rounded-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 flex items-center gap-5"
+      >
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-card bg-white/15">
+          <.icon name="hero-banknotes" class="size-7 text-white" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-bold text-white/80">Money made</p>
+          <div :if={@loading} class="mt-1.5 h-8 w-36 animate-pulse rounded-lg bg-white/25"></div>
+          <p :if={!@loading} class="text-3xl font-black tracking-tight text-white truncate">
+            {format_money(@total_revenue)}
+          </p>
+        </div>
+        <div
+          :if={!@loading && comparison(@period, @revenue_change)}
+          class="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5"
+        >
+          <.icon name={direction_icon(@revenue_change)} class="size-4 text-white" />
+          <span class="text-[13px] font-extrabold text-white">
+            {comparison(@period, @revenue_change)}
+          </span>
+        </div>
+      </div>
+
+      <.count_tile
+        id="money-orders"
+        icon="hero-shopping-bag"
+        label="Orders"
+        count={@order_count}
+        loading={@loading}
+      >
+        <.direction_arrow :if={!@loading} change={@orders_change} />
+      </.count_tile>
+      <.count_tile
+        id="money-buyers"
+        icon="hero-user-group"
+        label="Buyers"
+        count={@customer_count}
+        loading={@loading}
+      >
+        <.direction_arrow :if={!@loading} change={@customers_change} />
+      </.count_tile>
+    </section>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :count, :integer, required: true
+  attr :loading, :boolean, default: false
+  slot :inner_block
+
+  defp count_tile(assigns) do
+    ~H"""
+    <div id={@id} class="rounded-card border border-border bg-surface p-5 flex items-center gap-4">
+      <div class="flex size-[52px] shrink-0 items-center justify-center rounded-card bg-primary-soft">
+        <.icon name={@icon} class="size-6 text-primary" />
+      </div>
+      <div>
+        <div :if={@loading} class="h-7 w-12 animate-pulse rounded-lg bg-slate-100"></div>
+        <p :if={!@loading} class="text-[28px] leading-none font-black text-slate-900 tabular-nums">
+          {@count}
+        </p>
+        <p class="mt-1 text-[13px] font-bold text-slate-500">{@label}</p>
+      </div>
+      <div class="ml-auto">{render_slot(@inner_block)}</div>
+    </div>
+    """
+  end
+
+  attr :change, :float, default: nil
+
+  defp direction_arrow(assigns) do
+    ~H"""
+    <.icon
+      :if={@change && @change > 0}
+      name="hero-arrow-up"
+      class="size-5 text-emerald-600"
+    />
+    <.icon
+      :if={@change && @change < 0}
+      name="hero-arrow-down"
+      class="size-5 text-rose-500"
+    />
+    <.icon
+      :if={is_nil(@change) || @change == 0.0}
+      name="hero-minus"
+      class="size-5 text-slate-300"
+    />
+    """
+  end
+
+  defp direction_icon(change) when is_float(change) and change < 0, do: "hero-arrow-down"
+  defp direction_icon(_change), do: "hero-arrow-up"
+
+  # A sentence, not a percentage. "All time" has nothing to compare against.
+  defp comparison(_period, nil), do: nil
+  defp comparison(_period, change) when change == 0.0, do: nil
+  defp comparison("today", change), do: more_or_less(change, "yesterday")
+  defp comparison("week", change), do: more_or_less(change, "last week")
+  defp comparison("month", change), do: more_or_less(change, "last month")
+  defp comparison(_period, _change), do: nil
+
+  defp more_or_less(change, base) when change > 0, do: "More than " <> base
+  defp more_or_less(_change, base), do: "Less than " <> base
+
+  @doc """
+  Revenue as plain HTML bars — no chart library, no axes to decode.
+  The best bar is solid emerald and carries its amount; a sentence under
+  the chart says the same thing in words.
+  """
+  attr :id, :string, default: "money-bars"
+  attr :chart, :map, required: true, doc: "%{labels: [...], values: [pesewas...]}"
+  attr :loading, :boolean, default: false
+
+  def money_bars(assigns) do
+    values = assigns.chart.values
+    max_value = Enum.max(values, fn -> 0 end)
+    best_index = if max_value > 0, do: Enum.find_index(values, &(&1 == max_value)), else: nil
+
+    bars =
+      values
+      |> Enum.with_index()
+      |> Enum.map(fn {value, index} ->
+        %{
+          index: index,
+          label: Enum.at(assigns.chart.labels, index),
+          # Zero days keep a 4% stub so the week reads as a row of days.
+          height: if(max_value > 0, do: max(round(value / max_value * 100), 4), else: 4),
+          best?: index == best_index
+        }
+      end)
+
+    assigns =
+      assigns
+      |> assign(:bars, bars)
+      |> assign(:best, best_index && Enum.at(bars, best_index))
+      |> assign(:show_labels?, length(values) <= 7)
+      |> assign(:has_sales?, max_value > 0)
+
+    ~H"""
+    <section id={@id} class="rounded-card border border-border bg-surface p-6">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-[15px] font-extrabold text-slate-900">Money each day</h2>
+      </div>
+
+      <div :if={@loading} class="mt-4 flex h-44 items-end gap-2">
+        <div
+          :for={height <- [40, 60, 45, 75, 55, 90, 65]}
+          class="flex-1 animate-pulse rounded-t-lg bg-slate-100"
+          style={"height: #{height}%"}
+        >
+        </div>
+      </div>
+
+      <div :if={!@loading && @has_sales?} class="mt-4 flex h-44 items-end gap-2">
+        <div
+          :for={bar <- @bars}
+          class="flex h-full flex-1 flex-col items-center justify-end gap-1.5 min-w-0"
+        >
+          <span :if={bar.best?} class="text-[11px] font-extrabold text-emerald-700 whitespace-nowrap">
+            {format_money(Enum.at(@chart.values, bar.index))}
+          </span>
+          <div
+            class={[
+              "w-full rounded-t-lg",
+              if(bar.best?, do: "bg-emerald-600", else: "bg-emerald-200")
+            ]}
+            style={"height: #{bar.height}%"}
+          >
+          </div>
+          <span
+            :if={@show_labels? || bar.best?}
+            class={[
+              "text-[11px] font-bold whitespace-nowrap",
+              if(bar.best?, do: "text-emerald-700", else: "text-slate-400")
+            ]}
+          >
+            {bar.label}
+          </span>
+        </div>
+      </div>
+      <p :if={!@loading && @has_sales? && @best} class="mt-3 text-xs text-slate-400">
+        {@best.label} made the most money.
+      </p>
+
+      <div
+        :if={!@loading && !@has_sales?}
+        class="mt-4 flex h-44 flex-col items-center justify-center gap-2"
+      >
+        <.icon name="hero-banknotes" class="size-7 text-slate-200" />
+        <p class="text-sm text-slate-400">No sales in this period yet.</p>
+      </div>
+    </section>
+    """
+  end
+
   defp format_money(amount_pesewas) do
     major = amount_pesewas |> div(100) |> abs() |> Emakola.Money.group_thousands()
     minor = rem(abs(amount_pesewas), 100)
