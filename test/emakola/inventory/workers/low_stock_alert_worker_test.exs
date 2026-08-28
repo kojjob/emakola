@@ -211,6 +211,7 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerTest do
       0 -> :ok
     end
   end
+
   defp restock!(variant, quantity) do
     import Ecto.Query
 
@@ -230,5 +231,4 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerTest do
       0 -> :ok
     end
   end
-
 end
