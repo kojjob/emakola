@@ -76,10 +76,10 @@ defmodule Emakola.Themes.Beauty.Sections.Newsletter do
   end
 
   defp newsletter_title(theme),
-    do: get_in(theme, [:newsletter, :title]) || "Join the beauty list"
+    do: get_in(theme, [:newsletter, :title]) || "Join the list"
 
   defp newsletter_subtitle(theme),
-    do: get_in(theme, [:newsletter, :subtitle]) || "New launches and rituals."
+    do: get_in(theme, [:newsletter, :subtitle]) || "New launches, first."
 
   defp newsletter_button(theme),
     do: get_in(theme, [:newsletter, :button_text]) || "Subscribe"

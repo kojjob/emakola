@@ -63,10 +63,10 @@ defmodule Emakola.Themes.Dede do
         carousel: false,
         title: "",
         subtitle: "",
-        cta_text: "See the menu",
+        cta_text: "Shop now",
         cta_url: "/products"
       },
-      nav: %{search_placeholder: "Search the menu...", transparent: false},
+      nav: %{search_placeholder: "Search the shop...", transparent: false},
       sections: %{
         hero: true,
         special: true,
@@ -77,11 +77,11 @@ defmodule Emakola.Themes.Dede do
       },
       trust: %{
         title: "How to order",
-        subtitle: "WhatsApp, mobile money, and today's fresh pots."
+        subtitle: "WhatsApp, mobile money, easy delivery."
       },
       newsletter: %{
-        title: "Fresh pot alerts",
-        subtitle: "Menu updates straight to your inbox.",
+        title: "Hear it first",
+        subtitle: "Updates straight to your inbox.",
         button_text: "Subscribe"
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},

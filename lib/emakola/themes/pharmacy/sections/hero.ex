@@ -47,12 +47,12 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
           <div class="relative z-10 order-2 lg:order-1">
             <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#A7E5C5]/20 text-[#A7E5C5] text-xs font-semibold uppercase tracking-wider mb-6">
               <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
-              Pharmacy you can trust
+              Here to help
             </span>
             <h1 class="pharmacy-heading text-4xl sm:text-5xl lg:text-6xl font-medium text-white leading-[1.1] mb-6">
               {if @settings["title"] not in [nil, ""],
                 do: @settings["title"],
-                else: @theme.hero.title || "Professional Pharmacy Services You Can Trust"}
+                else: @theme.hero.title || "Everything you need, in one place"}
             </h1>
             <p class="text-base sm:text-lg text-[#F9F6F0]/80 leading-relaxed mb-8 max-w-xl">
               {if @settings["subtitle"] not in [nil, ""],
@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
                 else:
                   @theme.hero.subtitle ||
                     @store.description ||
-                    "Providing expert pharmacy care you can rely on. We are here to support your health every step of the way."}
+                    "We are here to help, every step of the way."}
             </p>
             <div class="flex flex-col sm:flex-row gap-3">
               <a

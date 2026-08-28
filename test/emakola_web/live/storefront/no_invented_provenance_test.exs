@@ -56,6 +56,31 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     | crafted\s+(?:from|with\s+care)
     | solid\s+wood
     | dermatologist[\s-]?tested
+    # Claims about WHAT THE GOODS ARE. The platform does not know whether a
+    # shop sells food, skincare, medicine or cloth — a theme default that
+    # names the vertical states a fact about the goods on every shop that
+    # merely picked the design. Mood copy ("Shop the drop") stays; goods
+    # assertions ("See the menu", "flawless skin") and fabricated specifics
+    # ("Volume IV \u00b7 Drop No. 12") do not.
+    | volume\s+[ivxlcdm\d]+
+    | drop\s+no\.?\s*\d
+    | see\s+the\s+menu
+    | search\s+the\s+menu
+    | fresh\s+pots?
+    | flawless\s+skin
+    | luscious\s+hair
+    | beauty\s+list
+    | made\s+to\s+be\s+worn
+    | pharmacy\s+(?:services|care)
+    | pharmacy\s+you\s+can\s+trust
+    | your\s+skin\s+deserves
+    | upgrade\s+your\s+gear
+    | search\s+electronics
+    | noise\s+cancellation
+    | immersive\s+sound
+    | premium\s+audio
+    | the\s+latest\s+phones
+    | furniture\s+and\s+home\s+goods
   /ix
 
   # Claims about OTHER PEOPLE — that a crowd trusts this shop, that these goods

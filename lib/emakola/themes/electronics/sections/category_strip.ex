@@ -23,19 +23,24 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :strip_items, categories_strip_items(assigns.theme))
+    assigns =
+      assign(
+        assigns,
+        :strip_items,
+        categories_strip_items(assigns.theme, assigns[:categories] || [])
+      )
 
     ~H"""
     <%!-- CATEGORY PILL STRIP --%>
     <section
-      :if={section_enabled?(@theme, :categories)}
+      :if={section_enabled?(@theme, :categories) && @strip_items != []}
       class="bg-[#F5EFE5] border-b border-[#E5E7EB]"
     >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div class="flex flex-wrap items-center gap-2 sm:gap-3">
           <a
             :for={item <- @strip_items}
-            href={store_path(@store.slug, "/products")}
+            href={store_path(@store.slug, Item.field(item, :href) || "/products")}
             class={"inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors min-h-[40px] " <>
               if(Item.field(item, :active), do: "bg-[var(--theme-primary,#134E4A)] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#0EA5E9] hover:text-[#134E4A]")}
           >
@@ -54,19 +59,21 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
     """
   end
 
-  defp categories_strip_items(theme) do
+  # The strip used to invent electronics categories ("Wireless", "Noise
+  # Cancellation") for every shop wearing the theme. The default is now the
+  # store's real categories; a shop with none shows no strip at all.
+  defp categories_strip_items(theme, categories) do
     case get_in(theme, [:categories_strip, :items]) do
-      items when is_list(items) and items != [] -> items
-      _ -> default_categories_strip()
-    end
-  end
+      items when is_list(items) and items != [] ->
+        items
 
-  defp default_categories_strip do
-    [
-      %{label: "Wireless", active: true},
-      %{label: "Noise Cancellation"},
-      %{label: "Sports & Active"},
-      %{label: "Phones"}
-    ]
+      _ ->
+        categories
+        |> Enum.take(5)
+        |> Enum.with_index()
+        |> Enum.map(fn {category, index} ->
+          %{label: category.name, href: "/category/#{category.slug}", active: index == 0}
+        end)
+    end
   end
 end

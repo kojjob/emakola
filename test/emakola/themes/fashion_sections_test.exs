@@ -42,7 +42,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
   # them on the page have to write something.
   @merchant_story %{
     "editorial_intro" => %{
-      "eyebrow" => "Volume IV · Drop No. 12",
+      "eyebrow" => "New collection",
       "title" => "Curated drops, made by hand.",
       "body" => "Every piece is cut and sewn by the four tailors in our Osu workshop."
     }
@@ -96,7 +96,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert length(String.split(html, "<h1")) == 2
 
       # Editorial intro
-      assert html =~ "Volume IV · Drop No. 12"
+      assert html =~ "New collection"
       assert html =~ "Curated drops, made by hand."
 
       # Lookbook 2x2 grid. "Editor's picks." named an editor this shop does not
@@ -149,7 +149,9 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert html =~ ~s(href="/s/#{store.slug}/cart")
       assert html =~ ~s(href="/s/#{store.slug}/products")
       assert html =~ store.name
-      assert html =~ "Volume IV · #{DateTime.utc_now().year}"
+      # The footer used to print a fabricated magazine issue ("Volume IV") on
+      # every shop wearing the theme.
+      refute html =~ "Volume IV"
     end
 
     test "an empty store keeps the hero and newsletter, and claims nothing" do

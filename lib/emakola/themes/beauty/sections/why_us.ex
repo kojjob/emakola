@@ -77,7 +77,7 @@ defmodule Emakola.Themes.Beauty.Sections.WhyUs do
   end
 
   defp why_us_title(theme),
-    do: get_in(theme, [:why_us, :title]) || "Why your skin deserves the best"
+    do: get_in(theme, [:why_us, :title]) || "Why buy from us"
 
   defp why_us_items(theme) do
     case get_in(theme, [:why_us, :items]) do

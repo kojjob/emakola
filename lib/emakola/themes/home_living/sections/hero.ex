@@ -56,7 +56,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
       |> assign(
         :headline,
         present(assigns.settings["headline"]) || Map.get(hero, :title) ||
-          "Furniture and home goods"
+          "For the way you live"
       )
       |> assign(
         :subheadline,

@@ -23,7 +23,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
   @impl true
   def settings_schema do
     [
-      %{key: "headline", type: :string, label: "Headline", default: "Made to be worn"},
+      %{key: "headline", type: :string, label: "Headline", default: "New in the shop"},
       %{key: "cta_label", type: :string, label: "Button label", default: "Explore the shop"}
     ]
   end
@@ -38,7 +38,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
     assigns =
       assigns
       |> assign(:image, image)
-      |> assign(:headline, present(assigns.settings["headline"]) || "Made to be worn")
+      |> assign(:headline, present(assigns.settings["headline"]) || "New in the shop")
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Explore the shop")
 
     ~H"""
