@@ -78,6 +78,14 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    # Stamped by LowStockAlertWorker when this variant is included in a
+    # low-stock digest; cleared when stock recovers. Alert on the drop, not
+    # on every morning the state persists.
+    attribute :low_stock_alerted_at, :utc_datetime_usec do
+      allow_nil?(true)
+      public?(false)
+    end
+
     attribute :track_inventory, :boolean do
       default(true)
       allow_nil?(false)
