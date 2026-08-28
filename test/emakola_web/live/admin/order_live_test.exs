@@ -110,8 +110,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      # 1 header <tr> + 50 order rows
-      assert length(String.split(html, "<tr")) - 1 == 51
+      assert length(String.split(html, ~s(id="order-row-))) - 1 == 50
     end
 
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
@@ -148,9 +147,9 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders")
 
-      # Use the order number link specifically (has font-mono class)
+      # The row's name/number block is the link now.
       view
-      |> element("a.font-mono[href='/admin/orders/#{order.id}']")
+      |> element("#order-row-#{order.id} a[href='/admin/orders/#{order.id}']", order.order_number)
       |> render_click()
 
       assert_redirect(view, "/admin/orders/#{order.id}")
