@@ -330,6 +330,13 @@ defmodule Emakola.Stores.Store do
       sort(inserted_at: :desc)
     end
 
+    # The same first image's webp variant, when the processor has made one.
+    # Same filter and sort as :card_image_url so both describe one photo.
+    first :card_image_medium_url, [:products, :images], :medium_url do
+      filter(expr(product.status == :active))
+      sort(inserted_at: :desc)
+    end
+
     # ── Directory merit signals ──
     # Inputs to DirectoryScore and DirectoryEligibility, loaded in one shot by
     # the nightly featuring worker. 90-day windows because the directory

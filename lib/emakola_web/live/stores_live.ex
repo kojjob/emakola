@@ -526,7 +526,7 @@ defmodule EmakolaWeb.StoresLive do
     new_page =
       Store
       |> Ash.Query.for_read(:list_with_filters, args)
-      |> Ash.Query.load([:product_count, :card_image_url])
+      |> Ash.Query.load([:product_count, :card_image_url, :card_image_medium_url])
       |> Ash.Query.limit(per_page)
       |> Ash.Query.offset(offset)
       |> Ash.read!(authorize?: false)
@@ -578,8 +578,11 @@ defmodule EmakolaWeb.StoresLive do
   end
 
   defp card_image_url(store) do
-    case Map.get(store, :card_image_url) do
-      url when is_binary(url) and url != "" -> url
+    medium = Map.get(store, :card_image_medium_url)
+
+    case {medium, Map.get(store, :card_image_url)} do
+      {m, _} when is_binary(m) and m != "" -> m
+      {_, url} when is_binary(url) and url != "" -> url
       _missing -> Map.get(store, :cover_image_url) || Map.get(store, :logo_url)
     end
   end
@@ -587,7 +590,7 @@ defmodule EmakolaWeb.StoresLive do
   defp load_slot(action) do
     Store
     |> Ash.Query.for_read(action)
-    |> Ash.Query.load([:card_image_url, :product_count])
+    |> Ash.Query.load([:card_image_url, :card_image_medium_url, :product_count])
     |> Ash.read!(authorize?: false)
   rescue
     exception ->
@@ -598,7 +601,7 @@ defmodule EmakolaWeb.StoresLive do
   defp load_featured do
     Store
     |> Ash.Query.for_read(:list_featured, %{limit: 8})
-    |> Ash.Query.load([:card_image_url, :product_count])
+    |> Ash.Query.load([:card_image_url, :card_image_medium_url, :product_count])
     |> Ash.Query.limit(8)
     |> Ash.read!(authorize?: false)
   rescue
@@ -674,7 +677,7 @@ defmodule EmakolaWeb.StoresLive do
     stores =
       Store
       |> Ash.Query.for_read(:list_by_slugs, %{slugs: slugs})
-      |> Ash.Query.load([:product_count, :card_image_url])
+      |> Ash.Query.load([:product_count, :card_image_url, :card_image_medium_url])
       |> Ash.read!(authorize?: false)
 
     # Preserve cookie order (most-recent first); the DB query won't

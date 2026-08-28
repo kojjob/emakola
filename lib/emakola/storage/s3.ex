@@ -18,11 +18,14 @@ defmodule Emakola.Storage.S3 do
     content_type = Keyword.get(opts, :content_type, "application/octet-stream")
     acl = Keyword.get(opts, :acl, "public-read")
 
+    put_opts =
+      case Keyword.get(opts, :cache_control) do
+        nil -> [content_type: content_type, acl: acl]
+        cache -> [content_type: content_type, acl: acl, cache_control: cache]
+      end
+
     case bucket
-         |> ExAws.S3.put_object(path, binary,
-           content_type: content_type,
-           acl: acl
-         )
+         |> ExAws.S3.put_object(path, binary, put_opts)
          |> ExAws.request() do
       {:ok, _response} ->
         {:ok, public_url(path)}
@@ -38,6 +41,17 @@ defmodule Emakola.Storage.S3 do
          {:ok, %{body: binary}} <- ExAws.request(ExAws.S3.get_object(bucket(), source_key)),
          :ok <- validate_size(binary) do
       upload(binary, destination_path, opts)
+    end
+  end
+
+  @impl true
+  def object_key(url), do: trusted_source_key(url)
+
+  @impl true
+  def get(path) do
+    with {:ok, %{body: binary}} <- ExAws.request(ExAws.S3.get_object(bucket(), path)),
+         :ok <- validate_size(binary) do
+      {:ok, binary}
     end
   end
 

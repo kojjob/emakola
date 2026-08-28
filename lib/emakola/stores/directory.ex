@@ -97,7 +97,7 @@ defmodule Emakola.Stores.Directory do
   defp query(args) do
     Store
     |> Ash.Query.for_read(:list_with_filters, Map.merge(%{limit: @per_rail}, args))
-    |> Ash.Query.load([:product_count, :card_image_url])
+    |> Ash.Query.load([:product_count, :card_image_url, :card_image_medium_url])
     |> Ash.read!(authorize?: false)
   rescue
     exception ->
