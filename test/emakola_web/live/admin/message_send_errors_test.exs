@@ -38,11 +38,21 @@ defmodule EmakolaWeb.Admin.MessageSendErrorsTest do
   end
 
   test "being cut off by the limiter says so, and does not blame the merchant", ctx do
-    # Spend the merchant's own allowance outside the LiveView. Merchants have
-    # a higher ceiling than buyers, so the kind has to be named explicitly.
-    for i <- 1..(Conversations.message_limit(:merchant) + 1) do
-      Conversations.post_message(ctx.thread, :merchant, ctx.merchant.id, "burst #{i}")
-    end
+    # The limiter is a fixed 60s epoch bucket, so a burst of 241 real posts
+    # can straddle the minute boundary and hand the submit a fresh counter.
+    # Sleep into a window with headroom, then spend the merchant's whole
+    # allowance in one atomic counter hit. Merchants have a higher ceiling
+    # than buyers, so the kind has to be named explicitly.
+    Emakola.LiveViewHelpers.ensure_rate_window_headroom()
+    limit = Conversations.message_limit(:merchant)
+
+    {:deny, _} =
+      Emakola.RateLimit.hit(
+        "conversation_post:merchant:#{ctx.merchant.id}",
+        60_000,
+        limit,
+        limit + 1
+      )
 
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/messages/#{ctx.thread.id}")
 
