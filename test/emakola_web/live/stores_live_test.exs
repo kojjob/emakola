@@ -255,6 +255,26 @@ defmodule EmakolaWeb.StoresLiveTest do
       refute has_element?(view, ~s(#featured-hero[href="/no-photo-shop"]))
     end
 
+    test "a worker-assigned spotlight shop leads the hero without any featured flag", %{
+      conn: conn
+    } do
+      Factory.create_store!(%{
+        name: "Merit Shop",
+        slug: "merit-shop",
+        logo_url: "https://cdn.example/merit.png"
+      })
+      |> Ash.Changeset.for_update(:set_directory_standing, %{
+        directory_eligible: true,
+        directory_score: 800,
+        directory_slot: :spotlight
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      assert has_element?(view, ~s(#featured-hero[href="/merit-shop"]))
+    end
+
     test "the spotlight hides entirely when nothing is featured", %{conn: conn} do
       Factory.create_store!(%{name: "Plain Shop", slug: "plain-shop"})
 

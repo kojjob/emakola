@@ -20,6 +20,10 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :product_taken_down
   ]
   @amber_actions [
+    :directory_store_excluded,
+    :directory_slot_overridden,
+    :store_unfeatured,
+    :store_verified_badge_revoked,
     :session_revoked,
     :invite_revoked,
     :totp_disabled,
@@ -28,6 +32,9 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :announcement_canceled
   ]
   @green_actions [
+    :directory_store_readmitted,
+    :store_featured,
+    :store_verified_badge_granted,
     :sign_in_succeeded,
     :invite_accepted,
     :totp_enabled,

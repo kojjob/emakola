@@ -497,4 +497,25 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       refute html =~ ~s(href="/admin/settings")
     end
   end
+
+  describe "curation toggles audit" do
+    test "featuring and the verified badge both land in the store's timeline", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(%{name: "Audited Shop", slug: "audited-shop"})
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{store.id}") |> render_click()
+      view |> element("#panel-featured-toggle") |> render_click()
+      view |> element("#panel-verified-toggle") |> render_click()
+
+      actions =
+        Emakola.Accounts.PlatformAuditLog
+        |> Ash.Query.for_read(:list_for_store, %{store_id: store.id})
+        |> Ash.read!(authorize?: false)
+        |> Enum.map(& &1.action)
+
+      assert :store_featured in actions
+      assert :store_verified_badge_granted in actions
+    end
+  end
 end

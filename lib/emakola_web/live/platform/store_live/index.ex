@@ -89,9 +89,22 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   def handle_event("toggle_featured", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
       mutate_store(socket, id, fn store ->
-        if store.featured,
-          do: FeaturedRanking.unfeature(store),
-          else: FeaturedRanking.feature(store)
+        # The featured flag and the verified badge write silently for months;
+        # both are public trust surfaces, so both audit now.
+        result =
+          if store.featured,
+            do: FeaturedRanking.unfeature(store),
+            else: FeaturedRanking.feature(store)
+
+        with {:ok, updated} <- result do
+          audit(
+            socket,
+            if(updated.featured, do: :store_featured, else: :store_unfeatured),
+            updated
+          )
+
+          {:ok, updated}
+        end
       end)
     end)
   end
@@ -99,11 +112,25 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   def handle_event("toggle_verified", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
       mutate_store(socket, id, fn store ->
-        Emakola.Stores.update_store_directory_meta(
-          store,
-          %{verified: !Map.get(store, :verified, false)},
-          authorize?: false
-        )
+        result =
+          Emakola.Stores.update_store_directory_meta(
+            store,
+            %{verified: !Map.get(store, :verified, false)},
+            authorize?: false
+          )
+
+        with {:ok, updated} <- result do
+          audit(
+            socket,
+            if(updated.verified,
+              do: :store_verified_badge_granted,
+              else: :store_verified_badge_revoked
+            ),
+            updated
+          )
+
+          {:ok, updated}
+        end
       end)
     end)
   end
@@ -132,6 +159,13 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       {:ok, user} -> user
       {:error, _} -> nil
     end
+  end
+
+  defp audit(socket, action, store) do
+    Emakola.Accounts.PlatformAudit.log(action, socket.assigns.current_user, %{
+      "store_id" => store.id,
+      "store_slug" => store.slug
+    })
   end
 
   defp mutate_store(socket, id, fun) do
