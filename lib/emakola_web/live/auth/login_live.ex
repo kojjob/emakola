@@ -6,8 +6,13 @@ defmodule EmakolaWeb.Auth.LoginLive do
 
   require Logger
 
-  @login_limit 10
+  @default_login_limit 10
   @login_window_ms 60_000
+
+  # Per-IP limit. E2E suites drive every login from one IP, so dev config
+  # raises it; prod stays at the default.
+  defp login_limit,
+    do: Application.get_env(:emakola, :auth_login_rate_limit, @default_login_limit)
 
   def mount(_params, _session, socket) do
     ip = EmakolaWeb.ClientIp.resolve(socket)
@@ -215,7 +220,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
     ip = socket.assigns.client_ip
     rate_key = "auth_login:#{ip}"
 
-    case Emakola.RateLimit.check_rate(rate_key, @login_limit, @login_window_ms) do
+    case Emakola.RateLimit.check_rate(rate_key, login_limit(), @login_window_ms) do
       {:deny, _retry_after} ->
         Logger.warning("Login rate limit exceeded for #{ip}")
 
