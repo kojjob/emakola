@@ -27,7 +27,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
           <!-- Top: Brand -->
           <div class="relative z-10">
             <div class="flex items-center gap-2">
-              <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-9 w-auto" />
+              <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-9 w-auto" />
               <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Makola</span>
             </div>
           </div>
@@ -66,7 +66,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
           <div class="w-full max-w-md">
             <!-- Mobile brand (visible on small screens) -->
             <div class="lg:hidden flex items-center justify-center gap-2 mb-8">
-              <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+              <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-8 w-auto" />
               <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
             </div>
             <!-- Heading -->

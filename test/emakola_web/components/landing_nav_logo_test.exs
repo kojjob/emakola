@@ -7,8 +7,8 @@ defmodule EmakolaWeb.LandingNavLogoTest do
     html = render_component(&EmakolaWeb.LandingComponents.landing_nav/1, [])
 
     assert html =~ "logo-reveal"
-    # Reversed tone: the nav sits on brand ink.
-    assert html =~ "#f1f5f9"
+    # The coin is tone-invariant: gold face on the nav's brand ink.
+    assert html =~ "#d4a843"
     refute html =~ ~s(src="/images/emakola-logo.svg")
   end
 
