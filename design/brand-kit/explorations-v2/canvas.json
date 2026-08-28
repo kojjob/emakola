@@ -1,0 +1,22 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1240, "h": 700 },
+    { "file": "Incumbents.dc.html", "x": 1320, "y": 0, "w": 760, "h": 480 },
+    { "file": "NkyinkyimM.dc.html", "x": 0, "y": 820, "w": 760, "h": 640 },
+    { "file": "CowrieEvolved.dc.html", "x": 840, "y": 820, "w": 760, "h": 640 },
+    { "file": "MarketBasket.dc.html", "x": 1680, "y": 820, "w": 760, "h": 640 },
+    { "file": "RooflineM.dc.html", "x": 0, "y": 1580, "w": 760, "h": 640 },
+    { "file": "WordmarkCoin.dc.html", "x": 840, "y": 1580, "w": 760, "h": 640 },
+    { "file": "ConvergingPaths.dc.html", "x": 1680, "y": 1580, "w": 760, "h": 640 },
+    { "file": "MarketUmbrella.dc.html", "x": 0, "y": 2340, "w": 760, "h": 640 },
+    { "file": "BasketCanopy.dc.html", "x": 840, "y": 2340, "w": 760, "h": 640 },
+    { "file": "CowrieCoin.dc.html", "x": 1680, "y": 2340, "w": 760, "h": 640 },
+    { "file": "GatewayM.dc.html", "x": 0, "y": 3100, "w": 760, "h": 640 },
+    { "file": "KenteTile.dc.html", "x": 840, "y": 3100, "w": 760, "h": 640 },
+    { "file": "GenSources.dc.html", "x": 1680, "y": 3100, "w": 760, "h": 640 }
+  ],
+  "annotations": [
+    { "id": "round2-brief", "x": 2160, "y": 20, "w": 280, "text": "DECIDED 2026-08-28: direction 09, Cowrie Coin.\nProduction SVGs: design/brand-kit/cowrie-coin*.svg. The brand-kit canvas is rebuilt around it (emails, social, print, stationery, deck).\nRows 1-2 (01-06): first pass. Rows 3-4 (07-11): mined from 27 Monid-generated composition studies, redrawn by hand - see the Provenance board.\nCanopy stays live in-app until the swap PR." }
+  ],
+  "launch": { "view": "canvas" }
+}
