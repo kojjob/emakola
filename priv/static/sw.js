@@ -1,7 +1,7 @@
 // Emakola Service Worker
 // Cache-first for static assets, network-first for HTML/API
 
-const CACHE_VERSION = "emakola-v1";
+const CACHE_VERSION = "emakola-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -53,9 +53,14 @@ self.addEventListener("fetch", (event) => {
   // Skip API and webhook endpoints
   if (url.pathname.startsWith("/api") || url.pathname.startsWith("/webhooks")) return;
 
-  // Strategy: Cache-first for static assets (CSS, JS, fonts)
+  // Strategy: Stale-while-revalidate for static assets (CSS, JS, fonts).
+  // Cache-first served a stale app.css for weeks after a deploy — the mobile
+  // drawer rendered its backdrop with no menu because the slide-in rules
+  // lived in a stylesheet the worker never refetched. Serving the cached
+  // copy while refreshing it in the background keeps the speed and heals
+  // on the next load.
   if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 
@@ -87,6 +92,26 @@ function isImageRequest(pathname, request) {
          pathname.startsWith("/images/") ||
          pathname.startsWith("/uploads/") ||
          (request.destination && request.destination === "image");
+}
+
+// Stale-while-revalidate: serve the cache immediately, refresh it in the
+// background so the next load gets the new copy.
+async function staleWhileRevalidate(request, cacheName) {
+  const cached = await caches.match(request);
+
+  const refresh = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(cacheName);
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) return cached;
+  const fresh = await refresh;
+  return fresh || new Response("", { status: 408, statusText: "Offline" });
 }
 
 // Cache-first: try cache, fall back to network (and update cache)
