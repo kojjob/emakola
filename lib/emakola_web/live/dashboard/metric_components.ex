@@ -165,103 +165,52 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   def money_row(assigns) do
     ~H"""
-    <section class="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] gap-4">
-      <div
-        id="money-made"
-        class="rounded-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 flex items-center gap-5"
-      >
-        <div class="flex size-14 shrink-0 items-center justify-center rounded-card bg-white/15">
-          <.icon name="hero-banknotes" class="size-7 text-white" />
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-[13px] font-bold text-white/80">Money made</p>
-          <div :if={@loading} class="mt-1.5 h-8 w-36 animate-pulse rounded-lg bg-white/25"></div>
-          <p :if={!@loading} class="text-3xl font-black tracking-tight text-white truncate">
-            {format_money(@total_revenue)}
-          </p>
-        </div>
-        <div
-          :if={!@loading && comparison(@period, @revenue_change)}
-          class="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5"
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div id="money-made">
+        <.stat_card
+          label="Money made"
+          value={if @loading, do: "…", else: format_money(@total_revenue)}
+          tone={:success}
         >
-          <.icon name={direction_icon(@revenue_change)} class="size-4 text-white" />
-          <span class="text-[13px] font-extrabold text-white">
-            {comparison(@period, @revenue_change)}
-          </span>
-        </div>
+          <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">
+              {comparison(@period, @revenue_change) || "What buyers paid you"}
+            </p>
+          </:delta>
+        </.stat_card>
       </div>
-
-      <.count_tile
-        id="money-orders"
-        icon="hero-shopping-bag"
-        label="Orders"
-        count={@order_count}
-        loading={@loading}
-      >
-        <.direction_arrow :if={!@loading} change={@orders_change} />
-      </.count_tile>
-      <.count_tile
-        id="money-buyers"
-        icon="hero-user-group"
-        label="Buyers"
-        count={@customer_count}
-        loading={@loading}
-      >
-        <.direction_arrow :if={!@loading} change={@customers_change} />
-      </.count_tile>
+      <div id="money-orders">
+        <.stat_card
+          label="Orders"
+          value={if @loading, do: "…", else: to_string(@order_count)}
+          tone={:accent}
+        >
+          <:icon><.icon name="hero-shopping-bag" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">
+              {comparison(@period, @orders_change) || "Sales in this period"}
+            </p>
+          </:delta>
+        </.stat_card>
+      </div>
+      <div id="money-buyers">
+        <.stat_card
+          label="Buyers"
+          value={if @loading, do: "…", else: to_string(@customer_count)}
+          tone={:warning}
+        >
+          <:icon><.icon name="hero-user-group" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">
+              {comparison(@period, @customers_change) || "People who bought"}
+            </p>
+          </:delta>
+        </.stat_card>
+      </div>
     </section>
     """
   end
-
-  attr :id, :string, required: true
-  attr :icon, :string, required: true
-  attr :label, :string, required: true
-  attr :count, :integer, required: true
-  attr :loading, :boolean, default: false
-  slot :inner_block
-
-  defp count_tile(assigns) do
-    ~H"""
-    <div id={@id} class="rounded-card border border-border bg-surface p-5 flex items-center gap-4">
-      <div class="flex size-[52px] shrink-0 items-center justify-center rounded-card bg-primary-soft">
-        <.icon name={@icon} class="size-6 text-primary" />
-      </div>
-      <div>
-        <div :if={@loading} class="h-7 w-12 animate-pulse rounded-lg bg-slate-100"></div>
-        <p :if={!@loading} class="text-[28px] leading-none font-black text-slate-900 tabular-nums">
-          {@count}
-        </p>
-        <p class="mt-1 text-[13px] font-bold text-slate-500">{@label}</p>
-      </div>
-      <div class="ml-auto">{render_slot(@inner_block)}</div>
-    </div>
-    """
-  end
-
-  attr :change, :float, default: nil
-
-  defp direction_arrow(assigns) do
-    ~H"""
-    <.icon
-      :if={@change && @change > 0}
-      name="hero-arrow-up"
-      class="size-5 text-emerald-600"
-    />
-    <.icon
-      :if={@change && @change < 0}
-      name="hero-arrow-down"
-      class="size-5 text-rose-500"
-    />
-    <.icon
-      :if={is_nil(@change) || @change == 0.0}
-      name="hero-minus"
-      class="size-5 text-slate-300"
-    />
-    """
-  end
-
-  defp direction_icon(change) when is_float(change) and change < 0, do: "hero-arrow-down"
-  defp direction_icon(_change), do: "hero-arrow-up"
 
   # A sentence, not a percentage. "All time" has nothing to compare against.
   defp comparison(_period, nil), do: nil
