@@ -18,7 +18,9 @@ defmodule EmakolaWeb.Admin.MessageLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     assign(socket,
+     socket
+     |> EmakolaWeb.ChatMedia.allow()
+     |> assign(
        page_title: "Messages",
        active_nav: :messages,
        query: "",
@@ -132,8 +134,11 @@ defmodule EmakolaWeb.Admin.MessageLive do
   def handle_event("send", %{"message" => %{"body" => body}}, socket) do
     thread = socket.assigns.thread
     merchant = socket.assigns.current_merchant
+    attachments = EmakolaWeb.ChatMedia.consume(socket, thread.id)
 
-    case Conversations.post_message(thread, :merchant, merchant.id, body) do
+    case Conversations.post_message(thread, :merchant, merchant.id, body,
+           attachments: attachments
+         ) do
       {:ok, _message} ->
         {:ok, messages} = Conversations.list_messages(thread.id)
 
@@ -149,6 +154,12 @@ defmodule EmakolaWeb.Admin.MessageLive do
 
   def handle_event("search", %{"q" => query}, socket) do
     {:noreply, assign(socket, query: query)}
+  end
+
+  def handle_event("validate_media", _params, socket), do: {:noreply, socket}
+
+  def handle_event("cancel_media", %{"ref" => ref}, socket) do
+    {:noreply, Phoenix.LiveView.cancel_upload(socket, :chat_media, ref)}
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
@@ -344,8 +355,8 @@ defmodule EmakolaWeb.Admin.MessageLive do
             </.chat_group>
           </div>
 
-          <.form for={@form} id="message-form" phx-submit="send">
-            <.chat_composer form={@form} />
+          <.form for={@form} id="message-form" phx-submit="send" phx-change="validate_media">
+            <.chat_composer form={@form} media={@uploads.chat_media} />
           </.form>
         </div>
 

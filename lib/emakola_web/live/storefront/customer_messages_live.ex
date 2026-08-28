@@ -129,9 +129,40 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
       <h1 class="text-2xl font-bold text-slate-900">Message the shop</h1>
       <p class="text-sm text-slate-500 mt-2">Ask about your order. It is free to write here.</p>
 
+      <%!-- A guest gets an invitation, never a composer that silently fails.
+            The thread needs an identity to belong to. --%>
+      <div
+        :if={is_nil(@current_customer)}
+        class="mt-6 flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/60"
+      >
+        <div class="flex size-12 items-center justify-center rounded-full bg-emerald-50">
+          <.icon name="hero-chat-bubble-left-right" class="size-6 text-emerald-600" />
+        </div>
+        <div>
+          <p class="text-base font-bold text-slate-900">Sign in to message the shop</p>
+          <p class="mt-1 text-sm text-slate-500">
+            Your conversation stays saved to your account — free, no SMS needed.
+          </p>
+        </div>
+        <div class="flex gap-2.5">
+          <.link
+            navigate={"/s/#{@store.slug}/login"}
+            class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          >
+            Sign in
+          </.link>
+          <.link
+            navigate={"/s/#{@store.slug}/register"}
+            class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300"
+          >
+            Create account
+          </.link>
+        </div>
+      </div>
+
       <%!-- Two conversations, one page: the shop, and Makola. A complaint
             about the shop has to go somewhere the shop is not reading. --%>
-      <div class="mt-5 flex gap-2">
+      <div :if={@current_customer} class="mt-5 flex gap-2">
         <button
           type="button"
           phx-click="open_shop_thread"
@@ -160,7 +191,10 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
         </button>
       </div>
 
-      <div class="mt-3 overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/60">
+      <div
+        :if={@current_customer}
+        class="mt-3 overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-900/5 ring-1 ring-slate-200/60"
+      >
         <div class="flex items-center gap-3 border-b border-slate-100 bg-white px-5 py-3">
           <.initials_avatar name={counterpart_name(@active, @store)} />
           <div class="min-w-0">
