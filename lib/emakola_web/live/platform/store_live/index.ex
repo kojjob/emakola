@@ -574,7 +574,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
             <div class="h-px bg-gray-100 my-6"></div>
 
-            <div class="flex flex-col xl:flex-row gap-7">
+            <div class="flex flex-col 2xl:flex-row gap-7">
               <%!-- Directory presence controls --%>
               <div class="flex-1 min-w-0">
                 <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
