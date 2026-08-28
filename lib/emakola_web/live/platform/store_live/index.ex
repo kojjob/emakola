@@ -137,30 +137,6 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     end)
   end
 
-  def handle_event("directory_exclude", %{"reason" => reason}, socket) do
-    authorized(socket, fn socket ->
-      curate(socket, fn standing, staff ->
-        DirectoryCuration.set_excluded(standing, !standing.override_excluded, reason, staff)
-      end)
-    end)
-  end
-
-  def handle_event("directory_pin", %{"slot" => slot, "reason" => reason}, socket) do
-    authorized(socket, fn socket ->
-      curate(socket, fn standing, staff ->
-        slot =
-          Emakola.SafeAtom.to_atom_in(slot, [:spotlight, :rising, :editors_pick, :clear], :clear)
-
-        DirectoryCuration.override_slot(
-          standing,
-          if(slot == :clear, do: nil, else: slot),
-          reason,
-          staff
-        )
-      end)
-    end)
-  end
-
   def handle_event("move_rank", %{"id" => id, "dir" => dir}, socket)
       when dir in ["up", "down"] do
     direction = if dir == "up", do: :up, else: :down
@@ -185,44 +161,6 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       {:ok, user} -> user
       {:error, _} -> nil
     end
-  end
-
-  defp curate(socket, fun) do
-    case socket.assigns.standing do
-      nil ->
-        {:noreply,
-         put_flash(socket, :error, "No featuring record yet — the nightly run creates one.")}
-
-      standing ->
-        case fun.(standing, socket.assigns.current_user) do
-          {:ok, _} ->
-            {:noreply,
-             socket
-             |> assign(:standing, load_standing(standing.store_id))
-             |> put_flash(:info, "Featuring updated.")}
-
-          {:error, :reason_required} ->
-            {:noreply, put_flash(socket, :error, "A reason is required.")}
-
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, "Featuring update failed.")}
-        end
-    end
-  end
-
-  defp humanize_disqualifier(:abandoned), do: "gone quiet"
-  defp humanize_disqualifier(:incomplete), do: "incomplete shopfront"
-  defp humanize_disqualifier(:no_payout), do: "no verified payout"
-  defp humanize_disqualifier(:conduct), do: "conduct on record"
-
-  defp load_standing(store_id) do
-    require Ash.Query
-
-    Emakola.Stores.DirectoryStanding
-    |> Ash.Query.filter(store_id == ^store_id)
-    |> Ash.read_one!(authorize?: false)
-  rescue
-    _exception -> nil
   end
 
   defp audit(socket, action, store) do
