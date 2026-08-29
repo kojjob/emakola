@@ -12,7 +12,6 @@ defmodule Emakola.Orders.Workers.SupplierSlaWorkerTest do
   use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
   alias Emakola.Orders.Fulfillment
