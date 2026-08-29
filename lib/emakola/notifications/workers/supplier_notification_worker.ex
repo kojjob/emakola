@@ -120,10 +120,21 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorker do
   end
 
   # WhatsApp first because it is free. Blank-checked, not truthy-checked.
+  #
+  # SMS is dropped entirely unless the fallthrough is switched on: it is the one
+  # channel here that costs money, and with WhatsApp failing for every store
+  # today an ungated fallthrough would move ~100% of supplier notifications onto
+  # a paid rail the moment this deploys. The blank-number guard and the recorded
+  # failure below are NOT gated — they reduce sends and cost nothing.
   defp channels(supplier) do
     [{:whatsapp, supplier.whatsapp_number}, {:sms, supplier.contact_phone}]
-    |> Enum.reject(fn {_channel, value} -> blank?(value) end)
+    |> Enum.reject(fn {channel, value} ->
+      blank?(value) or (channel == :sms and not sms_fallback_enabled?())
+    end)
   end
+
+  defp sms_fallback_enabled?,
+    do: Application.get_env(:emakola, :supplier_sms_fallback, false)
 
   defp blank?(nil), do: true
   defp blank?(value) when is_binary(value), do: String.trim(value) == ""

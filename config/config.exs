@@ -55,6 +55,22 @@ config :emakola, :mail_from_domain, "emakola.com"
 # effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
 config :emakola, :dropship_fee_rate_bps, 1000
 
+# Whether a failed WhatsApp to a supplier falls through to a PAID SMS.
+#
+# Off by default, and the default is the point. Production wires
+# Emakola.Notifications.Channels.SMS unconditionally (runtime.exs raises at boot
+# without SMS_API_KEY), so switching this on starts real HTTP sends to the SMS
+# gateway for every supplier notification — and WhatsApp currently fails for
+# every store, so that is ~100% of them. Whether those sends BILL depends on
+# whether the configured key is live, which can only be answered at the
+# provider's dashboard, never by trusting the app's {:ok, _}.
+#
+# Turn on with SUPPLIER_SMS_FALLBACK=true once that is confirmed and the volume
+# is budgeted. Everything else about the rail — the blank-number guard, the
+# recorded failure, the merchant's "Message not delivered" card — works either
+# way, because none of those spend money.
+config :emakola, :supplier_sms_fallback, false
+
 # DNS targets a merchant points their own domain at. Apex domains need BOTH
 # A and AAAA: the IPv4 is a SHARED Fly address, so only the dedicated IPv6
 # lets Fly prove ownership and issue the certificate.

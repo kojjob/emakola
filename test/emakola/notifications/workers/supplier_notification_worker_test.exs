@@ -362,4 +362,87 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorkerTest do
       assert reloaded.status == :pending
     end
   end
+
+  # ── The cost gate ───────────────────────────────────────────────
+
+  describe "when the SMS fallthrough is switched off (the shipped default)" do
+    setup do
+      Application.put_env(:emakola, :supplier_sms_fallback, false)
+      on_exit(fn -> Application.put_env(:emakola, :supplier_sms_fallback, true) end)
+      :ok
+    end
+
+    # The one that protects the bill. WhatsApp fails for every store today, so
+    # an ungated fallthrough moves essentially every supplier notification onto
+    # a paid rail the moment this deploys.
+    test "a WhatsApp failure does NOT spend money on SMS", ctx_free do
+      _ = ctx_free
+      store = setup_store()
+
+      supplier =
+        Factory.create_supplier!(store, %{
+          whatsapp_number: "+233200000030",
+          contact_phone: "+233200000031"
+        })
+
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o -> {:error, %{status: 401, body: "nope"}} end)
+
+      # No SMS expectation at all — verify_on_exit! proves nothing was sent.
+      assert {:error, _} = perform(fulfillment.id)
+
+      assert reload(fulfillment.id).status == :pending
+    end
+
+    # Gating the paid channel must not gate the free one.
+    test "WhatsApp still sends normally", _ctx do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{whatsapp_number: "+233200000032"})
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o -> {:ok, %{}} end)
+
+      assert :ok == perform(fulfillment.id)
+      assert reload(fulfillment.id).notified_via == :whatsapp
+    end
+
+    # A supplier reachable ONLY by SMS is unreachable while the gate is shut.
+    # That must be recorded rather than silent, so the merchant knows to send
+    # the action link by hand.
+    test "an SMS-only supplier is recorded as unreachable, not silently skipped", _ctx do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{contact_phone: "+233200000033"})
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      assert :ok == perform(fulfillment.id)
+
+      reloaded = reload(fulfillment.id)
+      assert reloaded.last_send_error == "no_contact"
+      assert reloaded.status == :pending
+    end
+
+    # The blank-number guard REDUCES sends, so it must work regardless of the
+    # cost gate — the two are deliberately independent.
+    test "the blank-number guard still applies", _ctx do
+      store = setup_store()
+
+      supplier =
+        Factory.create_supplier!(store, %{whatsapp_number: "   ", contact_phone: "+233200000034"})
+
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      # Neither provider is called: WhatsApp is blank, SMS is gated off.
+      assert :ok == perform(fulfillment.id)
+      assert reload(fulfillment.id).last_send_error == "no_contact"
+    end
+  end
 end

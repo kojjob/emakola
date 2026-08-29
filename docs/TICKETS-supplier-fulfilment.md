@@ -99,9 +99,22 @@ No flag, because these *reduce* sends:
 - Append the action URL to the SMS template and **delete "Reply to confirm"** —
   there is no inbound webhook, so it is a promise the system cannot keep
 
-### SAF-8 — WhatsApp → SMS fallthrough · `BLOCKED` (cost gate)
+### SAF-8 — WhatsApp → SMS fallthrough · `BUILT, SHIPS DARK`
 
-Behind `Application.get_env(:emakola, :supplier_sms_fallback, true)`.
+**Code complete and gated off.** `SUPPLIER_SMS_FALLBACK=true` turns it on with
+`fly secrets set` — no code deploy. Default is **false** everywhere except test.
+
+The gate covers only the paid channel. The blank-number guard, the recorded
+failure and the merchant's "Message not delivered" card are ungated, because
+they reduce sends rather than cause them. Tests cover both flag states,
+including the one that protects the bill: WhatsApp fails, SMS available, gate
+shut, `verify_on_exit!` proves nothing was sent.
+
+**Before flipping it:**
+1. Confirm at the SMS **provider's dashboard** that `SMS_API_KEY` is live and
+   what a message costs. Never trust the app's `{:ok, _}`.
+2. Size it: `select count(*) from fulfillments where supplier_id is not null
+   and status = 'pending'` per week.
 
 🔴 Prod does **not** fall back to `LogSMS` — `runtime.exs:282` wires
 `Channels.SMS` unconditionally and raises at boot without `SMS_API_KEY`. Before
