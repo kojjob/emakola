@@ -293,6 +293,11 @@ defmodule Emakola.Orders.Order do
 
       change(set_attribute(:status, :confirmed))
 
+      # Before NotifyConfirmation on purpose: the clock must exist before the
+      # supplier is messaged, so a supplier who answers instantly has something
+      # to stop.
+      change(Emakola.Orders.Changes.StampSupplierRespondBy)
+
       change(Emakola.Orders.Changes.NotifyConfirmation)
 
       change(Emakola.Orders.Changes.EnqueueFulfillment)

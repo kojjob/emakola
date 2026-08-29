@@ -67,6 +67,7 @@ defmodule Emakola.Orders do
       define(:record_fulfillment_send_failure, action: :record_send_failure)
       define(:self_attest_fulfillment_delivered, action: :self_attest_delivered)
       define(:list_unverified_deliveries, action: :list_unverified_deliveries)
+      define(:escalate_fulfillment, action: :escalate)
     end
 
     resource Emakola.Orders.FulfillmentDeliveryProof do

@@ -200,6 +200,10 @@ config :emakola, Oban,
        {"*/5 * * * *", Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker},
        {"15 * * * *", Emakola.Payments.Workers.PaymentExpiryWorker},
        {"0 * * * *", Emakola.Payments.Workers.ProtectionSweepWorker},
+       # Chases a supplier who has not answered a paid order. :05/:35 rather
+       # than */30 dodges the :00 pile-up above and SusuExpiryWorker at :20.
+       # The worker's `unique: period` must stay strictly under this interval.
+       {"5,35 * * * *", Emakola.Orders.Workers.SupplierSlaWorker},
        {"20 * * * *", Emakola.Payments.Workers.SusuExpiryWorker},
        {"0 9 * * *", Emakola.Payments.Workers.SusuNudgeWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker},

@@ -192,7 +192,7 @@ the platform protection queue so staff can sort on it.
 
 ## Phase 2 — the clock
 
-### SAF-9 — SLA schema + stamping · `TODO`
+### SAF-9 — SLA schema + stamping · `DONE`
 
 `respond_by`, `escalation_level`, `escalated_at`. `StampSupplierRespondBy` on
 `Order.:confirm`, before `NotifyConfirmation`.
@@ -200,7 +200,7 @@ the platform protection queue so staff can sort on it.
 🔴 **Do not backfill `respond_by`.** The first cron tick would escalate the
 entire historical backlog at once. Put this in the migration comment.
 
-### SAF-10 — `SupplierSlaWorker`, rung 1 only · `TODO`
+### SAF-10 — `SupplierSlaWorker`, rung 1 only · `DONE`
 
 Queue `:default`, cron `{"5,35 * * * *"}`, `unique: [period: 1500]` — the period
 must stay strictly below the cron interval or every second run is swallowed
@@ -209,7 +209,7 @@ silently, and no `perform/1`-level test would catch it.
 Candidate filter: `status in [:pending, :notified] and is_nil(accepted_at)` —
 the `accepted_at` clause is the SAF-1 integration point.
 
-### SAF-11 — escalation rungs 2–3 + merchant surface · `TODO`
+### SAF-11 — escalation rungs 2–3 + merchant surface · `TODO` (next)
 
 `:supplier_overdue` notification type, bell + PubSub only (no merchant SMS —
 kills the quiet-hours and cost problems together). Order LiveView subscribes to

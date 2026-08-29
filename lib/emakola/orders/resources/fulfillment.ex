@@ -95,6 +95,34 @@ defmodule Emakola.Orders.Fulfillment do
       public?(true)
     end
 
+    # The SLA clock. A stored deadline rather than one derived at read time,
+    # and where it starts from is the whole point:
+    #
+    #   NOT notified_at — that is the symptom. It is written only when a
+    #   provider returned {:ok, _}, and with placeholder WhatsApp credentials in
+    #   production it is never written, so the clock would never start.
+    #
+    #   NOT inserted_at — fulfilments are created at CHECKOUT, before payment.
+    #   A clock from there chases suppliers about carts nobody bought.
+    #
+    # Stamped at Order.:confirm instead — the moment somebody actually paid.
+    # NULL means no clock, which is both the merchant's own-stock group and
+    # every row that predates this.
+    attribute :respond_by, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :escalation_level, :integer do
+      allow_nil?(false)
+      default(0)
+      constraints(min: 0, max: 3)
+      public?(true)
+    end
+
+    attribute :escalated_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     # How this fulfilment reached :delivered, and it matters because delivery
     # is what starts the merchant's payout clock.
     #
@@ -261,6 +289,41 @@ defmodule Emakola.Orders.Fulfillment do
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified, :declined]})
 
       change(set_attribute(:status, :shipped))
+    end
+
+    # Starts the SLA clock. Its own action so the filter below can make a
+    # second confirm — the webhook and the merchant's button can both land —
+    # unable to push an existing deadline later.
+    update :start_sla_clock do
+      require_atomic?(false)
+      accept([:respond_by])
+
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(is_nil(respond_by)))
+      end)
+    end
+
+    # RequireStatusIn applied to a counter instead of a status. Two runs racing
+    # — an Oban retry overlapping the next cron tick — both read the same level
+    # and both try to write the next one; the second matches zero rows and the
+    # caller treats StaleRecord as "someone else did it", so nothing is sent
+    # twice.
+    update :escalate do
+      require_atomic?(false)
+      accept([])
+      argument(:to_level, :integer, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        to_level = Ash.Changeset.get_argument(changeset, :to_level)
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:escalation_level, to_level)
+        |> Ash.Changeset.filter(
+          expr(escalation_level == ^(to_level - 1) and status in [:pending, :notified])
+        )
+      end)
+
+      change(set_attribute(:escalated_at, &DateTime.utc_now/0))
     end
 
     # ── Supplier-driven transitions (the /supply/:token action link) ──
