@@ -316,6 +316,7 @@ defmodule EmakolaWeb.DashboardLive do
         pending_orders={@pending_orders}
         sold_out_count={@sold_out_count}
         open_returns={@open_returns}
+        suppliers_to_chase={@suppliers_to_chase}
       />
 
       <.money_row

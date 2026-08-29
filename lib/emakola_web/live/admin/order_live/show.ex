@@ -264,7 +264,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   # goods that never moved.
   def handle_event("cancel_fulfillment", %{"id" => id}, socket) do
     result = transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
-    void_unfulfilled_debt(socket, id)
+    void_unfulfilled_debt(id)
     result
   end
 
@@ -573,38 +573,48 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       Notified {format_datetime(f.notified_at)}
                       <span :if={f.notified_via}>via {to_string(f.notified_via)}</span>
                     </p>
-                    <p :if={f.accepted_at} class="font-semibold text-emerald-700">
-                      Supplier accepted {format_datetime(f.accepted_at)}
+                    <p
+                      :if={f.accepted_at}
+                      class="flex items-center gap-1.5 font-semibold text-success"
+                    >
+                      <.icon name="hero-check-circle" class="size-4 shrink-0" />
+                      Supplier has it · {format_datetime(f.accepted_at)}
                     </p>
-                    <p :if={f.declined_at} class="font-semibold text-red-700">
-                      Out of stock {format_datetime(f.declined_at)} — find another supplier
+                    <p
+                      :if={f.declined_at}
+                      class="flex items-center gap-1.5 font-semibold text-danger"
+                    >
+                      <.icon name="hero-x-circle" class="size-4 shrink-0" />
+                      No stock · find another supplier
                     </p>
                     <p :if={f.tracking_number}>
                       Tracking: <span class="font-mono">{f.tracking_number}</span>
                     </p>
                     <p
                       :if={f.escalation_level >= 3 and f.status in [:pending, :notified]}
-                      class="font-semibold text-danger"
+                      class="flex items-center gap-1.5 font-semibold text-danger"
                     >
-                      Supplier not responding — cancel this part or chase them
+                      <.icon name="hero-exclamation-triangle" class="size-4 shrink-0" />
+                      Supplier is not answering
                     </p>
                     <p
                       :if={f.escalation_level == 2 and f.status in [:pending, :notified]}
-                      class="font-semibold text-warning"
+                      class="flex items-center gap-1.5 font-semibold text-warning"
                     >
-                      Supplier has not replied
+                      <.icon name="hero-clock" class="size-4 shrink-0" /> Still no reply
                     </p>
                     <p
                       :if={f.status == :delivered and not f.delivery_verified}
-                      class="font-semibold text-warning"
+                      class="flex items-center gap-1.5 font-semibold text-warning"
                     >
-                      Delivered without customer proof
+                      <.icon name="hero-shield-exclamation" class="size-4 shrink-0" />
+                      No customer proof
                     </p>
                     <p
                       :if={f.status == :delivered and f.delivery_verified}
-                      class="font-semibold text-success"
+                      class="flex items-center gap-1.5 font-semibold text-success"
                     >
-                      Customer confirmed with their code
+                      <.icon name="hero-shield-check" class="size-4 shrink-0" /> Customer confirmed
                     </p>
                   </div>
 
@@ -617,11 +627,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     :if={f.last_send_error && f.status == :pending}
                     class="flex flex-wrap items-center gap-2 rounded-control bg-danger-soft p-2 text-xs font-semibold text-danger"
                   >
+                    <.icon name="hero-signal-slash" class="size-4 shrink-0" />
                     <span :if={f.last_send_error == "no_contact"}>
-                      Add a phone number for this supplier
+                      No phone number for this supplier
                     </span>
                     <span :if={f.last_send_error != "no_contact"}>
-                      Message not delivered {format_datetime(f.last_send_error_at)}
+                      Message not delivered
                     </span>
                   </div>
 
@@ -1419,7 +1430,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   # the merchant asked for, and a ledger hiccup must not undo it. An entry the
   # platform already claimed is left alone — that debt is settled by a rail this
   # button has no business touching.
-  defp void_unfulfilled_debt(socket, fulfillment_id) do
+  defp void_unfulfilled_debt(fulfillment_id) do
     case Emakola.Suppliers.list_supplier_ledger_entries_by_fulfillment(fulfillment_id,
            authorize?: false
          ) do

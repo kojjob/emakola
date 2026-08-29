@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
       {:ok, _view, html} = live(conn, show_path(order))
 
-      assert html =~ "Supplier accepted"
+      assert html =~ "Supplier has it"
     end
 
     test "shows a declined line and tells the merchant what to do", %{
@@ -121,7 +121,7 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
       {:ok, _view, html} = live(conn, show_path(order))
 
-      assert html =~ "Out of stock"
+      assert html =~ "No stock"
       assert html =~ "find another supplier"
     end
 
@@ -204,7 +204,7 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
       {:ok, _view, html} = live(conn, show_path(order))
 
-      assert html =~ "Add a phone number for this supplier"
+      assert html =~ "No phone number for this supplier"
     end
   end
 
@@ -279,7 +279,7 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
       {:ok, _view, html} = live(conn, show_path(order))
 
-      assert html =~ "Supplier has not replied"
+      assert html =~ "Still no reply"
     end
 
     test "the terminal rung tells the merchant to act", %{
@@ -299,7 +299,7 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
       {:ok, _view, html} = live(conn, show_path(order))
 
-      assert html =~ "Supplier not responding"
+      assert html =~ "Supplier is not answering"
     end
 
     # Cancelling a group the supplier never shipped must not leave the merchant
@@ -332,6 +332,53 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
       reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
 
       assert reloaded.status == :voided
+    end
+  end
+
+  describe "seeing it without opening the order" do
+    # The gap that partly defeated the SLA clock: escalation lived only inside
+    # an order's detail page, so a merchant with forty orders had to open each
+    # one to find the stuck supplier — the chasing the clock exists to end.
+    test "the orders list flags a supplier who stopped answering", %{conn: conn, fulfillment: f} do
+      f =
+        Enum.reduce(1..3, f, fn level, acc ->
+          {:ok, _} =
+            Emakola.Orders.escalate_fulfillment(acc, %{to_level: level}, authorize?: false)
+
+          Ash.get!(Emakola.Orders.Fulfillment, acc.id, authorize?: false)
+        end)
+
+      assert f.escalation_level == 3
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Supplier failed"
+    end
+
+    test "the orders list flags a message that never arrived", %{conn: conn, fulfillment: f} do
+      {:ok, _} =
+        Emakola.Orders.record_fulfillment_send_failure(f, %{last_send_error: "whatsapp:http_401"},
+          authorize?: false
+        )
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Not delivered"
+    end
+
+    test "the orders list reassures when a supplier has accepted", %{conn: conn, fulfillment: f} do
+      {:ok, _} = Emakola.Orders.supplier_accept_fulfillment(f, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Supplier has it"
+    end
+
+    test "a quiet order gets no chip at all", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      refute html =~ "Supplier failed"
+      refute html =~ "No reply"
     end
   end
 end

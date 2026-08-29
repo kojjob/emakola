@@ -234,6 +234,25 @@ New action, not a relaxed `:void` — the existing one's `:platform_payout`
 predicate is half the double-pay guard. Merchant tap, never automatic.
 
 
+### SAF-16 — the merchant can SEE it without opening an order · `DONE`
+
+The escalation was invisible where merchants actually look. The clock fired,
+the bell rang, and `order_live/index.ex` showed nothing — so a merchant with
+forty orders still had to open each one to find the stuck supplier, which is
+the chasing the clock exists to end.
+
+- `Order.:supplier_alert` calculation → `:blocked | :unreachable | :waiting |
+  :accepted | nil`, most urgent wins. **Never raises** on an unfamiliar status,
+  unlike `FulfillmentStatus`, which took down every order view the first time
+  `:declined` appeared.
+- Icon-led chip per row on the orders list; label hides below `sm:` and always
+  sits in `title`.
+- Fourth `work_tile` on the dashboard — "Suppliers not replying". Counted over
+  fulfillments, not the calculation, because that is a filter Postgres can
+  answer directly.
+- The order detail card's six text-only lines are now icon-led and shorter,
+  matching the register of the `/supply/:token` page next door.
+
 ---
 
 ## Build notes worth keeping
