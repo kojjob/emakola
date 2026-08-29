@@ -61,7 +61,7 @@ function takes the token, never a fulfilment id.**
 **Acceptance:** the security suite in the plan, including a hand-forged token
 for a `supplier_id: nil` group returning `:not_found`.
 
-### SAF-4 — `/supply/:token` LiveView · `WIP`
+### SAF-4 — `/supply/:token` LiveView · `DONE`
 
 > **First:** `SELECT id, slug FROM stores WHERE slug = 'supply';` — if it
 > returns a row, route `/ship/:token` instead. Dev DB checked 2026-08-29: clean
@@ -76,13 +76,13 @@ Photos lead, `min-h-16` buttons, inline SVG icons, `JS.hide/show` confirm.
 string; accepted screen does show the address; `render_submit(view, "mark_sent", %{})`
 does not crash.
 
-### SAF-5 — merchant reflection in `order_live/show.ex` · `TODO`
+### SAF-5 — merchant reflection in `order_live/show.ex` · `WIP`
 
 Ships with SAF-4 — the link is useless if the merchant cannot send it.
 Sign links once in `load_fulfillments/1`. Accepted/declined lines. **Silence
 "Resend" once `accepted_at` is set.** Copy link, Send on WhatsApp, New link.
 
-### SAF-6 — `Referrer-Policy` header · `TODO`
+### SAF-6 — `Referrer-Policy` header · `DONE`
 
 One line in the `:browser` pipeline. Also closes the same live token leak on
 `/pair/:token` and `/susu/:code`.
