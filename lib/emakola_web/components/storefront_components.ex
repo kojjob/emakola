@@ -880,6 +880,62 @@ defmodule EmakolaWeb.StorefrontComponents do
     |> String.replace(~r/[^\d]/, "")
   end
 
+  # ── Back in Stock ──
+
+  @doc """
+  Recovery for an out-of-stock product: a prefilled WhatsApp message asking the
+  shop to say when the item is back.
+
+  A greyed-out Add to Cart button is a dead end — the shopper arrived ready to
+  buy and leaves with nothing to do and no way to be told. WhatsApp is the
+  channel these merchants already answer on, so the ask goes there rather than
+  into a notification list nobody watches.
+
+  Renders nothing when the merchant has given no WhatsApp number. The storefront
+  must never offer a channel the merchant does not have.
+  """
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+  attr :class, :any, default: nil
+
+  def back_in_stock_cta(assigns) do
+    assigns = assign(assigns, :whatsapp_url, back_in_stock_url(assigns.store, assigns.product))
+
+    ~H"""
+    <div
+      :if={@whatsapp_url}
+      id="back-in-stock"
+      class={["rounded-card border border-border bg-surface-subtle p-4", @class]}
+    >
+      <p class="text-sm font-semibold text-text">Out of stock right now</p>
+      <p class="mt-1 text-sm leading-relaxed text-text-muted">
+        Ask {@store.name} to tell you when it is back. They reply on WhatsApp.
+      </p>
+      <a
+        href={@whatsapp_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-3 flex h-12 items-center justify-center gap-2.5 rounded-full bg-whatsapp text-sm font-semibold text-white transition-colors hover:bg-whatsapp-dark"
+      >
+        <span class="material-symbols-outlined text-[18px]">chat</span> Tell me when it is back
+      </a>
+    </div>
+    """
+  end
+
+  defp back_in_stock_url(store, product) do
+    case normalise_whatsapp(Map.get(store, :whatsapp_number)) do
+      "" ->
+        nil
+
+      number ->
+        text =
+          URI.encode("Hi #{store.name}, please tell me when #{product.title} is back in stock.")
+
+        "https://wa.me/#{number}?text=#{text}"
+    end
+  end
+
   # ── Pattern Divider ──
 
   @doc """

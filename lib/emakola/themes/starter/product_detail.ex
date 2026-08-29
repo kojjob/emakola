@@ -290,16 +290,12 @@ defmodule Emakola.Themes.Starter.ProductDetail do
               {Emakola.Themes.Delivery.callout(assigns)}
             </p>
             <button
+              :if={not sold_out?(@selected_variant)}
               phx-click="add_to_cart"
-              disabled={
-                is_nil(@selected_variant) ||
-                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
-              }
+              disabled={is_nil(@selected_variant)}
               class={[
                 "w-full h-14 rounded-full text-base font-semibold flex items-center justify-center gap-2.5 transition-all",
-                if(
-                  is_nil(@selected_variant) ||
-                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
+                if(is_nil(@selected_variant),
                   do: "bg-gray-100 text-gray-400 cursor-not-allowed",
                   else:
                     "bg-[var(--theme-primary,#6366F1)] text-white hover:bg-[#4F46E5] active:scale-[0.97] cursor-pointer shadow-sm"
@@ -320,16 +316,22 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                   d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) ||
-                       not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
+              <%= if is_nil(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
               <% end %>
             </button>
 
+            <EmakolaWeb.StorefrontComponents.back_in_stock_cta
+              :if={sold_out?(@selected_variant)}
+              store={@store}
+              product={@product}
+            />
+
             <%!-- WhatsApp Button --%>
             <a
+              :if={not sold_out?(@selected_variant)}
               href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
@@ -575,6 +577,11 @@ defmodule Emakola.Themes.Starter.ProductDetail do
   end
 
   # ── Helpers ──
+
+  # A variant the shopper has actually landed on, which has run out. A nil
+  # variant means the options are not chosen yet — that is not sold out.
+  defp sold_out?(nil), do: false
+  defp sold_out?(variant), do: not Emakola.Catalog.Variant.in_stock?(variant)
 
   defp current_image(product, index) do
     case Enum.at(product.images, index) do
