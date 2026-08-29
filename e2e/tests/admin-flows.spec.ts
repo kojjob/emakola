@@ -119,9 +119,14 @@ test.describe("Dashboard real-time updates", () => {
 
       await shopperPage.goto(`${STORE}/checkout`);
       await waitForLiveView(shopperPage);
+      // Checkout is stepped: contact, then delivery, then payment.
       await shopperPage.locator("#phone").fill("0244555222");
       await shopperPage.locator("#fullname").fill("QA Realtime Shopper");
+      await shopperPage.getByRole("button", { name: /Continue to delivery/i }).click();
+
       await shopperPage.locator("#address").fill("77 PubSub Avenue, Osu");
+      await shopperPage.getByRole("button", { name: /Continue to payment/i }).click();
+
       await shopperPage.getByRole("button", { name: /Place Order/i }).click();
 
       // Payment fails on placeholder gateway keys, but the order is created and

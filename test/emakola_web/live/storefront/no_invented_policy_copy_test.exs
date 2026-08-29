@@ -93,6 +93,14 @@ defmodule EmakolaWeb.Storefront.NoInventedPolicyCopyTest do
       %{conn: conn, store: store}
     end
 
+    # Delivery Method is step 2 now, not on the first screen.
+    defp to_delivery_step(view) do
+      render_submit(view, "submit_details", %{
+        "phone" => "0244123456",
+        "fullname" => "Ama Mensah"
+      })
+    end
+
     # The checkout charged a fee from the merchant's own delivery zone while
     # printing a timeline keyed off the region alone — "1-2 business days" for
     # Greater Accra. The price was the merchant's; the promise beside it was the
@@ -104,14 +112,16 @@ defmodule EmakolaWeb.Storefront.NoInventedPolicyCopyTest do
         estimated_days: 1
       })
 
-      {:ok, _view, html} = live(ctx.conn, "/s/#{ctx.store.slug}/checkout")
+      {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/checkout")
+      html = to_delivery_step(view)
 
       assert html =~ "Next day"
       refute html =~ @invented_promise
     end
 
     test "a store with no zone for the region promises no timeline at all", ctx do
-      {:ok, _view, html} = live(ctx.conn, "/s/#{ctx.store.slug}/checkout")
+      {:ok, view, _html} = live(ctx.conn, "/s/#{ctx.store.slug}/checkout")
+      html = to_delivery_step(view)
 
       assert html =~ "The seller will confirm your delivery time"
       refute html =~ @invented_promise

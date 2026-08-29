@@ -55,9 +55,13 @@ test.describe("User-facing error messages", () => {
     await page.goto(`${STORE}/checkout`);
     await waitForLiveView(page);
 
+    // Checkout is stepped: contact, then delivery, then payment.
     await page.locator("#phone").fill("0244123777");
     await page.locator("#fullname").fill("QA Friendly Error");
+    await page.getByRole("button", { name: /Continue to delivery/i }).click();
+
     await page.locator("#address").fill("5 Retry Lane, Osu");
+    await page.getByRole("button", { name: /Continue to payment/i }).click();
 
     await page.getByRole("button", { name: /Place Order/i }).click();
 
