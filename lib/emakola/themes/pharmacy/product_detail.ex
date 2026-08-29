@@ -49,7 +49,7 @@ defmodule Emakola.Themes.Pharmacy.ProductDetail do
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Image gallery --%>
             <div>
-              <div class="aspect-square pharmacy-card flex items-center justify-center overflow-hidden">
+              <div class="aspect-[4/5] pharmacy-card flex items-center justify-center overflow-hidden">
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
                   src={Shared.current_image(@product, @current_image_index)}
