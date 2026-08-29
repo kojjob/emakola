@@ -95,6 +95,22 @@ defmodule Emakola.Orders.Fulfillment do
       public?(true)
     end
 
+    # Why the failed send is recorded on the fulfilment rather than left in
+    # oban_jobs: a dead-lettered job is invisible to the merchant, so the
+    # fulfilment sits :pending forever and nobody is told the supplier never
+    # heard. A LABEL only — the provider response body can carry phone numbers
+    # and Meta account ids, which is why the channel itself logs "provider
+    # response omitted". Cleared on a successful notify, so anything visible is
+    # always a current problem.
+    attribute :last_send_error, :string do
+      constraints(max_length: 64)
+      public?(true)
+    end
+
+    attribute :last_send_error_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     # Bumping this invalidates every supplier action link ever minted for this
     # fulfillment. It is the revocation mechanism for a capability URL the
     # merchant pasted into WhatsApp and now wants dead, and it is why no
@@ -191,6 +207,20 @@ defmodule Emakola.Orders.Fulfillment do
 
       change(set_attribute(:status, :notified))
       change(set_attribute(:notified_at, &DateTime.utc_now/0))
+
+      # A visible error must always be a CURRENT problem.
+      change(set_attribute(:last_send_error, nil))
+      change(set_attribute(:last_send_error_at, nil))
+    end
+
+    # Records that the supplier could not be reached. Deliberately does not
+    # touch status: nothing was delivered, so the fulfilment is still pending
+    # someone's attention — it is now just pending it visibly.
+    update :record_send_failure do
+      require_atomic?(false)
+      accept([:last_send_error])
+
+      change(set_attribute(:last_send_error_at, &DateTime.utc_now/0))
     end
 
     # :declined is included on purpose — a supplier saying "no stock" does not

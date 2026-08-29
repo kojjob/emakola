@@ -556,6 +556,23 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     </p>
                   </div>
 
+                  <%!-- A failed send used to live only in oban_jobs, where no
+                        merchant will ever look, so the fulfilment sat pending
+                        forever and nobody knew the supplier never heard. The
+                        label itself is for the logs; the merchant gets the
+                        sentence and something to do about it. --%>
+                  <div
+                    :if={f.last_send_error && f.status == :pending}
+                    class="flex flex-wrap items-center gap-2 rounded-control bg-danger-soft p-2 text-xs font-semibold text-danger"
+                  >
+                    <span :if={f.last_send_error == "no_contact"}>
+                      Add a phone number for this supplier
+                    </span>
+                    <span :if={f.last_send_error != "no_contact"}>
+                      Message not delivered {format_datetime(f.last_send_error_at)}
+                    </span>
+                  </div>
+
                   <%!-- The supplier has no account, so the link IS the delivery
                         mechanism. It works whether it arrives by WhatsApp
                         Business, by SMS, or by the merchant pasting it into
@@ -564,37 +581,37 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   <div
                     :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified, :declined]}
                     data-role="supplier-link"
-                    class="flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2"
+                    class="flex flex-wrap items-center gap-2 rounded-control bg-surface-subtle p-2"
                   >
-                    <button
-                      type="button"
+                    <.admin_button
+                      variant={:secondary}
+                      size={:sm}
                       phx-click={
                         JS.dispatch("copy-to-clipboard",
                           detail: %{text: @supplier_links[f.id]}
                         )
                       }
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-white text-slate-700 rounded-lg text-xs font-semibold transition-colors"
                     >
                       Copy supplier link
-                    </button>
+                    </.admin_button>
                     <a
                       :if={f.supplier && f.supplier.whatsapp_number}
                       href={whatsapp_share_url(f, @supplier_links[f.id])}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success hover:bg-success text-white rounded-control text-xs font-semibold transition-colors"
                     >
                       Send on WhatsApp
                     </a>
-                    <button
-                      type="button"
+                    <.admin_button
+                      variant={:secondary}
+                      size={:sm}
                       phx-click="rotate_supplier_link"
                       phx-value-id={f.id}
                       data-confirm="The old link will stop working. Continue?"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-semibold transition-colors"
                     >
                       New link
-                    </button>
+                    </.admin_button>
                   </div>
 
                   <ul class="text-sm text-slate-600 space-y-1">
@@ -621,7 +638,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       phx-click="send_supplier_fulfillment"
                       phx-value-id={f.id}
                     >
-                      {if f.status == :notified, do: "Resend", else: "Send to supplier"}
+                      {cond do
+                        f.last_send_error -> "Try again"
+                        f.status == :notified -> "Resend"
+                        true -> "Send to supplier"
+                      end}
                     </.admin_button>
                     <button
                       :if={f.status in [:pending, :notified, :declined]}

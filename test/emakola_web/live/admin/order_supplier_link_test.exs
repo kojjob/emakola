@@ -169,6 +169,45 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
     end
   end
 
+  describe "a send that never reached the supplier" do
+    test "surfaces the failure and relabels the button Try again", %{
+      conn: conn,
+      order: order,
+      fulfillment: f
+    } do
+      {:ok, _} =
+        Emakola.Orders.record_fulfillment_send_failure(
+          f,
+          %{last_send_error: "whatsapp:http_401"},
+          authorize?: false
+        )
+
+      {:ok, _view, html} = live(conn, show_path(order))
+
+      assert html =~ "Message not delivered"
+      assert html =~ "Try again"
+      # The label is for the logs, not the merchant.
+      refute html =~ "http_401"
+    end
+
+    test "tells the merchant to add a number when there is no contact at all", %{
+      conn: conn,
+      order: order,
+      fulfillment: f
+    } do
+      {:ok, _} =
+        Emakola.Orders.record_fulfillment_send_failure(
+          f,
+          %{last_send_error: "no_contact"},
+          authorize?: false
+        )
+
+      {:ok, _view, html} = live(conn, show_path(order))
+
+      assert html =~ "Add a phone number for this supplier"
+    end
+  end
+
   describe "revoking a link" do
     test "New link rotates the version and kills the token already in the wild", %{
       conn: conn,

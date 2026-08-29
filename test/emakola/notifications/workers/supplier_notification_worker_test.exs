@@ -42,9 +42,11 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorkerTest do
     |> Ash.create!(authorize?: false)
   end
 
-  defp perform(fulfillment_id) do
+  defp perform(fulfillment_id, opts \\ []) do
     SupplierNotificationWorker.perform(%Oban.Job{
-      args: %{"fulfillment_id" => fulfillment_id}
+      args: %{"fulfillment_id" => fulfillment_id},
+      attempt: Keyword.get(opts, :attempt, 1),
+      max_attempts: Keyword.get(opts, :max_attempts, 3)
     })
   end
 
@@ -198,6 +200,166 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorkerTest do
   describe "non-existent fulfillment" do
     test "returns error tuple" do
       assert {:error, :fulfillment_not_found} == perform(Ash.UUID.generate())
+    end
+  end
+
+  # ── Channel fallthrough (the rail that is broken in production) ──
+
+  describe "falling through from WhatsApp to SMS" do
+    # The headline regression. Today notify_supplier/1 is a cond: it picks
+    # WhatsApp whenever whatsapp_number is set and returns the error straight
+    # up, so a supplier with BOTH numbers gets nothing at all when the WhatsApp
+    # token is bad — which is exactly the production state.
+    test "a WhatsApp failure still reaches the supplier by SMS" do
+      store = setup_store()
+
+      supplier =
+        Factory.create_supplier!(store, %{
+          whatsapp_number: "+233200000010",
+          contact_phone: "+233200000011"
+        })
+
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts ->
+        {:error, %{status: 401, body: "invalid token"}}
+      end)
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, fn _to, _message, _opts -> {:ok, %{}} end)
+
+      assert :ok == perform(fulfillment.id)
+
+      reloaded = reload(fulfillment.id)
+      assert reloaded.status == :notified
+      assert reloaded.notified_via == :sms
+      assert is_nil(reloaded.last_send_error), "a success must clear the previous failure"
+    end
+
+    # whatsapp_number has no constraints and the admin form is free text, so an
+    # empty string is truthy, routes to WhatsApp with "", 400s at Meta, and
+    # never tries SMS. Fixing this REDUCES sends, which is why it is not behind
+    # the cost flag.
+    test "an empty-string whatsapp_number is skipped entirely, not sent to Meta" do
+      store = setup_store()
+
+      supplier =
+        Factory.create_supplier!(store, %{
+          whatsapp_number: "   ",
+          contact_phone: "+233200000012"
+        })
+
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      # No WhatsApp expectation at all — verify_on_exit! proves none was made.
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, fn _to, _message, _opts -> {:ok, %{}} end)
+
+      assert :ok == perform(fulfillment.id)
+      assert reload(fulfillment.id).notified_via == :sms
+    end
+
+    # The store's own 200/hour limiter firing is not a reason to spend money.
+    # Falling through here would convert a free WhatsApp into a paid SMS during
+    # exactly the runaway the limiter exists to stop.
+    test "a rate-limited WhatsApp halts instead of falling through to paid SMS" do
+      store = setup_store()
+
+      supplier =
+        Factory.create_supplier!(store, %{
+          whatsapp_number: "+233200000013",
+          contact_phone: "+233200000014"
+        })
+
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts -> {:error, :rate_limited} end)
+
+      # No SMS expectation — verify_on_exit! proves we did not spend.
+      assert {:error, :rate_limited} == perform(fulfillment.id)
+      assert reload(fulfillment.id).status == :pending
+    end
+  end
+
+  # ── Failure visibility ─────────────────────────────────────────
+
+  describe "making a failed send visible to the merchant" do
+    setup do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{whatsapp_number: "+233200000020"})
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      %{fulfillment: fulfillment}
+    end
+
+    test "records a label on the fulfillment, not just in oban_jobs", %{fulfillment: f} do
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o -> {:error, %{status: 401, body: "nope"}} end)
+
+      perform(f.id)
+
+      reloaded = reload(f.id)
+      assert reloaded.last_send_error =~ "whatsapp"
+      assert reloaded.last_send_error =~ "401"
+      assert %DateTime{} = reloaded.last_send_error_at
+      assert reloaded.status == :pending
+    end
+
+    # The provider body can carry phone numbers and Meta account identifiers,
+    # which is why the channel itself logs "provider response omitted".
+    test "stores a label, never the provider response body", %{fulfillment: f} do
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o ->
+        {:error, %{status: 400, body: "+233555000111 is not a WhatsApp user"}}
+      end)
+
+      perform(f.id)
+
+      refute reload(f.id).last_send_error =~ "233555000111"
+    end
+
+    test "returns {:error, _} while Oban still has retries left", %{fulfillment: f} do
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o -> {:error, :timeout} end)
+
+      assert {:error, _} = perform(f.id, attempt: 1, max_attempts: 3)
+
+      # The failure is already written — the merchant sees it now, not after
+      # the last backoff.
+      assert reload(f.id).last_send_error
+    end
+
+    # Without this the terminal failure lands in oban_jobs, where no merchant
+    # will ever look, and the fulfilment sits :pending forever with nobody told.
+    test "returns :ok on the final attempt so the failure rests on the row", %{fulfillment: f} do
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _t, _p, _o -> {:error, :timeout} end)
+
+      assert :ok == perform(f.id, attempt: 3, max_attempts: 3)
+      assert reload(f.id).last_send_error
+    end
+
+    test "a supplier with no contact at all is labelled, not silent", %{} do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{})
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      assert :ok == perform(fulfillment.id)
+
+      reloaded = reload(fulfillment.id)
+      assert reloaded.last_send_error == "no_contact"
+      assert reloaded.status == :pending
     end
   end
 end

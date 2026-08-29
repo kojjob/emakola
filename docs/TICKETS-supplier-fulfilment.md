@@ -87,7 +87,7 @@ Sign links once in `load_fulfillments/1`. Accepted/declined lines. **Silence
 One line in the `:browser` pipeline. Also closes the same live token leak on
 `/pair/:token` and `/susu/:code`.
 
-### SAF-7 — notification rail: the unconditional bugfixes · `WIP`
+### SAF-7 — notification rail: the unconditional bugfixes · `DONE`
 
 No flag, because these *reduce* sends:
 - `blank?/1` guard — an empty-string `whatsapp_number` is truthy today, routes
@@ -107,6 +107,80 @@ Behind `Application.get_env(:emakola, :supplier_sms_fallback, true)`.
 `Channels.SMS` unconditionally and raises at boot without `SMS_API_KEY`. Before
 enabling: confirm at the **provider's dashboard** whether that key is live and
 what a message costs, then size weekly volume. Do not trust the app's `{:ok, _}`.
+
+### SAF-13 — the supplier can close the delivery loop · `WIP`
+
+**The hole SAF-4 opened.** A supplier who ships direct through `/supply/:token`
+reaches `:shipped` and the page dead-ends at a green tick. The delivery OTP —
+the only release path in the system requiring a second party's assent — has
+three legs, and the third does not exist:
+
+| Leg | Who can ask | Scoped by | Entry point |
+|---|---|---|---|
+| Merchant → buyer | merchant | `store_id` | `CustomerDelivery` via `OrderLive.Show` |
+| Wholesaler → merchant | that wholesaler | `linked_store_id` | `InboundFulfillment` via `SupplyNetworkLive` |
+| **Off-platform supplier → buyer** | **nobody** | — | **none** |
+
+The person at the buyer's door is the supplier or their rider, and the buyer
+reads the code to *them*. Today only the merchant can enter it, remotely — which
+puts the merchant back in the chase.
+
+Add `request_delivery_code/1` and `verify_delivery/2` to
+`Emakola.Suppliers.SupplierAction`, token-scoped, plus two screens on the
+action page. **Do not generalise the existing two modules** — `CustomerDelivery`
+says it outright: the three differ precisely in *who is allowed to ask*, which
+is the security boundary, and collapsing them puts that decision behind a flag.
+
+🔑 **Share the rate-limit key with `CustomerDelivery`.** Both legs send an SMS to
+the *same buyer* about the *same fulfilment*. Separate keys would let merchant
+and supplier together fire 6 codes in ten minutes at one buyer's phone. Reusing
+`delivery_otp:customer:#{fulfillment_id}` caps the buyer's exposure at 3
+regardless of who asks — the limit belongs to the recipient, not the requester.
+
+Other constraints:
+- The supplier must **never** learn the code. `return_code: true` stays test-only.
+- Only from `:shipped`, and only while the token is valid and unrevoked.
+- Verification marks delivered, which releases the merchant's payout hold — the
+  same consequence `InboundFulfillment.verify_delivery/4` already carries.
+- The buyer's phone is already visible to the supplier post-accept, so
+  triggering the SMS leaks nothing new.
+
+**Acceptance:** a supplier can request a code, the buyer receives it, the
+supplier enters what the buyer reads out, the fulfilment goes `:delivered`, and
+the protection hold releases. A wrong code burns an attempt; five wrong codes
+lock it; the merchant and supplier share one send budget.
+
+### SAF-15 — harden the delivery-OTP primitive · `TODO`
+
+Two findings on `FulfillmentDeliveryProof`. Both affect the **existing** legs,
+not only the new one.
+
+**F2 — the 5-attempt cap resets on every reissue.** `:reissue` sets
+`attempts: 0` with no lifetime budget, so the cap is per-code, not per-proof. At
+3 sends per 10 minutes that is 15 guesses per 10 minutes, unbounded over time —
+~2,160/day against a 900,000 space. Add a lifetime issuance/attempt budget so
+the cap means what it reads.
+
+**F3 — `:reissue` clears `verified_at`.** A verified proof can be reset to
+unverified. The only thing preventing a replay today is the
+`status != :shipped` guard in `validate_code`; the proof record itself offers
+none. Refuse to reissue a proof that has already been verified.
+
+### SAF-14 — self-attested delivery becomes visibly second-best · `TODO`
+
+**F1, decided by Kojo 2026-08-29: keep the escape hatch, make it leave a trail.**
+
+`order_live/show.ex:678` lets a merchant mark any shipped fulfilment delivered
+with no buyer assent, which stamps `release_after` and starts their own payout
+clock. `CustomerDelivery`'s moduledoc names this as the hole the OTP was built
+to close — the OTP landed, the button never left. It is **not** redundant with a
+timer: `release_after` is stamped only on delivery, so there is no auto-release
+path, and stale holds sit 30 days before manual staff review. Removing it would
+strand honest merchants whose buyers do not answer.
+
+So: OTP stays the prominent path; self-attest is demoted to a quiet secondary
+action, records **who** attested and that it was **unverified**, and surfaces in
+the platform protection queue so staff can sort on it.
 
 ---
 

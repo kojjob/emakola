@@ -64,6 +64,7 @@ defmodule Emakola.Orders do
       define(:supplier_accept_fulfillment, action: :supplier_accept)
       define(:supplier_decline_fulfillment, action: :supplier_decline)
       define(:rotate_fulfillment_supplier_link, action: :rotate_supplier_link)
+      define(:record_fulfillment_send_failure, action: :record_send_failure)
     end
 
     resource Emakola.Orders.FulfillmentDeliveryProof do
