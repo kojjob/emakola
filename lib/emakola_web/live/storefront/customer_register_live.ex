@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.AuthComponents
   import EmakolaWeb.OAuthComponents
   import EmakolaWeb.Storefront.Path
@@ -70,6 +72,17 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
       {:error, _} ->
         {:noreply, assign(socket, :error_message, "Registration failed. Please try again.")}
     end
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   defp extract_field_errors(%Ash.Error.Invalid{errors: errors}) do
