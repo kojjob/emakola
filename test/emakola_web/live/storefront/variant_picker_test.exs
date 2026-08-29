@@ -36,6 +36,9 @@ defmodule EmakolaWeb.Storefront.VariantPickerTest do
     large = Emakola.Factory.create_option_value!(option_type, store, %{value: "Large"})
 
     Emakola.Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
+    # Seeded so every theme renders its real gallery: a guard that runs
+    # against an empty-state placeholder is a weaker guard.
+    Emakola.Factory.create_image!(product, store)
 
     %{store: store, product: product, option_type: option_type, small: small, large: large}
   end

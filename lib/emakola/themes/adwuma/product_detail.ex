@@ -58,7 +58,7 @@ defmodule Emakola.Themes.Adwuma.ProductDetail do
 
         <div class="mt-6 grid gap-10 lg:grid-cols-2">
           <div>
-            <div class="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[color:var(--adw-rule)] bg-white">
+            <div class="relative aspect-[4/5] overflow-hidden rounded-2xl border border-[color:var(--adw-rule)] bg-white">
               <Cards.photo_or_initial
                 image={Cards.current_image(@product, @current_image_index)}
                 title={@product.title}

@@ -106,7 +106,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           class="bg-white lg:rounded-3xl lg:overflow-hidden lg:shadow-md lg:shadow-emerald-50"
           aria-label="Product images"
         >
-          <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-[#ECFDF5]/30">
+          <div class="w-full aspect-[4/5] overflow-hidden bg-[#ECFDF5]/30">
             <%= if current_image(@product, @current_image_index) do %>
               <.optimized_image
                 src={current_image(@product, @current_image_index)}

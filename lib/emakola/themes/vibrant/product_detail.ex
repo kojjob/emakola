@@ -55,7 +55,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           class="bg-white lg:rounded-3xl lg:overflow-hidden lg:shadow-md lg:shadow-amber-100"
           aria-label="Product images"
         >
-          <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-store-accent-light/30">
+          <div class="w-full aspect-[4/5] overflow-hidden bg-store-accent-light/30">
             <%= if current_image(@product, @current_image_index) do %>
               <.optimized_image
                 src={current_image(@product, @current_image_index)}

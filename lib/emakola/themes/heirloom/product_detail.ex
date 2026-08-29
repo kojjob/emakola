@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
         <div class="mt-8 grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <div class="relative overflow-hidden rounded-[28px] bg-[color:var(--hl-tile)]">
-              <div class="aspect-square">
+              <div class="aspect-[4/5]">
                 <.optimized_image
                   src={current_image(@images, @current_image_index)}
                   alt={@product.title}

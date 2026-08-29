@@ -50,7 +50,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Gallery --%>
             <div>
-              <div class="aspect-square home-living-card overflow-hidden">
+              <div class="aspect-[4/5] home-living-card overflow-hidden">
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
                   src={Shared.current_image(@product, @current_image_index)}

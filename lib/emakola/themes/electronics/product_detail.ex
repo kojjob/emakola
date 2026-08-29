@@ -53,7 +53,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Gallery --%>
             <div>
-              <div class="aspect-square electronics-card overflow-hidden flex items-center justify-center">
+              <div class="aspect-[4/5] electronics-card overflow-hidden flex items-center justify-center">
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
                   src={Shared.current_image(@product, @current_image_index)}

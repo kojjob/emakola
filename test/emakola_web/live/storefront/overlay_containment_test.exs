@@ -44,6 +44,9 @@ defmodule EmakolaWeb.Storefront.OverlayContainmentTest do
   defp stocked_product!(store) do
     product = Factory.create_product!(store, %{title: "Kente Wrap"})
     _variant = Factory.create_variant!(product, store, %{price: 12_000, stock_quantity: 5})
+    # Seeded so every theme renders its real gallery: a guard that runs
+    # against an empty-state placeholder is a weaker guard.
+    Factory.create_image!(product, store)
 
     product
     |> Ash.Changeset.for_update(:activate, %{}, authorize?: false)
