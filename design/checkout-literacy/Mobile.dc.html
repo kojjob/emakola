@@ -1,0 +1,495 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #059669; text-decoration: none; }
+    a:hover { color: #047857; }
+    .ot {
+      --accent: #B45309;
+      --on-accent: #FFFFFF;
+      --safe-accent: #B45309;
+      --ink: #111111;
+      --ink2: #6B7280;
+      --ink3: #9CA3AF;
+      --line: #EAEAEA;
+      --line2: #F1F1F1;
+      --panel: #F7F7F7;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: #fff;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.005em;
+    }
+    .ot .num { font-variant-numeric: tabular-nums; }
+    .ot .h { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+    .ot .lbl { display: block; font-size: 13px; color: var(--ink2); margin-bottom: 6px; }
+    .ot .inp { width: 100%; box-sizing: border-box; background: #fff; border: 1px solid var(--line);
+      border-radius: 10px; padding: 0 14px; height: 50px; font-size: 16px; font-weight: 500;
+      color: var(--ink); font-family: inherit; }
+    .ot .inp:focus { outline: none; border-color: var(--safe-accent); }
+    .ot .inp::placeholder { color: #B8BCC4; }
+    .ot .group { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+    /* Every row clears 44px: these are thumbs, not cursors. */
+    .ot .opt { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 58px; cursor: pointer;
+      background: #fff; font-family: inherit; text-align: left; width: 100%; box-sizing: border-box; border: 0; }
+    .ot .radio { width: 20px; height: 20px; border-radius: 999px; box-sizing: border-box; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; }
+    .ot .rgtile { border-radius: 12px; background: #fff; cursor: pointer; font-family: inherit;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+      gap: 3px; padding: 12px 13px; min-height: 62px; position: relative; }
+    .ot .paytile { border-radius: 13px; background: #fff; cursor: pointer; font-family: inherit;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 15px 8px 12px; min-height: 112px; position: relative; }
+    .ot .tick { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 999px;
+      box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+    .ot .mark { border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ot .cta { width: 100%; height: 54px; border: 0; border-radius: 12px; background: var(--accent);
+      color: var(--on-accent); font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 9px; }
+    .ot .edit { font-size: 13px; font-weight: 600; color: var(--safe-accent); cursor: pointer; background: none;
+      border: 0; font-family: inherit; padding: 10px; margin: -10px -10px -10px 0; }
+  </style>
+</helmet>
+
+<div class="ot" style="--accent: {{accent}}; --on-accent: {{onAccent}}; --safe-accent: {{safeAccent}}; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden">
+
+  <!-- No fake status bar: the phone draws its own on top of this. -->
+  <div style="height: 54px; border-bottom: 1px solid var(--line2); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; flex-shrink: 0">
+    <sc-if value="{{showBack}}" hint-placeholder-val="{{false}}">
+      <button onClick="{{back}}" style="width: 44px; height: 44px; margin-left: -12px; border: 0; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer" aria-label="Go back">
+        <svg width="19" height="19" fill="none" stroke="#6B7280" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+      </button>
+    </sc-if>
+    <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em">VIBRANT DEMO</span>
+    <svg width="15" height="15" fill="none" stroke="#9CA3AF" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+  </div>
+
+  <!-- The goods never leave the screen. Two photos and the running total. -->
+  <div style="display: flex; align-items: center; gap: 11px; padding: 10px 16px; background: var(--panel); flex-shrink: 0">
+    <div style="display: flex; flex-shrink: 0">
+      <img src="melon.jpg" alt="" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 2px solid var(--panel)" />
+      <img src="citrus.jpg" alt="" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 2px solid var(--panel); margin-left: -12px" />
+    </div>
+    <span style="flex: 1; font-size: 13px; color: var(--ink2)">{{itemLine}}</span>
+    <span class="num" style="font-size: 19px; font-weight: 800; letter-spacing: -0.02em">{{total}}</span>
+  </div>
+
+  <!-- Stepper: labels beneath, same as desktop, scaled down -->
+  <div style="padding: 16px 30px 0; flex-shrink: 0">
+    <div style="display: flex; align-items: flex-start">
+      <sc-for list="{{steps}}" as="st" hint-placeholder-count="3">
+        <div style="display: flex; align-items: flex-start; flex: {{st.flex}}">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 74px; flex-shrink: 0">
+            <div style="width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: {{st.dotBg}}; border: 1.5px solid {{st.dotBorder}}">
+              <sc-if value="{{st.done}}" hint-placeholder-val="{{true}}">
+                <svg width="11" height="11" fill="none" stroke="{{st.dotInk}}" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              </sc-if>
+              <sc-if value="{{st.showNum}}" hint-placeholder-val="{{false}}">
+                <span class="num" style="font-size: 10px; font-weight: 600; color: {{st.dotInk}}">{{st.n}}</span>
+              </sc-if>
+            </div>
+            <span style="font-size: 11px; font-weight: {{st.weight}}; color: {{st.labelInk}}">{{st.label}}</span>
+          </div>
+          <sc-if value="{{st.hasLine}}" hint-placeholder-val="{{true}}">
+            <div style="height: 1.5px; flex: 1; margin-top: 11.5px; background: {{st.lineBg}}"></div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex: 1; overflow-y: auto; padding: 22px 16px 16px; min-height: 0">
+
+    <!-- What is already settled, in one line. Desktop can afford two rows; a
+         phone cannot, and this still lets them go back and change it. -->
+    <sc-if value="{{showSettled}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; margin-bottom: 16px">
+        <span class="mark" style="width: 20px; height: 20px; border-radius: 999px; background: var(--accent)">
+          <svg width="10" height="10" fill="none" stroke="{{onAccent}}" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+        </span>
+        <span class="num" style="flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{settledLine}}</span>
+        <button class="edit" style="font-size: 12.5px" onClick="{{goBackToSettled}}">Change</button>
+      </div>
+    </sc-if>
+
+    <!-- STEP 1 -->
+    <sc-if value="{{s1}}" hint-placeholder-val="{{true}}">
+      <div>
+        <p class="h">Who is buying?</p>
+        <label class="lbl">Phone number</label>
+        <input class="inp num" style="height: 54px; font-size: 19px; font-weight: 700" type="tel" value="{{phone}}" onChange="{{setPhone}}" />
+        <label class="lbl" style="margin-top: 16px">Full name</label>
+        <input class="inp" type="text" value="{{name}}" onChange="{{setName}}" />
+        <p style="font-size: 12.5px; color: var(--ink2); margin: 12px 0 0">We send the payment request to this number.</p>
+      </div>
+    </sc-if>
+
+    <!-- STEP 2 — regions two across so the real Ghana address fields
+         (GhanaPost code, landmark) still fit the same one screen. -->
+    <sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+      <div>
+        <p class="h">Where should we bring it?</p>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px">
+          <sc-for list="{{regions}}" as="r" hint-placeholder-count="4">
+            <button class="rgtile" onClick="{{r.pick}}" style="border: 2px solid {{r.tileBorder}}; background: {{r.bg}}">
+              <span style="font-size: 13px; font-weight: 600">{{r.label}}</span>
+              <span class="num" style="font-size: 14px; font-weight: 700; color: {{r.feeInk}}">{{r.fee}}</span>
+              <sc-if value="{{r.sel}}" hint-placeholder-val="{{true}}">
+                <span style="position: absolute; top: 9px; right: 9px; width: 18px; height: 18px; border-radius: 999px; background: var(--accent); display: flex; align-items: center; justify-content: center">
+                  <svg width="10" height="10" fill="none" stroke="{{onAccent}}" stroke-width="3.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                </span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+        <div style="margin-top: 14px">
+          <label class="lbl"><span style="color: var(--ink); font-weight: 500">Address</span></label>
+          <input class="inp" type="text" value="{{street}}" onChange="{{setStreet}}" />
+        </div>
+        <div style="margin-top: 12px">
+          <label class="lbl"><span style="color: var(--ink); font-weight: 500">GhanaPost Digital Address</span> (optional)</label>
+          <input class="inp num" type="text" value="{{digitalAddress}}" onChange="{{setDigitalAddress}}" placeholder="GA-183-8164" />
+        </div>
+        <div style="margin-top: 12px">
+          <label class="lbl"><span style="color: var(--ink); font-weight: 500">Landmark</span> (optional)</label>
+          <input class="inp" style="font-size: 15px" type="text" maxlength="200" value="{{landmark}}" onChange="{{setLandmark}}" placeholder="e.g. behind Achimota Melcom" />
+          <p style="font-size: 12px; color: var(--ink2); margin: 6px 0 0">Helps the rider find you faster</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- STEP 3 — two across while choosing. Picking the card folds the grid
+         to a single row so the card fields fit the same one screen. -->
+    <sc-if value="{{s3}}" hint-placeholder-val="{{false}}">
+      <div>
+        <p class="h">How will you pay?</p>
+
+        <sc-if value="{{gridOpen}}" hint-placeholder-val="{{true}}">
+          <div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{methods}}" as="m" hint-placeholder-count="5">
+                <button class="paytile" onClick="{{m.pick}}" style="border: 2px solid {{m.border}}">
+                  <span class="tick" style="border: 1.5px solid {{m.tickBorder}}; background: {{m.tickBg}}">
+                    <sc-if value="{{m.sel}}" hint-placeholder-val="{{true}}">
+                      <svg width="11" height="11" fill="none" stroke="{{m.tickFg}}" stroke-width="3.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    </sc-if>
+                  </span>
+                  <span class="mark" style="width: 70px; height: 46px; border-radius: 9px; background: {{m.markBg}}">
+                    <sc-if value="{{m.isWord}}" hint-placeholder-val="{{true}}">
+                      <span style="color: {{m.markFg}}; font-weight: 800; font-size: {{m.bigSize}}; letter-spacing: -0.03em">{{m.markText}}</span>
+                    </sc-if>
+                    <sc-if value="{{m.isCard}}" hint-placeholder-val="{{false}}">
+                      <svg width="27" height="27" fill="none" stroke="#fff" stroke-width="1.7" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 9.5h19" stroke-width="2.8" /></svg>
+                    </sc-if>
+                    <sc-if value="{{m.isCash}}" hint-placeholder-val="{{false}}">
+                      <svg width="27" height="27" fill="none" stroke="#fff" stroke-width="1.7" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="10" rx="1.6" /><circle cx="12" cy="11" r="2.3" /><path stroke-linecap="round" d="M3 19.4c2.2 0 3-1.2 5.2-1.2h6" /></svg>
+                    </sc-if>
+                  </span>
+                  <span style="font-size: 12.5px; font-weight: 600; color: var(--ink2); text-align: center; line-height: 1.3">{{m.name}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="margin-top: 11px; padding: 12px 14px; background: var(--panel); border-radius: 10px">
+              <p style="font-size: 12.5px; color: var(--ink2); margin: 0">{{chosenBlurb}}</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Card chosen: one row saying so, then the fields, right here.
+             These inputs must be the provider's own embedded fields (Paystack
+             Inline / hosted fields) — the number must never reach a Makola
+             input or a Makola server. -->
+        <sc-if value="{{cardOpen}}" hint-placeholder-val="{{false}}">
+          <div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 2px solid #1D4ED8; border-radius: 12px">
+              <span class="mark" style="width: 44px; height: 30px; border-radius: 8px; background: #1D4ED8">
+                <svg width="19" height="19" fill="none" stroke="#fff" stroke-width="1.7" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 9.5h19" stroke-width="2.8" /></svg>
+              </span>
+              <span style="flex: 1; font-size: 14px; font-weight: 600">Bank card</span>
+              <button class="edit" style="font-size: 13px" onClick="{{openMethods}}">Change</button>
+            </div>
+            <div style="margin-top: 14px">
+              <label class="lbl"><span style="color: var(--ink); font-weight: 500">Name on card</span></label>
+              <input class="inp" type="text" value="{{cardName}}" onChange="{{setCardName}}" />
+            </div>
+            <div style="margin-top: 12px">
+              <label class="lbl"><span style="color: var(--ink); font-weight: 500">Card number</span></label>
+              <div style="position: relative">
+                <input class="inp num" style="padding-right: 46px" type="text" inputmode="numeric" value="{{cardNumber}}" onChange="{{setCardNumber}}" placeholder="0000 0000 0000 0000" />
+                <svg style="position: absolute; right: 15px; top: 16px" width="18" height="18" fill="none" stroke="#9CA3AF" stroke-width="1.7" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 9.5h19" stroke-width="2.6" /></svg>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 12px">
+              <div style="flex: 1">
+                <label class="lbl"><span style="color: var(--ink); font-weight: 500">Expiry</span></label>
+                <input class="inp num" type="text" inputmode="numeric" value="{{cardExpiry}}" onChange="{{setCardExpiry}}" placeholder="MM/YY" />
+              </div>
+              <div style="flex: 1">
+                <label class="lbl"><span style="color: var(--ink); font-weight: 500">CVV</span></label>
+                <input class="inp num" type="password" inputmode="numeric" maxlength="4" value="{{cardCvv}}" onChange="{{setCardCvv}}" placeholder="123" />
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 9px; margin-top: 14px">
+              <svg width="15" height="15" style="flex-shrink: 0" fill="none" stroke="#059669" stroke-width="1.9" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              <span style="font-size: 12px; color: var(--ink2); line-height: 1.4">Your card goes straight to Paystack. This shop never sees it.</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- STEP 4 — told per method, because cash and card send no prompt -->
+    <sc-if value="{{s4}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 22px">
+        <div style="width: 104px; height: 104px; border-radius: 999px; background: {{waitTint}}; display: flex; align-items: center; justify-content: center">
+          <sc-if value="{{waitIsPhone}}" hint-placeholder-val="{{true}}">
+            <svg width="46" height="46" fill="none" stroke="{{waitStroke}}" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+          </sc-if>
+          <sc-if value="{{waitIsRider}}" hint-placeholder-val="{{false}}">
+            <svg width="50" height="50" fill="none" stroke="{{waitStroke}}" stroke-width="1.4" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="2.6" /><circle cx="18.5" cy="17.5" r="2.6" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 17.5h7.9M5.5 17.5 9 8.5h4.2l2.6 6.4M12 5.5h3" /></svg>
+          </sc-if>
+        </div>
+        <p class="num" style="font-size: 42px; font-weight: 800; margin: 22px 0 0; letter-spacing: -0.03em">{{total}}</p>
+        <p style="font-size: 17px; font-weight: 700; margin: 9px 0 0">{{waitTitle}}</p>
+        <p style="font-size: 14px; color: var(--ink2); margin: 7px 0 0; line-height: 1.5">{{waitSay}}</p>
+        <sc-if value="{{hasUssd}}" hint-placeholder-val="{{true}}">
+          <p style="font-size: 14px; color: var(--ink2); margin: 20px 0 0">No prompt? Dial <span class="num" style="font-size: 19px; font-weight: 800; color: var(--ink)">{{ussd}}</span></p>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- One action, always the same place, always naming the amount at the end -->
+  <div style="padding: 12px 16px 20px; border-top: 1px solid var(--line2); flex-shrink: 0">
+    <sc-if value="{{showCta}}" hint-placeholder-val="{{true}}">
+      <button class="cta" onClick="{{next}}">
+        <span>{{ctaLabel}}</span>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-7 7 7-7 7" /></svg>
+      </button>
+      <sc-if value="{{protection}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 11px">
+          <svg width="15" height="15" style="flex-shrink: 0" fill="none" stroke="#059669" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+          <span style="font-size: 12px; color: #065F46">Your money waits until you say it came.</span>
+        </div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{s4}}" hint-placeholder-val="{{false}}">
+      <button class="cta" style="background: #fff; color: var(--ink2); border: 1px solid var(--line); font-weight: 600" onClick="{{restart}}">Start again</button>
+    </sc-if>
+  </div>
+</div>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","default":"vibrant","options":["vibrant","atelier","akwaaba","starter","market","adwuma","beauty","bold","chale","dede","depot","electronics","fashion","fie","fresh","heirloom","home_living","ntoma","pace","pharmacy","sika","spotlight"],"section":"Theme"},"themeBackground":{"editor":"boolean","default":false,"section":"Theme"},"protection":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 1, method: 'momo', region: 'accra', phone: '024 412 3456', name: 'Ama Mensah', street: 'House 14, Osu Badu Street', digitalAddress: '', landmark: '', methodOpen: true, cardName: 'Ama Mensah', cardNumber: '', cardExpiry: '', cardCvv: '' };
+  }
+
+  cedis(pesewas) {
+    const major = Math.floor(pesewas / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return 'GH₵ ' + major + '.' + (pesewas % 100).toString().padStart(2, '0');
+  }
+
+  rgb(hex) {
+    const h = (hex || '#B45309').replace('#', '');
+    const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    return [f.slice(0, 2), f.slice(2, 4), f.slice(4, 6)].map((p) => parseInt(p, 16));
+  }
+
+  luminance(parts) {
+    const lin = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+    return 0.2126 * lin(parts[0]) + 0.7152 * lin(parts[1]) + 0.0722 * lin(parts[2]);
+  }
+
+  inkOn(hex) { return this.luminance(this.rgb(hex)) > 0.42 ? '#111111' : '#FFFFFF'; }
+
+  legibleOn(hex, backdrop, ratio) {
+    const back = this.luminance(this.rgb(backdrop));
+    const parts = this.rgb(hex);
+    for (let scale = 100; scale >= 5; scale -= 5) {
+      const shade = parts.map((c) => Math.round((c * scale) / 100));
+      const fore = this.luminance(shade);
+      const hi = Math.max(fore, back);
+      const lo = Math.min(fore, back);
+      if ((hi + 0.05) / (lo + 0.05) >= ratio) {
+        return '#' + shade.map((c) => c.toString(16).padStart(2, '0')).join('');
+      }
+    }
+    return '#111111';
+  }
+
+  // The 22 storefront themes, values lifted from lib/emakola/themes/*.ex.
+  // Checkout consumes primary twice — as --color-store-accent and as
+  // --color-cta-dark — so primary is the only theme colour this page moves.
+  themeList() {
+    return [
+      { id: 'vibrant', name: 'Vibrant', primary: '#B45309', bg: '#FFFBEB' },
+      { id: 'atelier', name: 'Atelier', primary: '#16A34A', bg: '#FFFFFF' },
+      { id: 'akwaaba', name: 'Akwaaba', primary: '#F0531F', bg: '#FFFFFF' },
+      { id: 'starter', name: 'Starter', primary: '#6366F1', bg: '#FFFFFF' },
+      { id: 'market', name: 'Market', primary: '#1C1917', bg: '#FAFAF9' },
+      { id: 'adwuma', name: 'Adwuma', primary: '#6E56CF', bg: '#FBFBFA' },
+      { id: 'beauty', name: 'Beauty', primary: '#6B4423', bg: '#F5EFE5' },
+      { id: 'bold', name: 'Bold', primary: '#0F172A', bg: '#F8FAFC' },
+      { id: 'chale', name: 'Chale', primary: '#2547E8', bg: '#F7F5F1' },
+      { id: 'dede', name: 'Dede', primary: '#8C2F0D', bg: '#FAF5EA' },
+      { id: 'depot', name: 'Depot', primary: '#18181B', bg: '#FAFAFA' },
+      { id: 'electronics', name: 'Electronics', primary: '#134E4A', bg: '#F5EFE5' },
+      { id: 'fashion', name: 'Fashion', primary: '#5B21B6', bg: '#FAF6EE' },
+      { id: 'fie', name: 'Fie', primary: '#211C1A', bg: '#FDFCFB' },
+      { id: 'fresh', name: 'Fresh', primary: '#047857', bg: '#FEFCE8' },
+      { id: 'heirloom', name: 'Heirloom', primary: '#1B1208', bg: '#EFEFEF' },
+      { id: 'home_living', name: 'Home Living', primary: '#1F2937', bg: '#FAF7F2' },
+      { id: 'ntoma', name: 'Ntoma', primary: '#9E3B14', bg: '#FAF4EA' },
+      { id: 'pace', name: 'Pace', primary: '#1D4ED8', bg: '#E6EFF6' },
+      { id: 'pharmacy', name: 'Pharmacy', primary: '#14543E', bg: '#F9F6F0' },
+      { id: 'sika', name: 'Sika', primary: '#1F332C', bg: '#FAF9F7' },
+      { id: 'spotlight', name: 'Spotlight', primary: '#16130F', bg: '#FBF9F5' }
+    ];
+  }
+
+  methodList() {
+    return [
+      { id: 'momo', name: 'MTN MoMo', hint: 'Mobile money', markBg: '#FFC107', markFg: '#1C1917', markText: 'MTN', markSize: '11px', kind: 'word', ussd: '*170#', fieldLabel: 'MoMo number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'telecel', name: 'Telecel Cash', hint: 'Mobile money', markBg: '#E60000', markFg: '#FFFFFF', markText: 'Telecel', markSize: '8px', kind: 'word', ussd: '*110#', fieldLabel: 'Telecel number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'airteltigo', name: 'AirtelTigo Money', hint: 'Mobile money', markBg: '#004F9F', markFg: '#FFFFFF', markText: 'AT', markSize: '12px', kind: 'word', ussd: '*110#', fieldLabel: 'AirtelTigo number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'card', name: 'Bank card', hint: 'Visa, Mastercard', markBg: '#1D4ED8', markFg: '#FFFFFF', markText: '', markSize: '11px', kind: 'card', ussd: '', fieldLabel: 'Phone for the receipt', blurb: 'The next page asks for your card, on a safe page.' },
+      { id: 'cod', name: 'Cash when it comes', hint: 'Pay the rider', markBg: '#047857', markFg: '#FFFFFF', markText: '', markSize: '11px', kind: 'cash', ussd: '', fieldLabel: 'Number for the rider', blurb: 'Have the money ready when the rider reaches you.' }
+    ];
+  }
+
+  regionList() {
+    return [
+      { id: 'accra', label: 'Greater Accra', note: 'Seller confirms the day', fee: 1500 },
+      { id: 'ashanti', label: 'Ashanti', note: 'Seller confirms the day', fee: 2500 },
+      { id: 'central', label: 'Central', note: 'Seller confirms the day', fee: 2500 },
+      { id: 'northern', label: 'Northern', note: 'Seller confirms the day', fee: 4000 }
+    ];
+  }
+
+  renderVals() {
+    const step = this.state.step;
+    const theme = this.themeList().find((t) => t.id === this.props.theme) || this.themeList()[0];
+    const accent = theme.primary;
+    const onAccent = this.inkOn(accent);
+    const safeAccent = this.legibleOn(accent, '#FFFFFF', 4.5);
+
+    const region = this.regionList().find((r) => r.id === this.state.region) || this.regionList()[0];
+    const chosen = this.methodList().find((m) => m.id === this.state.method) || this.methodList()[0];
+
+    const goods = 1800 + 2400;
+    const total = goods + region.fee;
+
+    const steps = [1, 2, 3].map((n) => {
+      const done = step > n;
+      const live = step === n;
+      return {
+        n: n,
+        label: ['Your details', 'Delivery', 'Payment'][n - 1],
+        done: done,
+        showNum: !done,
+        dotBg: done || live ? accent : '#FFFFFF',
+        dotBorder: done || live ? accent : '#E0E0E0',
+        dotInk: done || live ? onAccent : '#B0B0B0',
+        labelInk: live ? '#111111' : done ? '#6B7280' : '#B0B0B0',
+        weight: live ? '600' : '500',
+        hasLine: n < 3,
+        lineBg: step > n ? accent : '#E6E6E6',
+        flex: n < 3 ? '1' : '0 0 auto'
+      };
+    });
+
+    const cash = chosen.id === 'cod';
+    const card = chosen.id === 'card';
+
+    return {
+      accent: accent,
+      onAccent: onAccent,
+      safeAccent: safeAccent,
+      protection: this.props.protection !== false,
+      s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4,
+      gridOpen: !(card && !this.state.methodOpen),
+      cardOpen: card && !this.state.methodOpen,
+      openMethods: () => this.setState({ methodOpen: true }),
+      showBack: step > 1 && step < 4,
+      showCta: step < 4,
+      ctaLabel: step === 3 ? 'Pay ' + this.cedis(total) : 'Continue',
+      showSettled: step === 2 || step === 3,
+      settledLine: step === 2 ? this.state.phone + ' · ' + this.state.name : this.state.phone + ' · ' + region.label,
+      goBackToSettled: () => this.setState({ step: this.state.step === 2 ? 1 : 2 }),
+      steps: steps,
+      itemLine: '2 things',
+      chosenBlurb: chosen.blurb,
+      cardName: this.state.cardName,
+      cardNumber: this.state.cardNumber,
+      cardExpiry: this.state.cardExpiry,
+      cardCvv: this.state.cardCvv,
+      setCardName: (event) => this.setState({ cardName: event.target.value }),
+      setCardNumber: (event) => this.setState({ cardNumber: event.target.value }),
+      setCardExpiry: (event) => this.setState({ cardExpiry: event.target.value }),
+      setCardCvv: (event) => this.setState({ cardCvv: event.target.value }),
+      methods: this.methodList().map((m) => {
+        const sel = m.id === this.state.method;
+        return Object.assign({}, m, {
+          sel: sel,
+          isWord: m.kind === 'word',
+          isCard: m.kind === 'card',
+          isCash: m.kind === 'cash',
+          border: sel ? m.markBg : '#EAEAEA',
+          ring: sel ? accent : '#D4D4D4',
+          tickBorder: sel ? m.markBg : '#D4D4D4',
+          tickBg: sel ? m.markBg : 'transparent',
+          tickFg: m.markFg,
+          bigSize: m.id === 'telecel' ? '13px' : '19px',
+          pick: () => this.setState({ method: m.id, methodOpen: m.kind !== 'card' })
+        });
+      }),
+      regions: this.regionList().map((r, i) => {
+        const sel = r.id === this.state.region;
+        return {
+          label: r.label,
+          fee: this.cedis(r.fee),
+          sel: sel,
+          bg: sel ? '#FCFBFA' : '#FFFFFF',
+          tileBorder: sel ? accent : '#EAEAEA',
+          feeInk: sel ? safeAccent : '#6B7280',
+          pick: () => this.setState({ region: r.id })
+        };
+      }),
+      phone: this.state.phone,
+      name: this.state.name,
+      street: this.state.street,
+      digitalAddress: this.state.digitalAddress,
+      landmark: this.state.landmark,
+      total: this.cedis(total),
+      waitIsPhone: !cash,
+      waitIsRider: cash,
+      waitTitle: cash ? 'Order sent' : card ? 'Card sent' : 'Look at your phone',
+      waitSay: cash ? 'Pay the rider when your goods come.' : card ? 'Your bank may ask you to confirm this payment.' : chosen.name + ' is asking you to approve this amount.',
+      waitStroke: this.legibleOn(chosen.markBg, '#FFFFFF', 3),
+      waitTint: chosen.markBg + '1F',
+      hasUssd: !!chosen.ussd,
+      ussd: chosen.ussd,
+      setPhone: (event) => this.setState({ phone: event.target.value }),
+      setName: (event) => this.setState({ name: event.target.value }),
+      setStreet: (event) => this.setState({ street: event.target.value }),
+      setDigitalAddress: (event) => this.setState({ digitalAddress: event.target.value }),
+      setLandmark: (event) => this.setState({ landmark: event.target.value }),
+      next: () => this.setState({ step: Math.min(this.state.step + 1, 4) }),
+      back: () => this.setState({ step: Math.max(this.state.step - 1, 1) }),
+      restart: () => this.setState({ step: 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>
