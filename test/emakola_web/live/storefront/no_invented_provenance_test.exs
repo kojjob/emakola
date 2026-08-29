@@ -114,6 +114,9 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     store = Factory.create_store!(%{theme_config: %{"theme" => theme}})
     product = Factory.create_product!(store, %{status: :active, title: "Blue Notebook"})
     Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
+    # Seeded so every theme renders its real gallery: a guard that runs
+    # against an empty-state placeholder is a weaker guard.
+    Factory.create_image!(product, store)
     {store, product}
   end
 
