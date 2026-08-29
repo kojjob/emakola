@@ -231,8 +231,13 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
+  # The merchant vouching for their own delivery. Its own action, and it records
+  # who pressed it: this is the one route to :delivered with no counterparty,
+  # and it still starts the payout clock.
   def handle_event("deliver_fulfillment", %{"id" => id}, socket) do
-    transition_fulfillment(socket, id, :mark_delivered, "Fulfillment marked delivered")
+    transition_fulfillment(socket, id, :self_attest_delivered, "Marked delivered without proof",
+      params: %{delivery_attested_by_id: attesting_merchant_id(socket)}
+    )
   end
 
   @impl true
@@ -554,6 +559,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     <p :if={f.tracking_number}>
                       Tracking: <span class="font-mono">{f.tracking_number}</span>
                     </p>
+                    <p
+                      :if={f.status == :delivered and not f.delivery_verified}
+                      class="font-semibold text-warning"
+                    >
+                      Delivered without customer proof
+                    </p>
+                    <p
+                      :if={f.status == :delivered and f.delivery_verified}
+                      class="font-semibold text-success"
+                    >
+                      Customer confirmed with their code
+                    </p>
                   </div>
 
                   <%!-- A failed send used to live only in oban_jobs, where no
@@ -673,11 +690,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     >
                       Enter customer code
                     </button>
+                    <%!-- The escape hatch, and it stays one: there is no
+                          auto-release timer, so a merchant whose buyer never
+                          answers has no other way forward. It is kept quiet,
+                          asks first, and leaves a record. --%>
                     <button
                       :if={f.status == :shipped}
                       phx-click="deliver_fulfillment"
                       phx-value-id={f.id}
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-xs font-medium transition-colors"
+                      data-confirm="Only do this if you cannot reach the customer. It will be recorded as delivered without proof."
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-control text-xs font-medium underline underline-offset-2 transition-colors"
                     >
                       Mark delivered without code
                     </button>
@@ -1358,6 +1380,13 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     |> Map.new(&{&1.id, Emakola.Suppliers.SupplierAction.action_url(&1)})
   end
 
+  defp attesting_merchant_id(socket) do
+    case socket.assigns[:current_merchant] do
+      %{id: id} -> id
+      _ -> nil
+    end
+  end
+
   # ── Fulfillment Transition Helper ──
 
   defp transition_fulfillment(socket, id, action, message, opts \\ []) do
@@ -1370,8 +1399,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           :mark_shipped ->
             Emakola.Orders.mark_fulfillment_shipped(fulfillment, params, authorize?: false)
 
-          :mark_delivered ->
-            Emakola.Orders.mark_fulfillment_delivered(fulfillment, authorize?: false)
+          # No :mark_delivered clause. Nothing in this LiveView reaches it any
+          # more: the merchant's own button now goes through
+          # :self_attest_delivered, and the proven path runs inside
+          # CustomerDelivery.verify_delivery/3 off the buyer's code. Dialyzer
+          # flags the dead clause, and it is right to.
+          :self_attest_delivered ->
+            Emakola.Orders.self_attest_fulfillment_delivered(fulfillment, params,
+              authorize?: false
+            )
 
           :cancel ->
             Emakola.Orders.cancel_fulfillment(fulfillment, authorize?: false)

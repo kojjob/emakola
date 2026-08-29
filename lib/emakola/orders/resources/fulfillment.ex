@@ -95,6 +95,28 @@ defmodule Emakola.Orders.Fulfillment do
       public?(true)
     end
 
+    # How this fulfilment reached :delivered, and it matters because delivery
+    # is what starts the merchant's payout clock.
+    #
+    # true  — a second party assented: the buyer read out their OTP.
+    # false — the merchant attested to their own delivery. Kept as an escape
+    #         hatch (there is no auto-release timer, so a merchant whose buyer
+    #         never answers would otherwise wait 30 days for staff), but it must
+    #         never look identical to a proven one.
+    attribute :delivery_verified, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
+    attribute :delivery_attested_by_id, :uuid do
+      public?(true)
+    end
+
+    attribute :delivery_attested_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     # Why the failed send is recorded on the fulfilment rather than left in
     # oban_jobs: a dead-lettered job is invisible to the merchant, so the
     # fulfilment sits :pending forever and nobody is told the supplier never
@@ -308,6 +330,32 @@ defmodule Emakola.Orders.Fulfillment do
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
 
       change(set_attribute(:status, :delivered))
+      change(set_attribute(:delivery_verified, true))
+      change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
+    end
+
+    # The merchant attesting to their own delivery — the only path to
+    # :delivered with no counterparty. A SEPARATE action rather than a flag on
+    # :mark_delivered, matching how this codebase already splits :void from
+    # :void_unfulfilled and :mark_paid from :mark_platform_paid: two different
+    # meanings, two different names, so neither can be reached by accident.
+    #
+    # It still stamps the payout clock. Removing that would turn an escape
+    # hatch into a dead end, since nothing else starts the timer.
+    update :self_attest_delivered do
+      require_atomic?(false)
+      accept([:delivery_attested_by_id])
+
+      validate(
+        {Emakola.Validations.StatusGuard,
+         from: [:shipped], message: "can only mark as delivered from shipped"}
+      )
+
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
+
+      change(set_attribute(:status, :delivered))
+      change(set_attribute(:delivery_verified, false))
+      change(set_attribute(:delivery_attested_at, &DateTime.utc_now/0))
       change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
     end
 
@@ -348,6 +396,18 @@ defmodule Emakola.Orders.Fulfillment do
       )
 
       change(set_attribute(:status, :cancelled))
+    end
+
+    # Staff worklist: deliveries nobody but the merchant vouched for. The
+    # platform protection queue's existing two lists cannot catch these —
+    # a self-attested delivery is not frozen (no complaint) and not stale
+    # (the timer DID start), so without this it looks exactly like a clean one.
+    read :list_unverified_deliveries do
+      filter(expr(status == :delivered and delivery_verified == false))
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, delivery_attested_at: :desc)
+      end)
     end
 
     read :list_by_order do

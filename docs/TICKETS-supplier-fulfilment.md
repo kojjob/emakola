@@ -172,7 +172,7 @@ unverified. The only thing preventing a replay today is the
 `status != :shipped` guard in `validate_code`; the proof record itself offers
 none. Refuse to reissue a proof that has already been verified.
 
-### SAF-14 — self-attested delivery becomes visibly second-best · `TODO` (next)
+### SAF-14 — self-attested delivery becomes visibly second-best · `DONE`
 
 **F1, decided by Kojo 2026-08-29: keep the escape hatch, make it leave a trail.**
 

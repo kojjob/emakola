@@ -65,6 +65,8 @@ defmodule Emakola.Orders do
       define(:supplier_decline_fulfillment, action: :supplier_decline)
       define(:rotate_fulfillment_supplier_link, action: :rotate_supplier_link)
       define(:record_fulfillment_send_failure, action: :record_send_failure)
+      define(:self_attest_fulfillment_delivered, action: :self_attest_delivered)
+      define(:list_unverified_deliveries, action: :list_unverified_deliveries)
     end
 
     resource Emakola.Orders.FulfillmentDeliveryProof do
