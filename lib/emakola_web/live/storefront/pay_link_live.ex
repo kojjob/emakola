@@ -227,6 +227,17 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     end
   end
 
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
+  end
+
   # Validates the RAW input's digit shape before any normalization —
   # PhoneAuth.normalize/1 pads any digit string with no leading 0/233/234
   # with a "+233" prefix, so counting digits *after* normalization lets a
