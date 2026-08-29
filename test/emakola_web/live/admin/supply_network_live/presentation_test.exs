@@ -76,4 +76,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.PresentationTest do
     assert Presentation.customer_city(%{shipping_address: nil}) ==
              "Delivery address on order"
   end
+
+  describe "fulfillment_status_classes/1" do
+    # There is no catch-all clause on this function, so a status the merchant
+    # can actually reach and this module has never heard of takes the whole
+    # supply-network page down with a FunctionClauseError.
+    test "covers every status a Fulfillment can hold" do
+      statuses =
+        Emakola.Orders.Fulfillment
+        |> Ash.Resource.Info.attribute(:status)
+        |> Map.fetch!(:constraints)
+        |> Keyword.fetch!(:one_of)
+
+      for status <- statuses do
+        assert is_binary(Presentation.fulfillment_status_classes(status)),
+               "fulfillment_status_classes/1 has no clause for #{inspect(status)}"
+      end
+    end
+  end
 end

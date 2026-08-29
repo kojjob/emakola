@@ -54,8 +54,10 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, false)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:unverified_holds_count, 0)
       |> assign(:frozen_holds_total, money(0, "GHS"))
       |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:unverified_holds_total, money(0, "GHS"))
       |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
       |> assign(:holds_by_id, %{})
@@ -63,6 +65,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:selected_section, nil)
       |> stream(:frozen_holds, [])
       |> stream(:stale_holds, [])
+      |> stream(:unverified_holds, [])
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
@@ -258,14 +261,25 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     frozen_holds = ProtectionHolds.list_frozen()
     stale_holds = ProtectionHolds.list_stale()
 
-    hold_tenants =
-      (frozen_holds ++ stale_holds)
-      |> Map.new(&{&1.id, &1.store_id})
+    # A delivery only the merchant vouched for. Neither of the lists above can
+    # catch it: no complaint means not frozen, and the release timer DID start,
+    # so not stale. Held only — once the money is out there is nothing left to
+    # review. Deduped against the other two so one hold cannot occupy two rows.
+    already_queued = MapSet.new(frozen_holds ++ stale_holds, & &1.id)
+
+    unverified_holds =
+      ProtectionHolds.list_unverified_delivery()
+      |> Enum.reject(&MapSet.member?(already_queued, &1.id))
+
+    all_holds = frozen_holds ++ stale_holds ++ unverified_holds
+
+    hold_tenants = Map.new(all_holds, &{&1.id, &1.store_id})
 
     holds_by_id =
       Map.new(
         Enum.map(frozen_holds, &{&1.id, {:frozen, &1}}) ++
-          Enum.map(stale_holds, &{&1.id, {:stale, &1}})
+          Enum.map(stale_holds, &{&1.id, {:stale, &1}}) ++
+          Enum.map(unverified_holds, &{&1.id, {:unverified, &1}})
       )
 
     # Keep the current selection when its hold is still queued (a refund
@@ -275,22 +289,25 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     {selected_section, selected_hold} =
       case Map.get(holds_by_id, previously_selected_id) do
         {section, hold} -> {section, hold}
-        nil -> first_queued_hold(frozen_holds, stale_holds)
+        nil -> first_queued_hold(frozen_holds, stale_holds, unverified_holds)
       end
 
     socket
     |> assign(:holds_loaded?, true)
     |> assign(:frozen_holds_count, length(frozen_holds))
     |> assign(:stale_holds_count, length(stale_holds))
+    |> assign(:unverified_holds_count, length(unverified_holds))
     |> assign(:frozen_holds_total, total_held(frozen_holds))
     |> assign(:stale_holds_total, total_held(stale_holds))
-    |> assign(:oldest_hold_days, oldest_days(frozen_holds ++ stale_holds))
+    |> assign(:unverified_holds_total, total_held(unverified_holds))
+    |> assign(:oldest_hold_days, oldest_days(all_holds))
     |> assign(:hold_tenants, hold_tenants)
     |> assign(:holds_by_id, holds_by_id)
     |> assign(:selected_hold, selected_hold)
     |> assign(:selected_section, selected_section)
     |> stream(:frozen_holds, frozen_holds, reset: true)
     |> stream(:stale_holds, stale_holds, reset: true)
+    |> stream(:unverified_holds, unverified_holds, reset: true)
   rescue
     exception ->
       Logger.error("[platform.protection_live] load raised: #{Exception.message(exception)}")
@@ -299,8 +316,10 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, true)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:unverified_holds_count, 0)
       |> assign(:frozen_holds_total, money(0, "GHS"))
       |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:unverified_holds_total, money(0, "GHS"))
       |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
       |> assign(:holds_by_id, %{})
@@ -310,9 +329,12 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> stream(:stale_holds, [], reset: true)
   end
 
-  defp first_queued_hold([first_frozen | _], _stale_holds), do: {:frozen, first_frozen}
-  defp first_queued_hold([], [first_stale | _]), do: {:stale, first_stale}
-  defp first_queued_hold([], []), do: {nil, nil}
+  # Frozen first: a buyer has actually complained. Then stale, then deliveries
+  # nobody but the merchant vouched for.
+  defp first_queued_hold([first | _], _stale, _unverified), do: {:frozen, first}
+  defp first_queued_hold([], [first | _], _unverified), do: {:stale, first}
+  defp first_queued_hold([], [], [first | _]), do: {:unverified, first}
+  defp first_queued_hold([], [], []), do: {nil, nil}
 
   # Re-render one already-streamed queue row so its data-selected state
   # follows the selection (stream rows don't re-render on assign changes).
@@ -320,6 +342,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     case Map.get(socket.assigns.holds_by_id, hold.id) do
       {:frozen, queued_hold} -> stream_insert(socket, :frozen_holds, queued_hold)
       {:stale, queued_hold} -> stream_insert(socket, :stale_holds, queued_hold)
+      {:unverified, queued_hold} -> stream_insert(socket, :unverified_holds, queued_hold)
       nil -> socket
     end
   end
@@ -343,6 +366,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
         <div class="flex items-center gap-2">
           <.severity_pill label={"#{@frozen_holds_count} frozen"} tone="rose" />
           <.severity_pill label={"#{@stale_holds_count} stale"} tone="amber" />
+          <.severity_pill label={"#{@unverified_holds_count} unproven"} tone="rose" />
         </div>
       </div>
 
@@ -473,6 +497,63 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                   </span>
                   <span class="block text-[11.5px] font-medium text-amber-600 leading-tight mt-0.5 truncate">
                     {"Held #{days_held(hold)} days · no release timer"}
+                  </span>
+                </span>
+                <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">
+                  {money(hold.amount, hold_currency(hold))}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <%!-- Deliveries only the merchant vouched for. Neither list above
+                catches these: no complaint means not frozen, and the release
+                timer DID start, so not stale. Held only — once the money is
+                out there is nothing left to review. --%>
+          <div class="px-4 pt-3 pb-1 border-t border-gray-100">
+            <h2 class="text-[11px] font-bold uppercase tracking-wider text-rose-600">
+              {"Delivered without proof · #{@unverified_holds_count}"}
+            </h2>
+          </div>
+          <div id="unverified-protection-holds" phx-update="stream" class="px-2 pb-2">
+            <div
+              :if={!@holds_loaded?}
+              id="unverified-protection-holds-loading"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Loading…
+            </div>
+            <div
+              :if={@holds_loaded? and @unverified_holds_count == 0}
+              id="unverified-protection-holds-empty"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Every delivery was confirmed by its buyer.
+            </div>
+            <div
+              :for={{id, hold} <- @streams.unverified_holds}
+              id={id}
+              data-selected={@selected_hold && @selected_hold.id == hold.id}
+              class={[
+                "rounded-[10px] transition-colors",
+                if(@selected_hold && @selected_hold.id == hold.id,
+                  do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                  else: "hover:bg-slate-50"
+                )
+              ]}
+            >
+              <button
+                type="button"
+                phx-click="select_hold"
+                phx-value-id={hold.id}
+                class="w-full text-left px-3 py-2.5 flex items-start justify-between gap-3"
+              >
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-semibold text-gray-900 leading-tight truncate">
+                    {"#{order_number(hold)} · #{store_name(hold)}"}
+                  </span>
+                  <span class="block text-[11.5px] font-medium text-rose-600 leading-tight mt-0.5 truncate">
+                    Merchant marked delivered, no buyer code
                   </span>
                 </span>
                 <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">

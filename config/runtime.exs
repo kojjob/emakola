@@ -325,6 +325,13 @@ if config_env() == :prod do
   # deliver codes: set PHONE_AUTH_ENABLED=true. See docs/PROVIDER_SETUP.md.
   config :emakola, :phone_auth_enabled, System.get_env("PHONE_AUTH_ENABLED") == "true"
 
+  # Supplier WhatsApp→SMS fallthrough — ship-dark, and deliberately so. Turning
+  # this on makes real sends to the SMS gateway for every supplier
+  # notification, because WhatsApp fails for every store today. Confirm at the
+  # PROVIDER's dashboard that SMS_API_KEY is live and what a message costs
+  # before setting SUPPLIER_SMS_FALLBACK=true.
+  config :emakola, :supplier_sms_fallback, System.get_env("SUPPLIER_SMS_FALLBACK") == "true"
+
   # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
   # pipeline observable without sending anything.

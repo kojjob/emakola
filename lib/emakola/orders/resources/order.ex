@@ -171,6 +171,16 @@ defmodule Emakola.Orders.Order do
       Emakola.Orders.Calculations.FulfillmentStatus
     )
 
+    # Whether a supplier needs the merchant, in one value, so the orders LIST
+    # can show it without loading and reasoning per row in the template.
+    # Unlike FulfillmentStatus above, this one never raises on an unfamiliar
+    # status — a list chip is not worth a 500.
+    calculate(
+      :supplier_alert,
+      :atom,
+      Emakola.Orders.Calculations.SupplierAlert
+    )
+
     # Additive: gross margin (minor units) summed from line items, treating
     # nil cost_price (own-stock) as zero cost. Zero for orders with no items.
     calculate(
@@ -292,6 +302,11 @@ defmodule Emakola.Orders.Order do
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending]})
 
       change(set_attribute(:status, :confirmed))
+
+      # Before NotifyConfirmation on purpose: the clock must exist before the
+      # supplier is messaged, so a supplier who answers instantly has something
+      # to stop.
+      change(Emakola.Orders.Changes.StampSupplierRespondBy)
 
       change(Emakola.Orders.Changes.NotifyConfirmation)
 

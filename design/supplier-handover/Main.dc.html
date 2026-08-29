@@ -1,0 +1,309 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #047857; }
+    a:hover { color: #065F46; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; border: 0; cursor: pointer; }
+  </style>
+</helmet>
+
+<div style="min-height: 844px; display: flex; flex-direction: column; background: #F8FAFC;">
+
+  <!-- Who is asking. A supplier opens this from a WhatsApp message with no
+       context, so the shop's name is the first thing, not the order number. -->
+  <div style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0;">
+    <div style="width: 34px; height: 34px; border-radius: 10px; background: #059669; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <span style="color: #FFFFFF; font-size: 17px; font-weight: 800;">U</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <span style="font-size: 15px; font-weight: 700; color: #0F172A;">UI Demo Shop</span>
+      <span style="font-size: 12px; color: #64748B;">is asking you to send goods</span>
+    </div>
+  </div>
+
+  <!-- Three steps, always visible. Someone who cannot read the words can still
+       count the filled dots and see how much is left. -->
+  <div style="display: flex; align-items: center; gap: 8px; padding: 14px 20px; background: #FFFFFF;">
+    <sc-for list="{{steps}}" as="step" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+        <div style="height: 6px; border-radius: 999px; background: {{step.bar}};"></div>
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: {{step.ink}};">{{step.label}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px 16px 28px;">
+
+    <!-- ── OFFER ─────────────────────────────────────────────── -->
+    <sc-if value="{{isOffer}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B;">Please send</span>
+
+          <!-- The photo IS the instruction. Sized large on purpose: for a
+               supplier who does not read comfortably it carries more than the
+               product name ever will. -->
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <img src="product.jpg" alt="Ankara Wax Print" width="148" height="148" style="width: 148px; height: 148px; border-radius: 16px; object-fit: cover; flex-shrink: 0; background: #E2E8F0;" />
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <span style="font-size: 17px; font-weight: 700; line-height: 1.25;">Ankara Wax Print</span>
+              <span style="font-size: 52px; font-weight: 800; line-height: 1; letter-spacing: -.02em;">× 2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Town only. Enough to judge whether they can deliver there, and
+             almost nothing if this link gets forwarded around WhatsApp. -->
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B;">Deliver to</span>
+          <span style="font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em;">Osu, Accra</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span style="font-size: 13px; color: #64748B;">Full address after you accept</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 2px;">
+          <button type="button" onClick="{{accept}}" style="min-height: 64px; border-radius: 16px; background: #059669; color: #FFFFFF; font-size: 21px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 2px 0 #047857;">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+            I have it
+          </button>
+          <button type="button" onClick="{{askDecline}}" style="min-height: 56px; border-radius: 16px; background: #FFFFFF; color: #B91C1C; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: inset 0 0 0 2px #FECACA;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18 18 6M6 6l12 12"></path></svg>
+            No stock
+          </button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ── CONFIRM DECLINE ───────────────────────────────────── -->
+    <sc-if value="{{isConfirmDecline}}" hint-placeholder-val="{{ true }}">
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 22px 18px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+        <span style="font-size: 22px; font-weight: 800; line-height: 1.25; text-align: center;">Tell the shop you have no stock?</span>
+        <span style="font-size: 15px; color: #64748B; text-align: center; line-height: 1.5;">They will look for another supplier.</span>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" onClick="{{decline}}" style="min-height: 60px; border-radius: 16px; background: #DC2626; color: #FFFFFF; font-size: 19px; font-weight: 800; box-shadow: 0 2px 0 #B91C1C;">Yes, no stock</button>
+          <button type="button" onClick="{{backToOffer}}" style="min-height: 56px; border-radius: 16px; background: #F1F5F9; color: #334155; font-size: 18px; font-weight: 700;">Go back</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ── ACCEPTED ──────────────────────────────────────────── -->
+    <sc-if value="{{isAccepted}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+
+        <div style="display: flex; align-items: center; gap: 10px; background: #ECFDF5; border-radius: 14px; padding: 12px 14px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+          <span style="font-size: 15px; font-weight: 700; color: #065F46;">You said you have it</span>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B;">Take it to</span>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 24px; font-weight: 800; line-height: 1.2;">Ama Mensah</span>
+            <span style="font-size: 16px; color: #334155; line-height: 1.5;">14 Oxford Street<br />Osu, Greater Accra</span>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" style="flex-grow: 1; min-height: 56px; border-radius: 14px; background: #0F172A; color: #FFFFFF; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px;">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"></path></svg>
+              Call
+            </button>
+            <button type="button" style="flex-grow: 1; min-height: 56px; border-radius: 14px; background: #ECFDF5; color: #065F46; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px;">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.17 48.17 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"></path></svg>
+              Message
+            </button>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B;">Courier number</span>
+          <span style="font-size: 14px; color: #64748B; line-height: 1.45; margin-top: -6px;">If you have one. You can skip this.</span>
+          <input type="text" inputmode="text" autocomplete="off" placeholder="" style="min-height: 56px; border-radius: 14px; border: 2px solid #E2E8F0; padding: 0 16px; font-size: 18px; font-family: inherit; color: #0F172A; background: #FFFFFF; width: 100%;" />
+          <button type="button" onClick="{{markSent}}" style="min-height: 64px; border-radius: 16px; background: #059669; color: #FFFFFF; font-size: 21px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 2px 0 #047857;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h.375c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 0h17.25"></path></svg>
+            I sent it
+          </button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ── AT THE DOOR ───────────────────────────────────────── -->
+    <sc-if value="{{isHandover}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 20px 18px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 22px; font-weight: 800; line-height: 1.25;">At the customer</span>
+            <span style="font-size: 16px; color: #475569; line-height: 1.5;">Hand over the goods. Then ask for 6 numbers.</span>
+          </div>
+
+          <sc-if value="{{codeSent}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="––––––" value="{{typed}}" onInput="{{onType}}" style="min-height: 76px; border-radius: 16px; border: 2px solid {{codeBorder}}; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: .28em; font-family: inherit; color: #0F172A; background: #F8FAFC; width: 100%;" />
+
+              <sc-if value="{{codeError}}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; align-items: center; gap: 9px; background: #FEF2F2; border-radius: 12px; padding: 12px 14px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+                  <span style="font-size: 15px; font-weight: 700; color: #991B1B;">{{codeError}}</span>
+                </div>
+              </sc-if>
+
+              <button type="button" onClick="{{finish}}" style="min-height: 64px; border-radius: 16px; background: #059669; color: #FFFFFF; font-size: 21px; font-weight: 800; box-shadow: 0 2px 0 #047857;">Done</button>
+              <button type="button" onClick="{{sendCode}}" style="min-height: 50px; border-radius: 14px; background: #F1F5F9; color: #334155; font-size: 16px; font-weight: 700;">Send again</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{noCodeYet}}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{sendCode}}" style="min-height: 64px; border-radius: 16px; background: #0F172A; color: #FFFFFF; font-size: 19px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 18h.01"></path></svg>
+              Send code to customer
+            </button>
+          </sc-if>
+        </div>
+
+        <div style="display: flex; align-items: flex-start; gap: 10px; padding: 0 4px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+          <span style="font-size: 13px; color: #64748B; line-height: 1.5;">Only the customer sees the numbers.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ── DONE ──────────────────────────────────────────────── -->
+    <sc-if value="{{isDone}}" hint-placeholder-val="{{ true }}">
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 34px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+        <div style="width: 84px; height: 84px; border-radius: 999px; background: #ECFDF5; display: flex; align-items: center; justify-content: center;">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+        </div>
+        <span style="font-size: 26px; font-weight: 800;">Thank you</span>
+        <span style="font-size: 16px; color: #475569; text-align: center; line-height: 1.5;">The shop knows the customer has it.</span>
+        <button type="button" onClick="{{restart}}" style="min-height: 48px; border-radius: 14px; background: #F1F5F9; color: #334155; font-size: 15px; font-weight: 700; padding: 0 20px;">Start again</button>
+      </div>
+    </sc-if>
+
+    <!-- ── DECLINED ──────────────────────────────────────────── -->
+    <sc-if value="{{isDeclined}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <div style="width: 76px; height: 76px; border-radius: 999px; background: #FEE2E2; display: flex; align-items: center; justify-content: center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18 18 6M6 6l12 12"></path></svg>
+          </div>
+          <span style="font-size: 24px; font-weight: 800; text-align: center;">You said no stock</span>
+          <span style="font-size: 16px; color: #475569; text-align: center; line-height: 1.5;">The shop will find someone else.</span>
+        </div>
+
+        <!-- The old screen dead-ended here. A supplier who declined by mistake,
+             or who can supply next week, had no way to say so. -->
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.05);">
+          <span style="font-size: 15px; color: #334155; line-height: 1.5;">Made a mistake?</span>
+          <button type="button" style="min-height: 56px; border-radius: 14px; background: #ECFDF5; color: #065F46; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 9px;">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.17 48.17 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"></path></svg>
+            Message the shop
+          </button>
+        </div>
+
+        <button type="button" onClick="{{restart}}" style="min-height: 44px; border-radius: 12px; background: transparent; color: #64748B; font-size: 14px; font-weight: 600;">Start again</button>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DEMO_CODE = '429117';
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // offer | confirmDecline | accepted | handover | done | declined
+    // DEMO_CODE stands in for the bcrypt hash the real proof stores. The
+    // supplier never sees it here either — it goes to the customer's phone.
+    this.state = { screen: 'offer', codeSent: false, typed: '', codeError: null, attempts: 0 };
+  }
+
+  go(screen, extra) {
+    this.setState(Object.assign({ screen: screen }, extra || {}));
+  }
+
+  steps() {
+    const s = this.state.screen;
+    const at =
+      s === 'offer' || s === 'confirmDecline' ? 0 :
+      s === 'accepted' ? 1 :
+      s === 'handover' ? 2 : 3;
+
+    return ['Have it', 'Send it', 'Deliver'].map((label, i) => ({
+      label: label,
+      bar: i < at ? '#059669' : i === at ? '#6EE7B7' : '#E2E8F0',
+      ink: i <= at ? '#0F172A' : '#94A3B8'
+    }));
+  }
+
+  renderVals() {
+    const s = this.state.screen;
+
+    return {
+      steps: this.steps(),
+      isOffer: s === 'offer',
+      isConfirmDecline: s === 'confirmDecline',
+      isAccepted: s === 'accepted',
+      isHandover: s === 'handover',
+      isDone: s === 'done',
+      isDeclined: s === 'declined',
+      codeSent: s === 'handover' && this.state.codeSent,
+      noCodeYet: s === 'handover' && !this.state.codeSent,
+
+      accept: () => this.go('accepted'),
+      askDecline: () => this.go('confirmDecline'),
+      backToOffer: () => this.go('offer'),
+      decline: () => this.go('declined'),
+      markSent: () => this.go('handover', { codeSent: false, typed: '', codeError: null, attempts: 0 }),
+      sendCode: () => this.setState({ codeSent: true }),
+      typed: this.state.typed,
+      codeError: this.state.codeError,
+      codeBorder: this.state.codeError ? '#FCA5A5' : '#CBD5E1',
+
+      onType: (e) => this.setState({ typed: e.target.value, codeError: null }),
+
+      // Mirrors CustomerDelivery.validate_code/2: blank or wrong is refused
+      // and burns one of five attempts.
+      finish: () => {
+        const entered = (this.state.typed || '').trim();
+
+        if (entered === DEMO_CODE) {
+          this.setState({ screen: 'done', codeError: null });
+          return;
+        }
+
+        const attempts = this.state.attempts + 1;
+        const left = 5 - attempts;
+
+        this.setState({
+          attempts: attempts,
+          codeError: left > 0
+            ? (entered === '' ? 'Ask the customer for the numbers' : 'Wrong numbers. ' + left + ' tries left')
+            : 'Too many tries. The shop must help'
+        });
+      },
+      restart: () => this.go('offer', { codeSent: false, typed: '', codeError: null, attempts: 0 })
+    };
+  }
+}
+</script>
+</body>
+</html>

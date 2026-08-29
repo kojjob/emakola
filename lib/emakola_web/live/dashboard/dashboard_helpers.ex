@@ -52,6 +52,7 @@ defmodule EmakolaWeb.DashboardHelpers do
         low_stock: AsyncSandbox.run_async(fn -> count_low_stock(store_id) end),
         sold_out: AsyncSandbox.run_async(fn -> count_sold_out(store_id) end),
         open_returns: AsyncSandbox.run_async(fn -> count_open_returns(store_id) end),
+        suppliers_to_chase: AsyncSandbox.run_async(fn -> count_suppliers_to_chase(store_id) end),
         best_sellers:
           AsyncSandbox.run_async(fn -> Stats.best_sellers(store_id, day_start, day_end) end),
         failed_payments:
@@ -93,6 +94,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       low_stock_count: results.low_stock,
       sold_out_count: results.sold_out,
       open_returns: results.open_returns,
+      suppliers_to_chase: results.suppliers_to_chase,
       best_sellers: results.best_sellers,
       failed_payments: results.failed_payments,
       recent_orders: results.recent_orders
@@ -161,6 +163,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       low_stock_count: 0,
       sold_out_count: 0,
       open_returns: 0,
+      suppliers_to_chase: 0,
       best_sellers: [],
       failed_payments: 0,
       recent_orders: []
@@ -267,6 +270,24 @@ defmodule EmakolaWeb.DashboardHelpers do
       |> Ash.count(authorize?: false)
 
     count
+  end
+
+  # Supplier groups the merchant has to do something about: one declined, one
+  # that stopped answering, or one whose message never arrived. Counted over
+  # fulfillments rather than the :supplier_alert calculation because this is a
+  # filter the database can answer directly.
+  defp count_suppliers_to_chase(store_id) do
+    require Ash.Query
+
+    Emakola.Orders.Fulfillment
+    |> Ash.Query.filter(
+      store_id == ^store_id and not is_nil(supplier_id) and
+        status in [:pending, :notified, :declined] and
+        (status == :declined or escalation_level >= 2 or not is_nil(last_send_error))
+    )
+    |> Ash.count!(authorize?: false)
+  rescue
+    _ -> 0
   end
 
   defp count_open_returns(store_id) do

@@ -315,6 +315,21 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
               >
                 Send it <.icon name="hero-arrow-right" class="size-3" />
               </.link>
+              <%!-- Supplier state, icon-first. A merchant scanning forty rows
+                    should see a red clock without reading a word — the label
+                    is there for whoever wants it, not carrying the meaning on
+                    its own. --%>
+              <span
+                :if={order.supplier_alert}
+                class={[
+                  "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold",
+                  supplier_alert_classes(order.supplier_alert)
+                ]}
+                title={supplier_alert_label(order.supplier_alert)}
+              >
+                <.icon name={supplier_alert_icon(order.supplier_alert)} class="size-3.5" />
+                <span class="hidden sm:inline">{supplier_alert_label(order.supplier_alert)}</span>
+              </span>
               <.status_badge :if={order.status != :pending} status={order.status} variant={:order} />
             </div>
           </div>
@@ -358,6 +373,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           search: search_arg
         })
         |> Ash.Query.limit(limit + 1)
+        |> Ash.Query.load(:supplier_alert)
         |> Ash.read!(authorize?: false)
       rescue
         exception ->
@@ -508,6 +524,28 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   defp customer_name(%{customer: %{name: name}}) when is_binary(name), do: name
   defp customer_name(_), do: "Unknown"
+
+  # Colour and icon are the signal; the words repeat it for whoever reads. Red
+  # for "you must act", amber for "still waiting", green for "handled".
+  defp supplier_alert_classes(:blocked), do: "bg-danger-soft text-danger"
+  defp supplier_alert_classes(:unreachable), do: "bg-danger-soft text-danger"
+  defp supplier_alert_classes(:waiting), do: "bg-warning-soft text-warning"
+  defp supplier_alert_classes(:accepted), do: "bg-success-soft text-success"
+  defp supplier_alert_classes(_other), do: "bg-slate-100 text-slate-600"
+
+  defp supplier_alert_icon(:blocked), do: "hero-exclamation-triangle"
+  defp supplier_alert_icon(:unreachable), do: "hero-signal-slash"
+  defp supplier_alert_icon(:waiting), do: "hero-clock"
+  defp supplier_alert_icon(:accepted), do: "hero-check-circle"
+  defp supplier_alert_icon(_other), do: "hero-truck"
+
+  # Under the eight-word ceiling, and each says what to do rather than what
+  # state a record is in.
+  defp supplier_alert_label(:blocked), do: "Supplier failed"
+  defp supplier_alert_label(:unreachable), do: "Not delivered"
+  defp supplier_alert_label(:waiting), do: "No reply"
+  defp supplier_alert_label(:accepted), do: "Supplier has it"
+  defp supplier_alert_label(_other), do: "Supplier"
 
   defp order_initials(order) do
     order

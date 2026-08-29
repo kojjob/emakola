@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 390px; padding: 16px; background: #f8fafc; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+
+  <div>
+    <div style="font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;">Maakye, Kwame</div>
+    <div style="font-size: 13px; color: #64748b; margin-top: 2px;">Your shop today</div>
+  </div>
+
+  <div style="display: flex; gap: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 13px; padding: 4px;">
+    <div style="flex: 1; text-align: center; background: #059669; color: #ffffff; font-size: 12.5px; font-weight: 700; padding: 9px 0; border-radius: 9px;">Today</div>
+    <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 600; color: #475569; padding: 9px 0;">Week</div>
+    <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 600; color: #475569; padding: 9px 0;">Month</div>
+    <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 600; color: #475569; padding: 9px 0;">All</div>
+  </div>
+
+  <!-- Setup strip -->
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="46" height="46" viewBox="0 0 64 64" style="flex-shrink: 0;">
+        <circle cx="32" cy="32" r="27" fill="none" stroke="#e2e8f0" stroke-width="8"/>
+        <circle cx="32" cy="32" r="27" fill="none" stroke="#059669" stroke-width="8" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="101.8" transform="rotate(-90 32 32)"/>
+        <text x="32" y="37" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">2/5</text>
+      </svg>
+      <div style="flex: 1;">
+        <div style="font-size: 14.5px; font-weight: 800; color: #0f172a;">Set up your shop</div>
+        <div style="font-size: 12px; color: #64748b;">Next: set where you deliver</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; background: #059669; color: #ffffff; font-size: 12.5px; font-weight: 700; padding: 10px 14px; border-radius: 10px;">
+        Start
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Do these now -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 13px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 13px 15px; box-shadow: inset 4px 0 0 #059669;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 12px; background: #ECFDF5; flex-shrink: 0;">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3.3 8.3L12 13l8.7-4.7M12 13v8"/></svg>
+      </div>
+      <div style="flex: 1; display: flex; align-items: baseline; gap: 8px;">
+        <div style="font-size: 22px; font-weight: 900; color: #0f172a;">3</div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #334155;">Orders to send</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+    <div style="display: flex; align-items: center; gap: 13px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 13px 15px; box-shadow: inset 4px 0 0 #d97706;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 12px; background: #fef3c7; flex-shrink: 0;">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 13H7L6 8zm3 0V6a3 3 0 016 0v2"/><path d="M9.5 13.5l5 5m0-5l-5 5"/></svg>
+      </div>
+      <div style="flex: 1; display: flex; align-items: baseline; gap: 8px;">
+        <div style="font-size: 22px; font-weight: 900; color: #0f172a;">2</div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #334155;">Items sold out</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+
+  <!-- Money -->
+  <div style="background: linear-gradient(135deg, #059669, #047857); border-radius: 16px; padding: 18px 20px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 13px; background: rgba(255,255,255,0.15);">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5 1-2.5 2 0 2.8 5 1.2 5 4 0 1-1 2-2.5 2-1 0-2-.5-2.5-1.5M12 6.5v11"/></svg>
+      </div>
+      <div style="flex: 1;">
+        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8);">Money made</div>
+        <div style="font-size: 28px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em;">GH₵ 480</div>
+      </div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6l6-6 6 6"/></svg>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 11px; background: #ECFDF5;">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 13H7L6 8zm3 0V6a3 3 0 016 0v2"/></svg>
+      </div>
+      <div><div style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1;">12</div><div style="font-size: 12px; font-weight: 700; color: #64748b; margin-top: 2px;">Orders</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 11px; background: #ECFDF5;">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 00-8 0v1M12 11a3 3 0 100-6 3 3 0 000 6zM20 19v-1a3 3 0 00-2-2.8M16 5.3a3 3 0 010 5.4"/></svg>
+      </div>
+      <div><div style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1;">8</div><div style="font-size: 12px; font-weight: 700; color: #64748b; margin-top: 2px;">Buyers</div></div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 18px;">
+    <div style="font-size: 14px; font-weight: 800; color: #0f172a;">Money each day</div>
+    <div style="display: flex; align-items: flex-end; gap: 9px; height: 110px; margin-top: 14px;">
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 34%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">M</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 52%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">T</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 40%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">W</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 66%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">T</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 48%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">F</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 92%; border-radius: 6px 6px 3px 3px; background: #059669;"></div><div style="font-size: 11px; font-weight: 800; color: #047857;">S</div></div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end;"><div style="width: 100%; height: 58%; border-radius: 6px 6px 3px 3px; background: #a7f3d0;"></div><div style="font-size: 11px; font-weight: 700; color: #94a3b8;">S</div></div>
+    </div>
+  </div>
+
+  <!-- Latest orders -->
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 18px;">
+    <div style="font-size: 14px; font-weight: 800; color: #0f172a;">Latest orders</div>
+    <div style="display: flex; flex-direction: column; margin-top: 4px;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f1f5f9;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 999px; background: #d1fae5; color: #047857; font-size: 11px; font-weight: 700;">AM</div>
+        <div style="flex: 1;"><div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Ama Mensah</div><div style="font-size: 11.5px; color: #64748b;">GH₵ 85 · just now</div></div>
+        <div style="display: flex; align-items: center; gap: 5px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 800; padding: 6px 11px; border-radius: 999px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Send it
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 11px 0;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700;">KO</div>
+        <div style="flex: 1;"><div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Kwesi Owusu</div><div style="font-size: 11.5px; color: #64748b;">GH₵ 120 · 2 hours ago</div></div>
+        <div style="display: flex; align-items: center; gap: 5px; background: #ECFDF5; color: #047857; font-size: 11px; font-weight: 800; padding: 6px 11px; border-radius: 999px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          Paid
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

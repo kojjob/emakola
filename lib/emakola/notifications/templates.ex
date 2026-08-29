@@ -206,11 +206,22 @@ defmodule Emakola.Notifications.Templates do
 
   # ── Supplier-facing templates ──────────────────────────────────
 
-  def supplier_fulfillment_sms(order, supplier, line_items) do
-    "Makola order #{order.order_number} for #{supplier.name}: " <>
-      "Please ship #{items_summary(line_items)} " <>
-      "to #{format_address(Map.get(order, :shipping_address))}. " <>
-      "Reply to confirm and share a tracking number."
+  # The old copy ended "Reply to confirm and share a tracking number." Nothing
+  # reads replies — there is no inbound WhatsApp or SMS webhook anywhere in the
+  # app, only Paystack, Hubtel and SplitPay — so a supplier who followed that
+  # instruction was talking into a void. The link is the thing that actually
+  # works.
+  def supplier_fulfillment_sms(order, supplier, line_items, action_url \\ nil) do
+    base =
+      "Makola.io order #{order.order_number} for #{supplier.name}: " <>
+        "Please ship #{items_summary(line_items)} " <>
+        "to #{format_address(Map.get(order, :shipping_address))}."
+
+    if is_binary(action_url) and action_url != "" do
+      base <> " Confirm or say no stock here: " <> action_url
+    else
+      base
+    end
   end
 
   def supplier_fulfillment_whatsapp_template, do: "supplier_fulfillment"

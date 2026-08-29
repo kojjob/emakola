@@ -1,0 +1,63 @@
+{
+  "pages": [
+    {
+      "id": "page-page",
+      "name": "The page"
+    },
+    {
+      "id": "page-why",
+      "name": "Why A"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "page": "page-page",
+      "title": "Stores — desktop",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 3260
+    },
+    {
+      "file": "MainMobile.dc.html",
+      "page": "page-page",
+      "title": "Stores — phone",
+      "x": 1560,
+      "y": 0,
+      "w": 390,
+      "h": 2700
+    },
+    {
+      "file": "FeaturedScale.dc.html",
+      "page": "page-why",
+      "title": "Featured, at scale",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1720
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-page",
+      "page": "page-page",
+      "x": 0,
+      "y": -210,
+      "w": 640,
+      "text": "The polished pass: Archivo brand type, one compact search band replacing the tall collage hero, the spotlight as one big 3:2 card with a quiet list beside it (nobody swipes to be seen), and calmer cards with one accent per surface.\n\nEvery rail is still a query — Fresh, Most visited this week, Just opened — and a rail that cannot fill hides itself. Shop names and product counts are sample; no totals, no rates."
+    },
+    {
+      "id": "note-why",
+      "page": "page-why",
+      "x": 0,
+      "y": -170,
+      "w": 600,
+      "text": "Kept as the record of why the hero is one shop and not a queue of eight. Decided 2026-08-25."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-page"
+  }
+}

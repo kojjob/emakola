@@ -21,6 +21,7 @@ defmodule Emakola.Suppliers do
       define(:claim_supplier_ledger_entry, action: :claim_for_platform_settlement)
       define(:mark_supplier_ledger_entry_platform_paid, action: :mark_platform_paid)
       define(:void_supplier_ledger_entry, action: :void)
+      define(:void_unfulfilled_supplier_ledger_entry, action: :void_unfulfilled)
       define(:reopen_supplier_ledger_entry, action: :reopen_platform_paid)
 
       define(:list_supplier_ledger_entries_by_fulfillment,

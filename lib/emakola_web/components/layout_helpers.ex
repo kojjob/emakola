@@ -55,6 +55,7 @@ defmodule EmakolaWeb.LayoutHelpers do
     verification_result: {:amber, "verified"},
     product_moderated: {:red, "gavel"},
     supplier_connection: {:amber, "handshake"},
+    supplier_overdue: {:red, "schedule"},
     announcement: {:emerald, "campaign"},
     billing_warning: {:red, "warning"},
     system: {:emerald, "notifications"}
