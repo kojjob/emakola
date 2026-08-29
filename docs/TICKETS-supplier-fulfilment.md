@@ -37,7 +37,7 @@ enum **in the same commit** — two of them raise at runtime otherwise.
 fulfilment renders on the order page, the supply-network page, and survives a
 full refund without raising.
 
-### SAF-2 — `EmakolaWeb.SupplierLinkTokens` · `WIP`
+### SAF-2 — `EmakolaWeb.SupplierLinkTokens` · `DONE`
 
 `Phoenix.Token` over `[fulfillment_id, version]`, own salt, 30-day `max_age`,
 modelled on `EmakolaWeb.TrackingTokens`. Rejects any other payload shape.
@@ -45,7 +45,7 @@ modelled on `EmakolaWeb.TrackingTokens`. Rejects any other payload shape.
 **Acceptance:** round-trip; wrong salt rejected; `nil`/`""`/garbage return
 errors rather than raising; expiry honoured; map or 3-element payload → `:invalid`.
 
-### SAF-3 — `Emakola.Suppliers.SupplierAction` boundary · `TODO`
+### SAF-3 — `Emakola.Suppliers.SupplierAction` boundary · `WIP`
 
 `authorize/1`, `accept/1`, `decline/2`, `mark_sent/2`, `action_url/1`. **Every
 function takes the token, never a fulfilment id.**
@@ -64,7 +64,9 @@ for a `supplier_id: nil` group returning `:not_found`.
 ### SAF-4 — `/supply/:token` LiveView · `TODO`
 
 > **First:** `SELECT id, slug FROM stores WHERE slug = 'supply';` — if it
-> returns a row, route `/ship/:token` instead.
+> returns a row, route `/ship/:token` instead. Dev DB checked 2026-08-29: clean
+> for both `supply` and `ship`. ⚠️ **Still must be re-run against PROD before
+> merge** — dev is not authority for which slugs real merchants have taken.
 
 Six-screen fold. No money rendered, ever. Address staged: town pre-accept, full
 details after. Three distinct event names, `Map.get` not head-destructure.
