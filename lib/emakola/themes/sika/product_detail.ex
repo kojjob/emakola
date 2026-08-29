@@ -58,7 +58,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
           <%!-- Image column --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
             <div class="border border-[#E8E3D9] bg-white p-2 sm:p-3">
-              <div class="relative aspect-square overflow-hidden">
+              <div class="relative aspect-[4/5] overflow-hidden">
                 <Shared.tray name={@product.title} />
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}

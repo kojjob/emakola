@@ -93,8 +93,10 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
       assert CartStore.cart_count(session_id, store.id) == 1
     end
 
-    test "tracked variant at zero stock disables the add-to-cart button", %{conn: conn} do
-      store = create_store!(%{slug: "tracked-shop"})
+    test "tracked variant at zero stock cannot be added to the cart", %{conn: conn} do
+      store =
+        create_store!(%{slug: "tracked-shop", whatsapp_number: "+233 24 118 4402"})
+
       product = create_product!(store, %{title: "Limited Bowl"})
       create_variant!(product, store, %{price: 4500, track_inventory: true, stock_quantity: 0})
       activate!(product)
@@ -102,9 +104,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
 
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
 
-      # A genuinely out-of-stock (tracked) product still disables the button —
-      # the gate now respects track_inventory rather than ignoring it.
-      assert has_element?(view, "button[phx-click=add_to_cart][disabled]")
+      # A genuinely out-of-stock (tracked) product offers no buy button at all —
+      # the gate still respects track_inventory rather than ignoring it, and the
+      # shopper is offered a way to be told instead of a dead control. The
+      # untracked case above proves the distinction still holds.
+      refute has_element?(view, "button[phx-click=add_to_cart]")
+      assert has_element?(view, "#back-in-stock")
     end
   end
 

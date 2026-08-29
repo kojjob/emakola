@@ -109,21 +109,52 @@ defmodule Emakola.Themes.Delivery do
   end
 
   @doc """
+  The cheapest delivery the store charges, as a line: `"From GH₵ 15"`.
+
+  `nil` when no active zone carries a fee at all, and also when the cheapest is
+  zero — "From GH₵ 0" is not a price, and a store that delivers free somewhere
+  says so through its free-delivery offer instead.
+
+  The number is `DeliveryZone.fee`, the same row checkout charges from, so the
+  product page and the bill cannot disagree.
+  """
+  def from_fee_line(zones, currency) do
+    zones
+    |> Enum.map(& &1.fee)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.min(fn -> nil end)
+    |> case do
+      nil -> nil
+      0 -> nil
+      cheapest -> "From #{Currency.format_price(cheapest, currency)}"
+    end
+  end
+
+  @doc """
   The one line a product page can honestly say about delivery — the store's
-  free-delivery offer if it has one, else its own estimate and zones, else
-  `nil`. A `nil` means the page says nothing, which is what a store that has
-  configured nothing has earned.
+  free-delivery offer if it has one, else what it charges and how long it
+  takes, else `nil`. A `nil` means the page says nothing, which is what a store
+  that has configured nothing has earned.
+
+  Cost leads when there is one: "how much is delivery" is the question
+  merchants answer on WhatsApp all day, and the store has already answered it
+  in its zones.
   """
   def callout(assigns) do
     zones = zones(assigns)
+    currency = assigns.store.currency
 
-    free_delivery_line(zones, assigns.store.currency) ||
-      case {estimate(zones), zone_names(zones)} do
-        {nil, _names} -> nil
-        {estimate, nil} -> estimate
-        {estimate, names} -> "#{estimate} to #{names}"
-      end
+    free_delivery_line(zones, currency) ||
+      compose(from_fee_line(zones, currency), estimate(zones), zone_names(zones))
   end
+
+  defp compose(nil, nil, _names), do: nil
+  defp compose(nil, estimate, nil), do: estimate
+  defp compose(nil, estimate, names), do: "#{estimate} to #{names}"
+  defp compose(fee, nil, nil), do: fee
+  defp compose(fee, nil, names), do: "#{fee} to #{names}"
+  defp compose(fee, estimate, nil), do: "#{fee} · #{estimate}"
+  defp compose(fee, estimate, names), do: "#{fee} · #{estimate} to #{names}"
 
   defp names(zones), do: zones |> Enum.map(& &1.name) |> Enum.join(", ")
 
