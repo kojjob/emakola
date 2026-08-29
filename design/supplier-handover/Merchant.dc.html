@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #047857; }
+    a:hover { color: #065F46; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; border: 0; cursor: pointer; }
+  </style>
+</helmet>
+
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 18px; background: #F8FAFC; min-height: 900px;">
+
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #64748B;">Order detail · fulfilments</span>
+    <span style="font-size: 14px; color: #64748B;">Tap a state to preview it</span>
+  </div>
+
+  <!-- State switcher. Prototype scaffolding, not part of the design. -->
+  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+    <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+      <button type="button" onClick="{{tab.pick}}" style="min-height: 38px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; background: {{tab.bg}}; color: {{tab.ink}}; box-shadow: {{tab.ring}};">{{tab.label}}</button>
+    </sc-for>
+  </div>
+
+  <!-- ── The fulfilment card ───────────────────────────────────
+       One status band carries the state instead of a stack of coloured
+       sentences: colour, icon and a short line, in that order of noticing. -->
+  <div style="background: #FFFFFF; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden;">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #F1F5F9;">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <div style="width: 32px; height: 32px; border-radius: 10px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-3V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h1"></path><circle cx="7" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle><path d="M9 17h6M17 7l4 5v5h-2"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+          <span style="font-size: 15px; font-weight: 700;">Kwame Wholesale</span>
+          <span style="font-size: 12px; color: #94A3B8;">Supplier · 1 item</span>
+        </div>
+      </div>
+      <span style="flex-shrink: 0; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: {{badge.bg}}; color: {{badge.ink}};">{{badge.label}}</span>
+    </div>
+
+    <!-- The status band. This is the change: one place to look, not four
+         coloured lines competing down the card. -->
+    <div style="display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; background: {{band.bg}}; border-left: 4px solid {{band.edge}};">
+      <div style="flex-shrink: 0; margin-top: 1px;">
+        <sc-if value="{{band.isWait}}" hint-placeholder-val="{{ true }}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{band.edge}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        </sc-if>
+        <sc-if value="{{band.isStop}}" hint-placeholder-val="{{ true }}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{band.edge}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+        </sc-if>
+        <sc-if value="{{band.isGood}}" hint-placeholder-val="{{ true }}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{band.edge}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+        </sc-if>
+        <sc-if value="{{band.isMute}}" hint-placeholder-val="{{ true }}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{band.edge}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 16"></path><path d="M8.5 8.5A6 6 0 0 0 6 13v3H4l2 3h9"></path><path d="M18 16v-3a6 6 0 0 0-6-6"></path></svg>
+        </sc-if>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+        <span style="font-size: 15px; font-weight: 800; color: {{band.ink}}; line-height: 1.35;">{{band.title}}</span>
+        <span style="font-size: 13px; color: #475569; line-height: 1.5;">{{band.detail}}</span>
+      </div>
+    </div>
+
+    <!-- The link is the delivery mechanism, so it sits at the top of the
+         actions rather than buried among them. -->
+    <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #94A3B8;">Supplier link</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" style="min-height: 42px; padding: 0 16px; border-radius: 12px; background: #059669; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.17 48.17 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"></path></svg>
+            Send on WhatsApp
+          </button>
+          <button type="button" style="min-height: 42px; padding: 0 16px; border-radius: 12px; background: #FFFFFF; color: #334155; font-size: 14px; font-weight: 700; box-shadow: inset 0 0 0 1px #E2E8F0; display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy link
+          </button>
+          <button type="button" style="min-height: 42px; padding: 0 14px; border-radius: 12px; background: transparent; color: #64748B; font-size: 14px; font-weight: 600;">New link</button>
+        </div>
+      </div>
+
+      <div style="height: 1px; background: #F1F5F9;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #94A3B8;">Or do it yourself</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" style="min-height: 42px; padding: 0 16px; border-radius: 12px; background: #FFFFFF; color: #334155; font-size: 14px; font-weight: 700; box-shadow: inset 0 0 0 1px #E2E8F0;">Mark shipped</button>
+          <button type="button" style="min-height: 42px; padding: 0 16px; border-radius: 12px; background: #FFFFFF; color: #B91C1C; font-size: 14px; font-weight: 700; box-shadow: inset 0 0 0 1px #FECACA;">Cancel this part</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── The orders-list row ───────────────────────────────────
+       Same vocabulary, shrunk: colour and icon do the work at a glance. -->
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <span style="font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #94A3B8;">How it reads in the list</span>
+    <div style="background: #FFFFFF; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden;">
+      <sc-for list="{{rows}}" as="row" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid #F1F5F9;">
+          <div style="width: 34px; height: 34px; border-radius: 999px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 12px; font-weight: 800; color: #047857;">{{row.initials}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1; min-width: 0;">
+            <span style="font-size: 14px; font-weight: 700;">{{row.name}}</span>
+            <span style="font-size: 11px; color: #94A3B8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">{{row.ref}}</span>
+          </div>
+          <span style="font-size: 14px; font-weight: 800; flex-shrink: 0;">{{row.amount}}</span>
+          <span style="flex-shrink: 0; display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 999px; background: {{row.bg}}; color: {{row.ink}};">
+            <span style="width: 7px; height: 7px; border-radius: 999px; background: {{row.dot}};"></span>
+            {{row.label}}
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":720,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { state: 'fresh' };
+  }
+
+  bands() {
+    return {
+      fresh: {
+        badge: { label: 'Pending', bg: '#FEF3C7', ink: '#92400E' },
+        band: { bg: '#F8FAFC', edge: '#94A3B8', ink: '#334155', isWait: true, isStop: false, isGood: false, isMute: false,
+                title: 'Waiting for the supplier', detail: 'Sent 10 minutes ago. They have not opened it yet.' }
+      },
+      accepted: {
+        badge: { label: 'Accepted', bg: '#ECFDF5', ink: '#065F46' },
+        band: { bg: '#ECFDF5', edge: '#059669', ink: '#065F46', isWait: false, isStop: false, isGood: true, isMute: false,
+                title: 'Supplier has it', detail: 'Accepted at 14:32. Waiting for them to send.' }
+      },
+      waiting: {
+        badge: { label: 'Pending', bg: '#FEF3C7', ink: '#92400E' },
+        band: { bg: '#FFFBEB', edge: '#D97706', ink: '#92400E', isWait: true, isStop: false, isGood: false, isMute: false,
+                title: 'Still no reply', detail: 'Chased once. If nothing by 18:00 you will need another supplier.' }
+      },
+      declined: {
+        badge: { label: 'Declined', bg: '#FEE2E2', ink: '#991B1B' },
+        band: { bg: '#FEF2F2', edge: '#DC2626', ink: '#991B1B', isWait: false, isStop: true, isGood: false, isMute: false,
+                title: 'No stock', detail: 'Kwame Wholesale cannot supply this. Find another, or cancel this part.' }
+      },
+      unreachable: {
+        badge: { label: 'Not sent', bg: '#FEE2E2', ink: '#991B1B' },
+        band: { bg: '#FEF2F2', edge: '#DC2626', ink: '#991B1B', isWait: false, isStop: false, isGood: false, isMute: true,
+                title: 'Message never arrived', detail: 'Nobody has been asked to send anything. Send them the link yourself.' }
+      }
+    };
+  }
+
+  renderVals() {
+    const key = this.state.state;
+    const current = this.bands()[key];
+
+    const labels = [
+      ['fresh', 'Fresh'],
+      ['accepted', 'Accepted'],
+      ['waiting', 'No reply'],
+      ['declined', 'Declined'],
+      ['unreachable', 'Not delivered']
+    ];
+
+    return {
+      badge: current.badge,
+      band: current.band,
+
+      tabs: labels.map((pair) => ({
+        label: pair[1],
+        bg: pair[0] === key ? '#0F172A' : '#FFFFFF',
+        ink: pair[0] === key ? '#FFFFFF' : '#475569',
+        ring: pair[0] === key ? 'none' : 'inset 0 0 0 1px #E2E8F0',
+        pick: () => this.setState({ state: pair[0] })
+      })),
+
+      rows: [
+        { ref: 'ORD-20260829-HNNPAX', name: 'Ama Mensah', initials: 'AM', amount: 'GH₵ 125',
+          label: 'Supplier failed', bg: '#FEE2E2', ink: '#991B1B', dot: '#DC2626' },
+        { ref: 'ORD-20260829-7JWFPE', name: 'Kofi Boateng', initials: 'KB', amount: 'GH₵ 340',
+          label: 'Not sent', bg: '#FEE2E2', ink: '#991B1B', dot: '#DC2626' },
+        { ref: 'ORD-20260829-Q5LBBK', name: 'Efua Darko', initials: 'ED', amount: 'GH₵ 90',
+          label: 'No reply', bg: '#FEF3C7', ink: '#92400E', dot: '#D97706' },
+        { ref: 'ORD-20260829-RN5OT7', name: 'Yaw Owusu', initials: 'YO', amount: 'GH₵ 1,250',
+          label: 'Supplier has it', bg: '#ECFDF5', ink: '#065F46', dot: '#059669' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

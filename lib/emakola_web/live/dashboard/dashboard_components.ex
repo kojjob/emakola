@@ -81,10 +81,14 @@ defmodule EmakolaWeb.DashboardComponents do
   attr :pending_orders, :integer, required: true
   attr :sold_out_count, :integer, required: true
   attr :open_returns, :integer, required: true
+  attr :suppliers_to_chase, :integer, default: 0
 
   def work_queue(assigns) do
     ~H"""
-    <section :if={@pending_orders > 0 or @sold_out_count > 0 or @open_returns > 0}>
+    <section :if={
+      @pending_orders > 0 or @sold_out_count > 0 or @open_returns > 0 or
+        @suppliers_to_chase > 0
+    }>
       <div class="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
         <.work_tile
           :if={@pending_orders > 0}
@@ -108,6 +112,19 @@ defmodule EmakolaWeb.DashboardComponents do
           action="Restock"
           href="/admin/inventory"
         />
+        <%!-- The SLA clock escalates in the background; without a tile here
+              the merchant only finds out by opening an order. --%>
+        <.work_tile
+          :if={@suppliers_to_chase > 0}
+          id="work-queue-suppliers"
+          icon="hero-clock"
+          tint="bg-rose-100 text-rose-600"
+          edge="shadow-[inset_4px_0_0_theme(colors.rose.600)]"
+          label="Suppliers not replying"
+          count={@suppliers_to_chase}
+          action="Check"
+          href="/admin/orders"
+        />
         <.work_tile
           :if={@open_returns > 0}
           id="work-queue-returns"
@@ -123,7 +140,10 @@ defmodule EmakolaWeb.DashboardComponents do
     </section>
 
     <div
-      :if={@pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0}
+      :if={
+        @pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0 and
+          @suppliers_to_chase == 0
+      }
       id="work-queue-all-clear"
       class="flex items-center gap-4 rounded-card border border-border bg-surface px-6 py-4"
     >

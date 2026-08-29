@@ -61,6 +61,13 @@ defmodule Emakola.Orders do
       define(:mark_fulfillment_shipped, action: :mark_shipped)
       define(:mark_fulfillment_delivered, action: :mark_delivered)
       define(:cancel_fulfillment, action: :cancel)
+      define(:supplier_accept_fulfillment, action: :supplier_accept)
+      define(:supplier_decline_fulfillment, action: :supplier_decline)
+      define(:rotate_fulfillment_supplier_link, action: :rotate_supplier_link)
+      define(:record_fulfillment_send_failure, action: :record_send_failure)
+      define(:self_attest_fulfillment_delivered, action: :self_attest_delivered)
+      define(:list_unverified_deliveries, action: :list_unverified_deliveries)
+      define(:escalate_fulfillment, action: :escalate)
     end
 
     resource Emakola.Orders.FulfillmentDeliveryProof do

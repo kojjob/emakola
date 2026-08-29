@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 480px; padding: 20px; background: #f8fafc; box-sizing: border-box;">
+  <!-- Buyer account home (default Market theme): my orders as cards with living status -->
+  <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: #d1fae5; color: #047857; font-size: 16px; font-weight: 800;">AM</div>
+    <div>
+      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">Ama Mensah</div>
+      <div style="font-size: 12.5px; color: #64748b;">ama@example.com</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px;">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 13px; padding: 12px; text-align: center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;"><path d="M6 8h12l-1 13H7L6 8zm3 0V6a3 3 0 016 0v2"/></svg>
+      <div style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 6px;">Orders</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 13px; padding: 12px; text-align: center; position: relative;">
+      <div style="position: absolute; top: 8px; right: 12px; min-width: 17px; height: 17px; background: #059669; color: #fff; border-radius: 999px; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;">1</div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;"><path d="M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+      <div style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 6px;">Messages</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 13px; padding: 12px; text-align: center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;"><path d="M19.5 12.6L12 20l-7.5-7.4a5 5 0 117-7.1l.5.5.5-.5a5 5 0 117 7.1z"/></svg>
+      <div style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 6px;">Saved</div>
+    </div>
+  </div>
+
+  <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px;">My orders</div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">ORD-2233 · 2 items</div>
+        <div style="font-size: 14px; font-weight: 800; color: #0f172a;">GH₵ 85</div>
+      </div>
+      <!-- Mini tracker: same picture as the merchant setup journey -->
+      <div style="position: relative; display: flex; justify-content: space-between; margin-top: 14px; padding: 0 6px;">
+        <div style="position: absolute; top: 7px; left: 16px; right: 16px; height: 3px; border-radius: 999px; background: #e2e8f0;"></div>
+        <div style="position: absolute; top: 7px; left: 16px; width: 45%; height: 3px; border-radius: 999px; background: #059669;"></div>
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="width: 17px; height: 17px; border-radius: 999px; background: #059669; border: 3px solid #fff; box-shadow: 0 0 0 1px #a7f3d0;"></div>
+          <div style="font-size: 10px; font-weight: 700; color: #047857;">Paid</div>
+        </div>
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="width: 17px; height: 17px; border-radius: 999px; background: #ECFDF5; border: 3px solid #fff; box-shadow: 0 0 0 2px #059669;"></div>
+          <div style="font-size: 10px; font-weight: 800; color: #0f172a;">Packing</div>
+        </div>
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="width: 17px; height: 17px; border-radius: 999px; background: #f1f5f9; border: 3px solid #fff; box-shadow: 0 0 0 1px #e2e8f0;"></div>
+          <div style="font-size: 10px; font-weight: 600; color: #94a3b8;">On the way</div>
+        </div>
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="width: 17px; height: 17px; border-radius: 999px; background: #f1f5f9; border: 3px solid #fff; box-shadow: 0 0 0 1px #e2e8f0;"></div>
+          <div style="font-size: 10px; font-weight: 600; color: #94a3b8;">Delivered</div>
+        </div>
+      </div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">ORD-2198 · 1 item</div>
+        <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Aug 12</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 5px; background: #ECFDF5; color: #047857; font-size: 11px; font-weight: 800; padding: 5px 11px; border-radius: 999px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          Delivered
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: #059669;">Buy again</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

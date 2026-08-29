@@ -45,8 +45,26 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       |> load_protection_hold()
       |> load_fulfillments()
 
+    # The SLA sweeper escalates in the background, so this page can go stale
+    # while a merchant is looking straight at it. Only dashboard_live subscribed
+    # to this topic before.
+    if connected?(socket) and store_id do
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
+    end
+
     {:ok, socket}
   end
+
+  @impl true
+  def handle_info({:order_event, _event, %{id: order_id}}, socket) do
+    if order_id == socket.assigns.order_id do
+      {:noreply, socket |> load_order() |> load_fulfillments()}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("confirm_order", _params, socket) do
@@ -131,6 +149,28 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
+  # Revocation for a link the merchant sent to the wrong chat. Bumping the
+  # version invalidates every token already minted for this fulfilment.
+  def handle_event("rotate_supplier_link", %{"id" => id}, socket) do
+    case Enum.find(socket.assigns.fulfillments, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
+
+      fulfillment ->
+        case Emakola.Orders.rotate_fulfillment_supplier_link(fulfillment, authorize?: false) do
+          {:ok, _rotated} ->
+            {:noreply,
+             socket
+             |> load_fulfillments()
+             |> put_flash(:info, "New link made. The old one stopped working.")}
+
+          {:error, reason} ->
+            Logger.error("[order_live.show] rotate_supplier_link failed: #{inspect(reason)}")
+            {:noreply, put_flash(socket, :error, "Could not make a new link")}
+        end
+    end
+  end
+
   def handle_event("select_ship_fulfillment", %{"id" => id}, socket) do
     {:noreply,
      assign(socket,
@@ -209,13 +249,23 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
+  # The merchant vouching for their own delivery. Its own action, and it records
+  # who pressed it: this is the one route to :delivered with no counterparty,
+  # and it still starts the payout clock.
   def handle_event("deliver_fulfillment", %{"id" => id}, socket) do
-    transition_fulfillment(socket, id, :mark_delivered, "Fulfillment marked delivered")
+    transition_fulfillment(socket, id, :self_attest_delivered, "Marked delivered without proof",
+      params: %{delivery_attested_by_id: attesting_merchant_id(socket)}
+    )
   end
 
   @impl true
+  # Cancelling a supplier group the supplier never shipped must also close out
+  # what the merchant nominally owes for it, or they are left with a debt for
+  # goods that never moved.
   def handle_event("cancel_fulfillment", %{"id" => id}, socket) do
-    transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
+    result = transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
+    void_unfulfilled_debt(id)
+    result
   end
 
   @impl true
@@ -523,9 +573,108 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       Notified {format_datetime(f.notified_at)}
                       <span :if={f.notified_via}>via {to_string(f.notified_via)}</span>
                     </p>
+                    <p
+                      :if={f.accepted_at}
+                      class="flex items-center gap-1.5 font-semibold text-success"
+                    >
+                      <.icon name="hero-check-circle" class="size-4 shrink-0" />
+                      Supplier has it · {format_datetime(f.accepted_at)}
+                    </p>
+                    <p
+                      :if={f.declined_at}
+                      class="flex items-center gap-1.5 font-semibold text-danger"
+                    >
+                      <.icon name="hero-x-circle" class="size-4 shrink-0" />
+                      No stock · find another supplier
+                    </p>
                     <p :if={f.tracking_number}>
                       Tracking: <span class="font-mono">{f.tracking_number}</span>
                     </p>
+                    <p
+                      :if={f.escalation_level >= 3 and f.status in [:pending, :notified]}
+                      class="flex items-center gap-1.5 font-semibold text-danger"
+                    >
+                      <.icon name="hero-exclamation-triangle" class="size-4 shrink-0" />
+                      Supplier is not answering
+                    </p>
+                    <p
+                      :if={f.escalation_level == 2 and f.status in [:pending, :notified]}
+                      class="flex items-center gap-1.5 font-semibold text-warning"
+                    >
+                      <.icon name="hero-clock" class="size-4 shrink-0" /> Still no reply
+                    </p>
+                    <p
+                      :if={f.status == :delivered and not f.delivery_verified}
+                      class="flex items-center gap-1.5 font-semibold text-warning"
+                    >
+                      <.icon name="hero-shield-exclamation" class="size-4 shrink-0" />
+                      No customer proof
+                    </p>
+                    <p
+                      :if={f.status == :delivered and f.delivery_verified}
+                      class="flex items-center gap-1.5 font-semibold text-success"
+                    >
+                      <.icon name="hero-shield-check" class="size-4 shrink-0" /> Customer confirmed
+                    </p>
+                  </div>
+
+                  <%!-- A failed send used to live only in oban_jobs, where no
+                        merchant will ever look, so the fulfilment sat pending
+                        forever and nobody knew the supplier never heard. The
+                        label itself is for the logs; the merchant gets the
+                        sentence and something to do about it. --%>
+                  <div
+                    :if={f.last_send_error && f.status == :pending}
+                    class="flex flex-wrap items-center gap-2 rounded-control bg-danger-soft p-2 text-xs font-semibold text-danger"
+                  >
+                    <.icon name="hero-signal-slash" class="size-4 shrink-0" />
+                    <span :if={f.last_send_error == "no_contact"}>
+                      No phone number for this supplier
+                    </span>
+                    <span :if={f.last_send_error != "no_contact"}>
+                      Message not delivered
+                    </span>
+                  </div>
+
+                  <%!-- The supplier has no account, so the link IS the delivery
+                        mechanism. It works whether it arrives by WhatsApp
+                        Business, by SMS, or by the merchant pasting it into
+                        their own chat — which is what makes this usable while
+                        the automated rails are still unreliable. --%>
+                  <div
+                    :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified, :declined]}
+                    data-role="supplier-link"
+                    class="flex flex-wrap items-center gap-2 rounded-control bg-surface-subtle p-2"
+                  >
+                    <.admin_button
+                      variant={:secondary}
+                      size={:sm}
+                      phx-click={
+                        JS.dispatch("copy-to-clipboard",
+                          detail: %{text: @supplier_links[f.id]}
+                        )
+                      }
+                    >
+                      Copy supplier link
+                    </.admin_button>
+                    <a
+                      :if={f.supplier && f.supplier.whatsapp_number}
+                      href={whatsapp_share_url(f, @supplier_links[f.id])}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success hover:bg-success text-white rounded-control text-xs font-semibold transition-colors"
+                    >
+                      Send on WhatsApp
+                    </a>
+                    <.admin_button
+                      variant={:secondary}
+                      size={:sm}
+                      phx-click="rotate_supplier_link"
+                      phx-value-id={f.id}
+                      data-confirm="The old link will stop working. Continue?"
+                    >
+                      New link
+                    </.admin_button>
                   </div>
 
                   <ul class="text-sm text-slate-600 space-y-1">
@@ -539,16 +688,27 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     :if={f.status not in [:delivered, :cancelled]}
                     class="flex flex-wrap gap-2 pt-1"
                   >
+                    <%!-- Gated on accepted_at, not status: an accept leaves the
+                          status at :notified on purpose, so keying on status
+                          alone would keep offering "Resend" for a supplier who
+                          has already said yes. --%>
                     <.admin_button
-                      :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified]}
+                      :if={
+                        not is_nil(f.supplier_id) and f.status in [:pending, :notified] and
+                          is_nil(f.accepted_at)
+                      }
                       size={:sm}
                       phx-click="send_supplier_fulfillment"
                       phx-value-id={f.id}
                     >
-                      {if f.status == :notified, do: "Resend", else: "Send to supplier"}
+                      {cond do
+                        f.last_send_error -> "Try again"
+                        f.status == :notified -> "Resend"
+                        true -> "Send to supplier"
+                      end}
                     </.admin_button>
                     <button
-                      :if={f.status in [:pending, :notified]}
+                      :if={f.status in [:pending, :notified, :declined]}
                       phx-click={
                         JS.push("select_ship_fulfillment", value: %{id: f.id})
                         |> show_modal("ship-fulfillment-modal")
@@ -576,11 +736,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     >
                       Enter customer code
                     </button>
+                    <%!-- The escape hatch, and it stays one: there is no
+                          auto-release timer, so a merchant whose buyer never
+                          answers has no other way forward. It is kept quiet,
+                          asks first, and leaves a record. --%>
                     <button
                       :if={f.status == :shipped}
                       phx-click="deliver_fulfillment"
                       phx-value-id={f.id}
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-xs font-medium transition-colors"
+                      data-confirm="Only do this if you cannot reach the customer. It will be recorded as delivered without proof."
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-control text-xs font-medium underline underline-offset-2 transition-colors"
                     >
                       Mark delivered without code
                     </button>
@@ -1247,7 +1412,51 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               []
           end
 
-        assign(socket, fulfillments: fulfillments)
+        socket
+        |> assign(fulfillments: fulfillments)
+        |> assign(supplier_links: supplier_links(fulfillments))
+    end
+  end
+
+  # Signed once per load and stashed, never in render/1: each URL is an HMAC and
+  # the fulfilment list re-renders on every LiveView diff.
+  defp supplier_links(fulfillments) do
+    fulfillments
+    |> Enum.filter(& &1.supplier_id)
+    |> Map.new(&{&1.id, Emakola.Suppliers.SupplierAction.action_url(&1)})
+  end
+
+  # Best-effort and deliberately after the cancel: the cancellation is the thing
+  # the merchant asked for, and a ledger hiccup must not undo it. An entry the
+  # platform already claimed is left alone — that debt is settled by a rail this
+  # button has no business touching.
+  defp void_unfulfilled_debt(fulfillment_id) do
+    case Emakola.Suppliers.list_supplier_ledger_entries_by_fulfillment(fulfillment_id,
+           authorize?: false
+         ) do
+      {:ok, entries} ->
+        Enum.each(entries, fn entry ->
+          Emakola.Suppliers.void_unfulfilled_supplier_ledger_entry(entry, authorize?: false)
+        end)
+
+      {:error, reason} ->
+        Logger.error(
+          "[order_live.show] could not load ledger entries for #{fulfillment_id}: #{inspect(reason)}"
+        )
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[order_live.show] void_unfulfilled_debt raised for #{fulfillment_id}: #{Exception.message(exception)}"
+      )
+
+      :ok
+  end
+
+  defp attesting_merchant_id(socket) do
+    case socket.assigns[:current_merchant] do
+      %{id: id} -> id
+      _ -> nil
     end
   end
 
@@ -1263,8 +1472,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           :mark_shipped ->
             Emakola.Orders.mark_fulfillment_shipped(fulfillment, params, authorize?: false)
 
-          :mark_delivered ->
-            Emakola.Orders.mark_fulfillment_delivered(fulfillment, authorize?: false)
+          # No :mark_delivered clause. Nothing in this LiveView reaches it any
+          # more: the merchant's own button now goes through
+          # :self_attest_delivered, and the proven path runs inside
+          # CustomerDelivery.verify_delivery/3 off the buyer's code. Dialyzer
+          # flags the dead clause, and it is right to.
+          :self_attest_delivered ->
+            Emakola.Orders.self_attest_fulfillment_delivered(fulfillment, params,
+              authorize?: false
+            )
 
           :cancel ->
             Emakola.Orders.cancel_fulfillment(fulfillment, authorize?: false)
@@ -1349,11 +1565,26 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     end
   end
 
+  # A deep link to THIS supplier's number, not a generic share sheet — the
+  # merchant should not have to pick the right chat out of a list.
+  defp whatsapp_share_url(fulfillment, action_url) do
+    digits = String.replace(fulfillment.supplier.whatsapp_number || "", ~r/\D/, "")
+
+    text =
+      "Order #{order_number_for(fulfillment)}: please open this to accept or decline. #{action_url}"
+
+    "https://wa.me/#{digits}?text=#{URI.encode(text)}"
+  end
+
+  defp order_number_for(%{order: %{order_number: number}}) when is_binary(number), do: number
+  defp order_number_for(_fulfillment), do: ""
+
   defp fulfillment_badge_class(:pending), do: "bg-warning-soft text-warning"
   defp fulfillment_badge_class(:notified), do: "bg-info-soft text-info"
   defp fulfillment_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
   defp fulfillment_badge_class(:delivered), do: "bg-success-soft text-success"
   defp fulfillment_badge_class(:cancelled), do: "bg-danger-soft text-danger"
+  defp fulfillment_badge_class(:declined), do: "bg-danger-soft text-danger"
   defp fulfillment_badge_class(_), do: "bg-slate-50 text-slate-700"
 
   # A complaint freezes the auto-release timer without changing the hold's

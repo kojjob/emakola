@@ -38,6 +38,7 @@ defmodule Emakola.Notifications.Notification do
           :verification_result,
           :product_moderated,
           :supplier_connection,
+          :supplier_overdue,
           :announcement,
           :billing_warning,
           :system

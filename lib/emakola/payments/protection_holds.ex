@@ -360,6 +360,31 @@ defmodule Emakola.Payments.ProtectionHolds do
     |> Ash.read!(authorize?: false)
   end
 
+  @doc """
+  Holds whose delivery nobody but the merchant vouched for — `:held`, with a
+  `:delivered` fulfillment that was self-attested rather than confirmed by the
+  buyer's code.
+
+  The queue's other two worklists cannot catch these. A self-attested delivery
+  is not frozen (there is no complaint) and not stale (the timer DID start), so
+  without this it is indistinguishable from a delivery the buyer confirmed.
+
+  Filtered to `:held` on purpose: these are the ones where the money has not
+  gone out yet and staff can still act. Once released there is nothing to
+  review, only to dispute. Newest first, since the countdown is running.
+  Cross-tenant, same as `list_frozen/0`.
+  """
+  def list_unverified_delivery do
+    ProtectionHold
+    |> Ash.Query.filter(
+      status == :held and
+        exists(order.fulfillments, status == :delivered and delivery_verified == false)
+    )
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.load([:store, :order])
+    |> Ash.read!(authorize?: false)
+  end
+
   defp due_for_timer_start(order_id, store_id) do
     ProtectionHold
     |> Ash.Query.filter(

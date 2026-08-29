@@ -24,8 +24,14 @@ defmodule EmakolaWeb.Router do
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
 
+    # referrer-policy matters more here than on a typical app because several
+    # pages carry a credential IN THE PATH — /pair/:token, /susu/:code and
+    # /supply/:token. Without this header any outbound link on one of those
+    # pages hands the whole URL, token included, to the destination in Referer.
+    # Phoenix sets no referrer policy by default.
     plug :put_secure_browser_headers, %{
-      "cross-origin-opener-policy" => "same-origin"
+      "cross-origin-opener-policy" => "same-origin",
+      "referrer-policy" => "strict-origin-when-cross-origin"
     }
 
     plug EmakolaWeb.Plugs.ContentSecurityPolicy
@@ -60,6 +66,14 @@ defmodule EmakolaWeb.Router do
   # mint a fresh bucket per request and bypass the limit.
   pipeline :auth_rate_limit do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
+  end
+
+  # The supplier action link is unauthenticated by design — the supplier has no
+  # account. key: :ip for the same reason as :auth_rate_limit: attacker-controlled
+  # headers must not be able to mint a fresh bucket. Per-fulfilment write limits
+  # live in Emakola.Suppliers.SupplierAction; this one only caps request noise.
+  pipeline :supplier_action_rate_limit do
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 30, window_ms: 60_000, key: :ip
   end
 
   # Resolves + sets the store tenant for storefront (customer) OAuth. No-op for
@@ -380,6 +394,31 @@ defmodule EmakolaWeb.Router do
   # so "/", "/about", "/pricing", etc. match ONLY on the apex — never on a store
   # subdomain, where root is the storefront. Declared BEFORE the storefront
   # catch-all (first-match-wins) so apex hosts resolve here, not the catch-all.
+  # Supplier action link — how a dropship supplier accepts, declines or ships a
+  # fulfilment. Its own scope purely so it can carry the rate-limit pipeline:
+  # folding it into the apex browser scope below would throttle every marketing
+  # page at 30 requests a minute.
+  #
+  # Public because the supplier is a local wholesaler on WhatsApp with no Makola
+  # account. The signed token in the URL is the only credential, it is bound to
+  # one fulfilment, and the merchant revokes it by rotating
+  # Fulfillment.supplier_link_version. Declared before the storefront catch-all,
+  # and apex-host scoped like /pay, /susu and /pair, so no store subdomain can
+  # shadow it.
+  #
+  # No layout, like /pair: the storefront layout wraps a shop header, a
+  # payment-logo row and a search overlay around a page whose only job is three
+  # buttons, and needs assigns this page has no store to provide. NoIndex
+  # because the URL carries a credential.
+  scope "/", EmakolaWeb, host: @apex_hosts do
+    pipe_through [:browser, :supplier_action_rate_limit]
+
+    live_session :supplier_action,
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
+      live "/supply/:token", Supplier.ActionLive
+    end
+  end
+
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :browser
 

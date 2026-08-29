@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 1200px; padding: 28px; background: #f8fafc; box-sizing: border-box;">
+  <!-- The road to market: a winding path with five stops and a shop at the end -->
+  <div style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 30px 28px;">
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(236,253,245,0.5), rgba(255,255,255,0) 45%);"></div>
+    <div style="position: relative; display: flex; align-items: baseline; justify-content: space-between;">
+      <div>
+        <div style="font-size: 17px; font-weight: 800; color: #0f172a;">The road to your shop</div>
+        <div style="font-size: 13px; color: #64748b; margin-top: 2px;">2 of 5 stops done.</div>
+      </div>
+      <div style="background: #ECFDF5; color: #047857; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px;">2/5</div>
+    </div>
+
+    <div style="position: relative; height: 210px; margin-top: 10px;">
+      <svg viewBox="0 0 1120 210" style="position: absolute; inset: 0; width: 100%; height: 100%;" preserveAspectRatio="none">
+        <path d="M40 150 C 180 60, 300 60, 420 120 S 660 190, 780 120 S 990 40, 1070 70" fill="none" stroke="#e2e8f0" stroke-width="10" stroke-linecap="round"/>
+        <path d="M40 150 C 180 60, 300 60, 420 120" fill="none" stroke="#059669" stroke-width="10" stroke-linecap="round"/>
+        <path d="M40 150 C 180 60, 300 60, 420 120 S 660 190, 780 120 S 990 40, 1070 70" fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round"/>
+      </svg>
+
+      <!-- Stop 1: done -->
+      <div style="position: absolute; left: 8px; top: 122px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 90px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #059669; border: 4px solid #ffffff; box-shadow: 0 3px 8px rgba(5,150,105,0.3);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #047857; text-align: center;">Pick a look</div>
+      </div>
+
+      <!-- Stop 2: done -->
+      <div style="position: absolute; left: 195px; top: 42px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #059669; border: 4px solid #ffffff; box-shadow: 0 3px 8px rgba(5,150,105,0.3);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #047857; text-align: center;">Add one product</div>
+      </div>
+
+      <!-- Stop 3: YOU ARE HERE -->
+      <div style="position: absolute; left: 368px; top: 78px; display: flex; flex-direction: column; align-items: center; gap: 7px; width: 130px;">
+        <div style="background: #0f172a; color: #ffffff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px;">You are here</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; border-radius: 999px; background: #ECFDF5; border: 4px solid #ffffff; box-shadow: 0 0 0 2.5px #059669, 0 8px 18px rgba(5,150,105,0.3);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V7h11v10H3zm11-6h4l3 3v3h-7M5.5 20a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm11 0a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6z"/></svg>
+        </div>
+        <div style="display: flex; align-items: center; gap: 5px; background: #059669; color: #ffffff; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 9px; box-shadow: 0 4px 10px rgba(5,150,105,0.3);">
+          Set delivery
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+        </div>
+      </div>
+
+      <!-- Stop 4 -->
+      <div style="position: absolute; left: 735px; top: 92px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #f1f5f9; border: 4px solid #ffffff; box-shadow: 0 0 0 1px #e2e8f0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8m-8 4h5M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #64748b; text-align: center;">Connect WhatsApp</div>
+      </div>
+
+      <!-- Stop 5 + shop goal -->
+      <div style="position: absolute; left: 905px; top: 30px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #f1f5f9; border: 4px solid #ffffff; box-shadow: 0 0 0 1px #e2e8f0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.2 10.8l7-4M8.2 13.2l7 4"/></svg>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #64748b; text-align: center;">Link your socials</div>
+      </div>
+      <div style="position: absolute; left: 1035px; top: 18px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fef3c7; border: 2px solid #fcd34d;">
+          <svg width="30" height="30" viewBox="0 0 64 64"><path d="M32 10 L58 26 H6 Z" fill="#0c1f17"/><path d="M6 26 H58 V32 A5.2 5.2 0 0 1 47.6 32 A5.2 5.2 0 0 1 37.2 32 A5.2 5.2 0 0 1 26.8 32 A5.2 5.2 0 0 1 16.4 32 A5.2 5.2 0 0 1 6 32 Z" fill="#d4a843"/><rect x="12" y="42" width="40" height="12" rx="4" fill="#d4a843"/></svg>
+        </div>
+        <div style="font-size: 11px; font-weight: 800; color: #b45309;">Your shop</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -95,6 +95,10 @@ config :emakola, Emakola.Payments.PaystackClient,
   base_url: "https://api.paystack.co"
 
 # Notification providers: use Mox mocks in tests
+# On in test so the fallthrough is exercised. Tests that need it off set it
+# explicitly — see supplier_notification_worker_test.exs.
+config :emakola, :supplier_sms_fallback, true
+
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 config :emakola, :push_provider, Emakola.PushProviderMock
