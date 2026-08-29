@@ -213,7 +213,7 @@ defmodule Emakola.Notifications.Templates do
   # works.
   def supplier_fulfillment_sms(order, supplier, line_items, action_url \\ nil) do
     base =
-      "Makola order #{order.order_number} for #{supplier.name}: " <>
+      "Makola.io order #{order.order_number} for #{supplier.name}: " <>
         "Please ship #{items_summary(line_items)} " <>
         "to #{format_address(Map.get(order, :shipping_address))}."
 
