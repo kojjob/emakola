@@ -165,12 +165,21 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    # Both carry the order the merchant arranged, and both are read
+    # positionally: the product page takes its default variant with
+    # `List.first/1` and opens its gallery on `Enum.at(images, 0)`. Without a
+    # sort that was whatever order Postgres returned, so the price, stock badge
+    # and SKU a shopper met on first load could change between requests.
+    # `inserted_at` breaks ties, because position defaults to the same value
+    # for every row until a merchant reorders them.
     has_many :variants, Emakola.Catalog.Variant do
       public?(true)
+      sort(position: :asc, inserted_at: :asc)
     end
 
     has_many :images, Emakola.Catalog.Image do
       public?(true)
+      sort(position: :asc, inserted_at: :asc)
     end
 
     has_many :reviews, Emakola.Catalog.Review
