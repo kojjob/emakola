@@ -131,6 +131,28 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
+  # Revocation for a link the merchant sent to the wrong chat. Bumping the
+  # version invalidates every token already minted for this fulfilment.
+  def handle_event("rotate_supplier_link", %{"id" => id}, socket) do
+    case Enum.find(socket.assigns.fulfillments, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
+
+      fulfillment ->
+        case Emakola.Orders.rotate_fulfillment_supplier_link(fulfillment, authorize?: false) do
+          {:ok, _rotated} ->
+            {:noreply,
+             socket
+             |> load_fulfillments()
+             |> put_flash(:info, "New link made. The old one stopped working.")}
+
+          {:error, reason} ->
+            Logger.error("[order_live.show] rotate_supplier_link failed: #{inspect(reason)}")
+            {:noreply, put_flash(socket, :error, "Could not make a new link")}
+        end
+    end
+  end
+
   def handle_event("select_ship_fulfillment", %{"id" => id}, socket) do
     {:noreply,
      assign(socket,
@@ -523,9 +545,56 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       Notified {format_datetime(f.notified_at)}
                       <span :if={f.notified_via}>via {to_string(f.notified_via)}</span>
                     </p>
+                    <p :if={f.accepted_at} class="font-semibold text-emerald-700">
+                      Supplier accepted {format_datetime(f.accepted_at)}
+                    </p>
+                    <p :if={f.declined_at} class="font-semibold text-red-700">
+                      Out of stock {format_datetime(f.declined_at)} — find another supplier
+                    </p>
                     <p :if={f.tracking_number}>
                       Tracking: <span class="font-mono">{f.tracking_number}</span>
                     </p>
+                  </div>
+
+                  <%!-- The supplier has no account, so the link IS the delivery
+                        mechanism. It works whether it arrives by WhatsApp
+                        Business, by SMS, or by the merchant pasting it into
+                        their own chat — which is what makes this usable while
+                        the automated rails are still unreliable. --%>
+                  <div
+                    :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified, :declined]}
+                    data-role="supplier-link"
+                    class="flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-2"
+                  >
+                    <button
+                      type="button"
+                      phx-click={
+                        JS.dispatch("copy-to-clipboard",
+                          detail: %{text: @supplier_links[f.id]}
+                        )
+                      }
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-white text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Copy supplier link
+                    </button>
+                    <a
+                      :if={f.supplier && f.supplier.whatsapp_number}
+                      href={whatsapp_share_url(f, @supplier_links[f.id])}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Send on WhatsApp
+                    </a>
+                    <button
+                      type="button"
+                      phx-click="rotate_supplier_link"
+                      phx-value-id={f.id}
+                      data-confirm="The old link will stop working. Continue?"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      New link
+                    </button>
                   </div>
 
                   <ul class="text-sm text-slate-600 space-y-1">
@@ -539,8 +608,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     :if={f.status not in [:delivered, :cancelled]}
                     class="flex flex-wrap gap-2 pt-1"
                   >
+                    <%!-- Gated on accepted_at, not status: an accept leaves the
+                          status at :notified on purpose, so keying on status
+                          alone would keep offering "Resend" for a supplier who
+                          has already said yes. --%>
                     <.admin_button
-                      :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified]}
+                      :if={
+                        not is_nil(f.supplier_id) and f.status in [:pending, :notified] and
+                          is_nil(f.accepted_at)
+                      }
                       size={:sm}
                       phx-click="send_supplier_fulfillment"
                       phx-value-id={f.id}
@@ -548,7 +624,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       {if f.status == :notified, do: "Resend", else: "Send to supplier"}
                     </.admin_button>
                     <button
-                      :if={f.status in [:pending, :notified]}
+                      :if={f.status in [:pending, :notified, :declined]}
                       phx-click={
                         JS.push("select_ship_fulfillment", value: %{id: f.id})
                         |> show_modal("ship-fulfillment-modal")
@@ -1247,8 +1323,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               []
           end
 
-        assign(socket, fulfillments: fulfillments)
+        socket
+        |> assign(fulfillments: fulfillments)
+        |> assign(supplier_links: supplier_links(fulfillments))
     end
+  end
+
+  # Signed once per load and stashed, never in render/1: each URL is an HMAC and
+  # the fulfilment list re-renders on every LiveView diff.
+  defp supplier_links(fulfillments) do
+    fulfillments
+    |> Enum.filter(& &1.supplier_id)
+    |> Map.new(&{&1.id, Emakola.Suppliers.SupplierAction.action_url(&1)})
   end
 
   # ── Fulfillment Transition Helper ──
@@ -1348,6 +1434,20 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       _ -> nil
     end
   end
+
+  # A deep link to THIS supplier's number, not a generic share sheet — the
+  # merchant should not have to pick the right chat out of a list.
+  defp whatsapp_share_url(fulfillment, action_url) do
+    digits = String.replace(fulfillment.supplier.whatsapp_number || "", ~r/\D/, "")
+
+    text =
+      "Order #{order_number_for(fulfillment)}: please open this to accept or decline. #{action_url}"
+
+    "https://wa.me/#{digits}?text=#{URI.encode(text)}"
+  end
+
+  defp order_number_for(%{order: %{order_number: number}}) when is_binary(number), do: number
+  defp order_number_for(_fulfillment), do: ""
 
   defp fulfillment_badge_class(:pending), do: "bg-warning-soft text-warning"
   defp fulfillment_badge_class(:notified), do: "bg-info-soft text-info"

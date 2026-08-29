@@ -76,7 +76,7 @@ Photos lead, `min-h-16` buttons, inline SVG icons, `JS.hide/show` confirm.
 string; accepted screen does show the address; `render_submit(view, "mark_sent", %{})`
 does not crash.
 
-### SAF-5 — merchant reflection in `order_live/show.ex` · `WIP`
+### SAF-5 — merchant reflection in `order_live/show.ex` · `DONE`
 
 Ships with SAF-4 — the link is useless if the merchant cannot send it.
 Sign links once in `load_fulfillments/1`. Accepted/declined lines. **Silence
@@ -87,7 +87,7 @@ Sign links once in `load_fulfillments/1`. Accepted/declined lines. **Silence
 One line in the `:browser` pipeline. Also closes the same live token leak on
 `/pair/:token` and `/susu/:code`.
 
-### SAF-7 — notification rail: the unconditional bugfixes · `TODO`
+### SAF-7 — notification rail: the unconditional bugfixes · `WIP`
 
 No flag, because these *reduce* sends:
 - `blank?/1` guard — an empty-string `whatsapp_number` is truthy today, routes
@@ -139,3 +139,27 @@ kills the quiet-hours and cost problems together). Order LiveView subscribes to
 
 New action, not a relaxed `:void` — the existing one's `:platform_payout`
 predicate is half the double-pay guard. Merchant tap, never automatic.
+
+
+---
+
+## Build notes worth keeping
+
+Things that cost time and would cost it again.
+
+- **`f.supplier_id and ...` raises `BadBooleanError` in HEEx.** `supplier_id` is
+  a UUID, and `and` demands a boolean on the left. `:if={f.supplier_id}` alone is
+  fine (truthy), but the moment you combine it, write
+  `not is_nil(f.supplier_id) and ...`.
+- **`refute html =~ "375"` on a full LiveView render is a lottery ticket.** SVG
+  path data is full of coordinates like `M3.375a1.125`, and the phx-session blob
+  is random base64. Strip the markup and assert on visible text.
+- **A `live` route's `:plug` is `Phoenix.LiveView.Plug`,** not the LiveView
+  module — match on `:path` when pinning a route in a test.
+- **`Phoenix.Token`'s `:signed_at` is in SECONDS.** Passing milliseconds dates
+  the token ~55,000 years ahead and `verify` answers `:invalid`, not `:expired`.
+- **`.html.heex` files need `mix format` too** — passing only the `.ex` paths to
+  `mix format` leaves the co-located template unformatted and CI fails.
+- **`for status <- [...] do test ... unquote(status)`** inlines the status as a
+  literal, so a `case` over it has an unreachable clause and the compiler warns —
+  and CI compiles tests with `--warnings-as-errors`. Write the tests out.
