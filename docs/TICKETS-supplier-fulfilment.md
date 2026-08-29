@@ -45,7 +45,7 @@ modelled on `EmakolaWeb.TrackingTokens`. Rejects any other payload shape.
 **Acceptance:** round-trip; wrong salt rejected; `nil`/`""`/garbage return
 errors rather than raising; expiry honoured; map or 3-element payload → `:invalid`.
 
-### SAF-3 — `Emakola.Suppliers.SupplierAction` boundary · `WIP`
+### SAF-3 — `Emakola.Suppliers.SupplierAction` boundary · `DONE`
 
 `authorize/1`, `accept/1`, `decline/2`, `mark_sent/2`, `action_url/1`. **Every
 function takes the token, never a fulfilment id.**
@@ -61,7 +61,7 @@ function takes the token, never a fulfilment id.**
 **Acceptance:** the security suite in the plan, including a hand-forged token
 for a `supplier_id: nil` group returning `:not_found`.
 
-### SAF-4 — `/supply/:token` LiveView · `TODO`
+### SAF-4 — `/supply/:token` LiveView · `WIP`
 
 > **First:** `SELECT id, slug FROM stores WHERE slug = 'supply';` — if it
 > returns a row, route `/ship/:token` instead. Dev DB checked 2026-08-29: clean
