@@ -37,22 +37,30 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
 
   describe "listing & stats" do
     setup %{conn: conn} do
-      Factory.create_feature_flag!(%{key: "alpha", name: "Alpha", enabled: true})
+      alpha = Factory.create_feature_flag!(%{key: "alpha", name: "Alpha", enabled: true})
 
-      Factory.create_feature_flag!(%{
-        key: "beta",
-        name: "Beta",
-        enabled: true,
-        required_plan: "pro"
-      })
+      beta =
+        Factory.create_feature_flag!(%{
+          key: "beta",
+          name: "Beta",
+          enabled: true,
+          required_plan: "pro"
+        })
 
-      Factory.create_feature_flag!(%{key: "gamma", name: "Gamma", enabled: false})
-      {:ok, conn: log_in_platform_admin(conn)}
+      gamma = Factory.create_feature_flag!(%{key: "gamma", name: "Gamma", enabled: false})
+      {:ok, conn: log_in_platform_admin(conn), alpha: alpha, beta: beta, gamma: gamma}
     end
 
-    test "renders all flags with names and keys", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/settings")
-      for s <- ["Alpha", "Beta", "Gamma", "alpha", "beta", "gamma"], do: assert(html =~ s)
+    test "renders all flags with names and keys", %{
+      conn: conn,
+      alpha: alpha,
+      beta: beta,
+      gamma: gamma
+    } do
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+      assert has_element?(view, "#flags-#{alpha.id}", "Alpha")
+      assert has_element?(view, "#flags-#{beta.id}", "Beta")
+      assert has_element?(view, "#flags-#{gamma.id}", "Gamma")
     end
 
     test "stat strip shows correct counts", %{conn: conn} do
@@ -64,38 +72,80 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
       assert html =~ "Disabled"
     end
 
-    test "search narrows by name", %{conn: conn} do
+    test "search narrows by name", %{conn: conn, alpha: alpha, gamma: gamma} do
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
-      html = view |> form("#flag-search-form") |> render_change(%{"search" => "Alpha"})
-      assert html =~ "Alpha"
-      refute html =~ "Gamma"
+      view |> form("#flag-search-form") |> render_change(%{"search" => "Alpha"})
+      assert has_element?(view, "#flags-#{alpha.id}")
+      refute has_element?(view, "#flags-#{gamma.id}")
     end
 
-    test "search narrows by key", %{conn: conn} do
+    test "search narrows by key", %{conn: conn, alpha: alpha, beta: beta} do
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
-      html = view |> form("#flag-search-form") |> render_change(%{"search" => "beta"})
-      assert html =~ "Beta"
-      refute html =~ "Alpha"
+      view |> form("#flag-search-form") |> render_change(%{"search" => "beta"})
+      assert has_element?(view, "#flags-#{beta.id}")
+      refute has_element?(view, "#flags-#{alpha.id}")
     end
 
-    test "disabled filter shows only disabled flags", %{conn: conn} do
+    test "disabled filter shows only disabled flags", %{conn: conn, alpha: alpha, gamma: gamma} do
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
-      html = render_click(view, "filter", %{"filter" => "disabled"})
-      assert html =~ "Gamma"
-      refute html =~ "Alpha"
+      render_click(view, "filter", %{"filter" => "disabled"})
+      assert has_element?(view, "#flags-#{gamma.id}")
+      refute has_element?(view, "#flags-#{alpha.id}")
     end
   end
 
   describe "toggle" do
-    test "flips a flag's enabled state and persists", %{conn: conn} do
+    # The switch no longer flips on click: one click here changes what every
+    # merchant sees, so it asks first, in the card, with the flag still on
+    # screen. Delete — far less reachable — already had a modal.
+    test "clicking the switch asks first and changes nothing yet", %{conn: conn} do
+      flag = Factory.create_feature_flag!(%{key: "tog", name: "Toggle Me", enabled: true})
+      conn = log_in_platform_admin(conn)
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      html = render_click(view, "toggle", %{"id" => flag.id})
+
+      assert html =~ "Turn this off for every store now?"
+      assert has_element?(view, "button[phx-click='confirm_toggle'][phx-value-id='#{flag.id}']")
+
+      {:ok, reloaded} = Emakola.FeatureFlags.get_flag(flag.id, authorize?: false)
+      assert reloaded.enabled, "the flag must not flip until the decision is confirmed"
+    end
+
+    test "confirming flips the flag and persists", %{conn: conn} do
       flag = Factory.create_feature_flag!(%{key: "tog", name: "Toggle Me", enabled: true})
       conn = log_in_platform_admin(conn)
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
 
       render_click(view, "toggle", %{"id" => flag.id})
+      render_click(view, "confirm_toggle", %{"id" => flag.id})
 
       {:ok, reloaded} = Emakola.FeatureFlags.get_flag(flag.id, authorize?: false)
       refute reloaded.enabled
+    end
+
+    test "keeping it leaves the flag alone", %{conn: conn} do
+      flag = Factory.create_feature_flag!(%{key: "keep", name: "Keep Me", enabled: true})
+      conn = log_in_platform_admin(conn)
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      render_click(view, "toggle", %{"id" => flag.id})
+      html = render_click(view, "cancel_toggle", %{})
+
+      refute html =~ "Turn this off for every store now?"
+
+      {:ok, reloaded} = Emakola.FeatureFlags.get_flag(flag.id, authorize?: false)
+      assert reloaded.enabled
+    end
+
+    test "a dark flag is asked about in the other direction", %{conn: conn} do
+      flag = Factory.create_feature_flag!(%{key: "dark_one", name: "Susu plans", enabled: false})
+      conn = log_in_platform_admin(conn)
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      html = render_click(view, "toggle", %{"id" => flag.id})
+
+      assert html =~ "Turn this on for every store now?"
     end
   end
 
@@ -118,24 +168,30 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
       assert {:ok, flag} = Emakola.FeatureFlags.get_flag_by_key("new_feature", authorize?: false)
       assert flag.name == "New Feature"
       assert flag.required_plan == "starter"
+      assert has_element?(view, "#flags-#{flag.id}", "New Feature")
     end
 
     test "blank name shows a validation error and creates nothing", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
 
-      html =
-        view
-        |> form("#flag-form", %{"key" => "k1", "name" => "", "enabled" => "true"})
-        |> render_submit()
+      view
+      |> form("#flag-form", %{"key" => "k1", "name" => "", "enabled" => "true"})
+      |> render_submit()
 
-      assert html =~ "Name is required"
+      assert has_element?(view, "#flag-form", "Name is required")
       assert {:ok, []} = Emakola.FeatureFlags.list_flags(authorize?: false)
     end
 
-    test "required_plan select offers only the four tiers plus none", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/settings")
-      assert html =~ "All plans"
-      for tier <- ~w(Free Starter Pro Enterprise), do: assert(html =~ tier)
+    test "the plan gate offers only the four tiers plus none", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/platform/settings")
+
+      # Pickable tiers rather than a dropdown: the current choice is visible
+      # without opening anything.
+      assert has_element?(view, "#flag-plan input[type='radio'][value='']")
+
+      for tier <- ~w(free starter pro enterprise) do
+        assert has_element?(view, "#flag-plan input[type='radio'][value='#{tier}']")
+      end
     end
   end
 
@@ -146,8 +202,7 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
       {:ok, view, _html} = live(conn, ~p"/platform/settings")
 
       render_click(view, "open_edit_modal", %{"id" => flag.id})
-      html = render(view)
-      assert html =~ "disabled"
+      assert has_element?(view, "#flag-key[disabled]")
 
       view
       |> form("#flag-form", %{"name" => "After", "enabled" => "true", "required_plan" => ""})

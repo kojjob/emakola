@@ -211,20 +211,22 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <.link navigate={~p"/admin/settings"} class="text-slate-400 hover:text-slate-600">
-              <.icon name="hero-arrow-left" class="size-4" />
-            </.link>
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">My Contacts</h1>
-          </div>
-          <p class="text-sm text-slate-500">Manage dropship suppliers and track what you owe them</p>
-        </div>
+      <.link
+        navigate={~p"/admin/settings"}
+        class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Settings
+      </.link>
+
+      <.admin_page_header
+        icon="hero-user-group"
+        title="My Contacts"
+        subtitle="Manage dropship suppliers and track what you owe them"
+      >
         <.admin_button id="add-supplier-btn" phx-click="show_form">
-          <.icon name="hero-plus" class="size-4" /> Add Supplier
+          <.icon name="hero-plus" class="size-5" /> Add Supplier
         </.admin_button>
-      </div>
+      </.admin_page_header>
 
       <%!-- Empty state --%>
       <div

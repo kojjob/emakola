@@ -9,7 +9,7 @@ defmodule EmakolaWeb.Company.CareersLiveTest do
 
     assert html =~ "Life at Makola"
     assert html =~ "No open roles"
-    assert html =~ ~s(href="mailto:careers@emakola.com")
+    assert html =~ ~s(href="mailto:careers@makola.io")
     assert html =~ ~s(id="main-nav")
   end
 
@@ -29,6 +29,6 @@ defmodule EmakolaWeb.Company.CareersLiveTest do
 
     {:ok, _view, html} = live(conn, "/careers")
 
-    assert html =~ ~s(href="mailto:careers@emakola.com")
+    assert html =~ ~s(href="mailto:careers@makola.io")
   end
 end

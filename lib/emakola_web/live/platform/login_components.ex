@@ -28,7 +28,7 @@ defmodule EmakolaWeb.Platform.LoginComponents do
           id="login-email"
           name="user[email]"
           value={@form[:email].value}
-          placeholder="you@emakola.com"
+          placeholder="you@makola.io"
           required
           autocomplete="email"
           class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
@@ -125,6 +125,7 @@ defmodule EmakolaWeb.Platform.LoginComponents do
   # ── Shared primitives ────────────────────────────────────────────
 
   attr :id, :string, required: true
+  attr :field, Phoenix.HTML.FormField, default: nil
 
   def code_input(assigns) do
     ~H"""
@@ -133,7 +134,8 @@ defmodule EmakolaWeb.Platform.LoginComponents do
       <input
         type="text"
         id={@id}
-        name="totp[code]"
+        name={if @field, do: @field.name, else: "totp[code]"}
+        value={@field && @field.value}
         inputmode="numeric"
         autocomplete="one-time-code"
         pattern="[0-9]{6}"

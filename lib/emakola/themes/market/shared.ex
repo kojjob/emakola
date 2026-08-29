@@ -33,14 +33,31 @@ defmodule Emakola.Themes.Market.Shared do
       role="banner"
       class="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur"
     >
+      <div class="flex items-center justify-center gap-2 bg-stone-900 px-4 py-1.5 text-[11.5px] font-bold text-white">
+        <svg
+          class="h-3.5 w-3.5 text-store-accent"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2.2"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+          />
+        </svg>
+        <span class="truncate">Secure checkout · MTN MoMo · Telecel Cash · Cards</span>
+      </div>
       <div class="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
         <div class="flex h-14 items-center justify-between gap-3 sm:h-16">
           <a
             href={store_path(@store.slug, "/")}
-            class="flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+            class="flex min-w-0 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
           >
             <span
-              class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-stone-100 to-stone-200 text-sm font-bold text-stone-600 [font-family:var(--dt-heading-font,inherit)]"
+              class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-store-accent text-sm font-bold text-white [font-family:var(--dt-heading-font,inherit)]"
               aria-hidden="true"
             >
               {String.first(@store.name)}
@@ -113,6 +130,26 @@ defmodule Emakola.Themes.Market.Shared do
             </a>
           </div>
         </div>
+        <a
+          href={store_path(@store.slug, "/products")}
+          class="mb-2.5 flex items-center gap-2.5 rounded-2xl bg-stone-100 px-4 py-3 text-sm text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 sm:hidden"
+        >
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+          Search this store…
+        </a>
       </div>
     </header>
     """

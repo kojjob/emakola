@@ -192,7 +192,10 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert html =~ "Mark Paid"
     end
 
-    test "shows big metric cards: owed, paid so far, payment count", %{conn: conn, store: store} do
+    test "shows the three ledger tiles: You owe, Settling via Makola, Paid (recent)", %{
+      conn: conn,
+      store: store
+    } do
       supplier = Factory.create_supplier!(store, name: "Metrics Co")
       order = Factory.create_order!(store)
       fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
@@ -211,9 +214,171 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
 
       assert html =~ "You owe"
       assert html =~ "300"
-      assert html =~ "Paid so far"
+      assert html =~ "Settling via Makola"
+      assert html =~ "Paid (recent)"
       assert html =~ "200"
-      assert html =~ "Payments"
+    end
+
+    test "tile row: You-owe (manual only), Settling via Makola, and Paid amounts are each correct with mixed fixtures",
+         %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Mixed Co")
+
+      order1 = Factory.create_order!(store)
+      fulfillment1 = Factory.create_fulfillment!(order1, store, supplier_id: supplier.id)
+
+      Factory.create_supplier_ledger_entry!(supplier, fulfillment1, store, amount_owed: 10_000)
+
+      order2 = Factory.create_order!(store)
+      fulfillment2 = Factory.create_fulfillment!(order2, store, supplier_id: supplier.id)
+
+      claimed =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment2, store, amount_owed: 5_000)
+
+      claimed
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+
+      order3 = Factory.create_order!(store)
+      fulfillment3 = Factory.create_fulfillment!(order3, store, supplier_id: supplier.id)
+
+      paid_entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment3, store, amount_owed: 20_000)
+
+      Emakola.Suppliers.mark_ledger_entry_paid!(paid_entry, authorize?: false)
+
+      order4 = Factory.create_order!(store)
+      fulfillment4 = Factory.create_fulfillment!(order4, store, supplier_id: supplier.id)
+
+      voided_entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment4, store, amount_owed: 3_000)
+
+      voided_entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:void, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert has_element?(view, "#outstanding-balance", "100")
+      assert has_element?(view, "#settling-balance", "50")
+      assert has_element?(view, "#paid-total", "200")
+    end
+
+    test "arithmetic coherence: you-owe + settling equals the sum of unpaid ledger rows", %{
+      conn: conn,
+      store: store
+    } do
+      supplier = Factory.create_supplier!(store, name: "Coherence Co")
+
+      order1 = Factory.create_order!(store)
+      fulfillment1 = Factory.create_fulfillment!(order1, store, supplier_id: supplier.id)
+      Factory.create_supplier_ledger_entry!(supplier, fulfillment1, store, amount_owed: 12_000)
+
+      order2 = Factory.create_order!(store)
+      fulfillment2 = Factory.create_fulfillment!(order2, store, supplier_id: supplier.id)
+
+      claimed =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment2, store, amount_owed: 7_000)
+
+      claimed
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+
+      order3 = Factory.create_order!(store)
+      fulfillment3 = Factory.create_fulfillment!(order3, store, supplier_id: supplier.id)
+
+      paid_entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment3, store, amount_owed: 9_000)
+
+      Emakola.Suppliers.mark_ledger_entry_paid!(paid_entry, authorize?: false)
+
+      entries = Emakola.Suppliers.list_ledger_entries_by_supplier!(supplier.id, authorize?: false)
+
+      unpaid_total =
+        entries |> Enum.filter(&(&1.status == :owed)) |> Enum.map(& &1.amount_owed) |> Enum.sum()
+
+      settling_total =
+        entries
+        |> Enum.filter(&(&1.status == :owed and &1.settlement_source != :manual))
+        |> Enum.map(& &1.amount_owed)
+        |> Enum.sum()
+
+      loaded_supplier =
+        supplier.id
+        |> Emakola.Suppliers.get_supplier_by_store!(store.id, authorize?: false)
+        |> Ash.load!(:outstanding_balance, authorize?: false)
+
+      you_owe = loaded_supplier.outstanding_balance
+
+      # Independently recomputed from raw ledger rows — the contradiction-killer
+      # assertion: the two tiles together must account for every unpaid row.
+      assert you_owe + settling_total == unpaid_total
+
+      # And the page must actually render that same reconciled picture.
+      {:ok, view, _html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+      assert has_element?(view, "#outstanding-balance", "120")
+      assert has_element?(view, "#settling-balance", "70")
+    end
+
+    test "claimed rows are not red and carry the rail copy", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Rail Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 12_000)
+
+      entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "Settling — Makola pays them directly"
+      refute has_element?(view, "#ledger-amount-#{entry.id}.text-rose-600")
+      refute has_element?(view, "#ledger-amount-#{entry.id}.text-red-600")
+      assert has_element?(view, "#ledger-amount-#{entry.id}.text-slate-900")
+    end
+
+    test "empty ledger renders the shared empty_state component", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Empty Co")
+
+      {:ok, _view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "No payments yet"
+      assert html =~ "border-dashed"
+    end
+
+    test "status filter chips filter the ledger rows", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Filter Co")
+
+      order1 = Factory.create_order!(store)
+      fulfillment1 = Factory.create_fulfillment!(order1, store, supplier_id: supplier.id)
+
+      owed =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment1, store, amount_owed: 10_000)
+
+      order2 = Factory.create_order!(store)
+      fulfillment2 = Factory.create_fulfillment!(order2, store, supplier_id: supplier.id)
+
+      paid =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment2, store, amount_owed: 20_000)
+
+      Emakola.Suppliers.mark_ledger_entry_paid!(paid, authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert has_element?(view, "#ledger-amount-#{owed.id}")
+      assert has_element?(view, "#ledger-amount-#{paid.id}")
+
+      html =
+        view
+        |> element(~s{button[phx-click="filter_status"][phx-value-status="paid"]})
+        |> render_click()
+
+      refute html =~ "ledger-amount-#{owed.id}"
+      assert html =~ "ledger-amount-#{paid.id}"
     end
 
     test "header shows the supplier logo when one is set", %{conn: conn, store: store} do
@@ -261,6 +426,54 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert reloaded.status == :paid
 
       # Balance now zero — the owed amount is excluded from the aggregate.
+      assert has_element?(view, "#outstanding-balance", "0")
+    end
+
+    test "hides Mark Paid for an entry claimed by platform settlement (no manual double-pay)", %{
+      conn: conn,
+      store: store
+    } do
+      supplier = Factory.create_supplier!(store, name: "Claimed Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 15_000)
+
+      entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "150"
+      refute has_element?(view, "button[phx-click=\"mark_paid\"][phx-value-id=\"#{entry.id}\"]")
+      assert html =~ "Settling"
+    end
+
+    test "shows a neutral 'Voided' pill for a voided entry, no amount owed", %{
+      conn: conn,
+      store: store
+    } do
+      supplier = Factory.create_supplier!(store, name: "Voided Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 8_000)
+
+      entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:void, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "Voided"
+      refute has_element?(view, "button[phx-click=\"mark_paid\"][phx-value-id=\"#{entry.id}\"]")
+
+      # The balance card excludes it — it was never manual outstanding debt.
       assert has_element?(view, "#outstanding-balance", "0")
     end
   end

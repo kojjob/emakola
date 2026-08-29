@@ -32,9 +32,25 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
   defp type_label(:auth_failed), do: "Auth failed"
   defp type_label(other), do: other |> to_string() |> String.replace("_", " ")
 
-  defp type_pill(:rate_limit_exceeded), do: "bg-amber-50 text-amber-700 border-amber-200"
-  defp type_pill(:auth_failed), do: "bg-red-50 text-red-700 border-red-200"
-  defp type_pill(_), do: "bg-gray-50 text-gray-600 border-gray-200"
+  defp severity_family(:auth_failed), do: "red"
+  defp severity_family(:rate_limit_exceeded), do: "amber"
+  defp severity_family(_), do: "neutral"
+
+  # severity_pill has no "neutral" tone — the neutral family wears slate.
+  defp severity_tone(event_type) do
+    case severity_family(event_type) do
+      "neutral" -> "slate"
+      family -> family
+    end
+  end
+
+  defp rail_dot_class(event_type) do
+    case severity_family(event_type) do
+      "red" -> "bg-red-500"
+      "amber" -> "bg-amber-500"
+      "neutral" -> "bg-gray-300"
+    end
+  end
 
   @impl true
   def render(assigns) do
@@ -52,45 +68,46 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
       <div :if={@overview}>
         <%!-- Hero stat tiles --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <.metric_tile
+          <.stat_tile
+            id="security-events-total"
             label="Events (24h)"
             value={@overview.total}
-            icon="hero-chart-bar"
-            chip="bg-slate-100 text-slate-600"
+            icon="monitoring"
+            color="slate"
           />
-          <.metric_tile
+          <.stat_tile
+            id="security-events-rate-limit"
             label="Rate-limit hits"
             value={@overview.by_type.rate_limit_exceeded}
-            icon="hero-bolt"
-            chip="bg-amber-100 text-amber-600"
+            icon="bolt"
+            color="amber"
           />
-          <.metric_tile
+          <.stat_tile
+            id="security-events-auth-failed"
             label="Failed sign-ins"
             value={@overview.by_type.auth_failed}
-            icon="hero-finger-print"
-            chip="bg-red-100 text-red-600"
+            icon="fingerprint"
+            color="red"
           />
-          <.metric_tile
+          <.stat_tile
+            id="security-events-flagged"
             label="Flagged sources"
             value={@overview.anomaly_count}
-            icon="hero-flag"
-            chip="bg-red-100 text-red-600"
+            icon="flag"
+            color="rose"
           />
         </div>
 
-        <%!-- Empty state --%>
-        <div
+        <.platform_empty_state
           :if={@overview.total == 0}
-          class="rounded-2xl border border-dashed border-gray-200 bg-white p-16 text-center"
-        >
-          <.icon name="hero-shield-check" class="mx-auto h-12 w-12 text-emerald-400" />
-          <p class="mt-4 text-lg font-semibold text-gray-900">All quiet</p>
-          <p class="mt-1 text-sm text-gray-500">No security events in the last 24 hours.</p>
-        </div>
+          icon="hero-shield-check"
+          title="All quiet"
+          description="No security events in the last 24 hours."
+        />
 
         <div :if={@overview.total > 0} class="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <%!-- Top source IPs leaderboard --%>
-          <div class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div class="lg:col-span-2 rounded-card border border-border bg-surface p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-gray-700 mb-4">Top source IPs</h2>
             <div :if={@overview.top_ips == []} class="text-sm text-gray-400">No IP data</div>
             <div class="space-y-3">
@@ -121,63 +138,43 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
             </div>
           </div>
 
-          <%!-- Recent events --%>
-          <div class="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <h2 class="text-sm font-semibold text-gray-700 px-6 pt-6 pb-3">Recent events</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                    <th class="px-6 py-3">Time</th>
-                    <th class="px-6 py-3">Type</th>
-                    <th class="px-6 py-3">Source</th>
-                    <th class="px-6 py-3">IP</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                  <tr :for={e <- @overview.recent} class="hover:bg-gray-50">
-                    <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-500 font-mono">
-                      {Calendar.strftime(e.inserted_at, "%b %d %H:%M")}
-                    </td>
-                    <td class="px-6 py-3">
-                      <span class={[
-                        "inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                        type_pill(e.event_type)
-                      ]}>
-                        {type_label(e.event_type)}
-                      </span>
-                    </td>
-                    <td class="px-6 py-3 text-gray-700 truncate max-w-[180px]">
-                      {e.identifier || "—"}
-                      <span class="text-gray-400 text-xs">({e.subject_type})</span>
-                    </td>
-                    <td class="px-6 py-3 font-mono text-xs text-gray-500">{e.ip || "—"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <%!-- Recent events timeline --%>
+          <div class="lg:col-span-3 rounded-card border border-border bg-surface shadow-sm p-6">
+            <h2 class="text-sm font-semibold text-gray-700 mb-4">Recent events</h2>
+            <ol id="recent-security-events">
+              <li
+                :for={event <- @overview.recent}
+                data-severity={severity_family(event.event_type)}
+                class="relative flex gap-4 pb-5 last:pb-0"
+              >
+                <div class="flex flex-col items-center">
+                  <span class={[
+                    "mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-white shrink-0",
+                    rail_dot_class(event.event_type)
+                  ]}>
+                  </span>
+                  <span class="w-px flex-1 bg-gray-100"></span>
+                </div>
+                <div class="min-w-0 flex-1 -mt-0.5">
+                  <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <.severity_pill
+                      label={type_label(event.event_type)}
+                      tone={severity_tone(event.event_type)}
+                    />
+                    <span class="text-[13px] font-semibold text-gray-900 truncate max-w-[220px]">
+                      {event.identifier || "—"}
+                    </span>
+                    <span class="text-[11px] text-gray-400">({event.subject_type})</span>
+                  </div>
+                  <p class="mt-1 font-mono text-[11px] text-gray-400">
+                    {"#{Calendar.strftime(event.inserted_at, "%b %d %H:%M")} · #{event.ip || "no IP"}"}
+                  </p>
+                </div>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
-    </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :chip, :string, required: true
-
-  defp metric_tile(assigns) do
-    ~H"""
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-medium text-gray-500">{@label}</span>
-        <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @chip]}>
-          <.icon name={@icon} class="h-5 w-5" />
-        </span>
-      </div>
-      <p class="mt-3 text-3xl font-bold text-gray-900">{@value}</p>
     </div>
     """
   end

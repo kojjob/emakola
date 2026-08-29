@@ -18,13 +18,21 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     store = socket.assigns.store
     products = load_featured_products(store)
     categories = load_root_categories(store)
     public_coupons = load_public_coupons(store)
     delivery_zones = load_delivery_zones(store)
     cart_session_id = session["cart_session_id"]
+
+    # Counted once the socket is live, so crawlers and link previews — which
+    # never open a socket — do not inflate a merchant's traffic. Recorded
+    # unconditionally on failure grounds: a visit that cannot be written is not
+    # worth failing a storefront over.
+    if connected?(socket) && cart_session_id do
+      Emakola.Analytics.StoreVisits.record(store.id, cart_session_id, params)
+    end
 
     cart_count =
       if connected?(socket) && cart_session_id,
@@ -105,6 +113,17 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      |> assign(:search_overlay_results, [])
      |> assign(:search_overlay_total, 0)
      |> assign(:searching, false)}
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -207,7 +226,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp assign_seo_metadata(socket, store, products) do
     description = store_description_for_seo(store)
     og_image = first_featured_product_image(products) || store_logo_url(store)
-    json_ld = SEOHelpers.json_ld_local_business(store)
+    json_ld = SEOHelpers.json_ld_storefront(store)
 
     socket
     |> assign(:meta_description, description)
@@ -218,15 +237,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   defp store_description_for_seo(store) do
-    raw =
-      Map.get(store, :description) ||
-        Map.get(store, :tagline) ||
-        "Shop authentic products from #{store.name} — fast delivery, mobile money accepted."
-
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
+    SEOHelpers.meta_description(
+      [Map.get(store, :description), Map.get(store, :tagline)],
+      "Browse products from #{store.name} and view current prices, availability, delivery information, and store policies."
+    )
   end
 
   defp first_featured_product_image([first | _]) when is_map(first) do
@@ -243,15 +257,5 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp store_logo_url(store) do
     Map.get(store, :logo_url)
-  end
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
   end
 end

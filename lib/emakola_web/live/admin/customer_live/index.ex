@@ -5,6 +5,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  # Page window for the customer list; "Load more" grows it by this much.
+  @customers_limit 100
+
   require Logger
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
@@ -20,7 +23,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         active_nav: :customers,
         store_id: store_id,
         search_query: "",
-        customers: []
+        search_form: to_form(%{"search" => ""}),
+        customers: [],
+        customers_limit: @customers_limit,
+        more_customers?: false,
+        total_customers: 0,
+        new_this_month: 0
       )
       |> load_customers()
 
@@ -28,10 +36,22 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   end
 
   @impl true
+  def handle_event("load_more_customers", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(customers_limit: socket.assigns.customers_limit + @customers_limit)
+     |> load_customers()}
+  end
+
+  @impl true
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        customers_limit: @customers_limit
+      )
       |> load_customers()
 
     {:noreply, socket}
@@ -41,7 +61,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Customers" subtitle="Manage your customer base">
+      <.admin_page_header icon="hero-users" title="Customers" subtitle="Manage your customer base">
         <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
         </button>
@@ -51,53 +71,61 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       </.admin_page_header>
 
       <%!-- KPI Cards --%>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <%!-- Three tiles, not four: "Active" rendered @total_customers, the same
+            assign as "Total Customers", so it was the same number by
+            construction and told a merchant nothing. --%>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <.stat_card
           label="Total Customers"
-          value={length(@customers) |> Integer.to_string()}
-          icon_bg="bg-emerald-50"
+          value={Integer.to_string(@total_customers)}
+          tone={:accent}
         >
-          <:icon><.icon name="hero-users" class="size-[18px] text-emerald-600" /></:icon>
-        </.stat_card>
-        <.stat_card
-          label="Active"
-          value={length(@customers) |> Integer.to_string()}
-          icon_bg="bg-violet-50"
-        >
-          <:icon><.icon name="hero-check-circle" class="size-[18px] text-violet-600" /></:icon>
+          <:icon><.icon name="hero-users" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="New This Month"
-          value={count_new_this_month(@customers) |> Integer.to_string()}
-          icon_bg="bg-amber-50"
+          value={Integer.to_string(@new_this_month)}
+          tone={:success}
         >
-          <:icon><.icon name="hero-user-plus" class="size-[18px] text-amber-600" /></:icon>
+          <:icon><.icon name="hero-user-plus" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="Avg. Order Value"
           value={calculate_avg_order_value(@customers)}
-          icon_bg="bg-rose-50"
+          tone={:info}
         >
-          <:icon><.icon name="hero-currency-dollar" class="size-[18px] text-rose-600" /></:icon>
+          <:icon><.icon name="hero-currency-dollar" class="size-7" /></:icon>
         </.stat_card>
       </div>
 
       <%!-- Filter Bar --%>
-      <.table_toolbar search_query={@search_query} placeholder="Search by name or email..." />
+      <.table_toolbar
+        id="customer-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search by name or email..."
+      />
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
-          <.icon name="hero-users" class="size-12 mx-auto text-slate-300 mb-3" />
-          <p class="text-slate-600 font-medium">No customers found</p>
-          <p class="text-sm text-slate-400 mt-1">
-            <%= if @search_query != "" do %>
-              Try adjusting your search
-            <% else %>
-              Customers will appear here once they place orders
-            <% end %>
-          </p>
-        </div>
+        <%!-- A store with no customers yet is waiting, not broken; a search
+              that matched nothing needs to say it was the search. --%>
+        <.empty_state
+          :if={@search_query != ""}
+          icon="hero-users"
+          title="No customers found"
+          description="Try adjusting your search"
+        />
+        <.empty_state
+          :if={@search_query == ""}
+          icon="hero-users"
+          tone={:info}
+          title="No customers yet"
+          description="They appear when someone buys"
+          secondary_label="See how selling works"
+          secondary_path="/how-it-works/tour"
+          secondary_icon="hero-play-circle"
+        />
       <% else %>
         <%!-- Desktop Table --%>
         <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -196,11 +224,22 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         </div>
       <% end %>
 
-      <%!-- Pagination placeholder --%>
-      <div class="flex items-center justify-between">
+      <%!-- The list is a window, not the whole book. This was a "pagination
+      placeholder" that only ever printed a count, so customers past the limit
+      were unreachable with no hint they existed. --%>
+      <div class="flex items-center justify-between gap-3">
         <p class="text-sm text-slate-500">
           Showing <span class="font-semibold text-slate-700">{length(@customers)}</span> customers
         </p>
+        <.admin_button
+          :if={@more_customers?}
+          id="load-more-customers"
+          variant={:secondary}
+          phx-click="load_more_customers"
+          phx-disable-with="Loading..."
+        >
+          Load more customers
+        </.admin_button>
       </div>
     </div>
     """
@@ -208,22 +247,21 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   # ── Data Loading ──
 
-  @customers_limit 100
-
   defp load_customers(socket) do
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
+    limit = socket.assigns[:customers_limit] || @customers_limit
 
     customers =
       if store_id do
         if search_query != "" do
           Emakola.Customers.search_customers!(store_id, search_query,
-            query: [limit: @customers_limit],
+            query: [limit: limit + 1],
             authorize?: false
           )
         else
           Emakola.Customers.list_customers_by_store!(store_id,
-            query: [limit: @customers_limit],
+            query: [limit: limit + 1],
             authorize?: false
           )
         end
@@ -231,14 +269,60 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         []
       end
 
-    assign(socket, customers: customers)
+    # One row past the window answers "is there more?" without a second COUNT.
+    {customers, more?} =
+      if length(customers) > limit,
+        do: {Enum.take(customers, limit), true},
+        else: {customers, false}
+
+    socket
+    |> assign(customers: customers, customers_limit: limit, more_customers?: more?)
+    |> assign_customer_totals(store_id, search_query)
   rescue
     exception ->
       Logger.error(
         "[customer_live.index] load_customers loading customers raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, customers: [])
+      assign(socket, customers: [], more_customers?: false, total_customers: 0, new_this_month: 0)
+  end
+
+  # The KPI tiles used to count `length(@customers)` — i.e. the loaded WINDOW,
+  # not the store. A merchant with 250 customers was told they had 100, and the
+  # number changed as they pressed "Load more". These are real counts over the
+  # same scope as the list (store, plus the active search).
+  defp assign_customer_totals(socket, nil, _search),
+    do: assign(socket, total_customers: 0, new_this_month: 0)
+
+  defp assign_customer_totals(socket, store_id, search_query) do
+    require Ash.Query
+
+    base =
+      if search_query != "" do
+        Ash.Query.for_read(Emakola.Customers.Customer, :search, %{
+          store_id: store_id,
+          query: search_query
+        })
+      else
+        Ash.Query.for_read(Emakola.Customers.Customer, :list_by_store, %{store_id: store_id})
+      end
+
+    start_of_month = Date.utc_today() |> Date.beginning_of_month() |> DateTime.new!(~T[00:00:00])
+
+    assign(socket,
+      total_customers: Ash.count!(base, authorize?: false),
+      new_this_month:
+        base
+        |> Ash.Query.filter(inserted_at >= ^start_of_month)
+        |> Ash.count!(authorize?: false)
+    )
+  rescue
+    exception ->
+      Logger.error(
+        "[customer_live.index] customer totals failed: #{Exception.message(exception)}"
+      )
+
+      assign(socket, total_customers: length(socket.assigns.customers), new_this_month: 0)
   end
 
   # ── Helpers ──
@@ -272,15 +356,6 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       end
 
     format_price(total)
-  end
-
-  defp count_new_this_month(customers) do
-    now = Date.utc_today()
-    start_of_month = Date.beginning_of_month(now)
-
-    Enum.count(customers, fn c ->
-      Date.compare(DateTime.to_date(c.inserted_at), start_of_month) != :lt
-    end)
   end
 
   defp calculate_avg_order_value(_customers) do

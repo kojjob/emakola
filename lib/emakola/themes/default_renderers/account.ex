@@ -15,7 +15,6 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents
   import EmakolaWeb.ReturnComponents
 
   alias EmakolaWeb.Helpers.CssColor
@@ -25,6 +24,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -113,6 +113,25 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               >
                 {tab.label}
               </button>
+              <%!-- A cross-route destination, so it cannot join tabs/0 (those
+                   are phx-click="switch_tab" buttons within this LiveView).
+                   Unconditional: AccountDownloadsLive has a clean empty state,
+                   and gating on "has grants" would cost a count query on every
+                   account page load. --%>
+              <.link
+                navigate={store_path(@store.slug, "/account/messages")}
+                class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border bg-white border-stone-200 hover:border-stone-400 transition-colors"
+                style="color: #44403C"
+              >
+                Messages
+              </.link>
+              <.link
+                navigate={store_path(@store.slug, "/account/downloads")}
+                class="cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border bg-white border-stone-200 hover:border-stone-400 transition-colors"
+                style="color: #44403C"
+              >
+                Downloads
+              </.link>
             </div>
 
             <%!-- Desktop: vertical nav --%>
@@ -139,6 +158,27 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               >
                 {tab.label}
               </button>
+              <.link
+                navigate={store_path(@store.slug, "/account/messages")}
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-r-lg transition-colors text-left border-l-2 border-transparent hover:bg-stone-50"
+                style="color: #44403C"
+              >
+                Messages
+                <span
+                  :if={(assigns[:unread_notification_count] || 0) > 0}
+                  data-role="customer-unread"
+                  class="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                >
+                  {@unread_notification_count}
+                </span>
+              </.link>
+              <.link
+                navigate={store_path(@store.slug, "/account/downloads")}
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-r-lg transition-colors text-left border-l-2 border-transparent hover:bg-stone-50"
+                style="color: #44403C"
+              >
+                Downloads
+              </.link>
             </nav>
           </aside>
 
@@ -146,6 +186,10 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           <div class="flex-1 min-w-0">
             <%!-- PROFILE TAB --%>
             <div :if={@active_tab == "profile"} class="space-y-10">
+              <.notifications_section
+                notifications={assigns[:notifications] || []}
+                store={@store}
+              />
               <.profile_section customer={@customer} theme={@theme} />
               <.recent_orders_section
                 orders={@orders}
@@ -280,15 +324,61 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
 
       <Emakola.Themes.DefaultRenderers.Chrome.footer
         theme_module={assigns[:theme_module]}
+        theme={assigns[:theme] || %{}}
         store={@store}
         categories={@categories}
       />
     </div>
-    <.bottom_nav store_slug={@store.slug} active_tab={:account} cart_count={@cart_count} />
+    <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
+      theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
+      store={@store}
+      active_tab={:account}
+      cart_count={@cart_count}
+    />
     """
   end
 
   # -- Components --
+
+  # Only shown when there is something to show: an empty "Updates" heading on
+  # a first visit is noise, and this sits above the profile.
+  attr :notifications, :list, required: true
+  attr :store, :any, required: true
+
+  defp notifications_section(assigns) do
+    ~H"""
+    <section :if={@notifications != []}>
+      <h2 class="text-2xl font-semibold mb-6 text-cta-dark">Updates</h2>
+
+      <ul class="space-y-2">
+        <li
+          :for={notification <- Enum.take(@notifications, 5)}
+          class={[
+            "flex items-start gap-3 rounded-xl border p-4",
+            if(is_nil(notification.read_at),
+              do: "bg-white border-stone-200",
+              else: "bg-stone-50/60 border-stone-100"
+            )
+          ]}
+        >
+          <span
+            :if={is_nil(notification.read_at)}
+            class="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0"
+            aria-label="Unread"
+          >
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-stone-800">{notification.title}</p>
+            <p :if={notification.body} class="text-sm text-stone-500 mt-0.5">
+              {notification.body}
+            </p>
+          </div>
+        </li>
+      </ul>
+    </section>
+    """
+  end
 
   defp profile_section(assigns) do
     ~H"""
@@ -454,7 +544,12 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             </div>
             <div>
               <p class="text-sm font-semibold text-cta-dark">
-                Order #{order.order_number}
+                <.link
+                  navigate={store_path(@store.slug, "/track/#{order.order_number}")}
+                  class="hover:underline"
+                >
+                  Order #{order.order_number}
+                </.link>
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
                 {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(
@@ -470,14 +565,25 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             <p class="text-sm font-semibold text-cta-dark">
               {Currency.format_price(order.total, @store.currency)}
             </p>
-            <span class={[
-              "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize",
-              status_badge_classes(order.status)
-            ]}>
+            <span
+              :if={tracker_stage(order.status) == nil}
+              id={"order-chip-#{order.id}"}
+              class={[
+                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize",
+                status_badge_classes(order.status)
+              ]}
+            >
               {order.status}
             </span>
           </div>
         </div>
+
+        <.order_tracker
+          :if={stage = tracker_stage(order.status)}
+          id={"order-tracker-#{order.id}"}
+          stage={stage}
+          theme={@theme}
+        />
 
         <%!-- Return actions for delivered orders --%>
         <div
@@ -627,11 +733,78 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
     end
   end
 
+  @tracker_steps ["Placed", "Packing", "On the way", "Delivered"]
+
+  defp tracker_stage(:pending), do: 1
+  defp tracker_stage(:confirmed), do: 1
+  defp tracker_stage(:processing), do: 2
+  defp tracker_stage(:shipped), do: 3
+  defp tracker_stage(_), do: nil
+
+  attr :id, :string, required: true
+  attr :stage, :integer, required: true
+  attr :theme, :any, default: nil
+
+  defp order_tracker(assigns) do
+    assigns =
+      assign(assigns,
+        steps: @tracker_steps,
+        accent: CssColor.safe_css_color(assigns.theme && assigns.theme.colors.primary, "#B45309")
+      )
+
+    ~H"""
+    <div id={@id} data-stage={@stage} class="mt-4 pt-4 border-t border-stone-100">
+      <div class="relative flex justify-between px-1.5">
+        <div class="absolute top-[7px] left-4 right-4 h-[3px] rounded-full bg-stone-200"></div>
+        <div
+          class="absolute top-[7px] left-4 h-[3px] rounded-full"
+          style={"background-color: #{@accent}; width: calc((100% - 2rem) * #{(@stage - 1) * 100}/300)"}
+        >
+        </div>
+        <div
+          :for={{label, index} <- Enum.with_index(@steps, 1)}
+          class="relative flex flex-col items-center gap-1"
+        >
+          <div
+            :if={index < @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white"
+            style={"background-color: #{@accent}; box-shadow: 0 0 0 1px #{@accent}40"}
+          >
+          </div>
+          <div
+            :if={index == @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white bg-white"
+            style={"box-shadow: 0 0 0 2px #{@accent}"}
+          >
+          </div>
+          <div
+            :if={index > @stage}
+            class="w-[17px] h-[17px] rounded-full border-[3px] border-white bg-stone-100 shadow-[0_0_0_1px_theme(colors.stone.200)]"
+          >
+          </div>
+          <span
+            :if={index == @stage}
+            class="text-[10px] font-bold text-cta-dark"
+          >
+            {label}
+          </span>
+          <span
+            :if={index < @stage}
+            class="text-[10px] font-semibold"
+            style={"color: #{@accent}"}
+          >
+            {label}
+          </span>
+          <span :if={index > @stage} class="text-[10px] font-medium text-stone-400">
+            {label}
+          </span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp status_badge_classes(:delivered), do: "bg-green-50 text-green-700"
-  defp status_badge_classes(:shipped), do: "bg-blue-50 text-blue-700"
-  defp status_badge_classes(:processing), do: "bg-amber-50 text-amber-700"
-  defp status_badge_classes(:confirmed), do: "bg-blue-50 text-blue-600"
   defp status_badge_classes(:cancelled), do: "bg-red-50 text-red-700"
-  defp status_badge_classes(:pending), do: "bg-stone-50 text-stone-700"
   defp status_badge_classes(_), do: "bg-stone-50 text-stone-700"
 end

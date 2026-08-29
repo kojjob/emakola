@@ -19,10 +19,17 @@ defmodule EmakolaWeb.Admin.SEODashboardLiveTest do
   test "shows the count of products missing descriptions", %{conn: conn, store: store} do
     create_product!(store, %{description: nil})
 
-    {:ok, _view, html} = live(conn, ~p"/admin/seo")
+    {:ok, view, _html} = live(conn, ~p"/admin/seo")
 
-    assert html =~ "Products without descriptions"
-    assert html =~ "Generate descriptions"
+    assert has_element?(view, "#seo-dashboard")
+
+    assert has_element?(
+             view,
+             "button[phx-click=generate_descriptions]",
+             "Generate and save"
+           )
+
+    assert has_element?(view, "#seo-direct-save-notice")
   end
 
   test "queues ProductSEOWorker jobs for products missing descriptions", %{

@@ -42,21 +42,13 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
     )
   end
 
-  defp verified_payout!(store, code) do
-    Emakola.Stores.StorePayoutAccount
-    |> Ash.Changeset.for_create(:create, %{store_id: store.id})
-    |> Ash.create!(authorize?: false)
-    |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
-    |> Ash.update!(authorize?: false)
-  end
-
   test "staff without :manage_billing is redirected", %{conn: conn} do
     {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
     assert {:error, {:redirect, _}} = live(conn, ~p"/platform/finance")
   end
 
   describe "disconnected mount" do
-    test "renders a loading shell, not live data", %{conn: conn} do
+    test "renders a loading shell (skeleton tiles, not bare text), not live data", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)
       store = Factory.create_store!(%{name: "Disconnected Co"})
       success_payment!(store, %{amount: 50_000})
@@ -64,6 +56,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       html = get(conn, "/platform/finance") |> html_response(200)
 
       assert html =~ "Loading"
+      assert html =~ "animate-pulse"
       refute html =~ "Disconnected Co"
     end
   end
@@ -74,16 +67,65 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       %{conn: conn, user: user}
     end
 
+    test "renders via the shared page_header component", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+      assert has_element?(view, "h1", "Finance")
+    end
+
     test "shows the empty state when there is no finance activity", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
       assert html =~ "No finance activity"
+      assert has_element?(view, "#finance-store-rows[phx-update='stream'][data-count='0']")
     end
 
     test "renders the revenue stat strip", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/platform/finance")
       assert html =~ "Platform fees collected"
       assert html =~ "Outstanding"
-      assert html =~ "GHS"
+      assert html =~ "GH₵"
+    end
+
+    test "the hero charts daily fees and the subtitle escapes cleanly", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
+
+      assert has_element?(
+               view,
+               "canvas#fees-trend-chart[phx-hook='ChartHook'][data-chart-type='gmv-line']"
+             )
+
+      # The subtitle used to hand HEEx a pre-escaped "&amp;", which
+      # double-escaped into a literal "&amp;" on screen.
+      refute html =~ "&amp;amp;"
+    end
+
+    test "the worklist header counts ready and blocked stores", %{conn: conn} do
+      blocked_store = Factory.create_store!(%{name: "Blocked Stall"})
+      success_payment!(blocked_store, %{amount: 30_000})
+
+      ready_store = Factory.create_store!(%{name: "Ready Stall"})
+      success_payment!(ready_store, %{amount: 20_000})
+      momo_account!(ready_store)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      assert has_element?(view, "#payouts-ready-count", "1 ready")
+      assert has_element?(view, "#payouts-blocked-count", "1 blocked")
+    end
+
+    test "an expanded breakdown links into the store case file", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Case Linked"})
+      success_payment!(store, %{amount: 15_000})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      view
+      |> element("button[phx-click='toggle_store_breakdown'][phx-value-store_id='#{store.id}']")
+      |> render_click()
+
+      assert has_element?(
+               view,
+               "#store-breakdown-#{store.id} a[href='/platform/stores/#{store.id}']"
+             )
     end
 
     test "renders a per-store row with fees, outstanding and payout readiness", %{conn: conn} do
@@ -91,7 +133,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       success_payment!(owed_store, %{amount: 80_000})
 
       fee_store = Factory.create_store!(%{name: "Fee Palace"})
-      verified_payout!(fee_store, "ACCT_fee")
+      momo_account!(fee_store)
       payment = success_payment!(fee_store, %{amount: 10_000, split_mode: :dropship_split})
 
       # Settled, not pending: only confirmed fees count as revenue now, and a
@@ -101,12 +143,15 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       |> Ash.Changeset.for_update(:mark_settled, %{})
       |> Ash.update!(authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
 
       assert html =~ "Owed Kingdom"
       assert html =~ "Fee Palace"
+      assert has_element?(view, "#finance-store-rows[phx-update='stream'][data-count='2']")
       # owed store has no payout set up; fee store is ready
       assert html =~ "No payout set up"
+
+      # payouts_ready? = MoMo-destination-present (P2 semantic — transfers are what payouts actually need)
       assert html =~ "Ready"
     end
 
@@ -130,7 +175,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
 
       html =
         view
-        |> element("button[phx-value-store_id='#{store.id}']")
+        |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
         |> render_click()
 
       assert html =~ "queued" or html =~ "Payout"
@@ -154,10 +199,11 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/platform/finance")
 
-      html =
-        view
-        |> element("button[phx-value-store_id='#{store.id}']")
-        |> render_click()
+      # The Pay-out button is disabled (not hidden) for a store with no payout
+      # destination — see the disabled-button test below — so a real click
+      # can't reach the server. Dispatch the event directly to prove the
+      # server-side rejection path (defense in depth) is still intact.
+      html = render_click(view, "approve_payout", %{"store_id" => store.id})
 
       assert html =~ "mobile money" or html =~ "payout details"
       assert Emakola.Payments.list_payouts_by_store!(store.id, authorize?: false) == []
@@ -171,11 +217,12 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
         authorize?: false
       )
 
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      {:ok, view, html} = live(conn, ~p"/platform/finance")
 
       assert html =~ "Recent payouts"
       assert html =~ "Payout Co"
       assert html =~ "Pending"
+      assert has_element?(view, "#finance-payout-groups[phx-update='stream'][data-count='1']")
     end
 
     test "retrying a failed payout prepares a FRESH payout (not the dead one) and audits",
@@ -240,6 +287,23 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/platform/finance")
       refute has_element?(view, "button[phx-value-payout_id='#{payout.id}']")
+    end
+
+    test "Pay-out button is disabled with a reason when the store has no payout destination", %{
+      conn: conn
+    } do
+      store = Factory.create_store!(%{name: "No Destination Co"})
+      success_payment!(store, %{amount: 80_000})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      assert has_element?(
+               view,
+               "button[disabled][phx-click='approve_payout'][phx-value-store_id='#{store.id}']"
+             )
+
+      html = render(view)
+      assert html =~ "Add a mobile money payout destination"
     end
   end
 end

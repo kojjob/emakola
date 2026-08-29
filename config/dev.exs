@@ -13,9 +13,22 @@ config :emakola, Emakola.Repo,
 # Use local filesystem storage in dev (no S3 needed)
 config :emakola, :storage, Emakola.Storage.Local
 
+# The whole Playwright suite logs in from one IP; the prod default (10/min)
+# rate-limits the later specs. Dev only — prod keeps the module default.
+config :emakola, :auth_login_rate_limit, 1_000
+
 # AshAuthentication token signing secret — dev-only value
 config :emakola,
   token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
+
+# Local-development-only keys. Never copy these values to a deployed
+# environment; production fails closed unless independent runtime keyrings are
+# supplied through the secret manager.
+config :emakola, Emakola.Security.FieldEncryption,
+  active_key_id: "dev-v1",
+  keys: %{"dev-v1" => "00112233445566778899aabbccddeeff"},
+  blind_index_active_key_id: "dev-lookup-v1",
+  blind_index_keys: %{"dev-lookup-v1" => "ffeeddccbbaa99887766554433221100"}
 
 # Social login (OAuth) — set provider creds via env to test locally; unset = off
 # (ship-dark, see EmakolaWeb.OAuth). Google permits http://localhost redirect
@@ -138,3 +151,11 @@ config :swoosh, :api_client, false
 # See the note in config/test.exs: without this, `mix phx.server` and every
 # `mix run` script boots a headless Chrome pool it never uses.
 config :emakola, ChromicPDF, on_demand: true
+
+# The auth pipeline rate-limits to 10 requests/min per IP. A Playwright run
+# loads /auth/login and /auth/register far faster than a human and trips it,
+# turning E2E auth specs flaky. Opt out for those runs only — plain
+# `mix phx.server` keeps the limiter on, and prod is unaffected:
+#
+#     DISABLE_RATE_LIMIT=1 mix phx.server
+config :emakola, :disable_rate_limit, System.get_env("DISABLE_RATE_LIMIT") == "1"

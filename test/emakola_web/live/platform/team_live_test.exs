@@ -71,7 +71,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       assert html =~ "Owner"
       assert html =~ "manage_stores"
       assert html =~ to_string(invite.email)
-      assert html =~ "Pending invites"
+      assert html =~ "Invites"
     end
   end
 
@@ -85,18 +85,53 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       view |> element("#open-invite-modal") |> render_click()
 
-      html =
-        view
-        |> element("#invite-form")
-        |> render_submit(%{"email" => email, "permissions" => ["manage_stores", "manage_team"]})
-
-      assert html =~ email
+      view
+      |> form("#invite-form", %{
+        "email" => email,
+        "permissions" => ["manage_stores", "manage_team"]
+      })
+      |> render_submit()
 
       assert [invite] = open_invites()
       assert to_string(invite.email) == email
       assert Enum.sort(invite.permissions) == [:manage_stores, :manage_team]
+      assert has_element?(view, "#invite-#{invite.id}", email)
 
       assert_email_sent(fn sent -> assert {_, ^email} = hd(sent.to) end)
+    end
+  end
+
+  describe "second-pass polish" do
+    test "queue rows carry a 2FA pill and invites a countdown", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+      invite = Factory.create_platform_invite!(permissions: [:manage_merchants])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      # Staff created without TOTP wear an explicit 2FA-off pill in the queue
+      assert has_element?(view, "#staff-#{staff.id} [data-twofa='off']")
+      # Invites show a countdown, not just raw dates
+      assert has_element?(view, "#invite-#{invite.id}", "Expires in")
+    end
+
+    test "permissions render as toggle cards with a granted state", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+
+      assert has_element?(
+               view,
+               "#edit-permissions-form label[data-permission='manage_stores'][data-granted]"
+             )
+
+      refute has_element?(
+               view,
+               "#edit-permissions-form label[data-permission='manage_billing'][data-granted]"
+             )
     end
   end
 
@@ -109,16 +144,16 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       view |> element("#edit-staff-#{staff.id}") |> render_click()
 
-      html =
-        view
-        |> element("#edit-permissions-form")
-        |> render_submit(%{"permissions" => ["manage_merchants", "view_audit_log"]})
-
-      assert html =~ "manage_merchants"
+      view
+      |> form("#edit-permissions-form", %{
+        "permissions" => ["manage_merchants", "view_audit_log"]
+      })
+      |> render_submit()
 
       updated = reload_user!(staff)
       assert Enum.sort(updated.platform_permissions) == [:manage_merchants, :view_audit_log]
       refute updated.is_owner
+      assert has_element?(view, "#staff-#{staff.id}", "manage_merchants")
     end
 
     test "owner can promote a staff member to owner", %{conn: conn} do
@@ -130,8 +165,11 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       view |> element("#edit-staff-#{staff.id}") |> render_click()
 
       view
-      |> element("#edit-permissions-form")
-      |> render_submit(%{"permissions" => ["manage_stores"], "is_owner" => "true"})
+      |> form("#edit-permissions-form", %{
+        "permissions" => ["manage_stores"],
+        "is_owner" => "true"
+      })
+      |> render_submit()
 
       assert reload_user!(staff).is_owner
     end
@@ -140,12 +178,25 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_team])
       staff = create_staff!([:manage_stores])
 
-      {:ok, view, html} = live(conn, "/platform/team")
+      {:ok, view, _html} = live(conn, "/platform/team")
 
-      refute html =~ "deactivate-staff-#{staff.id}"
+      refute has_element?(view, "#deactivate-staff-#{staff.id}")
 
-      modal_html = view |> element("#edit-staff-#{staff.id}") |> render_click()
-      refute modal_html =~ ~s(name="is_owner")
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+      refute has_element?(view, "#edit-is-owner")
+    end
+
+    test "selecting a member shows the Studio panel with security actions", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+
+      assert has_element?(view, "#team-panel", to_string(staff.email))
+      assert has_element?(view, "#team-panel #force-logout-#{staff.id}")
+      assert has_element?(view, "#team-panel #edit-permissions-form")
     end
   end
 
@@ -234,6 +285,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
       view |> element("#force-logout-#{staff.id}") |> render_click()
 
       assert {:ok, []} = Sessions.list_active_for_user(staff.id)
@@ -245,6 +297,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
       view |> element("#reset-totp-#{staff.id}") |> render_click()
 
       assert is_nil(reload_user!(staff).totp_secret)
@@ -258,8 +311,9 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
-      html = view |> element("#deactivate-staff-#{staff.id}") |> render_click()
-      assert html =~ "Deactivated"
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+      view |> element("#deactivate-staff-#{staff.id}") |> render_click()
+      assert has_element?(view, "#staff-#{staff.id}", "Deactivated")
       assert %DateTime{} = reload_user!(staff).deactivated_at
 
       view |> element("#reactivate-staff-#{staff.id}") |> render_click()
@@ -274,9 +328,9 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/team")
 
-      html = view |> element("#revoke-invite-#{invite.id}") |> render_click()
+      view |> element("#revoke-invite-#{invite.id}") |> render_click()
 
-      refute html =~ to_string(invite.email)
+      refute has_element?(view, "#invite-#{invite.id}")
       assert %DateTime{} = Ash.get!(PlatformInvite, invite.id).revoked_at
     end
 
@@ -288,14 +342,14 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       {:ok, view, _html} = live(conn, "/platform/team")
       flush_emails()
 
-      html = view |> element("#resend-invite-#{invite.id}") |> render_click()
+      view |> element("#resend-invite-#{invite.id}") |> render_click()
 
-      assert html =~ email
       assert %DateTime{} = Ash.get!(PlatformInvite, invite.id).revoked_at
 
       assert [new_invite] = open_invites()
       assert to_string(new_invite.email) == email
       assert new_invite.permissions == [:manage_stores]
+      assert has_element?(view, "#invite-#{new_invite.id}", email)
 
       assert_email_sent(fn sent -> assert {_, ^email} = hd(sent.to) end)
     end

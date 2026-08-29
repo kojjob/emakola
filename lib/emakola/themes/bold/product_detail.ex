@@ -151,6 +151,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
             >
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <p
               class="text-xl sm:text-2xl font-black text-[#0F172A] mb-3 w-fit border-b-4 border-[#F59E0B]"
               style="font-family: 'Outfit', sans-serif;"
@@ -210,7 +211,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
           </section>
 
           <%!-- Quantity Stepper (Minimal, Inline) --%>
-          <div class="flex items-center gap-6 mb-6">
+          <div :if={not Variant.sold_out?(@selected_variant)} class="flex items-center gap-6 mb-6">
             <span
               class="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B]"
               style="font-family: 'Inter', sans-serif;"
@@ -274,11 +275,12 @@ defmodule Emakola.Themes.Bold.ProductDetail do
             {Emakola.Themes.Delivery.callout(assigns)}
           </p>
           <button
+            :if={not Variant.sold_out?(@selected_variant)}
             phx-click="add_to_cart"
-            disabled={is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant)}
+            disabled={is_nil(@selected_variant)}
             class={[
               "w-full h-14 text-sm font-bold tracking-[0.15em] uppercase flex items-center justify-center gap-3 transition-all",
-              if(is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant),
+              if(is_nil(@selected_variant),
                 do: "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed",
                 else: "bg-[#0F172A] text-white hover:bg-[#1E293B] active:scale-[0.98] cursor-pointer"
               )
@@ -298,15 +300,22 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
               />
             </svg>
-            <%= if is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant) do %>
+            <%= if is_nil(@selected_variant) do %>
               Out of Stock
             <% else %>
               Add to Cart
             <% end %>
           </button>
 
+          <.back_in_stock
+            :if={Variant.sold_out?(@selected_variant)}
+            store={@store}
+            product={@product}
+          />
+
           <%!-- WhatsApp Button — Green, Secondary --%>
           <a
+            :if={not Variant.sold_out?(@selected_variant)}
             href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
             target="_blank"
             rel="noopener noreferrer"
@@ -456,6 +465,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
         reviews={@reviews}
         can_review={@can_review}
         already_reviewed={@already_reviewed}
+        review_form={assigns[:review_form]}
         review_form_rating={@review_form_rating}
         review_form_title={@review_form_title}
         review_form_body={@review_form_body}
@@ -504,5 +514,41 @@ defmodule Emakola.Themes.Bold.ProductDetail do
       %{url: url} when is_binary(url) -> url
       _ -> Shared.first_image(product)
     end
+  end
+
+  # ── Back in Stock ──
+  #
+  # Bold does not do soft containers. A black bar, square corners, one word at
+  # 26px — the same voice as the rest of the theme.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div :if={@url} id="back-in-stock" class="bg-[#0F172A] px-[22px] py-5">
+      <p class="text-[26px] font-black uppercase leading-none tracking-[0.14em] text-white">
+        Sold out
+      </p>
+      <p class="mt-1.5 mb-4 text-[11.5px] font-medium uppercase leading-relaxed tracking-[0.05em] text-white/60">
+        Ask the shop about this one.
+      </p>
+      <a
+        href={@url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex h-12 items-center justify-center gap-2.5 bg-white text-[12.5px] font-extrabold uppercase tracking-[0.15em] text-[#0F172A] transition-colors hover:bg-[#F1F5F9]"
+      >
+        <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-[17px] w-[17px] text-[#128C3A]" />
+        Message the shop
+      </a>
+    </div>
+    """
   end
 end

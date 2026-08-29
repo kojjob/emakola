@@ -31,7 +31,9 @@ defmodule Emakola.Themes.ThemeResolver do
     "ntoma" => Emakola.Themes.Ntoma,
     "akwaaba" => Emakola.Themes.Akwaaba,
     "pace" => Emakola.Themes.Pace,
-    "sika" => Emakola.Themes.Sika
+    "sika" => Emakola.Themes.Sika,
+    # Digital goods (2026-08-04).
+    "adwuma" => Emakola.Themes.Adwuma
   }
 
   # Akoma and Heritage were culled (zero live stores on either) and their

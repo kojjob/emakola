@@ -195,6 +195,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                 {product_title_with_accent(@product.title)}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Rating (only when the product has real reviews) --%>
               <div
                 :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
@@ -370,7 +372,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   </p>
                 </.accordion_section>
 
-                <.accordion_section title="SHIPPING &amp; RETURNS">
+                <.accordion_section title="SHIPPING & RETURNS">
                   <p class="text-sm text-gray-600 leading-relaxed">
                     See our
                     <a
@@ -412,6 +414,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
         reviews={@reviews}
         can_review={@can_review}
         already_reviewed={@already_reviewed}
+        review_form={assigns[:review_form]}
         review_form_rating={@review_form_rating}
         review_form_title={@review_form_title}
         review_form_body={@review_form_body}

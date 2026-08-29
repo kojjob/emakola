@@ -8,7 +8,9 @@ defmodule Emakola.Themes.Spotlight.ProductList do
   attr :store, :map, required: true
   attr :theme, :map, required: true
   attr :cart_count, :integer, default: 0
-  attr :products, :list, default: []
+  attr :has_more, :boolean, default: false
+  attr :streams, :map, required: true
+  attr :products_count, :integer, required: true
   attr :categories, :list, default: []
 
   def render(assigns) do
@@ -20,16 +22,35 @@ defmodule Emakola.Themes.Spotlight.ProductList do
       <section class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="flex items-baseline justify-between mb-8">
           <h1 class="spot-display text-4xl uppercase">Shop</h1>
-          <span class="text-sm text-[#7A7468]">{length(@products)} items</span>
+          <span class="text-sm text-[#7A7468]">{@products_count} items</span>
         </div>
         <div
-          :if={@products != []}
+          id="product-list"
+          phx-update="stream"
           class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6"
         >
-          <Shared.product_card :for={product <- @products} product={product} store={@store} />
+          <div
+            id="product-list-empty"
+            class="col-span-full hidden text-center py-24 text-[#7A7468] only:block"
+          >
+            <p class="text-sm">No products yet. Check back soon.</p>
+          </div>
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.product_card product={product} store={@store} />
+          </div>
         </div>
-        <div :if={@products == []} class="text-center py-24 text-[#7A7468]">
-          <p class="text-sm">No products yet. Check back soon.</p>
+        <div :if={@has_more} class="mt-12 text-center">
+          <button
+            type="button"
+            phx-click="load_more"
+            class="inline-flex min-h-12 items-center rounded-full bg-[#16130F] px-8 text-sm font-semibold text-white transition-colors hover:bg-[#7C3AED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] focus-visible:ring-offset-2"
+          >
+            Load more
+          </button>
         </div>
       </section>
 

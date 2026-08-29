@@ -37,7 +37,82 @@ config :emakola, EmakolaWeb.Endpoint,
 # builder's (unset) value into release builds permanently.
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
+# SplitPay tenant client (any env) — ships dark until both are set.
+# Fly certificate provisioning for merchant custom domains. Ships dark: without
+# FLY_API_TOKEN the client makes no network call and no certificate is ever
+# requested, so the whole custom-domain flow stalls harmlessly at :verifying.
+config :emakola, Emakola.Infra.FlyCerts,
+  api_token: System.get_env("FLY_API_TOKEN"),
+  app_name: System.get_env("FLY_APP_NAME") || "emakola"
+
+if splitpay_url = System.get_env("SPLITPAY_API_URL") do
+  config :emakola, Emakola.SplitPay.Client,
+    base_url: splitpay_url,
+    api_key: System.get_env("SPLITPAY_API_KEY"),
+    webhook_secret: System.get_env("SPLITPAY_WEBHOOK_SECRET")
+end
+
 if config_env() == :prod do
+  config :emakola,
+         :metrics_port,
+         String.to_integer(System.get_env("METRICS_PORT", "9091"))
+
+  # Application-level encryption keyrings. Values are JSON objects mapping a
+  # stable key id to a base64-encoded, 32-byte random key. Ciphertext envelopes
+  # carry the encryption key id so old keys can remain readable during
+  # rotation. Blind-index keys are deliberately separate key material.
+  decode_keyring! = fn env_name ->
+    encoded =
+      System.get_env(env_name) ||
+        raise("environment variable #{env_name} is missing.")
+
+    case Jason.decode(encoded) do
+      {:ok, keyring} when is_map(keyring) and map_size(keyring) > 0 ->
+        Map.new(keyring, fn {key_id, encoded_key} ->
+          key =
+            case is_binary(encoded_key) && Base.decode64(encoded_key) do
+              {:ok, key} when byte_size(key) == 32 -> key
+              _ -> raise("#{env_name} contains a key that is not valid base64 for 32 bytes.")
+            end
+
+          unless Regex.match?(~r/\A[A-Za-z0-9][A-Za-z0-9_-]{0,63}\z/, key_id) do
+            raise("#{env_name} contains an invalid key id.")
+          end
+
+          {key_id, key}
+        end)
+
+      _ ->
+        raise("environment variable #{env_name} must be a non-empty JSON object.")
+    end
+  end
+
+  encryption_keys = decode_keyring!.("FIELD_ENCRYPTION_KEYS")
+  encryption_active_key_id = System.fetch_env!("FIELD_ENCRYPTION_ACTIVE_KEY_ID")
+  blind_index_keys = decode_keyring!.("FIELD_BLIND_INDEX_KEYS")
+  blind_index_active_key_id = System.fetch_env!("FIELD_BLIND_INDEX_ACTIVE_KEY_ID")
+
+  unless Map.has_key?(encryption_keys, encryption_active_key_id) do
+    raise("FIELD_ENCRYPTION_ACTIVE_KEY_ID is not present in FIELD_ENCRYPTION_KEYS.")
+  end
+
+  unless Map.has_key?(blind_index_keys, blind_index_active_key_id) do
+    raise("FIELD_BLIND_INDEX_ACTIVE_KEY_ID is not present in FIELD_BLIND_INDEX_KEYS.")
+  end
+
+  unless MapSet.disjoint?(
+           MapSet.new(Map.values(encryption_keys)),
+           MapSet.new(Map.values(blind_index_keys))
+         ) do
+    raise("field-encryption and blind-index keyrings must use separate key material.")
+  end
+
+  config :emakola, Emakola.Security.FieldEncryption,
+    active_key_id: encryption_active_key_id,
+    keys: encryption_keys,
+    blind_index_active_key_id: blind_index_active_key_id,
+    blind_index_keys: blind_index_keys
+
   # Database
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -84,15 +159,15 @@ if config_env() == :prod do
     api_key: resend_api_key
 
   config :emakola,
-    contact_email: System.get_env("CONTACT_EMAIL", "support@emakola.com"),
-    careers_email: System.get_env("CAREERS_EMAIL", "careers@emakola.com"),
-    press_email: System.get_env("PRESS_EMAIL", "press@emakola.com"),
+    contact_email: System.get_env("CONTACT_EMAIL", "support@makola.io"),
+    careers_email: System.get_env("CAREERS_EMAIL", "careers@makola.io"),
+    press_email: System.get_env("PRESS_EMAIL", "press@makola.io"),
     support_whatsapp: System.get_env("SUPPORT_WHATSAPP", "233200000000"),
     support_phone: System.get_env("SUPPORT_PHONE", "+233 20 000 0000")
 
   # Outbound mail "from" domain (noreply@/billing@). Flip the whole sending
   # domain by setting MAIL_FROM_DOMAIN — no code change needed.
-  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "emakola.com")
+  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "makola.io")
 
   # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
   # chromium package and runs as a non-root user. Chrome's sandbox needs
@@ -104,7 +179,8 @@ if config_env() == :prod do
     chrome_executable: System.get_env("CHROME_EXECUTABLE", "/usr/bin/chromium"),
     no_sandbox: System.get_env("CHROME_NO_SANDBOX", "true") == "true",
     discard_stderr: true,
-    on_demand: true
+    on_demand: true,
+    session_pool: [checkout_timeout: 30_000]
 
   # S3-compatible storage for product images, media uploads
   config :emakola, :storage, Emakola.Storage.S3
@@ -249,6 +325,13 @@ if config_env() == :prod do
   # deliver codes: set PHONE_AUTH_ENABLED=true. See docs/PROVIDER_SETUP.md.
   config :emakola, :phone_auth_enabled, System.get_env("PHONE_AUTH_ENABLED") == "true"
 
+  # Supplier WhatsApp→SMS fallthrough — ship-dark, and deliberately so. Turning
+  # this on makes real sends to the SMS gateway for every supplier
+  # notification, because WhatsApp fails for every store today. Confirm at the
+  # PROVIDER's dashboard that SMS_API_KEY is live and what a message costs
+  # before setting SUPPLIER_SMS_FALLBACK=true.
+  config :emakola, :supplier_sms_fallback, System.get_env("SUPPLIER_SMS_FALLBACK") == "true"
+
   # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
   # pipeline observable without sending anything.
@@ -257,6 +340,23 @@ if config_env() == :prod do
     config :emakola, :fcm_project_id, System.fetch_env!("FCM_PROJECT_ID")
   else
     config :emakola, :push_provider, Emakola.Notifications.Providers.LogPush
+  end
+
+  # Google Search Console sync (SEO Phase 5). Ships dark: without a service
+  # account the fetcher returns {:ok, []} and the daily cron is a no-op.
+  #
+  # GSC_SITE_URL must match the property KIND, not just the hostname. A Domain
+  # property (DNS-verified, covers merchant subdomains — what
+  # docs/SEO_PRODUCTION_SETUP_BEGINNERS_GUIDE.md §2.1 instructs) is addressed
+  # as `sc-domain:makola.io`. Passing the URL-prefix form `https://makola.io`
+  # against a Domain property returns 403 while the browser UI still shows the
+  # site as verified, so we default to the sc-domain form.
+  if System.get_env("GSC_SERVICE_ACCOUNT_JSON") do
+    config :emakola, :gsc_credentials, {:goth, Emakola.GscGoth}
+
+    config :emakola,
+           :gsc_site_url,
+           System.get_env("GSC_SITE_URL") || "sc-domain:#{System.fetch_env!("PHX_HOST")}"
   end
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
@@ -306,7 +406,7 @@ if config_env() == :prod do
     System.get_env("PHX_HOST") ||
       raise """
       environment variable PHX_HOST is missing.
-      Set it to the canonical hostname, e.g. PHX_HOST=emakola.com.
+      Set it to the canonical hostname, e.g. PHX_HOST=makola.io.
       It is used for URL generation (emails, webhooks) and check_origin —
       a silent default would generate links to the wrong domain.
       """
@@ -320,20 +420,16 @@ if config_env() == :prod do
 
   config :emakola, EmakolaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    # WebSocket origin allowlist. The wildcard covers merchant subdomain
-    # storefronts (shopname.emakola.com). NOTE: merchant CUSTOM domains
-    # (www.merchantshop.com) need their origins added here — or a
-    # function-based check_origin — before LiveView will connect for them.
-    check_origin: [
-      "https://#{host}",
-      "https://www.#{host}",
-      "https://*.#{host}",
-      # Fly's default hostname — the app is reachable here until (and after)
-      # the emakola.com DNS cutover. Without it, LiveView websockets from
-      # emakola.fly.dev are rejected and clients degrade to long-polling,
-      # which breaks across multiple machines (reconnect/error loops).
-      "https://emakola.fly.dev"
-    ],
+    # WebSocket origin allowlist. A list cannot express merchant custom
+    # domains — those are rows in a table, not config — so this is a function.
+    # OriginChecker covers the apex, www, every *.PHX_HOST store subdomain,
+    # Fly's own hostname, and any ACTIVE custom domain, checking the cheap
+    # cases before it ever looks anything up.
+    #
+    # Getting this wrong fails silently: the page still renders, LiveView
+    # degrades to long-polling, and long-polling then breaks across multiple
+    # machines. Verify with a real wss:// handshake, not a status code.
+    check_origin: {EmakolaWeb.OriginChecker, :allowed?, []},
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

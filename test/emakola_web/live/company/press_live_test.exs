@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Company.PressLiveTest do
     assert html =~ "Press &amp; media" or html =~ "Press"
     assert html =~ "Brand assets"
     assert html =~ ~s(href="/images/emakola-logo.svg")
-    assert html =~ ~s(href="mailto:press@emakola.com")
+    assert html =~ ~s(href="mailto:press@makola.io")
   end
 
   test "renders (no 500) even when the press email config key is absent", %{conn: conn} do
@@ -29,6 +29,6 @@ defmodule EmakolaWeb.Company.PressLiveTest do
 
     {:ok, _view, html} = live(conn, "/press")
 
-    assert html =~ ~s(href="mailto:press@emakola.com")
+    assert html =~ ~s(href="mailto:press@makola.io")
   end
 end

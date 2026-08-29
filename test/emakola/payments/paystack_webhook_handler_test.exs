@@ -4,6 +4,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
 
   require Ash.Query
 
+  alias Emakola.Notifications.Workers.EarningsNotificationWorker
   alias Emakola.Payments.Payment
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 
@@ -64,6 +65,51 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
         Payment |> Ash.Query.filter(id == ^payment.id) |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :pending
+    end
+  end
+
+  # TC-3 cross-cutting guard (Task 10): `handle_charge_success/1`'s idempotent
+  # post-processing block unconditionally calls
+  # `Emakola.Orders.SusuChunks.confirm_chunk(payment)`. That function's FIRST
+  # clause is `def confirm_chunk(%Payment{susu_plan_id: nil}), do: :ok` (see
+  # `lib/emakola/orders/susu_chunks.ex`) — a bare pattern match with an empty
+  # body: no query, no side effect. `Payment.:create` validates `order_id`
+  # and `susu_plan_id` mutually exclusive (`present([:order_id, :susu_plan_id],
+  # at_most: 1)`), so an order-parented payment always has `susu_plan_id:
+  # nil` — this call is provably zero susu queries by construction, not just
+  # by observed behavior. The rest of this test pins that the webhook
+  # success block's order-confirmation outcome is unaffected by susu's
+  # existence at all.
+  describe "charge.success event — TC-3 susu guard (order-parented payment)" do
+    test "confirms the order exactly as before susu existed, with susu_plan_id nil throughout",
+         %{store: store} do
+      order = create_order!(store)
+      payment = create_payment!(store, %{order_id: order.id, amount: 500_000})
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{
+          "reference" => payment.gateway_reference,
+          "amount" => 500_000,
+          "currency" => "GHS",
+          "status" => "success",
+          "gateway_response" => "Successful"
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      updated_payment =
+        Payment |> Ash.Query.filter(id == ^payment.id) |> Ash.read_one!(authorize?: false)
+
+      updated_order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(id == ^order.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert updated_payment.status == :success
+      assert updated_payment.susu_plan_id == nil
+      assert updated_order.status == :confirmed
     end
   end
 
@@ -165,6 +211,140 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
     end
   end
 
+  describe "refund.processed event — buyer protection hold" do
+    defp protected_payment!(store, attrs \\ %{}) do
+      order = create_order!(store, status: :delivered)
+
+      payment =
+        store
+        |> create_payment!(
+          Map.merge(
+            %{
+              order_id: order.id,
+              amount: 50_000,
+              payout_held: true,
+              payout_hold_reason: "buyer_protection"
+            },
+            Map.new(attrs)
+          )
+        )
+        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{"status" => "success"}})
+        |> Ash.update!(authorize?: false)
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      {payment, hold}
+    end
+
+    defp reload_hold(store, hold) do
+      {:ok, reloaded} =
+        Emakola.Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      reloaded
+    end
+
+    defp full_refund_event(payment) do
+      %{
+        "event" => "refund.processed",
+        "data" => %{
+          "transaction" => %{"reference" => payment.gateway_reference},
+          "amount" => payment.amount
+        }
+      }
+    end
+
+    test "a full refund closes a held hold with the stashed :merchant_refunded resolution", %{
+      store: store
+    } do
+      {payment, hold} = protected_payment!(store)
+
+      # Simulates what `RefundService.issue/5` stashes before the gateway
+      # confirms — see `ProtectionHolds.stash_refund_resolution/2` and
+      # `refund_service_test.exs`.
+      payment =
+        payment
+        |> Ash.Changeset.for_update(:update, %{
+          metadata: %{"protection_resolution" => "merchant_refunded"}
+        })
+        |> Ash.update!(authorize?: false)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+
+    test "a full refund honors a staff resolution stashed in metadata (Task 12's seam)", %{
+      store: store
+    } do
+      {payment, hold} = protected_payment!(store)
+
+      payment =
+        payment
+        |> Ash.Changeset.for_update(:update, %{
+          metadata: %{"protection_resolution" => "refunded_by_staff"}
+        })
+        |> Ash.update!(authorize?: false)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :refunded_by_staff
+    end
+
+    test "no stashed resolution defaults to :merchant_refunded", %{store: store} do
+      {payment, hold} = protected_payment!(store)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+
+    test "a partial refund leaves the hold held", %{store: store} do
+      {payment, hold} = protected_payment!(store)
+
+      event = %{
+        "event" => "refund.processed",
+        "data" => %{
+          "transaction" => %{"reference" => payment.gateway_reference},
+          "amount" => 12_500
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :held
+      assert is_nil(reloaded.resolution)
+    end
+
+    test "re-delivering the full-refund event is idempotent — the hold closes once, no error",
+         %{store: store} do
+      {payment, hold} = protected_payment!(store)
+      event = full_refund_event(payment)
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+  end
+
   describe "idempotency" do
     test "processing same charge.success event twice is safe", %{store: store} do
       payment = create_payment!(store)
@@ -220,6 +400,71 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
         |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :failed
+    end
+
+    # (b) money-surfaces PR-2 Task 3: a webhook REPLAY must not re-dispatch
+    # an earnings notification — the splits are already :settled by the
+    # first call, so `settle_splits/1`'s freshly-settled set is empty on
+    # the second call and nothing new is enqueued.
+    #
+    # This does NOT merely assert "still one job" after the replay: Oban's
+    # own `unique: [fields: [:args]]` on `EarningsNotificationWorker`
+    # collapses a second insert with identical args at insert-time
+    # regardless of whether `settle_splits/1`'s freshness guard exists at
+    # all (see `susu_nudge_worker_test.exs`'s note on the same gotcha) — a
+    # naive "count stays 1" assertion would pass even if the guard were
+    # deleted, pinning only the belt (Oban `unique`), not the primary
+    # defense (the freshness guard itself).
+    #
+    # To isolate the guard, the first job is pushed to `:discarded` before
+    # the replay — a state Oban's default `unique` window does NOT cover
+    # (`Oban.Job`'s default unique states are `scheduled/available/
+    # executing/retryable/completed`), so a second `Oban.insert/1` with the
+    # SAME args would succeed and create a genuinely NEW row if
+    # `settle_splits/1` attempted to dispatch again. Asserting zero jobs in
+    # `all_enqueued` (which itself only returns `available/scheduled/
+    # suspended` jobs, so the discarded row never counts either way) after
+    # the replay therefore proves the guard itself skipped the dispatch
+    # call, not that Oban silently ate a duplicate attempt.
+    #
+    # Verified RED-mindedly: temporarily changed `settle_splits/1` to
+    # collect ALL non-platform recipients (dropping the pre-loop `:pending`
+    # filter) instead of just the freshly-settled set — this test failed
+    # (a new job appeared after the replay), confirming it actually
+    # exercises the guard. Restored before committing.
+    test "webhook replay does not re-dispatch an earnings notification", %{store: store} do
+      payment = create_payment!(store, amount: 5_000)
+
+      Emakola.Payments.create_payment_split!(
+        %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 4_500
+        },
+        authorize?: false
+      )
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{"reference" => payment.gateway_reference}
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert [first_job] = all_enqueued(worker: EarningsNotificationWorker)
+
+      # Move the first job out of Oban's default unique-conflict states so
+      # a second insert with the same args isn't silently deduped by Oban
+      # itself — isolating whether OUR guard skips the dispatch call.
+      Oban.Job
+      |> Emakola.Repo.get!(first_job.id)
+      |> Ecto.Changeset.change(state: "discarded")
+      |> Emakola.Repo.update!()
+
+      # Replay
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert [] = all_enqueued(worker: EarningsNotificationWorker)
     end
   end
 
@@ -391,6 +636,88 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       assert is_nil(reloaded.payout_id)
     end
   end
+
+  # Task 1 (supplier-stock-truth): a confirmed dropship payment must decrement
+  # the supplier's real source-variant stock (Emakola.Suppliers.NetworkStock),
+  # and a webhook replay must not double it.
+  describe "charge.success event — network (dropship) stock decrement" do
+    test "decrements the supplier's source-variant stock; a replay does not double it" do
+      {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Dropship wholesaler"})
+      {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dropship reseller"})
+
+      product = create_product!(wholesaler, status: :active, title: "Kente sandals")
+
+      source_variant =
+        create_variant!(product, wholesaler, stock_quantity: 8, track_inventory: true)
+
+      {:ok, offer} =
+        Emakola.Suppliers.Offers.create_draft(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          source_product_id: product.id,
+          earning_model: :markup
+        })
+
+      {:ok, _terms} =
+        Emakola.Suppliers.Offers.add_variant(wholesaler_actor, offer, %{
+          source_variant_id: source_variant.id,
+          supplier_price: 4_000,
+          suggested_retail_price: 5_000,
+          max_retail_price: 5_800
+        })
+
+      {:ok, offer} = Emakola.Suppliers.Offers.publish(wholesaler_actor, offer)
+
+      {:ok, connection} =
+        Emakola.Suppliers.Network.request(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          reseller_store_id: reseller.id,
+          requested_by_store_id: wholesaler.id
+        })
+
+      {:ok, _active} = Emakola.Suppliers.Network.approve(reseller_actor, connection)
+
+      {:ok, listing} =
+        Emakola.Suppliers.ListingImporter.import(reseller_actor, reseller.id, offer)
+
+      [reseller_variant | _] = listing.reseller_product.variants
+
+      order = create_order!(reseller)
+
+      Emakola.Orders.LineItem
+      |> Ash.Changeset.for_create(:create, %{
+        order_id: order.id,
+        store_id: reseller.id,
+        variant_id: reseller_variant.id,
+        quantity: 3
+      })
+      |> Ash.create!(authorize?: false)
+
+      payment = create_payment!(reseller, %{order_id: order.id, amount: 500_000})
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{
+          "reference" => payment.gateway_reference,
+          "amount" => 500_000,
+          "currency" => "GHS",
+          "status" => "success",
+          "gateway_response" => "Successful"
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      assert reload_variant(source_variant).stock_quantity == 5
+
+      # Replay — the idempotency guard must skip the already-recorded decrement.
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      assert reload_variant(source_variant).stock_quantity == 5
+    end
+  end
+
+  defp reload_variant(variant),
+    do: Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
 
   defp stamped_charge!(store, amount, payout) do
     store

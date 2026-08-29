@@ -65,12 +65,12 @@ defmodule Emakola.Themes.Electronics do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Upgrade Your Gear",
-        subtitle: "The latest phones, audio, and accessories.",
+        title: "Shop the latest",
+        subtitle: "New things land here first.",
         cta_text: "Shop Now",
         cta_url: "/products"
       },
-      nav: %{search_placeholder: "Search electronics...", transparent: false},
+      nav: %{search_placeholder: "Search the shop...", transparent: false},
       sections: %{
         hero: true,
         categories: true,
@@ -81,14 +81,11 @@ defmodule Emakola.Themes.Electronics do
         cta_band: true,
         newsletter: true
       },
+      # Empty on purpose: the strip defaults to the store's real categories
+      # (see CategoryStrip.categories_strip_items/2). The list this replaces
+      # invented electronics categories for every shop wearing the theme.
       categories_strip: %{
-        items: [
-          %{label: "Wireless", active: true},
-          %{label: "Noise Cancellation"},
-          %{label: "Sports & Active"},
-          %{label: "Phones"},
-          %{label: "Wearables"}
-        ]
+        items: []
       },
       # `subtitle: nil` and `items: []` — blank, but the keys must stay. They
       # used to ship "1-year warranty" and "Free shipping over GHS 500" as theme
@@ -151,9 +148,6 @@ defmodule Emakola.Themes.Electronics do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.Electronics.ProductDetail,
     as: :render
-
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
 
   @impl true
   def storefront_nav(assigns) do

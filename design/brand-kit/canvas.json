@@ -1,0 +1,383 @@
+{
+  "pages": [
+    {
+      "id": "page-logo",
+      "name": "Logo"
+    },
+    {
+      "id": "page-motion",
+      "name": "Motion"
+    },
+    {
+      "id": "page-email",
+      "name": "Email"
+    },
+    {
+      "id": "page-newsletter",
+      "name": "Newsletter"
+    },
+    {
+      "id": "page-social",
+      "name": "Social & print"
+    },
+    {
+      "id": "page-foundations",
+      "name": "Foundations"
+    },
+    {
+      "id": "page-logo-archive",
+      "name": "Logo explorations"
+    },
+    {
+      "id": "page-stationery",
+      "name": "Stationery"
+    },
+    {
+      "id": "page-deck",
+      "name": "Pitch deck"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "page": "page-logo",
+      "title": "Cowrie Coin — primary identity",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 880
+    },
+    {
+      "file": "LogoDirections.dc.html",
+      "page": "page-logo-archive",
+      "title": "Six directions",
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 920
+    },
+    {
+      "file": "LogoUsage.dc.html",
+      "page": "page-logo",
+      "title": "Usage rules",
+      "x": 1320,
+      "y": 0,
+      "w": 1200,
+      "h": 800
+    },
+    {
+      "file": "StallSource.dc.html",
+      "page": "page-logo-archive",
+      "title": "Where the stall came from",
+      "x": 1440,
+      "y": 0,
+      "w": 1320,
+      "h": 800
+    },
+    {
+      "file": "EmailWelcome.dc.html",
+      "page": "page-email",
+      "title": "Welcome",
+      "x": 0,
+      "y": 0,
+      "w": 700,
+      "h": 1400
+    },
+    {
+      "file": "EmailOrderConfirmed.dc.html",
+      "page": "page-email",
+      "title": "Order confirmed",
+      "x": 800,
+      "y": 0,
+      "w": 700,
+      "h": 1560
+    },
+    {
+      "file": "EmailPayout.dc.html",
+      "page": "page-email",
+      "title": "Payout sent",
+      "x": 1600,
+      "y": 0,
+      "w": 700,
+      "h": 1360
+    },
+    {
+      "file": "EmailDunning.dc.html",
+      "page": "page-email",
+      "title": "Payment failed",
+      "x": 2400,
+      "y": 0,
+      "w": 700,
+      "h": 1240
+    },
+    {
+      "file": "EmailSystem.dc.html",
+      "page": "page-email",
+      "title": "System emails ×4",
+      "x": 3200,
+      "y": 0,
+      "w": 700,
+      "h": 2900
+    },
+    {
+      "file": "Newsletter.dc.html",
+      "page": "page-newsletter",
+      "title": "The Stall — monthly",
+      "x": 0,
+      "y": 0,
+      "w": 700,
+      "h": 2200
+    },
+    {
+      "file": "ProductUpdate.dc.html",
+      "page": "page-newsletter",
+      "title": "What's new",
+      "x": 800,
+      "y": 0,
+      "w": 700,
+      "h": 1300
+    },
+    {
+      "file": "SocialOG.dc.html",
+      "page": "page-social",
+      "title": "Link card 1200×630",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 630,
+      "print": "fixed"
+    },
+    {
+      "file": "SocialSquare.dc.html",
+      "page": "page-social",
+      "title": "Feed post 1080×1080",
+      "x": 1320,
+      "y": 0,
+      "w": 1080,
+      "h": 1080,
+      "print": "fixed"
+    },
+    {
+      "file": "SocialStory.dc.html",
+      "page": "page-social",
+      "title": "Story 1080×1920",
+      "x": 2520,
+      "y": 0,
+      "w": 1080,
+      "h": 1920,
+      "print": "fixed"
+    },
+    {
+      "file": "OnePager.dc.html",
+      "page": "page-social",
+      "title": "One-pager A4",
+      "x": 3720,
+      "y": 0,
+      "w": 794,
+      "h": 1123,
+      "print": "fixed"
+    },
+    {
+      "file": "Foundations.dc.html",
+      "page": "page-foundations",
+      "title": "Colour, type, buttons",
+      "x": 0,
+      "y": 0,
+      "w": 1400,
+      "h": 1800
+    },
+    {
+      "file": "Pictograms.dc.html",
+      "page": "page-foundations",
+      "title": "Pictogram system",
+      "x": 1520,
+      "y": 0,
+      "w": 1200,
+      "h": 1200
+    },
+    {
+      "file": "LogoMotion.dc.html",
+      "page": "page-motion",
+      "title": "The reveal",
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 860
+    },
+    {
+      "file": "LogoLoops.dc.html",
+      "page": "page-motion",
+      "title": "Four states",
+      "x": 1440,
+      "y": 0,
+      "w": 1320,
+      "h": 720
+    },
+    {
+      "file": "Letterhead.dc.html",
+      "page": "page-stationery",
+      "x": 0,
+      "y": 0,
+      "w": 794,
+      "h": 1123,
+      "print": "fixed",
+      "title": "Letterhead — A4"
+    },
+    {
+      "file": "Invoice.dc.html",
+      "page": "page-stationery",
+      "x": 914,
+      "y": 0,
+      "w": 794,
+      "h": 1123,
+      "print": "fixed",
+      "title": "Invoice — A4"
+    },
+    {
+      "file": "Envelope.dc.html",
+      "page": "page-stationery",
+      "x": 1828,
+      "y": 0,
+      "w": 832,
+      "h": 416,
+      "print": "fixed",
+      "title": "Envelope — DL"
+    },
+    {
+      "file": "EmailSignature.dc.html",
+      "page": "page-stationery",
+      "x": 1828,
+      "y": 536,
+      "w": 700,
+      "h": 400,
+      "title": "Email signature"
+    },
+    {
+      "file": "BusinessCard.dc.html",
+      "page": "page-stationery",
+      "x": 2780,
+      "y": 0,
+      "w": 794,
+      "h": 1000,
+      "title": "Business card"
+    },
+    {
+      "file": "Receipt.dc.html",
+      "page": "page-stationery",
+      "x": 3694,
+      "y": 0,
+      "w": 420,
+      "h": 740,
+      "print": "fixed",
+      "title": "Receipt"
+    },
+    {
+      "file": "DeckTitle.dc.html",
+      "page": "page-deck",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — title"
+    },
+    {
+      "file": "DeckSection.dc.html",
+      "page": "page-deck",
+      "x": 1400,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — section"
+    },
+    {
+      "file": "DeckContent.dc.html",
+      "page": "page-deck",
+      "x": 2800,
+      "y": 0,
+      "w": 1280,
+      "h": 720,
+      "print": "fixed",
+      "title": "Deck — content"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-logo",
+      "page": "page-logo",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "Cowrie Coin is the mark. Decided 2026-08-28 after the logo re-opened (the Canopy record moved to the archive pages).\n\nIt appears in every email header, both favicon cuts, all three social sizes, the one-pager and the whole Stationery page - change it here and it changes everywhere, so treat this sheet as the source.\n\nThe full round-2 exploration (11 directions) lives on the Logo Explorations v2 canvas."
+    },
+    {
+      "id": "note-email",
+      "page": "page-email",
+      "x": 0,
+      "y": -230,
+      "w": 620,
+      "text": "Order and payout amounts are SAMPLE data so the layout is honest about spacing.\n\nEvery real fact is in [brackets] on purpose — no fee rate appears anywhere in this kit, because the advertised plan rates and what the settlement engine actually charges do not match yet. Fill brackets only from code or the database."
+    },
+    {
+      "id": "note-newsletter",
+      "page": "page-newsletter",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "\"Your month in three numbers\" is per-merchant merge fields pulled from that merchant's own shop — not a platform-wide stat.\n\nNo aggregate counts anywhere. The 500+ merchants figure on the live site is not real."
+    },
+    {
+      "id": "note-social",
+      "page": "page-social",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "These four are true size, so Export PNG gives you a usable file.\n\nStory: content sits 300px clear of the top and bottom because Instagram's own UI covers those bands. Do not fill them."
+    },
+    {
+      "id": "note-foundations",
+      "page": "page-foundations",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "Every hex here already exists in assets/css/app.css or on the live marketing pages.\n\nTwo deliberate corrections are flagged on the sheet: email header colour and card radius, where the shipped templates drifted from the brand."
+    },
+    {
+      "id": "note-archive",
+      "page": "page-logo-archive",
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "text": "Kept as the record of why, not as live options.\n\nCanopy won round 1 (2026-08-24) and shipped into the app. The decision was re-opened 2026-08-28 and Cowrie Coin won round 2 — the cowrie that was on file here became the mark. The full round-2 record lives on the Logo Explorations v2 canvas."
+    },
+    {
+      "id": "note-motion",
+      "page": "page-motion",
+      "x": 0,
+      "y": -190,
+      "w": 600,
+      "text": "These artboards are playing right now — the reveal loops every 3.4s so you can watch it.\n\nPure SVG + CSS. No Lottie, no JSON, no JavaScript, no extra network request. Lift the <style> block and the six paths straight into the app.\n\nMotion is opt-in: keyframes sit inside prefers-reduced-motion: no-preference, so the mark is authored in its finished state and never renders as an empty box."
+    },
+    {
+      "id": "note-stationery",
+      "page": "page-stationery",
+      "x": 3694,
+      "y": 800,
+      "w": 300,
+      "text": "Letterhead, invoice, envelope, card, signature, receipt.\nEvery real fact sits in [BRACKETS]; amounts are sample data. No fee percentages, no merchant counts - ever."
+    },
+    {
+      "id": "note-deck",
+      "page": "page-deck",
+      "x": 0,
+      "y": 800,
+      "w": 300,
+      "text": "Three slide masters, 16:9. Duplicate an artboard per slide.\nSystem stack on export - PDF cannot embed Archivo, so headlines carry ~10% slack."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-logo"
+  }
+}

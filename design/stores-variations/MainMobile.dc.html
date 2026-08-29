@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #f7f6f1; font-family: "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #047857; } a:hover { color: #065f46; }
+    .kick { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+    .meta { font-size: 12px; font-weight: 600; color: #6b7671; }
+  </style>
+</helmet>
+
+<div style="width: 390px; background: #f7f6f1; color: #14201a;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; height: 60px; padding: 0 18px; background: #0c1526;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">
+        <path d="M32 8 L60 26 H4 Z" fill="#f1f5f9"/>
+        <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+        <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+      </svg>
+      <span style="font-size: 18px; font-weight: 800; color: #f1f5f9;">Makola</span>
+    </div>
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.08);">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#f1f5f9" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+    </span>
+  </div>
+
+  <header style="position: relative; background: #0c1f17; overflow: hidden; padding: 26px 18px 22px;">
+    <div style="position: absolute; right: -110px; top: -120px; width: 300px; height: 300px; border-radius: 999px; background: radial-gradient(closest-side, rgba(212,168,67,0.16), rgba(212,168,67,0));"></div>
+    <div style="position: relative; display: flex; flex-direction: column; gap: 16px;">
+      <h1 style="margin: 0; font-size: 34px; font-weight: 900; font-stretch: 116%; line-height: 1.02; letter-spacing: -0.04em; color: #ffffff;">Find a shop worth<br /><span style="color: #e4bd63;">coming back to.</span></h1>
+      <div style="position: relative;">
+        <input type="search" placeholder="Search shops or places" style="box-sizing: border-box; width: 100%; height: 54px; border-radius: 16px; border: none; background: #ffffff; padding: 0 16px 0 46px; font-size: 15px; color: #0f172a;" />
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 16px; top: 18px;" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </div>
+      <div style="display: flex; gap: 8px; overflow: hidden;">
+        <span style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; background: #f7f6f1; font-size: 12.5px; font-weight: 800; color: #14201a; flex-shrink: 0;">All shops</span>
+        <span style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 12.5px; font-weight: 700; color: #cfdad4; flex-shrink: 0;">Fresh</span>
+        <span style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 12.5px; font-weight: 700; color: #cfdad4; flex-shrink: 0;">Fashion</span>
+        <span style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 12.5px; font-weight: 700; color: #cfdad4; flex-shrink: 0;">Beauty</span>
+        <span style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); font-size: 12.5px; font-weight: 700; color: #cfdad4; flex-shrink: 0;">Atelier</span>
+      </div>
+    </div>
+  </header>
+
+  <section style="padding: 26px 18px 0;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+      <span class="kick" style="display: inline-flex; align-items: center; gap: 7px; color: #b45309;">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="#b45309" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>
+        Market spotlight
+      </span>
+      <span style="font-size: 12.5px; font-weight: 800; color: #047857;">See all &rarr;</span>
+    </div>
+
+    <div style="position: relative; border-radius: 24px; overflow: hidden; background: #0f172a; box-shadow: 0 26px 52px -32px rgba(12,31,23,0.6);">
+      <div style="position: relative; aspect-ratio: 4 / 5; background: #e2e8f0;">
+        <img src="shop-fruit.jpg" alt="Adom Fresh Produce shop photo" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,16,0.94) 0%, rgba(8,22,16,0.28) 52%, rgba(0,0,0,0.06) 100%);"></div>
+        <div style="position: absolute; top: 16px; left: 16px; display: flex; gap: 7px;">
+          <span style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #fcd34d; font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #052e16;">Featured</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,0.94); font-size: 10px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #065f46;">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#065f46" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>
+            Verified
+          </span>
+        </div>
+        <div style="position: absolute; left: 18px; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 9px;">
+          <span style="font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.8);">Fresh &middot; Greater Accra &middot; 48 products</span>
+          <span style="font-size: 30px; font-weight: 900; font-stretch: 112%; letter-spacing: -0.03em; color: #ffffff; line-height: 1.04;">Adom Fresh Produce</span>
+          <span style="font-size: 14.5px; line-height: 1.45; color: rgba(255,255,255,0.9);">Picked before six, at your door before noon.</span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 50px; margin-top: 6px; border-radius: 13px; background: #d4a843; font-size: 15px; font-weight: 800; color: #0c1f17;">
+            Visit shop
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0c1f17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M12.5 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px;">
+      <div style="position: relative; border-radius: 16px; overflow: hidden; background: #e2e8f0; aspect-ratio: 1 / 1.1;">
+        <img src="shop-tailor.jpg" alt="Nana Yaa Couture" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,16,0.88) 0%, rgba(8,22,16,0.1) 55%);"></div>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 11px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #ffffff; line-height: 1.15;">Nana Yaa Couture</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75);">Atelier &middot; Ashanti</span>
+        </div>
+      </div>
+      <div style="position: relative; border-radius: 16px; overflow: hidden; background: #e2e8f0; aspect-ratio: 1 / 1.1;">
+        <img src="shop-beauty.jpg" alt="Serwaa Skin Studio" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,16,0.88) 0%, rgba(8,22,16,0.1) 55%);"></div>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 11px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #ffffff; line-height: 1.15;">Serwaa Skin Studio</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75);">Beauty &middot; Gt. Accra</span>
+        </div>
+      </div>
+      <div style="position: relative; border-radius: 16px; overflow: hidden; background: #e2e8f0; aspect-ratio: 1 / 1.1;">
+        <img src="shop-hair.jpg" alt="Akosua Hair Bar" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,16,0.88) 0%, rgba(8,22,16,0.1) 55%);"></div>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 11px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #ffffff; line-height: 1.15;">Akosua Hair Bar</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75);">Beauty &middot; Ashanti</span>
+        </div>
+      </div>
+      <div style="position: relative; border-radius: 16px; overflow: hidden; background: #e2e8f0; aspect-ratio: 1 / 1.1;">
+        <img src="shop-eggs.jpg" alt="Boakye Poultry Farm" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,16,0.88) 0%, rgba(8,22,16,0.1) 55%);"></div>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 11px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #ffffff; line-height: 1.15;">Boakye Poultry Farm</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75);">Fresh &middot; Eastern</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 30px 0 0;">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 0 18px; margin-bottom: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 900; font-stretch: 112%; letter-spacing: -0.025em; color: #14201a;">Fresh</h2>
+        <span class="meta">Food and produce shops</span>
+      </div>
+      <span style="font-size: 12.5px; font-weight: 800; color: #047857;">See all &rarr;</span>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 0 18px; overflow: hidden;">
+      <article style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; border: 1px solid #e7e4dc; background: #ffffff;">
+        <div style="position: relative; aspect-ratio: 16 / 10; background: #e2e8f0;">
+          <img src="shop-fruit.jpg" alt="Adom Fresh Produce" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px 14px;">
+          <span style="font-size: 15px; font-weight: 800; color: #14201a;">Adom Fresh Produce</span>
+          <span class="meta">Greater Accra &middot; 48 products</span>
+        </div>
+      </article>
+      <article style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; border: 1px solid #e7e4dc; background: #ffffff;">
+        <div style="position: relative; aspect-ratio: 16 / 10; background: #e2e8f0;">
+          <img src="shop-eggs.jpg" alt="Boakye Poultry Farm" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px 14px;">
+          <span style="font-size: 15px; font-weight: 800; color: #14201a;">Boakye Poultry Farm</span>
+          <span class="meta">Eastern &middot; 12 products</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section style="padding: 26px 0 0;">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 0 18px; margin-bottom: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 900; font-stretch: 112%; letter-spacing: -0.025em; color: #14201a;">Just opened</h2>
+        <span class="meta">New on Makola</span>
+      </div>
+      <span style="font-size: 12.5px; font-weight: 800; color: #047857;">See all &rarr;</span>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 0 18px; overflow: hidden;">
+      <article style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; border: 1px solid #e7e4dc; background: #ffffff;">
+        <div style="position: relative; aspect-ratio: 16 / 10; background: #e2e8f0;">
+          <img src="shop-barber.jpg" alt="Kofi Cuts" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+          <span style="position: absolute; top: 10px; left: 10px; display: inline-flex; padding: 4px 9px; border-radius: 999px; background: #ecfdf5; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #047857;">New</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px 14px;">
+          <span style="font-size: 15px; font-weight: 800; color: #14201a;">Kofi Cuts</span>
+          <span class="meta">Western &middot; 19 products</span>
+        </div>
+      </article>
+      <article style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; border: 1px solid #e7e4dc; background: #ffffff;">
+        <div style="position: relative; aspect-ratio: 16 / 10; background: #e2e8f0;">
+          <img src="shop-tailor.jpg" alt="Nana Yaa Couture" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+          <span style="position: absolute; top: 10px; left: 10px; display: inline-flex; padding: 4px 9px; border-radius: 999px; background: #ecfdf5; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #047857;">New</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px 14px;">
+          <span style="font-size: 15px; font-weight: 800; color: #14201a;">Nana Yaa Couture</span>
+          <span class="meta">Ashanti &middot; 26 products</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section style="padding: 30px 18px 36px;">
+    <div style="position: relative; overflow: hidden; border-radius: 24px; background: #0c1f17; padding: 30px 24px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="position: absolute; right: -70px; top: -90px; width: 240px; height: 240px; border-radius: 999px; background: radial-gradient(closest-side, rgba(212,168,67,0.18), rgba(212,168,67,0));"></div>
+      <span class="kick" style="position: relative; color: #e4bd63;">Sell on Makola</span>
+      <h2 style="position: relative; margin: 0; font-size: 27px; font-weight: 900; font-stretch: 112%; line-height: 1.1; letter-spacing: -0.03em; color: #ffffff;">Your shop could be here.</h2>
+      <p style="position: relative; margin: 0; font-size: 15px; line-height: 1.55; color: #b9c8bf;">One photo and you have a shop that takes MoMo.</p>
+      <span style="position: relative; display: inline-flex; align-items: center; justify-content: center; height: 52px; border-radius: 14px; background: #d4a843; font-size: 16px; font-weight: 800; color: #0c1f17;">Open your shop</span>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

@@ -115,6 +115,8 @@ defmodule Emakola.Themes.Pace.ProductDetail do
                   {@product.title}
                 </h1>
 
+                <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
                 <div class="mt-3 flex items-baseline gap-2.5">
                   <p class="pace-display text-2xl font-bold tabular-nums text-slate-950 sm:text-[1.75rem]">
                     <%= if @selected_variant do %>
@@ -404,6 +406,7 @@ defmodule Emakola.Themes.Pace.ProductDetail do
               reviews={@reviews}
               can_review={@can_review}
               already_reviewed={@already_reviewed}
+              review_form={assigns[:review_form]}
               review_form_rating={@review_form_rating}
               review_form_title={@review_form_title}
               review_form_body={@review_form_body}

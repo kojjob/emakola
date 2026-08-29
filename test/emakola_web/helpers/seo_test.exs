@@ -40,6 +40,39 @@ defmodule EmakolaWeb.Helpers.SEOTest do
     end
   end
 
+  describe "meta_description/2" do
+    test "uses the first non-blank candidate" do
+      assert SEO.meta_description([nil, "  ", "Merchant-authored description"], "Fallback") ==
+               "Merchant-authored description"
+    end
+
+    test "falls back and truncates at a word boundary" do
+      description = String.duplicate("useful content ", 20)
+      result = SEO.meta_description([], description)
+
+      assert String.length(result) <= 155
+      assert String.ends_with?(result, "…")
+    end
+
+    test "truncates multibyte text without splitting a codepoint" do
+      result = SEO.meta_description([String.duplicate("é", 200)], "Fallback")
+
+      assert String.valid?(result)
+      assert String.length(result) == 155
+      assert String.ends_with?(result, "…")
+    end
+  end
+
+  describe "meta_title/2" do
+    test "ignores blank merchant overrides and limits long titles" do
+      assert SEO.meta_title(["  ", "Merchant title"], "Fallback") == "Merchant title"
+
+      result = SEO.meta_title([String.duplicate("word ", 30)], "Fallback")
+      assert String.length(result) <= 60
+      assert String.ends_with?(result, "…")
+    end
+  end
+
   # -- og_tags/4 --
 
   describe "og_tags/4" do
@@ -112,6 +145,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert json_ld["description"] == "Traditional Ghanaian textile"
       assert json_ld["image"] == "https://example.com/kente.jpg"
       assert json_ld["sku"] == "KC-001"
+      assert json_ld["url"] =~ "/accra-styles/products/kente-cloth"
     end
 
     test "includes offers with correct price in major units", %{
@@ -131,6 +165,8 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert first_offer["priceCurrency"] == "GHS"
       assert first_offer["sku"] == "KC-001"
       assert first_offer["availability"] == "https://schema.org/InStock"
+      assert first_offer["url"] == json_ld["url"]
+      assert first_offer["seller"]["name"] == "Accra Styles"
     end
 
     test "marks out-of-stock variants correctly", %{
@@ -141,6 +177,17 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       json_ld = SEO.json_ld_product(product, variants, store)
       second_offer = Enum.at(json_ld["offers"], 1)
       assert second_offer["availability"] == "https://schema.org/OutOfStock"
+    end
+
+    test "marks untracked zero-stock variants as available", %{store: store, product: product} do
+      variants = [
+        %{sku: "MADE-TO-ORDER", price: 20_000, stock_quantity: 0, track_inventory: false}
+      ]
+
+      json_ld = SEO.json_ld_product(product, variants, store)
+      offer = List.first(json_ld["offers"])
+
+      assert offer["availability"] == "https://schema.org/InStock"
     end
 
     test "uses seo_description if available", %{store: store, variants: variants} do
@@ -199,9 +246,9 @@ defmodule EmakolaWeb.Helpers.SEOTest do
   describe "json_ld_breadcrumb/1" do
     test "generates BreadcrumbList JSON-LD" do
       crumbs = [
-        %{name: "Home", url: "/s/accra-styles"},
-        %{name: "Products", url: "/s/accra-styles/products"},
-        %{name: "Kente Cloth", url: "/s/accra-styles/products/kente-cloth"}
+        %{name: "Home", url: "/accra-styles"},
+        %{name: "Products", url: "/accra-styles/products"},
+        %{name: "Kente Cloth", url: "/accra-styles/products/kente-cloth"}
       ]
 
       json_ld = SEO.json_ld_breadcrumb(crumbs)
@@ -216,7 +263,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert first["@type"] == "ListItem"
       assert first["position"] == 1
       assert first["name"] == "Home"
-      assert first["item"] == "/s/accra-styles"
+      assert first["item"] == "/accra-styles"
     end
 
     test "handles empty breadcrumbs" do
@@ -247,8 +294,8 @@ defmodule EmakolaWeb.Helpers.SEOTest do
         port: 443
       }
 
-      assert SEO.canonical_url(conn, "/s/store/products") ==
-               "https://example.com/s/store/products"
+      assert SEO.canonical_url(conn, "/store/products") ==
+               "https://example.com/store/products"
     end
 
     test "includes port if non-standard" do
@@ -258,7 +305,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
         port: 4000
       }
 
-      assert SEO.canonical_url(conn, "/s/store") == "http://localhost:4000/s/store"
+      assert SEO.canonical_url(conn, "/store") == "http://localhost:4000/store"
     end
 
     test "omits standard HTTPS port" do
@@ -325,7 +372,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "BlogPosting"
       assert result["headline"] == "5 Jollof Tips"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen/blog/5-jollof-tips"
+      assert result["url"] == "http://localhost:4000/ama-kitchen/blog/5-jollof-tips"
       assert result["image"] == "https://cdn.example.com/jollof.jpg"
       assert result["datePublished"] == "2026-06-01T09:00:00.000000Z"
     end
@@ -388,7 +435,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "Recipe"
       assert result["name"] == "Ghana Jollof Rice"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen/recipes/ghana-jollof-rice"
+      assert result["url"] == "http://localhost:4000/ama-kitchen/recipes/ghana-jollof-rice"
       assert result["image"] == "https://cdn.example.com/jollof.jpg"
       assert result["description"] == "Authentic smoky Ghana jollof."
     end
@@ -459,9 +506,9 @@ defmodule EmakolaWeb.Helpers.SEOTest do
     end
   end
 
-  # -- json_ld_local_business/1 --
+  # -- json_ld_storefront/1 --
 
-  describe "json_ld_local_business/1" do
+  describe "json_ld_storefront/1" do
     setup do
       store = %{
         slug: "ama-kitchen",
@@ -482,42 +529,40 @@ defmodule EmakolaWeb.Helpers.SEOTest do
     end
 
     test "builds LocalBusiness with core identity", %{store: store} do
-      result = SEO.json_ld_local_business(store)
+      result = SEO.json_ld_storefront(store)
 
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "LocalBusiness"
       assert result["name"] == "Ama's Kitchen"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen"
+      assert result["url"] == "http://localhost:4000/ama-kitchen"
       assert result["image"] == "https://cdn.example.com/logo.png"
       assert result["telephone"] == "+233200000000"
       assert result["email"] == "hello@ama.example"
     end
 
-    test "builds a PostalAddress with country derived from currency", %{store: store} do
-      assert SEO.json_ld_local_business(store)["address"] == %{
+    test "builds a PostalAddress without inferring country from currency", %{store: store} do
+      assert SEO.json_ld_storefront(store)["address"] == %{
                "@type" => "PostalAddress",
                "streetAddress" => "12 Oxford St",
                "addressLocality" => "Accra",
-               "addressRegion" => "Greater Accra",
-               "addressCountry" => "GH"
+               "addressRegion" => "Greater Accra"
              }
     end
 
-    test "derives Nigeria country code from NGN currency", %{store: store} do
-      result = SEO.json_ld_local_business(%{store | currency: "NGN"})
-      assert result["address"]["addressCountry"] == "NG"
-    end
-
     test "collects social profiles into sameAs", %{store: store} do
-      assert SEO.json_ld_local_business(store)["sameAs"] == [
+      assert SEO.json_ld_storefront(store)["sameAs"] == [
                "https://instagram.com/amakitchen",
                "https://facebook.com/amakitchen"
              ]
     end
 
-    test "omits address, sameAs, and telephone when no data present", %{store: _store} do
-      bare = %{slug: "x", name: "X", currency: "GHS"}
-      result = SEO.json_ld_local_business(bare)
+    test "uses OnlineStore and omits location fields when no street address exists", %{
+      store: _store
+    } do
+      bare = %{slug: "x", name: "X", currency: "GHS", city: "Accra", address: "  "}
+      result = SEO.json_ld_storefront(bare)
+
+      assert result["@type"] == "OnlineStore"
       refute Map.has_key?(result, "address")
       refute Map.has_key?(result, "sameAs")
       refute Map.has_key?(result, "telephone")

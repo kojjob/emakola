@@ -25,20 +25,29 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         store_id: store_id,
         status_filter: :all,
         search_query: "",
+        scanner_open?: false,
+        scan_error: nil,
+        search_form: to_form(%{"query" => ""}),
         variants: [],
         stats: %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0},
         editing_variant_id: nil,
         edit_stock_value: "",
         edit_location_id: nil,
+        stock_form: stock_form(),
         suppliers: [],
         dropship_variant: nil,
+        dropship_form: dropship_form(nil),
         locations: [],
         location_totals: %{},
         levels_by_variant: %{},
+        susu_reserved_by_variant: %{},
         multi_location?: false,
         show_location_form: false,
+        location_form: location_form(),
         renaming_location_id: nil,
-        transfer_variant: nil
+        rename_location_form: rename_location_form(),
+        transfer_variant: nil,
+        transfer_form: transfer_form([])
       )
       |> load_suppliers()
       |> reload_inventory()
@@ -69,10 +78,54 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def handle_event("search_inventory", %{"query" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(search_query: query, search_form: to_form(%{"query" => query}))
       |> apply_filters()
 
     {:noreply, socket}
+  end
+
+  # -- Scanning a shelf label -------------------------------------------------
+  #
+  # Counting stock means reading a label and typing what it says into search.
+  # The camera does that step instead.
+
+  @impl true
+  def handle_event("open_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: true, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("close_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: false, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("scan_camera_unavailable", _params, socket) do
+    {:noreply, assign(socket, scan_error: "No camera. Type the name instead.")}
+  end
+
+  # Same posture as the orders scanner: the decoded string is a claim about an
+  # identifier, resolved by EmakolaWeb.QRScan against the store_id in assigns —
+  # never taken from the payload — so a label from another shop resolves to
+  # nothing rather than to its own product.
+  @impl true
+  def handle_event("qr_scanned", %{"value" => value}, socket) do
+    case EmakolaWeb.QRScan.resolve_product(value, socket.assigns.store_id) do
+      {:ok, product} ->
+        {:noreply,
+         socket
+         |> assign(
+           scanner_open?: false,
+           scan_error: nil,
+           search_query: product.title,
+           search_form: to_form(%{"query" => product.title})
+         )
+         |> apply_filters()}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket, scanner_open?: false, scan_error: "Nothing here matches that code.")}
+    end
   end
 
   @impl true
@@ -116,7 +169,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
      assign(socket,
        editing_variant_id: variant_id,
        edit_stock_value: current_stock,
-       edit_location_id: default_id
+       edit_location_id: default_id,
+       stock_form: stock_form(variant_id, default_id, current_stock)
      )}
   end
 
@@ -128,7 +182,13 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("edit_location_changed", %{"location_id" => location_id} = params, socket) do
     if location_id == socket.assigns.edit_location_id do
-      {:noreply, assign(socket, edit_stock_value: params["stock"] || "")}
+      stock = params["stock"] || ""
+
+      {:noreply,
+       assign(socket,
+         edit_stock_value: stock,
+         stock_form: stock_form(socket.assigns.editing_variant_id, location_id, stock)
+       )}
     else
       # Location switched — re-prefill with that location's current stock.
       variant = find_variant(socket.assigns.all_variants, socket.assigns.editing_variant_id)
@@ -139,7 +199,12 @@ defmodule EmakolaWeb.Admin.InventoryLive do
           do: Integer.to_string(location_quantity(socket, variant, location.id)),
           else: ""
 
-      {:noreply, assign(socket, edit_location_id: location_id, edit_stock_value: value)}
+      {:noreply,
+       assign(socket,
+         edit_location_id: location_id,
+         edit_stock_value: value,
+         stock_form: stock_form(socket.assigns.editing_variant_id, location_id, value)
+       )}
     end
   end
 
@@ -170,18 +235,20 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("edit_dropship", %{"id" => variant_id}, socket) do
     variant = find_variant(socket.assigns.all_variants, variant_id)
-    {:noreply, assign(socket, dropship_variant: variant)}
+
+    {:noreply, assign(socket, dropship_variant: variant, dropship_form: dropship_form(variant))}
   end
 
   @impl true
   def handle_event("cancel_dropship", _params, socket) do
-    {:noreply, assign(socket, dropship_variant: nil)}
+    {:noreply, assign(socket, dropship_variant: nil, dropship_form: dropship_form(nil))}
   end
 
   @impl true
   def handle_event("save_dropship", %{"variant" => params}, socket) do
     variant = socket.assigns.dropship_variant
     supplier_id = blank_to_nil(params["supplier_id"])
+    socket = assign(socket, dropship_form: to_form(params, as: :variant))
 
     cond do
       is_nil(variant) ->
@@ -204,16 +271,22 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   @impl true
   def handle_event("toggle_location_form", _params, socket) do
-    {:noreply, assign(socket, show_location_form: !socket.assigns.show_location_form)}
+    {:noreply,
+     assign(socket,
+       show_location_form: !socket.assigns.show_location_form,
+       location_form: location_form()
+     )}
   end
 
   @impl true
   def handle_event("create_location", %{"name" => name}, socket) do
+    socket = assign(socket, location_form: to_form(%{"name" => name}))
+
     case Emakola.Inventory.create_location(actor(socket), socket.assigns.store_id, %{name: name}) do
       {:ok, _location} ->
         {:noreply,
          socket
-         |> assign(show_location_form: false)
+         |> assign(show_location_form: false, location_form: location_form())
          |> put_flash(:info, "Location added")
          |> reload_inventory()}
 
@@ -228,16 +301,31 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   @impl true
   def handle_event("start_rename_location", %{"id" => location_id}, socket) do
-    {:noreply, assign(socket, renaming_location_id: location_id)}
+    location = find_location(socket.assigns.locations, location_id)
+
+    {:noreply,
+     assign(socket,
+       renaming_location_id: location_id,
+       rename_location_form: rename_location_form(location)
+     )}
   end
 
   @impl true
   def handle_event("cancel_rename_location", _params, socket) do
-    {:noreply, assign(socket, renaming_location_id: nil)}
+    {:noreply,
+     assign(socket,
+       renaming_location_id: nil,
+       rename_location_form: rename_location_form()
+     )}
   end
 
   @impl true
   def handle_event("rename_location", %{"location_id" => location_id, "name" => name}, socket) do
+    socket =
+      assign(socket,
+        rename_location_form: to_form(%{"location_id" => location_id, "name" => name})
+      )
+
     case Emakola.Inventory.rename_location(
            actor(socket),
            socket.assigns.store_id,
@@ -247,7 +335,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       {:ok, _location} ->
         {:noreply,
          socket
-         |> assign(renaming_location_id: nil)
+         |> assign(
+           renaming_location_id: nil,
+           rename_location_form: rename_location_form()
+         )
          |> put_flash(:info, "Location renamed")
          |> reload_inventory()}
 
@@ -299,11 +390,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("open_transfer", %{"id" => variant_id}, socket) do
     variant = find_variant(socket.assigns.all_variants, variant_id)
-    {:noreply, assign(socket, transfer_variant: variant)}
+
+    {:noreply,
+     assign(socket,
+       transfer_variant: variant,
+       transfer_form: transfer_form(socket.assigns.locations)
+     )}
   end
 
   @impl true
   def handle_event("save_transfer", %{"transfer" => params}, socket) do
+    socket = assign(socket, transfer_form: to_form(params, as: :transfer))
     variant = socket.assigns.transfer_variant
     # Locations must belong to this store — validated against the
     # server-loaded list, never the raw params.
@@ -324,7 +421,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       {:ok, _} ->
         {:noreply,
          socket
-         |> assign(transfer_variant: nil)
+         |> assign(
+           transfer_variant: nil,
+           transfer_form: transfer_form(socket.assigns.locations)
+         )
          |> put_flash(:info, "Stock transferred")
          |> reload_inventory()}
 
@@ -349,8 +449,68 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     end
   end
 
+  defp stock_form(variant_id \\ "", location_id \\ "", stock \\ "") do
+    to_form(%{
+      "variant_id" => variant_id || "",
+      "location_id" => location_id || "",
+      "stock" => stock
+    })
+  end
+
+  defp location_form, do: to_form(%{"name" => ""})
+
+  defp rename_location_form(location \\ nil)
+
+  defp rename_location_form(nil),
+    do: to_form(%{"location_id" => "", "name" => ""})
+
+  defp rename_location_form(location) do
+    to_form(%{"location_id" => location.id, "name" => location.name})
+  end
+
+  defp transfer_form(locations) do
+    active_locations = Enum.filter(locations, & &1.active)
+
+    to_form(
+      %{
+        "from_location_id" =>
+          Enum.find_value(active_locations, fn location -> location.default && location.id end) ||
+            "",
+        "to_location_id" =>
+          Enum.find_value(active_locations, fn location -> !location.default && location.id end) ||
+            "",
+        "quantity" => ""
+      },
+      as: :transfer
+    )
+  end
+
+  defp dropship_form(nil) do
+    to_form(
+      %{"supplier_id" => "", "cost_price" => "", "available" => false},
+      as: :variant
+    )
+  end
+
+  defp dropship_form(variant) do
+    to_form(
+      %{
+        "supplier_id" => variant.supplier_id || "",
+        "cost_price" => cost_in_cedis(variant.cost_price),
+        "available" => variant.available
+      },
+      as: :variant
+    )
+  end
+
   defp close_editor(socket),
-    do: assign(socket, editing_variant_id: nil, edit_stock_value: "", edit_location_id: nil)
+    do:
+      assign(socket,
+        editing_variant_id: nil,
+        edit_stock_value: "",
+        edit_location_id: nil,
+        stock_form: stock_form()
+      )
 
   defp save_dropship_variant(socket, variant, supplier_id, params) do
     attrs = %{
@@ -363,7 +523,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       {:ok, _updated} ->
         {:noreply,
          socket
-         |> assign(dropship_variant: nil)
+         |> assign(dropship_variant: nil, dropship_form: dropship_form(nil))
          |> load_variants()
          |> put_flash(:info, "Variant updated")}
 
@@ -379,89 +539,42 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Inventory" subtitle="Monitor stock levels and manage inventory" />
+      <.admin_page_header
+        title="Inventory"
+        subtitle="Monitor stock levels and manage inventory"
+        icon="hero-archive-box"
+      />
 
-      <%!-- Stat Cards --%>
+      <%!-- Stat Cards: one hue per stock state, so the row can be read from
+            across the shop without reading the labels. --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} icon_bg="bg-slate-100">
-          <:icon>
-            <svg
-              class="w-5 h-5 text-slate-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} tone={:accent}>
+          <:icon><.icon name="hero-archive-box" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Everything you sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="In Stock"
-          value={Integer.to_string(@stats.in_stock)}
-          icon_bg="bg-emerald-50"
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="In Stock" value={Integer.to_string(@stats.in_stock)} tone={:success}>
+          <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Ready to sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="Low Stock"
-          value={Integer.to_string(@stats.low_stock)}
-          icon_bg="bg-amber-50"
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Low Stock" value={Integer.to_string(@stats.low_stock)} tone={:warning}>
+          <:icon><.icon name="hero-exclamation-triangle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Order more soon</p>
+          </:delta>
         </.stat_card>
         <.stat_card
           label="Out of Stock"
           value={Integer.to_string(@stats.out_of_stock)}
-          icon_bg="bg-red-50"
+          tone={:danger}
         >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-              />
-            </svg>
-          </:icon>
+          <:icon><.icon name="hero-x-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Add stock now</p>
+          </:delta>
         </.stat_card>
       </div>
 
@@ -472,19 +585,39 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         totals={@location_totals}
         renaming_id={@renaming_location_id}
         show_form={@show_location_form}
+        location_form={@location_form}
+        rename_location_form={@rename_location_form}
       />
 
       <%!-- Filter Bar --%>
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-control p-1">
-          <.filter_button
-            :for={status <- [:all, :in_stock, :low_stock, :out_of_stock]}
-            status={status}
-            current={@status_filter}
-          />
-        </div>
+        <.filter_tabs
+          id="inventory-filter-tabs"
+          current={@status_filter}
+          tabs={[
+            %{key: :all, label: "All", count: @stats.total},
+            %{key: :in_stock, label: "In Stock", count: @stats.in_stock},
+            %{key: :low_stock, label: "Low Stock", count: @stats.low_stock},
+            %{key: :out_of_stock, label: "Out of Stock", count: @stats.out_of_stock}
+          ]}
+        />
+        <%!-- Point at a shelf label instead of reading it and typing the name. --%>
+        <.admin_button
+          :if={!@scanner_open?}
+          id="scan-stock-open"
+          variant={:secondary}
+          phx-click="open_scanner"
+        >
+          <.icon name="hero-qr-code" class="size-4" /> Scan a label
+        </.admin_button>
+
         <div class="flex-1 w-full sm:w-auto">
-          <form phx-change="search_inventory" class="relative">
+          <.form
+            for={@search_form}
+            id="inventory-search-form"
+            phx-change="search_inventory"
+            class="relative"
+          >
             <svg
               class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
               fill="none"
@@ -498,17 +631,44 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
               />
             </svg>
-            <input
+            <.input
+              field={@search_form[:query]}
               type="text"
-              name="query"
-              value={@search_query}
               placeholder="Search by product or SKU..."
               phx-debounce="300"
               class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
             />
-          </form>
+          </.form>
+          <p
+            :if={@scan_error && !@scanner_open?}
+            id="stock-scan-error"
+            class="text-sm text-danger mt-2"
+          >
+            {@scan_error}
+          </p>
         </div>
       </div>
+
+      <.admin_card :if={@scanner_open?} id="stock-scanner-card">
+        <div class="flex flex-col sm:flex-row items-center gap-5">
+          <div
+            id="stock-scanner"
+            phx-hook="QRScanner"
+            data-decoder-url={~p"/assets/js/qr_decoder.js"}
+            class="w-56 h-56 shrink-0 rounded-card overflow-hidden bg-slate-900"
+          >
+            <video class="w-full h-full object-cover" muted playsinline></video>
+          </div>
+          <div class="min-w-0 text-center sm:text-left">
+            <h3 class="text-base font-bold text-slate-900">Point at the label</h3>
+            <p class="text-sm text-slate-600 mt-1">Hold the code in the box.</p>
+            <p :if={@scan_error} class="text-sm text-danger mt-2">{@scan_error}</p>
+            <.admin_button variant={:secondary} size={:sm} class="mt-4" phx-click="close_scanner">
+              Stop
+            </.admin_button>
+          </div>
+        </div>
+      </.admin_card>
 
       <%!-- Stock Table --%>
       <%= if @variants == [] do %>
@@ -550,45 +710,48 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   :for={variant <- @variants}
                   class="hover:bg-slate-50 transition-colors"
                 >
-                  <td class="px-4 py-3.5 text-slate-700 font-medium">
-                    {product_title(variant)}
-                    <span
-                      :if={variant.supplier_id}
-                      class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                      title={dropship_label(variant)}
-                    >
-                      Dropshipped
-                    </span>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-3">
+                      <.product_thumb
+                        url={variant_image_url(variant)}
+                        alt={product_title(variant)}
+                        class="w-9 h-9"
+                      />
+                      <div class="min-w-0">
+                        <span class="text-slate-700 font-medium">{product_title(variant)}</span>
+                        <span
+                          :if={variant.supplier_id}
+                          class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                          title={dropship_label(variant)}
+                        >
+                          Dropshipped
+                        </span>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-4 py-3.5 font-mono text-xs text-slate-500">
                     {variant.sku || "--"}
                   </td>
                   <td class="px-4 py-3.5">
                     <%= if @editing_variant_id == variant.id do %>
-                      <form
+                      <.form
+                        for={@stock_form}
                         id="stock-edit-form"
                         phx-submit="save_stock"
                         phx-change="edit_location_changed"
                         phx-value-id={variant.id}
                         class="flex items-center gap-2"
                       >
-                        <input type="hidden" name="variant_id" value={variant.id} />
-                        <select
-                          name="location_id"
+                        <.input field={@stock_form[:variant_id]} type="hidden" />
+                        <.input
+                          field={@stock_form[:location_id]}
+                          type="select"
+                          options={Enum.map(Enum.filter(@locations, & &1.active), &{&1.name, &1.id})}
                           class="px-2 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-                        >
-                          <option
-                            :for={location <- Enum.filter(@locations, & &1.active)}
-                            value={location.id}
-                            selected={location.id == @edit_location_id}
-                          >
-                            {location.name}
-                          </option>
-                        </select>
-                        <input
+                        />
+                        <.input
+                          field={@stock_form[:stock]}
                           type="number"
-                          name="stock"
-                          value={@edit_stock_value}
                           min="0"
                           class="w-20 px-2 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10"
                           autofocus
@@ -632,20 +795,29 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                             />
                           </svg>
                         </button>
-                      </form>
+                      </.form>
                     <% else %>
-                      <button
-                        phx-click="start_edit"
-                        phx-value-id={variant.id}
-                        class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
-                        title="Click to edit stock"
-                      >
-                        {variant.stock_quantity}
-                      </button>
+                      <div class="flex items-center gap-2.5">
+                        <button
+                          phx-click="start_edit"
+                          phx-value-id={variant.id}
+                          class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
+                          title="Click to edit stock"
+                        >
+                          {variant.stock_quantity}
+                        </button>
+                        <.stock_meter quantity={variant.stock_quantity} />
+                      </div>
                       <.location_breakdown
                         :if={@multi_location?}
                         entries={breakdown_entries(variant, @levels_by_variant, @locations)}
                       />
+                      <p
+                        :if={reserved_by_susu(@susu_reserved_by_variant, variant.id) > 0}
+                        class="text-xs text-amber-600 mt-0.5"
+                      >
+                        Reserved by susu: {reserved_by_susu(@susu_reserved_by_variant, variant.id)}
+                      </p>
                     <% end %>
                   </td>
                   <td class="px-4 py-3.5">
@@ -725,30 +897,43 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <div class="md:hidden space-y-3">
           <.admin_card :for={variant <- @variants} padding={:none} class="p-4">
             <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p class="text-sm font-medium text-slate-800">
-                  {product_title(variant)}
-                  <span
-                    :if={variant.supplier_id}
-                    class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                  >
-                    Dropshipped
-                  </span>
-                </p>
-                <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+              <div class="flex items-center gap-3 min-w-0">
+                <.product_thumb
+                  url={variant_image_url(variant)}
+                  alt={product_title(variant)}
+                  class="w-10 h-10"
+                />
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-slate-800">
+                    {product_title(variant)}
+                    <span
+                      :if={variant.supplier_id}
+                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                    >
+                      Dropshipped
+                    </span>
+                  </p>
+                  <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+                </div>
               </div>
               <.stock_status_badge quantity={variant.stock_quantity} />
             </div>
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-slate-600">
+                <div class="flex items-center gap-2 text-sm text-slate-600">
                   <span class="text-slate-400">Stock:</span>
-                  <span class="font-mono font-semibold">{variant.stock_quantity}</span>
-                </p>
+                  <.stock_meter quantity={variant.stock_quantity} />
+                </div>
                 <.location_breakdown
                   :if={@multi_location?}
                   entries={breakdown_entries(variant, @levels_by_variant, @locations)}
                 />
+                <p
+                  :if={reserved_by_susu(@susu_reserved_by_variant, variant.id) > 0}
+                  class="text-xs text-amber-600 mt-0.5"
+                >
+                  Reserved by susu: {reserved_by_susu(@susu_reserved_by_variant, variant.id)}
+                </p>
               </div>
               <div class="flex items-center gap-1">
                 <button
@@ -817,52 +1002,43 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Dropship editor modal --%>
       <.modal id="dropship-modal" title="Supplier & Dropshipping" size={:md}>
-        <form :if={@dropship_variant} id="dropship-form" phx-submit="save_dropship" class="space-y-4">
+        <.form
+          :if={@dropship_variant}
+          for={@dropship_form}
+          id="dropship-form"
+          phx-submit="save_dropship"
+          class="space-y-4"
+        >
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Supplier</label>
-            <select
-              name="variant[supplier_id]"
+            <.input
+              field={@dropship_form[:supplier_id]}
+              type="select"
+              label="Supplier"
+              prompt="— Own stock —"
+              options={Enum.map(@suppliers, &{&1.name, &1.id})}
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="" selected={is_nil(@dropship_variant.supplier_id)}>
-                — Own stock —
-              </option>
-              <option
-                :for={supplier <- @suppliers}
-                value={supplier.id}
-                selected={@dropship_variant.supplier_id == supplier.id}
-              >
-                {supplier.name}
-              </option>
-            </select>
+            />
             <p class="text-xs text-slate-400 mt-1">
               Assigning a supplier marks this variant as dropshipped (inventory no longer tracked).
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">
-              Cost Price (GH&#8373;)
-            </label>
-            <input
+            <.input
+              field={@dropship_form[:cost_price]}
               type="number"
-              name="variant[cost_price]"
-              value={cost_in_cedis(@dropship_variant.cost_price)}
+              label="Cost Price (GH₵)"
               step="0.01"
               min="0"
               placeholder="0.00"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
-          <label class="flex items-center gap-2 text-sm text-slate-700">
-            <input type="hidden" name="variant[available]" value="false" />
-            <input
-              type="checkbox"
-              name="variant[available]"
-              value="true"
-              checked={@dropship_variant.available}
-              class="rounded border-slate-300 text-primary focus:ring-emerald-500"
-            /> Available for sale
-          </label>
+          <.input
+            field={@dropship_form[:available]}
+            type="checkbox"
+            label="Available for sale"
+            class="rounded border-slate-300 text-primary focus:ring-emerald-500"
+          />
           <div class="flex items-center justify-end gap-3 pt-2">
             <.admin_button variant={:secondary} phx-click={hide_modal("dropship-modal")}>
               Cancel
@@ -871,40 +1047,21 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               Save
             </.admin_button>
           </div>
-        </form>
+        </.form>
       </.modal>
 
       <%!-- Transfer stock modal --%>
-      <.transfer_modal variant={@transfer_variant} locations={@locations} />
+      <.transfer_modal
+        variant={@transfer_variant}
+        locations={@locations}
+        form={@transfer_form}
+      />
     </div>
     """
   end
 
   defp dropship_label(%{supplier: %{name: name}}) when is_binary(name), do: "Supplier: #{name}"
   defp dropship_label(_), do: "Dropshipped"
-
-  # ── Components ──
-
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-
-  defp filter_button(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-700"
-        )
-      ]}
-    >
-      {filter_label(@status)}
-    </button>
-    """
-  end
 
   # ── Data Loading ──
 
@@ -913,6 +1070,25 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     |> load_locations()
     |> load_variants()
     |> load_levels()
+    |> load_susu_reserved()
+  end
+
+  # Reserved-by-susu is a pure visibility aggregate (TC-3 Task 9) — the
+  # underlying stock was already decremented from available stock at
+  # activation (see `Emakola.Orders.SusuStock`'s moduledoc), so this loads
+  # nothing that changes `variant.stock_quantity` — it just tells the
+  # merchant how much of it is tied up in in-flight susu plans.
+  defp load_susu_reserved(socket) do
+    case socket.assigns.store_id do
+      nil ->
+        assign(socket, susu_reserved_by_variant: %{})
+
+      store_id ->
+        assign(socket,
+          susu_reserved_by_variant:
+            Emakola.Orders.SusuStock.reserved_quantities_by_variant(store_id)
+        )
+    end
   end
 
   defp load_locations(socket) do
@@ -1153,6 +1329,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   defp blank_to_nil(_), do: nil
 
+  defp reserved_by_susu(map, variant_id), do: Map.get(map, variant_id, 0)
+
   defp cost_in_cedis(nil), do: ""
 
   defp cost_in_cedis(pesewas) when is_integer(pesewas),
@@ -1161,10 +1339,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   defp product_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp product_title(_), do: "Unknown Product"
 
-  defp filter_label(:all), do: "All"
-  defp filter_label(:in_stock), do: "In Stock"
-  defp filter_label(:low_stock), do: "Low Stock"
-  defp filter_label(:out_of_stock), do: "Out of Stock"
+  defp variant_image_url(%{product: %{images: [%{thumbnail_url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(%{product: %{images: [%{url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(_), do: nil
 
   defp find_variant(variants, id) do
     Enum.find(variants, &(&1.id == id))

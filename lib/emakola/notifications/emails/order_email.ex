@@ -11,6 +11,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
   """
 
   import Swoosh.Email
+  alias EmakolaWeb.SEO.Canonical
   alias Emakola.Notifications.Emails.EmailHelpers
 
   @doc """
@@ -49,7 +50,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
   defp confirmation_html(order, customer, store) do
     line_items_html = build_line_items_html(order.line_items, order.currency)
     address_html = build_address_html(order.shipping_address)
-    track_url = "/s/#{store.slug}/track/#{order.order_number}"
+    track_url = Canonical.path(store, "/track/#{order.order_number}")
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
     order_date = EmailHelpers.format_date(order.inserted_at)
 
@@ -134,7 +135,6 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
                       <td style="padding:8px 0;font-size:14px;color:#6b7280;">Shipping</td>
                       <td style="padding:8px 0;font-size:14px;color:#374151;text-align:right;">#{shipping_amount(order)}</td>
                     </tr>
-                    #{dispatch_fee_html(order)}
                     #{discount_html(order)}
                     <tr style="border-top:2px solid #e5e7eb;">
                       <td style="padding:12px 0;font-size:18px;color:#111827;font-weight:700;">Total</td>
@@ -181,7 +181,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
   defp confirmation_text(order, customer, store) do
     line_items_text = build_line_items_text(order.line_items, order.currency)
     address_text = build_address_text(order.shipping_address)
-    track_url = "/s/#{store.slug}/track/#{order.order_number}"
+    track_url = Canonical.path(store, "/track/#{order.order_number}")
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
 
     """
@@ -198,7 +198,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
     #{line_items_text}
     Subtotal: #{EmailHelpers.format_money(order.subtotal, order.currency)}
     Shipping: #{shipping_amount(order)}
-    #{dispatch_fee_text(order)}#{discount_text(order)}Total: #{EmailHelpers.format_money(order.total, order.currency)}
+    #{discount_text(order)}Total: #{EmailHelpers.format_money(order.total, order.currency)}
     #{address_text}
     Track your order: #{track_url}
 
@@ -355,35 +355,21 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
 
   defp discount_text(_), do: ""
 
-  defp dispatch_fee_html(%{dispatch_fee_total: amount} = order)
-       when is_integer(amount) and amount > 0 do
-    """
-    <tr>
-      <td style="padding:8px 0;font-size:14px;color:#6b7280;">Supplier dispatch</td>
-      <td style="padding:8px 0;font-size:14px;color:#374151;text-align:right;">#{EmailHelpers.format_money(amount, order.currency)}</td>
-    </tr>
-    """
-  end
-
-  defp dispatch_fee_html(_), do: ""
-
-  defp dispatch_fee_text(%{dispatch_fee_total: amount} = order)
-       when is_integer(amount) and amount > 0 do
-    "Supplier dispatch: #{EmailHelpers.format_money(amount, order.currency)}\n"
-  end
-
-  defp dispatch_fee_text(_), do: ""
-
-  # Prefer the snapshotted delivery fee (excludes supplier dispatch fees,
-  # which get their own line) when the order carries one; fall back to
-  # total - subtotal for callers that don't set :delivery_fee.
+  # The supplier dispatch fee is deliberately folded into Shipping: it's
+  # supply-chain vocabulary a buyer shouldn't see. Summed explicitly from the
+  # snapshotted fields — never derived as total - subtotal, which would also
+  # swallow discounts. Falls back to the remainder only when the order carries
+  # no :delivery_fee at all.
   defp shipping_amount(%{delivery_fee: delivery_fee} = order) when is_integer(delivery_fee) do
-    format_shipping(delivery_fee, order)
+    format_shipping(delivery_fee + dispatch_total(order), order)
   end
 
   defp shipping_amount(order) do
     format_shipping((order.total || 0) - (order.subtotal || 0), order)
   end
+
+  defp dispatch_total(%{dispatch_fee_total: amount}) when is_integer(amount), do: amount
+  defp dispatch_total(_), do: 0
 
   defp format_shipping(amount, order) do
     if amount > 0 do

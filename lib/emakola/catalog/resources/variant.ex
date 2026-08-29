@@ -78,6 +78,14 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    # Stamped by LowStockAlertWorker when this variant is included in a
+    # low-stock digest; cleared when stock recovers. Alert on the drop, not
+    # on every morning the state persists.
+    attribute :low_stock_alerted_at, :utc_datetime_usec do
+      allow_nil?(true)
+      public?(false)
+    end
+
     attribute :track_inventory, :boolean do
       default(true)
       allow_nil?(false)
@@ -113,6 +121,13 @@ defmodule Emakola.Catalog.Variant do
     attribute :available, :boolean do
       default(true)
       allow_nil?(false)
+      public?(true)
+    end
+
+    # Non-nil only while `available: false` was set by
+    # `SupplierStockSyncWorker`'s `:sync_availability` action — see that
+    # action and `Emakola.Catalog.Changes.ClearSupplierSyncPause`.
+    attribute :supplier_sync_paused_at, :utc_datetime_usec do
       public?(true)
     end
 
@@ -179,10 +194,14 @@ defmodule Emakola.Catalog.Variant do
         :store_id,
         :supplier_id,
         :cost_price,
-        :available
+        :available,
+        :supplier_sync_paused_at
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
+      # After the dropship change on purpose: that one re-tracks a variant when
+      # its supplier is de-linked, which must not resurrect tracking on a file.
+      change(Emakola.Catalog.Changes.UntrackDigitalInventory)
 
       validate(fn changeset, _context ->
         price = Ash.Changeset.get_attribute(changeset, :price)
@@ -218,6 +237,9 @@ defmodule Emakola.Catalog.Variant do
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
+      change(Emakola.Catalog.Changes.UntrackDigitalInventory)
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
+      change(Emakola.Catalog.Changes.ClearSupplierSyncPause)
 
       validate(fn changeset, _context ->
         price =
@@ -266,6 +288,32 @@ defmodule Emakola.Catalog.Variant do
           changeset
         end
       end)
+
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
+    end
+
+    # The ONLY path `SupplierStockSyncWorker` uses to write availability —
+    # never `:update`. Stamps `supplier_sync_paused_at` when turning off (so
+    # a later restock knows the sync, not a reseller, caused the off) and
+    # clears it when turning on.
+    update :sync_availability do
+      require_atomic?(false)
+      accept([])
+
+      argument(:available, :boolean, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        available = Ash.Changeset.get_argument(changeset, :available)
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:available, available)
+        |> Ash.Changeset.force_change_attribute(
+          :supplier_sync_paused_at,
+          if(available, do: nil, else: DateTime.utc_now())
+        )
+      end)
+
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
     end
 
     update :set_low_stock_alerted do
@@ -290,7 +338,7 @@ defmodule Emakola.Catalog.Variant do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
 
-      prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
+      prepare(build(sort: [stock_quantity: :asc], load: [:supplier, product: [:images]]))
     end
 
     read :by_stock_range do
@@ -334,4 +382,14 @@ defmodule Emakola.Catalog.Variant do
   def in_stock?(variant, qty \\ 1) do
     not variant.track_inventory or variant.stock_quantity >= qty
   end
+
+  @doc """
+  A variant the shopper has actually landed on which has run out.
+
+  `nil` means the options are not chosen yet, which is not the same thing as
+  sold out — themes offer a back-in-stock nudge for one and a "select options"
+  button for the other.
+  """
+  def sold_out?(nil), do: false
+  def sold_out?(variant), do: not in_stock?(variant)
 end

@@ -48,6 +48,13 @@ defmodule Emakola.Accounts.Merchant do
       password :password do
         identity_field(:email)
         hashed_password_field(:hashed_password)
+
+        resettable do
+          sender(Emakola.Accounts.Senders.PasswordResetSender)
+          # 24h: short enough to bound the risk window, long enough for flaky
+          # mobile email delivery. AuthMailer.password_reset copy must match.
+          token_lifetime({24, :hours})
+        end
       end
 
       magic_link do
@@ -124,6 +131,15 @@ defmodule Emakola.Accounts.Merchant do
       sensitive?(true)
     end
 
+    # Browser sessions are signed Phoenix.Token subjects, not rows we can
+    # delete — verifying one only proves the signature. Bumping this cutoff
+    # invalidates every session token issued before it, which is what makes
+    # "password reset signs you out everywhere" true for the web path.
+    attribute :sessions_valid_from, :utc_datetime do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
     attribute(:name, :string, public?: true, constraints: [max_length: 255])
 
     attribute(:phone, :string, public?: true, constraints: [max_length: 20])
@@ -145,6 +161,12 @@ defmodule Emakola.Accounts.Merchant do
     many_to_many :stores, Emakola.Stores.Store do
       through(Emakola.Accounts.StoreMembership)
     end
+  end
+
+  aggregates do
+    # Sorting the platform queue by "most stores" has to happen in the database
+    # now that the page reads a screen at a time rather than the whole table.
+    count(:stores_count, :stores)
   end
 
   identities do
@@ -228,19 +250,43 @@ defmodule Emakola.Accounts.Merchant do
     read :list_for_admin do
       argument(:search, :string, default: "")
 
+      argument(:confirmation, :atom,
+        default: :all,
+        constraints: [one_of: [:all, :confirmed, :unconfirmed]]
+      )
+
+      # The platform queue reads one screen at a time. `required?: false` keeps
+      # the unpaginated callers — which ask for a whole small set on purpose —
+      # returning a plain list.
+      pagination(offset?: true, countable: true, default_limit: 25, required?: false)
+
       filter(
         expr(
-          is_nil(^arg(:search)) or ^arg(:search) == "" or
-            ilike(name, ^arg(:search)) or ilike(email, ^arg(:search)) or
-            ilike(business_name, ^arg(:search)) or ilike(phone, ^arg(:search))
+          (is_nil(^arg(:search)) or ^arg(:search) == "" or
+             ilike(name, ^arg(:search)) or ilike(email, ^arg(:search)) or
+             ilike(business_name, ^arg(:search)) or ilike(phone, ^arg(:search))) and
+            (^arg(:confirmation) == :all or
+               (^arg(:confirmation) == :confirmed and not is_nil(confirmed_at)) or
+               (^arg(:confirmation) == :unconfirmed and is_nil(confirmed_at)))
         )
       )
 
-      prepare(build(sort: [inserted_at: :desc], load: [:stores]))
+      # No default sort: the caller picks one, and a default here would win
+      # ahead of it.
+      prepare(build(load: [:stores, :stores_count]))
     end
 
     update :update_profile do
       accept([:name, :avatar_url, :preferences, :phone, :business_name])
+    end
+
+    # Moves the session cutoff to now, killing every browser session token
+    # issued before this instant. Paired with token revocation after a
+    # password reset — see `Emakola.Accounts.revoke_all_sessions_for/1`.
+    update :invalidate_sessions do
+      accept([])
+
+      change(set_attribute(:sessions_valid_from, &DateTime.utc_now/0))
     end
 
     update :change_password do

@@ -14,6 +14,52 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "first day" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "a store with no products is told what to do, not that nothing was found", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      assert has_element?(view, "#product-empty-state", "Add your first product")
+
+      # One obvious thing to do — the artboard's rule. The tour lives on
+      # Customers, where there is no action to take yet.
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']") or
+               has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+
+      refute has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
+    end
+
+    test "the camera is offered as the first way in when AI is on", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      # Photo-first beats form-first for a merchant who reads slowly — and the
+      # snap flow only exists when the AI key is configured.
+      if EmakolaWeb.AiGate.enabled?() do
+        assert has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+      else
+        refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
+      end
+    end
+
+    test "a search that matches nothing still says so", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{title: "Kente Scarf"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      html =
+        view
+        |> form("#product-search-form", %{"search" => "zzzznothing"})
+        |> render_change()
+
+      assert html =~ "No products found"
+      refute html =~ "Add your first product"
+    end
+  end
+
   describe "ProductLive.Index (authenticated)" do
     setup %{conn: conn} do
       {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
@@ -48,7 +94,76 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     test "renders search input", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 
+      assert has_element?(view, "#product-search-form")
       assert has_element?(view, "input[name=\"search\"]")
+    end
+  end
+
+  describe "ProductLive.Index redesign (authenticated)" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "renders KPI tiles with store-wide status counts", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store)
+
+      {:ok, view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "Total products"
+      assert has_element?(view, "#stat-products-total", "3")
+      assert has_element?(view, "#stat-products-active", "2")
+      assert has_element?(view, "#stat-products-draft", "1")
+      assert has_element?(view, "#stat-products-archived", "0")
+    end
+
+    test "filter tabs carry store-wide counts", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{status: :active})
+      Factory.create_product!(store)
+      Factory.create_product!(store, %{status: :archived})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=active]", "1")
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=archived]", "1")
+    end
+
+    test "tab counts stay store-wide while the list filters", %{conn: conn, store: store} do
+      Factory.create_product!(store, %{title: "Kente Scarf", status: :active})
+      Factory.create_product!(store, %{title: "Draft Basket"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      view
+      |> element("#products-filter-tabs button[phx-value-status=active]")
+      |> render_click()
+
+      assert has_element?(view, "#products-filter-tabs button[phx-value-status=all]", "2")
+      assert render(view) =~ "Kente Scarf"
+      refute render(view) =~ "Draft Basket"
+    end
+
+    test "product rows render a stock meter from variant stock", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Bolga Basket", status: :active})
+      Factory.create_variant!(product, store, %{stock_quantity: 5, price: 1000})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "bg-amber-500"
+      assert html =~ ~r|>\s*5\s*</span>|
+    end
+
+    test "out-of-stock products read Out in the stock meter", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Shea Butter", status: :active})
+      Factory.create_variant!(product, store, %{stock_quantity: 0, price: 1000})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products")
+
+      assert html =~ "Out"
+      assert html =~ "bg-red-500"
     end
   end
 
@@ -386,6 +501,27 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       assert %Emakola.Catalog.Image{} =
                Ash.get!(Emakola.Catalog.Image, image_a.id, authorize?: false)
+    end
+  end
+
+  describe "ProductLive.Index edit cross-store guard" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "a crafted edit id cannot open or update another store's product", %{conn: conn} do
+      {_other_merchant, other_store} = Factory.create_merchant_with_store!()
+      foreign_product = Factory.create_product!(other_store, %{title: "Foreign Product"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      render_click(view, "open_edit_product", %{"id" => foreign_product.id})
+
+      refute has_element?(view, ~s{#pf_title[value="Foreign Product"]})
+
+      assert Ash.get!(Emakola.Catalog.Product, foreign_product.id, authorize?: false).title ==
+               "Foreign Product"
     end
   end
 

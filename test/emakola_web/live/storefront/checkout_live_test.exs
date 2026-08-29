@@ -1,13 +1,21 @@
 defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
-  use EmakolaWeb.ConnCase, async: true
+  # async: false — the "internal rail settlement" describe block below swaps
+  # the globally-configured :payment_gateway to the Mox-based GatewayMock (the
+  # same pattern pay_link_live_test.exs and susu_link_live_test.exs use), which
+  # would race with any other async test hitting the default
+  # Emakola.Payments.Gateways.Mock gateway concurrently.
+  use EmakolaWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Emakola.Factory
+  import Mox
   require Ash.Query
 
   alias Emakola.Cart.CartStore
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
   alias EmakolaWeb.Helpers.Currency
+
+  setup :verify_on_exit!
 
   setup do
     store = create_store!(%{name: "Checkout Shop", slug: "checkout-shop", currency: "GHS"})
@@ -38,19 +46,32 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     {conn, session_id}
   end
 
+  defp to_shipping_step(view) do
+    render_submit(view, "submit_details", %{"phone" => "0244123456", "fullname" => "Ama Mensah"})
+  end
+
+  defp to_payment_step(view) do
+    to_shipping_step(view)
+    render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
+  end
+
   # -- Mount --
 
   describe "mount/3" do
-    test "renders single-page checkout with all sections", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+    test "renders checkout one step at a time", %{conn: conn, store: store} do
+      {:ok, view, html} = live(conn, "/s/#{store.slug}/checkout")
 
       assert html =~ "Contact"
       assert html =~ "Phone number"
       assert html =~ "Full name"
-      assert html =~ "Shipping Address"
-      assert html =~ "Delivery Method"
-      assert html =~ "Payment"
-      assert html =~ "Place Order"
+
+      shipping = to_shipping_step(view)
+      assert shipping =~ "Shipping Address"
+      assert shipping =~ "Delivery Method"
+
+      payment = render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
+      assert payment =~ "Payment"
+      assert payment =~ "Place Order"
     end
 
     test "loads cart items from CartStore session", %{conn: conn, store: store, variant: variant} do
@@ -116,6 +137,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   describe "payment method selection" do
     test "selects card payment method", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      to_payment_step(view)
 
       html = render_click(view, "select_payment", %{"method" => "card"})
 
@@ -123,7 +145,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "shows MTN MoMo selected by default", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_payment_step(view)
 
       assert html =~ "MTN MoMo"
       assert html =~ "prompt will appear on your phone"
@@ -131,6 +154,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     test "shows COD info when selected", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      to_payment_step(view)
 
       html = render_click(view, "select_payment", %{"method" => "cod"})
 
@@ -197,6 +221,135 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
         })
 
       assert html =~ "cart is empty" or html =~ "empty"
+    end
+  end
+
+  # -- GhanaPost digital address + landmark (TC-4 Task 2) --
+
+  describe "GhanaPost digital address + landmark" do
+    test "valid messy digital address normalizes and lands on the order with the landmark", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "digital_address" => "ga 183 8164",
+        "landmark" => "behind Achimota Melcom"
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert order.shipping_address["digital_address"] == "GA-183-8164"
+      assert order.shipping_address["landmark"] == "behind Achimota Melcom"
+    end
+
+    test "blank digital address and landmark are omitted from the order's shipping_address", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "digital_address" => "",
+        "landmark" => ""
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      refute Map.has_key?(order.shipping_address, "digital_address")
+      refute Map.has_key?(order.shipping_address, "landmark")
+    end
+
+    test "invalid digital address shows a friendly error and creates no order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html =
+        render_submit(view, "place_order", %{
+          "phone" => "241234567",
+          "fullname" => "Ama Mensah",
+          "address" => "House 14, Osu",
+          "region" => "greater_accra",
+          "notes" => "",
+          "digital_address" => "not-a-code",
+          "landmark" => ""
+        })
+
+      assert html =~ "Check the digital address — it looks like GA-183-8164"
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+
+      assert orders == []
+    end
+
+    test "renders the GhanaPost digital address and landmark fields", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_shipping_step(view)
+
+      assert html =~ ~s(name="digital_address")
+      assert html =~ ~s(name="landmark")
+      assert html =~ "GhanaPost Digital Address"
+    end
+
+    test "a landmark over 200 chars is truncated (never rejected) on the order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      long_landmark = String.duplicate("a", 250)
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "landmark" => long_landmark
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert order.shipping_address["landmark"] == String.duplicate("a", 200)
     end
   end
 
@@ -414,11 +567,175 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Internal rail settlement (Phase 3 Task 5) --
+  #
+  # Proves the charge-site pass-through end-to-end: an unverified store (the
+  # module's default `store`/`variant` fixture has NO StorePayoutAccount) hits
+  # OrderSettlement.prepare/2's :internal fallback, and the LiveView's existing
+  # split_mode/1 + maybe_attach_split/2 (both generic over settlement mode)
+  # carry it through with zero code changes. Swaps in the Mox GatewayMock (see
+  # module comment above) so the actual params handed to initiate_payment/1
+  # can be inspected — Emakola.Payments.Gateways.Mock (the default test
+  # gateway) discards its params and always succeeds, so it can't prove this.
+  describe "internal rail settlement" do
+    test "unverified store's MoMo checkout lands entirely on the internal rail", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      original = Application.get_env(:emakola, :payment_gateway)
+      Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+      on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+      expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
+        assert params[:split] in [nil, []]
+        {:ok, %{reference: "PAY-internal-ref", authorization_url: "https://pay.test/internal"}}
+      end)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :internal
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      assert splits != [], "Expected internal-rail allocations to be recorded"
+      assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+
+      sum_splits = Enum.sum(Enum.map(splits, & &1.amount))
+      assert sum_splits == order.total
+    end
+  end
+
+  # -- Buyer protection settlement (TC-2) --
+
+  describe "buyer protection settlement" do
+    test "places a protected order with no merchant split and a payout hold flagged", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      verified_payout!(store, "ACCT_protected")
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :none
+      assert payment.payout_held == true
+      assert payment.payout_hold_reason == "buyer_protection"
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      assert splits == []
+    end
+  end
+
+  # -- Buyer protection badge (TC-2 Task 11) --
+
+  describe "buyer protection badge" do
+    test "shows the badge when the store has protection enabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert html =~ "Protected by Makola"
+    end
+
+    test "hides the badge when the store has protection disabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+
+    test "hides the badge for a cart with dropship items even when protection is enabled", %{
+      conn: conn
+    } do
+      store = create_store!(%{name: "Drop Badge Shop", slug: "drop-badge-shop", currency: "GHS"})
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      wholesaler = create_store!(%{name: "Whole Badge Co", slug: "whole-badge-co"})
+      supplier = create_supplier!(store, name: "Linked", linked_store_id: wholesaler.id)
+
+      product = create_product!(store, %{title: "Dropship Badge Item"})
+
+      variant =
+        create_variant!(product, store, price: 5_000, sku: "DBADGE-1", supplier_id: supplier.id)
+
+      product |> Ash.Changeset.for_update(:activate, %{}) |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+  end
+
   # -- Region Select --
 
   describe "region select" do
     test "renders all 16 canonical regions plus Other", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_shipping_step(view)
 
       # Count option elements in the region select
       option_count = Regex.scan(~r/<option[^>]*>/, html) |> length()
@@ -493,7 +810,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   # -- Supplier Dispatch Fee --
 
   describe "supplier dispatch fee" do
-    test "supplier dispatch line appears for dropship carts and updates with region", %{
+    test "dispatch folds into the Shipping line and tracks region changes", %{
       conn: conn
     } do
       {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dispatch Reseller"})
@@ -503,9 +820,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       drop =
         import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
           "Greater Accra" => 1_500,
-          # Deliberately distinct from Ashanti's default DELIVERY fee (2_500)
-          # so the post-region-change assertion can't pass vacuously against
-          # the Shipping line instead of the Supplier dispatch line.
+          # Deliberately distinct from Ashanti's fallback DELIVERY fee (2_500)
+          # so the combined-line sums below (3_000 vs 5_200) can't collide.
           "Ashanti" => 2_700
         })
 
@@ -523,14 +839,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
       {:ok, view, html} = live(conn, "/s/#{reseller.slug}/checkout")
 
-      assert html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(1_500)
+      # Buyers never see supply-chain vocabulary — dispatch folds into
+      # Shipping: Greater Accra fallback 1_500 + dispatch 1_500 = 3_000.
+      refute html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(3_000)
 
       html = render_change(view, "update_details", %{"region" => "ashanti"})
 
-      assert html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(2_700)
-      refute html =~ Currency.format_price(1_500)
+      # Ashanti fallback 2_500 + Ashanti dispatch 2_700 = 5_200.
+      refute html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(5_200)
+      refute html =~ Currency.format_price(3_000)
     end
 
     test "no dispatch line for merchant-only carts", %{conn: conn, store: store, variant: variant} do
@@ -635,5 +954,207 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     [variant | _] = listing.reseller_product.variants
     %{variant: variant, supplier_id: listing.supplier_id, offer: priced}
+  end
+
+  describe "customer attribution and digital carts" do
+    defp digital_store_fixture! do
+      create_store!()
+      |> Ash.Changeset.for_update(:update_settings, %{
+        enabled_product_types: [:physical, :digital_download]
+      })
+      |> Ash.update!(authorize?: false)
+    end
+
+    defp digital_cart(conn, store) do
+      product = create_product!(store, product_type: :digital_download)
+
+      variant =
+        create_variant!(product, store,
+          price: 5000,
+          sku: "DIG-#{System.unique_integer([:positive])}"
+        )
+
+      session_id = Ecto.UUID.generate()
+
+      CartStore.add_item(session_id, store.id, %{
+        variant_id: variant.id,
+        product_title: "Sample Pack",
+        variant_info: "DIG",
+        unit_price: 5000,
+        quantity: 1,
+        sku: "DIG"
+      })
+
+      {init_test_session(conn, %{"cart_session_id" => session_id}), variant}
+    end
+
+    defp sign_in_customer(conn, store) do
+      customer =
+        Emakola.Customers.Customer
+        |> Ash.Changeset.for_create(:register_with_password, %{
+          email: "buyer-#{System.unique_integer([:positive])}@example.com",
+          name: "Ama Buyer",
+          phone: "+23324#{System.unique_integer([:positive])}",
+          store_id: store.id,
+          password: "password123",
+          password_confirmation: "password123"
+        })
+        |> Ash.create!(authorize?: false)
+
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
+      {init_test_session(conn, %{"customer_token" => token}), customer}
+    end
+
+    # Every storefront order was created with customer_id: nil, so every
+    # DownloadGrant was a guest grant and the download controller 404s those
+    # forever. Nothing else in the chain matters until this is fixed.
+    test "a signed-in customer's order carries their customer_id", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, customer} = sign_in_customer(conn, store)
+      {conn, _variant} = digital_cart(conn, store)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Ama Buyer"
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert order.customer_id == customer.id
+    end
+
+    # A guest grant can never be redeemed — the emailed-token flow does not
+    # exist. Taking the money would be taking it for nothing.
+    test "a guest is refused a digital cart and no order is created", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _variant} = digital_cart(conn, store)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer"
+      })
+
+      assert Emakola.Orders.Order
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.read!(authorize?: false) == []
+    end
+
+    # Found by the production smoke test: the gate keyed on requires_shipping,
+    # which a physical item flips true — so a MIXED cart sailed past it and the
+    # digital line item minted a customer_id: nil grant nobody can ever redeem.
+    # Taking money for an unredeemable download is the exact thing the gate
+    # exists to prevent, so a mixed guest cart must be refused too.
+    test "a guest is refused a MIXED digital+physical cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      assert Emakola.Orders.Order
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.read!(authorize?: false) == []
+    end
+
+    test "a signed-in customer CAN buy a mixed cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+      {conn, _customer} = sign_in_customer(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Ama Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(orders) == 1
+    end
+
+    # Regression: phone-first guest checkout for physical goods is the dominant
+    # Ghana flow and must stay untouched.
+    test "a guest can still check out a physical cart", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _sid} = setup_cart_session(conn, variant)
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^variant.store_id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(orders) == 1
+    end
   end
 end

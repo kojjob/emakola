@@ -10,6 +10,8 @@ defmodule EmakolaWeb.OnboardingLive do
 
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   @theme_save_flash "Your store is ready, but we couldn't apply your theme — " <>
@@ -48,7 +50,8 @@ defmodule EmakolaWeb.OnboardingLive do
     {"dede", "Food & catering — order fast, order on WhatsApp"},
     {"pace", "Activewear & techwear — built for motion"},
     {"depot", "Wholesale — quick-order tables for repeat buyers"},
-    {"akwaaba", "Photo-led — let your product shots do the selling"}
+    {"akwaaba", "Photo-led — let your product shots do the selling"},
+    {"adwuma", "Digital goods — ebooks, beats, courses, files"}
   ]
 
   def mount(_params, session, socket) do
@@ -65,18 +68,23 @@ defmodule EmakolaWeb.OnboardingLive do
        assign(socket,
          page_title: "Set Up Your Store",
          step: 1,
+         buyer_protection: false,
          total_steps: 4,
          current_user: current_user,
          user_type: user_type(current_user),
          store_name: "",
+         store_name_form: value_form("store_name", ""),
          store_slug: "",
          currency: "GHS",
+         currency_form: value_form("currency", "GHS"),
          currencies: @currencies,
          themes: build_themes(),
          preview_font_urls: preview_font_urls(),
          selected_theme: "market",
          product_name: "",
+         product_name_form: value_form("product_name", ""),
          product_price: "",
+         product_price_form: value_form("product_price", ""),
          error: nil,
          created_store: nil
        )}
@@ -85,8 +93,9 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <%!-- Webfonts for the theme previews. root.html.heex only loads the
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <%!-- Webfonts for the theme previews. root.html.heex only loads the
            admin fonts (Inter, Manrope, JetBrains Mono), so without these
            links every serif/display preview silently renders in its
            Georgia/system fallback — the merchant would not be seeing the
@@ -94,461 +103,451 @@ defmodule EmakolaWeb.OnboardingLive do
            pages don't pay for fonts they never render; browsers honour
            <link rel="stylesheet"> in the body. Rendered from step 1 so
            the faces are warm before the picker appears. --%>
-      <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
-      <div class="w-full max-w-lg space-y-8">
-        <%!-- Step indicator --%>
-        <div class="text-center">
-          <div class="flex items-center gap-2 mb-2">
-            <div
-              :for={i <- 1..@total_steps}
-              class={[
-                "h-1.5 flex-1 rounded-full transition-all duration-300",
-                if(i <= @step, do: "bg-emerald-500", else: "bg-gray-200")
-              ]}
-            >
-            </div>
-          </div>
-          <p class="text-xs font-medium text-gray-500">
-            Step {@step} of {@total_steps}
-          </p>
-        </div>
-
-        <%!-- Error display --%>
-        <div
-          :if={@error}
-          class="flex items-center gap-2 bg-red-50 text-red-700 text-sm font-medium p-4 rounded-xl border border-red-200"
-        >
-          <svg
-            class="w-5 h-5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          {@error}
-        </div>
-
-        <%!-- Step 1: Name Your Store --%>
-        <div :if={@step == 1} class="space-y-6 text-center">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-            <svg
-              class="w-8 h-8 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"
-              />
-            </svg>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Name Your Store
-          </h1>
-          <p class="text-gray-500">
-            What should we call your online store?
-          </p>
-
-          <div class="space-y-4 text-left">
-            <div>
-              <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
-                Store name
-              </label>
-              <form id="store-name-form" phx-change="update_store_name">
-                <input
-                  type="text"
-                  id="store_name"
-                  name="store_name"
-                  value={@store_name}
-                  placeholder="e.g. Kojo's Fashion"
-                  phx-debounce="300"
-                  autofocus
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-              </form>
-              <p :if={@store_slug != ""} class="mt-1.5 text-xs text-gray-400">
-                Your store URL: <span class="font-mono text-emerald-600">{@store_slug}</span>.emakola.com
-              </p>
-            </div>
-
-            <div>
-              <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
-                Currency
-              </label>
-              <form id="currency-form" phx-change="update_currency">
-                <select
-                  id="currency"
-                  name="currency"
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  <option
-                    :for={c <- @currencies}
-                    value={c.code}
-                    selected={c.code == @currency}
-                  >
-                    {c.flag} {c.label}
-                  </option>
-                </select>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <%!-- Step 2: Choose Your Theme --%>
-        <div :if={@step == 2} class="space-y-6 text-center">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-            <svg
-              class="w-8 h-8 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.88 2.88M6.75 17.25h.008v.008H6.75v-.008z"
-              />
-            </svg>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Choose Your Theme
-          </h1>
-          <p class="text-gray-500">
-            Pick a look for your storefront. You can customize it later.
-          </p>
-
-          <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
-            <button
-              :for={theme <- @themes}
-              type="button"
-              phx-click="select_theme"
-              phx-value-theme-id={theme.id}
-              aria-pressed={to_string(theme.id == @selected_theme)}
-              class={[
-                "flex w-full flex-col overflow-hidden rounded-2xl border-2 text-left",
-                "transition-all duration-200 motion-reduce:transition-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
-                if(theme.id == @selected_theme,
-                  do: "border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10",
-                  else:
-                    "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md motion-safe:hover:-translate-y-0.5"
-                )
-              ]}
-            >
-              <%!-- Miniature storefront painted from the theme's own tokens.
-                   Decorative: the accessible name is the label row below. --%>
+        <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
+        <div class="w-full max-w-lg space-y-8">
+          <%!-- Step indicator --%>
+          <div class="text-center">
+            <div class="flex items-center gap-2 mb-2">
               <div
-                aria-hidden="true"
-                class="pointer-events-none select-none"
-                style={"background-color: #{theme.colors.background};"}
+                :for={i <- 1..@total_steps}
+                class={[
+                  "h-1.5 flex-1 rounded-full transition-all duration-300",
+                  if(i <= @step, do: "bg-emerald-500", else: "bg-gray-200")
+                ]}
               >
-                <%!-- Nav bar --%>
-                <div
-                  class="flex items-center justify-between border-b border-black/5 px-2.5 py-1.5"
-                  style={"background-color: #{theme.colors.surface};"}
+              </div>
+            </div>
+            <p class="text-xs font-medium text-gray-500">
+              Step {@step} of {@total_steps}
+            </p>
+          </div>
+
+          <%!-- Error display --%>
+          <div
+            :if={@error}
+            id="onboarding-error"
+            class="flex items-center gap-2 bg-red-50 text-red-700 text-sm font-medium p-4 rounded-xl border border-red-200"
+          >
+            <svg
+              class="w-5 h-5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            {@error}
+          </div>
+
+          <%!-- Step 1: Name Your Store --%>
+          <div :if={@step == 1} class="space-y-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
+              <svg
+                class="w-8 h-8 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"
+                />
+              </svg>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+              Name Your Store
+            </h1>
+            <p class="text-gray-500">
+              What should we call your online store?
+            </p>
+
+            <div class="space-y-4 text-left">
+              <div>
+                <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
+                  Store name
+                </label>
+                <.form for={@store_name_form} id="store-name-form" phx-change="update_store_name">
+                  <.input
+                    field={@store_name_form[:store_name]}
+                    type="text"
+                    placeholder="e.g. Kojo's Fashion"
+                    phx-debounce="300"
+                    autofocus
+                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </.form>
+                <p
+                  :if={@store_slug != ""}
+                  id="store-slug-preview"
+                  data-slug={@store_slug}
+                  class="mt-1.5 text-xs text-gray-400"
                 >
+                  Your store URL: makola.io/s/<span class="font-mono text-emerald-600">{@store_slug}</span>
+                </p>
+              </div>
+
+              <div>
+                <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
+                  Currency
+                </label>
+                <.form for={@currency_form} id="currency-form" phx-change="update_currency">
+                  <.input
+                    field={@currency_form[:currency]}
+                    type="select"
+                    options={currency_options(@currencies)}
+                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </.form>
+              </div>
+            </div>
+          </div>
+
+          <%!-- Step 2: Choose Your Theme --%>
+          <div :if={@step == 2} class="space-y-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
+              <svg
+                class="w-8 h-8 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.88 2.88M6.75 17.25h.008v.008H6.75v-.008z"
+                />
+              </svg>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+              Choose Your Theme
+            </h1>
+            <p class="text-gray-500">
+              Pick a look for your storefront. You can customize it later.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
+              <button
+                :for={theme <- @themes}
+                type="button"
+                phx-click="select_theme"
+                phx-value-theme-id={theme.id}
+                aria-pressed={to_string(theme.id == @selected_theme)}
+                class={[
+                  "flex w-full flex-col overflow-hidden rounded-2xl border-2 text-left",
+                  "transition-all duration-200 motion-reduce:transition-none",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
+                  if(theme.id == @selected_theme,
+                    do: "border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10",
+                    else:
+                      "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md motion-safe:hover:-translate-y-0.5"
+                  )
+                ]}
+              >
+                <%!-- Miniature storefront painted from the theme's own tokens.
+                   Decorative: the accessible name is the label row below. --%>
+                <div
+                  aria-hidden="true"
+                  class="pointer-events-none select-none"
+                  style={"background-color: #{theme.colors.background};"}
+                >
+                  <%!-- Nav bar --%>
                   <div
-                    class="h-1.5 w-7 rounded-full"
-                    style={"background-color: #{theme.colors.primary};"}
+                    class="flex items-center justify-between border-b border-black/5 px-2.5 py-1.5"
+                    style={"background-color: #{theme.colors.surface};"}
                   >
+                    <div
+                      class="h-1.5 w-7 rounded-full"
+                      style={"background-color: #{theme.colors.primary};"}
+                    >
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div
+                        class="h-1 w-3 rounded-full opacity-25"
+                        style={"background-color: #{theme.colors.primary};"}
+                      >
+                      </div>
+                      <div
+                        class="h-1 w-3 rounded-full opacity-25"
+                        style={"background-color: #{theme.colors.primary};"}
+                      >
+                      </div>
+                      <div
+                        class="h-1.5 w-1.5 rounded-full"
+                        style={"background-color: #{theme.colors.accent};"}
+                      >
+                      </div>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-1">
+                  <%!-- Hero: the merchant's shop sign in the theme's heading font --%>
+                  <div class="px-2.5 pb-2 pt-2.5">
+                    <p
+                      class="truncate text-[11px] font-bold leading-tight"
+                      style={"color: #{theme.colors.text}; font-family: #{theme.font_stack};"}
+                    >
+                      {preview_store_name(@store_name)}
+                    </p>
                     <div
-                      class="h-1 w-3 rounded-full opacity-25"
-                      style={"background-color: #{theme.colors.primary};"}
+                      class="mt-1 h-1 w-10 rounded-full opacity-30"
+                      style={"background-color: #{theme.colors.text};"}
                     >
                     </div>
                     <div
-                      class="h-1 w-3 rounded-full opacity-25"
-                      style={"background-color: #{theme.colors.primary};"}
-                    >
-                    </div>
-                    <div
-                      class="h-1.5 w-1.5 rounded-full"
+                      class="mt-1.5 h-3 w-11 rounded-full"
                       style={"background-color: #{theme.colors.accent};"}
                     >
                     </div>
                   </div>
-                </div>
-                <%!-- Hero: the merchant's shop sign in the theme's heading font --%>
-                <div class="px-2.5 pb-2 pt-2.5">
-                  <p
-                    class="truncate text-[11px] font-bold leading-tight"
-                    style={"color: #{theme.colors.text}; font-family: #{theme.font_stack};"}
-                  >
-                    {preview_store_name(@store_name)}
-                  </p>
-                  <div
-                    class="mt-1 h-1 w-10 rounded-full opacity-30"
-                    style={"background-color: #{theme.colors.text};"}
-                  >
-                  </div>
-                  <div
-                    class="mt-1.5 h-3 w-11 rounded-full"
-                    style={"background-color: #{theme.colors.accent};"}
-                  >
-                  </div>
-                </div>
-                <%!-- 2×2 product grid with price chips --%>
-                <div class="grid grid-cols-2 gap-1.5 px-2.5 pb-2.5">
-                  <div
-                    :for={{minor, index} <- Enum.with_index(preview_prices())}
-                    class="overflow-hidden rounded-md shadow-sm"
-                    style={"background-color: #{theme.colors.surface};"}
-                  >
+                  <%!-- 2×2 product grid with price chips --%>
+                  <div class="grid grid-cols-2 gap-1.5 px-2.5 pb-2.5">
                     <div
-                      class={[
-                        "h-6 w-full sm:h-7",
-                        if(rem(index, 2) == 0, do: "opacity-75", else: "opacity-40")
-                      ]}
-                      style={"background-color: #{if rem(index, 3) == 0, do: theme.colors.accent, else: theme.colors.primary};"}
+                      :for={{minor, index} <- Enum.with_index(preview_prices())}
+                      class="overflow-hidden rounded-md shadow-sm"
+                      style={"background-color: #{theme.colors.surface};"}
                     >
-                    </div>
-                    <div class="space-y-1 px-1.5 py-1">
                       <div
-                        class="h-0.5 w-3/4 rounded-full opacity-25"
-                        style={"background-color: #{theme.colors.text};"}
+                        class={[
+                          "h-6 w-full sm:h-7",
+                          if(rem(index, 2) == 0, do: "opacity-75", else: "opacity-40")
+                        ]}
+                        style={"background-color: #{if rem(index, 3) == 0, do: theme.colors.accent, else: theme.colors.primary};"}
                       >
                       </div>
-                      <p
-                        class="text-[7px] font-semibold leading-none"
-                        style={"color: #{theme.colors.text};"}
-                      >
-                        {format_minor_price(minor, @currency)}
-                      </p>
+                      <div class="space-y-1 px-1.5 py-1">
+                        <div
+                          class="h-0.5 w-3/4 rounded-full opacity-25"
+                          style={"background-color: #{theme.colors.text};"}
+                        >
+                        </div>
+                        <p
+                          class="text-[7px] font-semibold leading-none"
+                          style={"color: #{theme.colors.text};"}
+                        >
+                          {format_minor_price(minor, @currency)}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <%!-- Footer band --%>
+                  <div class="h-2.5 w-full" style={"background-color: #{theme.colors.primary};"}>
+                  </div>
                 </div>
-                <%!-- Footer band --%>
-                <div class="h-2.5 w-full" style={"background-color: #{theme.colors.primary};"}></div>
-              </div>
 
-              <%!-- Label row --%>
-              <div class={[
-                "flex flex-1 items-start justify-between gap-2 border-t p-3",
-                if(theme.id == @selected_theme,
-                  do: "border-emerald-100 bg-emerald-50",
-                  else: "border-gray-100 bg-white"
-                )
-              ]}>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
-                  <p class="mt-0.5 text-xs leading-snug text-gray-500">{theme.description}</p>
-                </div>
-                <div
-                  :if={theme.id == @selected_theme}
-                  class="mt-0.5 shrink-0 rounded-full bg-emerald-500 p-0.5 text-white"
-                >
-                  <svg
-                    class="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="3"
-                    stroke="currentColor"
+                <%!-- Label row --%>
+                <div class={[
+                  "flex flex-1 items-start justify-between gap-2 border-t p-3",
+                  if(theme.id == @selected_theme,
+                    do: "border-emerald-100 bg-emerald-50",
+                    else: "border-gray-100 bg-white"
+                  )
+                ]}>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
+                    <p class="mt-0.5 text-xs leading-snug text-gray-500">{theme.description}</p>
+                  </div>
+                  <div
+                    :if={theme.id == @selected_theme}
+                    class="mt-0.5 shrink-0 rounded-full bg-emerald-500 p-0.5 text-white"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
+                    <svg
+                      class="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="3"
+                      stroke="currentColor"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <div
+                    :if={theme.id != @selected_theme}
+                    class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-gray-200"
+                  >
+                  </div>
                 </div>
-                <div
-                  :if={theme.id != @selected_theme}
-                  class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-gray-200"
-                >
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <%!-- Step 3: Add Your First Product --%>
-        <div :if={@step == 3} class="space-y-6 text-center">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-            <svg
-              class="w-8 h-8 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
-              />
-            </svg>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Add Your First Product
-          </h1>
-          <p class="text-gray-500">
-            You can add products now or skip and do it later from your dashboard.
-          </p>
-
-          <div class="space-y-4 text-left">
-            <div>
-              <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
-                Product name
-              </label>
-              <form id="product-name-form" phx-change="update_product">
-                <input
-                  type="text"
-                  id="product_name"
-                  name="product_name"
-                  value={@product_name}
-                  placeholder="e.g. Ankara Dress"
-                  phx-debounce="300"
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-              </form>
-            </div>
-
-            <div>
-              <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
-                Price ({@currency})
-              </label>
-              <form id="product-price-form" phx-change="update_product">
-                <input
-                  type="number"
-                  id="product_price"
-                  name="product_price"
-                  value={@product_price}
-                  placeholder="e.g. 150"
-                  min="0"
-                  step="0.01"
-                  phx-debounce="300"
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-              </form>
+              </button>
             </div>
           </div>
 
-          <p class="text-xs text-gray-400">
-            Don't worry — you can add unlimited products later.
-          </p>
-        </div>
-
-        <%!-- Step 4: You're Ready! --%>
-        <div :if={@step == 4} class="space-y-6 text-center">
-          <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-            <svg
-              class="w-10 h-10 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-              />
-            </svg>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            You're Ready!
-          </h1>
-          <p class="text-gray-500">
-            Your store is set up. Time to start selling!
-          </p>
-
-          <div class="bg-white rounded-xl p-5 space-y-3 text-sm text-left border border-gray-200 shadow-sm">
-            <div class="flex items-center gap-3">
+          <%!-- Step 3: Add Your First Product --%>
+          <div :if={@step == 3} class="space-y-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
               <svg
-                class="w-5 h-5 text-emerald-500 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
+                class="w-8 h-8 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
               >
                 <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                  clip-rule="evenodd"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
                 />
               </svg>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+              Add Your First Product
+            </h1>
+            <p class="text-gray-500">
+              You can add products now or skip and do it later from your dashboard.
+            </p>
+
+            <div class="space-y-4 text-left">
               <div>
-                <span class="font-medium text-gray-900">{@store_name}</span>
-                <span class="text-gray-400 text-xs ml-2">{@currency}</span>
+                <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
+                  Product name
+                </label>
+                <.form for={@product_name_form} id="product-name-form" phx-change="update_product">
+                  <.input
+                    field={@product_name_form[:product_name]}
+                    type="text"
+                    placeholder="e.g. Ankara Dress"
+                    phx-debounce="300"
+                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </.form>
+              </div>
+
+              <div>
+                <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
+                  Price ({@currency})
+                </label>
+                <.form for={@product_price_form} id="product-price-form" phx-change="update_product">
+                  <.input
+                    field={@product_price_form[:product_price]}
+                    type="number"
+                    placeholder="e.g. 150"
+                    min="0"
+                    step="0.01"
+                    phx-debounce="300"
+                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </.form>
               </div>
             </div>
-            <div :if={@product_name != ""} class="flex items-center gap-3">
+
+            <p class="text-xs text-gray-400">
+              Don't worry — you can add unlimited products later.
+            </p>
+          </div>
+
+          <%!-- Step 4: You're Ready! --%>
+          <div :if={@step == 4} class="space-y-6 text-center">
+            <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
               <svg
-                class="w-5 h-5 text-emerald-500 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
+                class="w-10 h-10 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
               >
                 <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                  clip-rule="evenodd"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                 />
               </svg>
-              <div>
-                <span class="font-medium text-gray-900">{@product_name}</span>
-                <span :if={@product_price != ""} class="text-gray-400 text-xs ml-2">
-                  {format_price(@product_price, @currency)}
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+              You're Ready!
+            </h1>
+            <p class="text-gray-500">
+              Your store is set up. Time to start selling!
+            </p>
+
+            <%!-- Asked, not assumed. Protection was opt-in and almost nobody
+                opted in — because nothing ever raised it. Defaulting it ON was
+                rejected deliberately: it makes Makola custodian of the
+                merchant's money between sale and delivery. So it is one short
+                question, in plain words, at the moment they are already
+                deciding how their shop works. --%>
+            <label class="flex items-start gap-3 bg-white rounded-xl p-5 text-left border border-gray-200 shadow-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="buyer_protection"
+                checked={@buyer_protection}
+                phx-click="toggle_buyer_protection"
+                class="mt-0.5 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+              />
+              <span>
+                <span class="block text-sm font-semibold text-gray-900">
+                  Hold payment until delivery
                 </span>
+                <span class="block text-xs text-gray-500 mt-1">
+                  The buyer's money waits with Makola until they confirm they got the item.
+                  Safer for the buyer. You are paid a little later.
+                </span>
+              </span>
+            </label>
+
+            <div class="bg-white rounded-xl p-5 space-y-3 text-sm text-left border border-gray-200 shadow-sm">
+              <div class="flex items-center gap-3">
+                <svg
+                  class="w-5 h-5 text-emerald-500 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <span class="font-medium text-gray-900">{@store_name}</span>
+                  <span class="text-gray-400 text-xs ml-2">{@currency}</span>
+                </div>
+              </div>
+              <div :if={@product_name != ""} class="flex items-center gap-3">
+                <svg
+                  class="w-5 h-5 text-emerald-500 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <span class="font-medium text-gray-900">{@product_name}</span>
+                  <span :if={@product_price != ""} class="text-gray-400 text-xs ml-2">
+                    {format_price(@product_price, @currency)}
+                  </span>
+                </div>
+              </div>
+              <div :if={@product_name == ""} class="flex items-center gap-3">
+                <svg
+                  class="w-5 h-5 text-gray-300 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="text-gray-400">No products yet — you can add them later</span>
               </div>
             </div>
-            <div :if={@product_name == ""} class="flex items-center gap-3">
-              <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              <span class="text-gray-400">No products yet — you can add them later</span>
-            </div>
           </div>
-        </div>
 
-        <%!-- Navigation --%>
-        <div class="flex justify-between items-center">
-          <button
-            :if={@step > 1}
-            phx-click="prev_step"
-            class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            Back
-          </button>
-          <div :if={@step == 1}></div>
-
-          <div class="flex items-center gap-3">
+          <%!-- Navigation --%>
+          <div class="flex justify-between items-center">
             <button
-              :if={@step == 3}
-              phx-click="skip_step"
-              class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              :if={@step > 1}
+              phx-click="prev_step"
+              class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
             >
-              Skip for now
-            </button>
-            <button
-              phx-click={if @step < @total_steps, do: "next_step", else: "complete"}
-              disabled={@step == 1 and String.trim(@store_name) == ""}
-              class={[
-                "font-semibold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-all",
-                if(@step == 1 and String.trim(@store_name) == "",
-                  do: "bg-gray-100 text-gray-400 cursor-not-allowed",
-                  else: "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm"
-                )
-              ]}
-            >
-              {step_button_label(@step, @total_steps)}
               <svg
                 class="w-4 h-4"
                 fill="none"
@@ -556,13 +555,48 @@ defmodule EmakolaWeb.OnboardingLive do
                 stroke-width="2"
                 stroke="currentColor"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
+              Back
             </button>
+            <div :if={@step == 1}></div>
+
+            <div class="flex items-center gap-3">
+              <button
+                :if={@step == 3}
+                phx-click="skip_step"
+                class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                Skip for now
+              </button>
+              <button
+                id="onboarding-next-button"
+                phx-click={if @step < @total_steps, do: "next_step", else: "complete"}
+                disabled={@step == 1 and String.trim(@store_name) == ""}
+                class={[
+                  "font-semibold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-all",
+                  if(@step == 1 and String.trim(@store_name) == "",
+                    do: "bg-gray-100 text-gray-400 cursor-not-allowed",
+                    else: "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm"
+                  )
+                ]}
+              >
+                {step_button_label(@step, @total_steps)}
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 
@@ -570,11 +604,22 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def handle_event("update_store_name", %{"store_name" => name}, socket) do
     slug = generate_slug(name)
-    {:noreply, assign(socket, store_name: name, store_slug: slug, error: nil)}
+
+    {:noreply,
+     assign(socket,
+       store_name: name,
+       store_name_form: value_form("store_name", name),
+       store_slug: slug,
+       error: nil
+     )}
   end
 
   def handle_event("update_currency", %{"currency" => currency}, socket) do
-    {:noreply, assign(socket, currency: currency)}
+    {:noreply,
+     assign(socket,
+       currency: currency,
+       currency_form: value_form("currency", currency)
+     )}
   end
 
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
@@ -591,7 +636,13 @@ defmodule EmakolaWeb.OnboardingLive do
     product_name = params["product_name"] || socket.assigns.product_name
     product_price = params["product_price"] || socket.assigns.product_price
 
-    {:noreply, assign(socket, product_name: product_name, product_price: product_price)}
+    {:noreply,
+     assign(socket,
+       product_name: product_name,
+       product_name_form: value_form("product_name", product_name),
+       product_price: product_price,
+       product_price_form: value_form("product_price", product_price)
+     )}
   end
 
   def handle_event("next_step", _, socket) do
@@ -622,7 +673,14 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def handle_event("skip_step", _, socket) do
     # Skip clears product fields and advances
-    socket = assign(socket, product_name: "", product_price: "")
+    socket =
+      assign(socket,
+        product_name: "",
+        product_name_form: value_form("product_name", ""),
+        product_price: "",
+        product_price_form: value_form("product_price", "")
+      )
+
     # Move to final step — create the store
     case create_store(socket.assigns) do
       {:ok, store, theme_flash} ->
@@ -647,19 +705,34 @@ defmodule EmakolaWeb.OnboardingLive do
      |> push_navigate(to: "/dashboard")}
   end
 
+  def handle_event("toggle_buyer_protection", _params, socket) do
+    {:noreply, assign(socket, :buyer_protection, !socket.assigns.buyer_protection)}
+  end
+
   # ── Private helpers ──
+
+  defp value_form(field, value), do: to_form(%{field => value})
+
+  defp currency_options(currencies) do
+    Enum.map(currencies, &{"#{&1.flag} #{&1.label}", &1.code})
+  end
 
   # Merchant-only resolution — legacy User subjects no longer authenticate
   # here (User accounts use the platform session flow exclusively).
   defp resolve_user(session) do
-    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+    case EmakolaWeb.AuthTokens.verify_subject_with_iat(session["user_token"]) do
       {:error, _reason} ->
         nil
 
-      {:ok, subject} ->
+      {:ok, subject, issued_at} ->
         case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
-          {:ok, merchant} -> merchant
-          _ -> nil
+          # Same cutoff check as AssignDefaults — a session invalidated by a
+          # password reset must not slip back in through onboarding.
+          {:ok, merchant} when not is_nil(merchant) ->
+            if Emakola.Accounts.session_live?(merchant, issued_at), do: merchant
+
+          _ ->
+            nil
         end
     end
   end
@@ -698,6 +771,16 @@ defmodule EmakolaWeb.OnboardingLive do
     end
   end
 
+  # :create accepts only name/slug/currency; :update_settings is the action
+  # that already exposes this field to merchants, so the answer goes through it.
+  defp apply_buyer_protection(store, true) do
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update(authorize?: false)
+  end
+
+  defp apply_buyer_protection(store, _falsey), do: {:ok, store}
+
   defp create_store(assigns) do
     user = assigns.current_user
 
@@ -712,6 +795,7 @@ defmodule EmakolaWeb.OnboardingLive do
              Emakola.Stores.create_store(%{name: store_name, slug: slug, currency: currency},
                authorize?: false
              ),
+           {:ok, store} <- apply_buyer_protection(store, assigns[:buyer_protection]),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
 
@@ -798,8 +882,10 @@ defmodule EmakolaWeb.OnboardingLive do
   defp maybe_flash_theme_failure(socket, message), do: put_flash(socket, :error, message)
 
   defp parse_price(price) when is_binary(price) do
-    case Float.parse(price) do
-      {amount, _} when amount > 0 -> round(amount * 100)
+    # {:ok, _} is only returned for positive amounts; signs and trailing
+    # garbage ("50abc") are rejected rather than silently coerced.
+    case Emakola.Money.parse_price(price) do
+      {:ok, pesewas} -> pesewas
       _ -> 0
     end
   end
@@ -807,9 +893,11 @@ defmodule EmakolaWeb.OnboardingLive do
   defp parse_price(_), do: 0
 
   defp format_price(price_str, currency) do
-    case Float.parse(price_str) do
-      {amount, _} ->
-        "#{currency_symbol(currency)}#{:erlang.float_to_binary(amount, decimals: 2)}"
+    # Preview through the same parser that will store the value, so the
+    # preview can never show a price the form would not save.
+    case Emakola.Money.parse_price(price_str) do
+      {:ok, pesewas} ->
+        "#{currency_symbol(currency)}#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
 
       _ ->
         ""

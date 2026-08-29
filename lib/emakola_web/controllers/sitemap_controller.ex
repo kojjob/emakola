@@ -19,10 +19,8 @@ defmodule EmakolaWeb.SitemapController do
 
   ## URL construction
 
-  URLs are built as relative paths (`/s/:slug/...`). The `<loc>` values
-  use the full absolute URL constructed from the request's scheme and host,
-  which means the sitemap works correctly across subdomains and custom
-  domains without configuration.
+  Every `<loc>` is built through `EmakolaWeb.SEO.Canonical`, so alternate
+  request hosts emit the same primary store URL instead of splitting authority.
   """
   use EmakolaWeb, :controller
 
@@ -39,6 +37,7 @@ defmodule EmakolaWeb.SitemapController do
         "/",
         "/pricing",
         "/stores",
+        "/blog",
         "/docs",
         "/about",
         "/careers",
@@ -72,8 +71,16 @@ defmodule EmakolaWeb.SitemapController do
         "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>"
       end)
 
+    # Published platform blog posts (nil store_id) — merchant-acquisition SEO.
+    blog_entries =
+      Emakola.Content.list_platform_published_posts!()
+      |> Enum.map_join("\n", fn post ->
+        loc = xml_escape(base <> "/blog/" <> post.slug)
+        "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>"
+      end)
+
     entries =
-      [marketing_entries, region_entries, sell_online_entries]
+      [marketing_entries, blog_entries, region_entries, sell_online_entries]
       |> Enum.reject(&(&1 == ""))
       |> Enum.join("\n")
 
@@ -123,14 +130,17 @@ defmodule EmakolaWeb.SitemapController do
 
   @doc "Platform robots.txt for the apex domain — dynamic, replaces the old static priv/static/robots.txt."
   def platform_robots(conn, _params) do
+    disallows = platform_disallow_rules()
+
     body = """
     User-agent: *
     Allow: /
-    Disallow: /dashboard
-    Disallow: /settings
-    Disallow: /api/
-    Disallow: /dev/
-    Disallow: /auth/
+    #{disallows}
+
+    # ChatGPT Search discovery. GPTBot is a separate training control.
+    User-agent: OAI-SearchBot
+    Allow: /
+    #{disallows}
 
     Sitemap: #{Canonical.base()}/sitemap.xml
     """
@@ -157,6 +167,7 @@ defmodule EmakolaWeb.SitemapController do
 
     - Home: #{base}/
     - Pricing: #{base}/pricing
+    - Blog (merchant guides): #{base}/blog
     - Store directory: #{base}/stores
     - Documentation: #{base}/docs
     - About Makola: #{base}/about
@@ -175,18 +186,17 @@ defmodule EmakolaWeb.SitemapController do
     conn
     |> put_resp_content_type("text/plain")
     |> put_resp_header("cache-control", "public, max-age=3600")
+    |> put_resp_header("x-robots-tag", "noindex")
     |> send_resp(200, body)
   end
 
   @doc """
-  Serves a per-store robots.txt that references the sitemap and explicitly
-  allows AI crawlers (GPTBot, Google-Extended, Anthropic, etc.).
+  Serves a per-store robots.txt that references the sitemap and makes the
+  site's AI-search policy explicit.
 
-  Most sites block AI crawlers by default. Makola merchants WANT their
-  products to appear in AI-powered search (Google SGE, Perplexity,
-  ChatGPT Browse) — it's a customer acquisition channel. So we allow
-  all AI crawlers with a specific directive, rather than relying on the
-  wildcard User-Agent: * (which some AI crawlers ignore).
+  `OAI-SearchBot` is the crawler that controls eligibility for ChatGPT Search
+  snippets. `GPTBot` and `Google-Extended` are separate training/grounding
+  controls and do not determine inclusion in ChatGPT Search or Google Search.
   """
   def robots(conn, params) do
     case fetch_store(conn, params) do
@@ -204,9 +214,14 @@ defmodule EmakolaWeb.SitemapController do
         Allow: /
         #{disallows}
 
-        # AI search crawlers — explicitly allowed for product discovery.
-        # Each group repeats the Disallow rules because per the robots.txt
-        # spec, a specific User-Agent group overrides the wildcard entirely.
+        # Known AI search and model crawlers are explicit so public-content
+        # ingestion policy can be reviewed separately from ordinary search.
+        # Each group repeats the Disallow rules because a specific User-Agent
+        # group overrides the wildcard group.
+        User-Agent: OAI-SearchBot
+        Allow: /
+        #{disallows}
+
         User-Agent: GPTBot
         Allow: /
         #{disallows}
@@ -220,6 +235,10 @@ defmodule EmakolaWeb.SitemapController do
         #{disallows}
 
         User-Agent: ClaudeBot
+        Allow: /
+        #{disallows}
+
+        User-Agent: Claude-SearchBot
         Allow: /
         #{disallows}
 
@@ -246,14 +265,13 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   @doc """
-  Serves a per-store llms.txt — an emerging standard for LLM-friendly
-  site descriptions.
+  Serves a per-store llms.txt for experimental consumers that choose to read
+  the format.
 
-  See https://llmstxt.org for the specification. The file provides a
-  structured plain-text summary of the store: what it sells, where it's
-  located, what payment methods it accepts, and how to navigate it. This
-  helps AI assistants (ChatGPT, Claude, Perplexity, etc.) give accurate
-  answers when users ask about the store or its products.
+  Google explicitly says it does not use llms.txt for Search or its generative
+  AI features, so this endpoint is a supplementary catalog summary rather than
+  a ranking mechanism. It carries `X-Robots-Tag: noindex` to avoid becoming a
+  duplicate search result.
   """
   def llms(conn, params) do
     case fetch_store(conn, params) do
@@ -266,6 +284,7 @@ defmodule EmakolaWeb.SitemapController do
         conn
         |> put_resp_content_type("text/plain")
         |> put_resp_header("cache-control", "public, max-age=900")
+        |> put_resp_header("x-robots-tag", "noindex")
         |> send_resp(200, body)
 
       :error ->
@@ -278,9 +297,8 @@ defmodule EmakolaWeb.SitemapController do
   # ── Caching ────────────────────────────────────────────────────────
 
   defp cached_sitemap(store, conn) do
-    # Include host+scheme in cache key so stores reachable on multiple
-    # domains (platform URL vs custom domain) get separate cached sitemaps
-    # with correct <loc> URLs for each host.
+    # Include the configured canonical base in the key so a DNS/canonical
+    # cutover cannot serve URLs cached under the previous production host.
     base = base_url(conn, store)
     cache_key = "sitemap:#{store.id}:#{base}"
 
@@ -306,35 +324,51 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   defp collect_urls(store) do
-    static_urls(store) ++
-      product_urls(store) ++
-      category_urls(store) ++
-      blog_urls(store)
+    products = load_sitemap_products(store)
+    posts = load_published_posts(store)
+    page_content = EmakolaWeb.Storefront.ContentLoader.load(store.id)
+
+    static_urls(store, products, posts, page_content) ++
+      product_urls(store, products) ++
+      category_urls(store, products) ++
+      content_urls(store, posts) ++
+      custom_page_urls(store)
   end
 
-  # Static pages every store has. URLs go through Canonical so they point at the
-  # store's SEO-primary host (its subdomain when configured, else apex /s/:slug).
-  defp static_urls(store) do
-    [
+  # Core storefront pages plus content hubs that have something useful to list.
+  # Empty hubs are `noindex` in their LiveViews and therefore must not appear in
+  # the sitemap.
+  defp static_urls(store, products, posts, page_content) do
+    core_pages = [
       %{loc: Canonical.store_url(store), priority: "1.0", changefreq: "daily"},
-      %{loc: Canonical.path(store, "/products"), priority: "0.9", changefreq: "daily"},
       %{loc: Canonical.path(store, "/about"), priority: "0.5", changefreq: "monthly"},
       %{loc: Canonical.path(store, "/contact"), priority: "0.4", changefreq: "monthly"},
-      %{loc: Canonical.path(store, "/faq"), priority: "0.5", changefreq: "monthly"},
-      %{loc: Canonical.path(store, "/policies"), priority: "0.3", changefreq: "monthly"},
-      %{loc: Canonical.path(store, "/blog"), priority: "0.6", changefreq: "weekly"},
-      %{loc: Canonical.path(store, "/recipes"), priority: "0.6", changefreq: "weekly"}
+      %{loc: Canonical.path(store, "/policies"), priority: "0.3", changefreq: "monthly"}
     ]
+
+    optional_pages = [
+      products != [] &&
+        %{loc: Canonical.path(store, "/products"), priority: "0.9", changefreq: "daily"},
+      valid_faqs(page_content) != [] &&
+        %{loc: Canonical.path(store, "/faq"), priority: "0.5", changefreq: "monthly"},
+      Enum.any?(posts, &(&1.type == :blog_post)) &&
+        %{loc: Canonical.path(store, "/blog"), priority: "0.6", changefreq: "weekly"},
+      Enum.any?(posts, &(&1.type == :recipe)) &&
+        %{loc: Canonical.path(store, "/recipes"), priority: "0.6", changefreq: "weekly"}
+    ]
+
+    core_pages ++ Enum.reject(optional_pages, &(&1 == false))
+  end
+
+  defp load_sitemap_products(store) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+    |> Ash.Query.select([:slug, :updated_at, :category_id])
+    |> Ash.read!(authorize?: false)
   end
 
   # Active products — highest SEO value
-  defp product_urls(store) do
-    products =
-      Emakola.Catalog.Product
-      |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
-      |> Ash.Query.select([:slug, :updated_at])
-      |> Ash.read!(authorize?: false)
-
+  defp product_urls(store, products) do
     Enum.map(products, fn product ->
       %{
         loc: Canonical.product_url(store, product),
@@ -345,13 +379,20 @@ defmodule EmakolaWeb.SitemapController do
     end)
   end
 
-  # Categories
-  defp category_urls(store) do
+  # Categories with at least one active, moderation-safe product.
+  defp category_urls(store, products) do
+    populated_category_ids =
+      products
+      |> Enum.map(& &1.category_id)
+      |> Enum.reject(&is_nil/1)
+      |> MapSet.new()
+
     categories =
       Emakola.Catalog.Category
       |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-      |> Ash.Query.select([:slug, :updated_at])
+      |> Ash.Query.select([:id, :slug, :updated_at])
       |> Ash.read!(authorize?: false)
+      |> Enum.filter(&MapSet.member?(populated_category_ids, &1.id))
 
     Enum.map(categories, fn cat ->
       %{
@@ -363,28 +404,76 @@ defmodule EmakolaWeb.SitemapController do
     end)
   end
 
-  # Blog posts (published only)
-  defp blog_urls(store) do
+  defp load_published_posts(store) do
     try do
-      posts =
-        Emakola.Content.Post
-        |> Ash.Query.for_read(:list_published, %{store_id: store.id})
-        |> Ash.Query.select([:slug, :updated_at])
-        |> Ash.read!(authorize?: false)
-
-      Enum.map(posts, fn post ->
-        %{
-          loc: Canonical.blog_url(store, post),
-          priority: "0.6",
-          changefreq: "monthly",
-          lastmod: format_date(post.updated_at)
-        }
-      end)
+      Emakola.Content.Post
+      |> Ash.Query.for_read(:list_published, %{store_id: store.id})
+      |> Ash.Query.select([:slug, :type, :updated_at])
+      |> Ash.read!(authorize?: false)
     rescue
-      # Content domain may not exist yet on all branches
       _ -> []
     end
   end
+
+  # Published editorial content. Recipes have their own route; routing every
+  # post through `/blog` produced dead sitemap URLs for recipe records.
+  defp content_urls(store, posts) do
+    Enum.flat_map(posts, fn post ->
+      case post.type do
+        :blog_post ->
+          [content_url(Canonical.blog_url(store, post), post)]
+
+        :recipe ->
+          [content_url(Canonical.recipe_url(store, post), post)]
+
+        _ ->
+          []
+      end
+    end)
+  end
+
+  defp content_url(loc, post) do
+    %{
+      loc: loc,
+      priority: "0.6",
+      changefreq: "monthly",
+      lastmod: format_date(post.updated_at)
+    }
+  end
+
+  # Merchant-built pages are public at `/p/:slug`. `home` is excluded because a
+  # published home page already renders at the store root; listing `/p/home`
+  # would create a duplicate.
+  defp custom_page_urls(store) do
+    case Emakola.Pages.list_published_pages_for_store(store.id, authorize?: false) do
+      {:ok, pages} ->
+        pages
+        |> Enum.reject(&(&1.slug == "home" or &1.blocks == []))
+        |> Enum.map(fn page ->
+          %{
+            loc: Canonical.page_url(store, page),
+            priority: "0.5",
+            changefreq: "monthly",
+            lastmod: format_date(page.updated_at)
+          }
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp valid_faqs(page_content) do
+    page_content
+    |> EmakolaWeb.Storefront.ContentLoader.list(:faq_items)
+    |> Enum.filter(fn item ->
+      non_blank?(Map.get(item, "question") || Map.get(item, :question)) and
+        non_blank?(Map.get(item, "answer") || Map.get(item, :answer))
+    end)
+  end
+
+  defp non_blank?(value) when is_binary(value), do: String.trim(value) != ""
+  defp non_blank?(_value), do: false
 
   # ── URL entry XML ──────────────────────────────────────────────────
 
@@ -413,11 +502,17 @@ defmodule EmakolaWeb.SitemapController do
   defp format_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt) |> Date.to_iso8601()
   defp format_date(_), do: nil
 
-  # Private paths that all crawlers should not access, under the given path prefix
-  # ("" on the subdomain root, "/s/:slug" on the apex subfolder route).
+  # Non-page endpoints that crawlers do not need to fetch. Transactional HTML
+  # pages stay crawlable so their meta robots `noindex` directive can be read.
+  # robots.txt is not access control.
   defp build_disallow_rules(prefix) do
-    ["/cart", "/checkout", "/account", "/wishlist", "/track/", "/orders/", "/auth/"]
+    ["/downloads/", "/auth/"]
     |> Enum.map_join("\n", fn path -> "Disallow: #{prefix}#{path}" end)
+  end
+
+  defp platform_disallow_rules do
+    ["/api/", "/dev/", "/oauth/", "/webhooks/"]
+    |> Enum.map_join("\n", fn path -> "Disallow: #{path}" end)
   end
 
   # Where a store's robots.txt is served decides its path prefix + sitemap URL:
@@ -484,11 +579,13 @@ defmodule EmakolaWeb.SitemapController do
 
     ## About
 
-    #{store.name} is an online store on the Makola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Telecel Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
+    #{store.name} is an independently operated online store on the Makola platform.
+    Available payment methods depend on the merchant's checkout configuration
+    and should be confirmed during checkout.
 
     - Store URL: #{store_url}
     - Currency: #{currency}
-    - Platform: Makola (https://emakola.com)
+    - Platform: Makola (#{Canonical.base()})
 
     ## Categories
 
@@ -503,19 +600,24 @@ defmodule EmakolaWeb.SitemapController do
     - Home: #{store_url}
     - All Products: #{store_url}/products
     - About: #{store_url}/about
+    - Contact: #{store_url}/contact
+    - Store policies: #{store_url}/policies
     - Blog: #{store_url}/blog
     - Sitemap: #{store_url}/sitemap.xml
 
     ## For AI assistants
 
     When answering questions about #{store.name}:
-    - Product prices are in #{currency} (Ghana Cedis)
-    - All prices include VAT where applicable
-    - Delivery is available across Ghana; delivery zones and fees vary by location
-    - Mobile money is the primary payment method for most customers
-    - The store is operated by a merchant on the Makola ecommerce platform
+    - Product prices are shown in #{currency_label(currency)}
+    - Confirm current price and availability on the linked product page
+    - Confirm delivery and return terms on the store policies page or during checkout
+    - This is an independently operated merchant store on the Makola platform
     """
   end
+
+  defp currency_label("GHS"), do: "GHS (Ghana cedis)"
+  defp currency_label("NGN"), do: "NGN (Nigerian naira)"
+  defp currency_label(currency), do: currency
 
   defp format_price_major(amount_minor) when is_integer(amount_minor) do
     major = div(amount_minor, 100)

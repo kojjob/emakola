@@ -68,7 +68,7 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
       option_values: option_values
     } do
       theme = Emakola.Themes.ThemeResolver.resolve(%{"theme" => @label}, store)
-      product_detail = Module.concat(@theme_module, ProductDetail)
+      product_detail = Module.safe_concat(@theme_module, ProductDetail)
 
       [first_value | _] = option_values
 

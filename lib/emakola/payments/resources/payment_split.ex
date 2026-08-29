@@ -38,7 +38,10 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner])
+      constraints(
+        one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner, :affiliate]
+      )
+
       allow_nil?(false)
       public?(true)
     end
@@ -57,9 +60,14 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
+    # Which affiliate this allocation pays. Nil on every other role.
+    attribute :affiliate_id, :uuid do
+      public?(true)
+    end
+
     # Gateway subaccount the money settles to. Nil for the platform main account.
     attribute :subaccount_code, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :amount, :integer do
@@ -133,7 +141,77 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
+    # Which rail settles this allocation: the gateway routed it at charge
+    # (:gateway_share) or the money stays in the platform main account and is
+    # owed via this ledger (:internal_hold). Platform rows are always
+    # :internal_hold — their cut never leaves the main account on either rail.
+    attribute :settlement_method, :atom do
+      constraints(one_of: [:gateway_share, :internal_hold])
+      default(:gateway_share)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :currency, :string do
+      allow_nil?(false)
+      default("GHS")
+      public?(true)
+    end
+
+    # Claim stamp for internal-rail payouts, mirroring Payment.paid_out_at /
+    # payout_id. Nil until a payout claims this allocation.
+    attribute :paid_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :payout_id, :uuid do
+      public?(true)
+    end
+
+    # Net frozen at claim time as amount - (reversed_amount - recovered_amount
+    # - reserved_recovery_amount) — amount minus only the portion of any
+    # reversal not already recovered or reserved. What the payout actually
+    # paid, immune to later reversals moving underneath it.
+    attribute :paid_amount, :integer do
+      public?(true)
+    end
+
+    # No-double-claw fence: reversals that were already netted into a claim
+    # (payable = amount - reversed) must not ALSO be recovered from future
+    # earnings. Frozen at claim, reset on release. Gateway splits keep 0.
+    attribute :netted_reversal_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
     timestamps()
+  end
+
+  @doc """
+  THE freeze formula — what `mark_paid_out` writes into `paid_amount`:
+  the split's amount minus reversals not already collected elsewhere.
+  Single authority: PayoutService and FinanceStats delegate here.
+  """
+  def frozen_paid_amount(split) do
+    netted = split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount
+    split.amount - netted
+  end
+
+  @doc """
+  Whether a split is currently payable via Makola's internal ledger — the
+  Elixir-side mirror of the `payable_internal` read action's filter below
+  (`settlement_method == :internal_hold and role != :platform and status in
+  [:settled, :partially_reversed] and is_nil(paid_out_at) and amount >
+  reversed_amount`). THAT READ is the single authority for "internally
+  payable"; this function exists for callers that already loaded splits via
+  one query (e.g. the earnings page) and need to filter in memory instead of
+  re-querying. Keep both in sync if the definition ever changes.
+  """
+  def internally_payable?(split) do
+    split.settlement_method == :internal_hold and split.role != :platform and
+      split.status in [:settled, :partially_reversed] and is_nil(split.paid_out_at) and
+      split.amount > split.reversed_amount
   end
 
   relationships do
@@ -149,7 +227,11 @@ defmodule Emakola.Payments.PaymentSplit do
     # must not be able to double-record an allocation. `nils_distinct?: false`
     # because supplier_id/credit_agreement_id are nil for most roles — two
     # :platform rows for the same payment must collide.
-    identity :unique_allocation, [:payment_id, :role, :supplier_id, :credit_agreement_id] do
+    # affiliate_id joins the discriminators for the same reason supplier_id and
+    # credit_agreement_id did: without it, two affiliates on one payment
+    # collide and the second is silently dropped rather than paid.
+    identity :unique_allocation,
+             [:payment_id, :role, :supplier_id, :credit_agreement_id, :affiliate_id] do
       nils_distinct?(false)
     end
   end
@@ -190,10 +272,13 @@ defmodule Emakola.Payments.PaymentSplit do
         :recipient_store_id,
         :supplier_id,
         :credit_agreement_id,
+        :affiliate_id,
         :subaccount_code,
         :amount,
         :recovery_amount,
-        :recovery_breakdown
+        :recovery_breakdown,
+        :settlement_method,
+        :currency
       ])
     end
 
@@ -204,7 +289,8 @@ defmodule Emakola.Payments.PaymentSplit do
         :recovered_amount,
         :reserved_recovery_amount,
         :recovery_applied_amount,
-        :recovery_reversed_amount
+        :recovery_reversed_amount,
+        :recovery_breakdown
       ])
     end
 
@@ -274,17 +360,245 @@ defmodule Emakola.Payments.PaymentSplit do
       filter(expr(payment_id == ^arg(:payment_id)))
     end
 
+    # Recoverable = reversed - (what already nets at source) - recovered - reserved.
+    # "What nets at source" differs by rail/claim state, so this can't collapse
+    # to one uncapped term (see RefundLiability.effective_netted/1, the same
+    # split by design — DO NOT delete as "redundant" with a single formula):
+    #   - gateway_share: 0 always — the money already left at charge time, so
+    #     the FULL reversal is recoverable (today's exact behavior).
+    #   - internal_hold, claimed (paid_out_at set): netted_reversal_amount, the
+    #     value frozen by mark_paid_out — already net of any recovery taken
+    #     before that claim. This is where a genuine debt shows up: the payout
+    #     DELIVERED (or is in flight to deliver) the frozen paid_amount, and a
+    #     reversal that grows AFTER that claim is real money owed back.
+    #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
+    #     own future claim will net up to its full amount; only reversal
+    #     BEYOND amount (over-reversal from dispatch-fee redistribution) is
+    #     exposed here, never the part the split will net itself. This also
+    #     correctly covers a released `unreclaimable_release`-stamped row: its
+    #     payout never delivered anything (release_from_payout only fires on a
+    #     failed/reversed transfer), the underlying refund came out of the
+    #     platform's own held float, and any recovery that dead claim had
+    #     justified is unwound by RefundLiability.release_payout_recovery!/1
+    #     (P2a) — so its own reversal, up to its own amount, nets to a real
+    #     zero debt here, not a phantom one.
     read :recoverable_by_recipient do
       argument(:recipient_store_id, :uuid, allow_nil?: false)
 
       filter(
         expr(
           recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
-            reversed_amount > recovered_amount + reserved_recovery_amount
+            ((settlement_method == :gateway_share and
+                reversed_amount > recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and not is_nil(paid_out_at) and
+                  reversed_amount >
+                    netted_reversal_amount + recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and is_nil(paid_out_at) and
+                  reversed_amount > amount + recovered_amount + reserved_recovery_amount))
         )
       )
 
       prepare(build(sort: [inserted_at: :asc]))
+    end
+
+    # THE definition of internally-payable money — the split-level sibling of
+    # Payment.outstanding_for_payout (which owns the legacy :none population;
+    # the two can never overlap because a charge is entirely one split_mode).
+    # Change it ONLY here.
+    read :payable_internal do
+      argument(:recipient_store_id, :uuid, allow_nil?: true)
+
+      filter(
+        expr(
+          settlement_method == :internal_hold and role != :platform and
+            status in [:settled, :partially_reversed] and is_nil(paid_out_at) and
+            amount > reversed_amount and
+            (is_nil(^arg(:recipient_store_id)) or
+               recipient_store_id == ^arg(:recipient_store_id))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :asc]))
+    end
+
+    # Recipient-scoped earnings history for the money-surfaces UI: every
+    # allocation this store has settled, including reversals — the narrative
+    # shows what happened, and the LiveView computes net via
+    # `frozen_paid_amount/1` from these same rows (no separate SQL aggregate).
+    # Bounded to the 100 most recent rows; the feed can paginate later if this
+    # cap is ever hit in practice.
+    read :earnings_by_recipient do
+      argument(:recipient_store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
+            status in [:settled, :partially_reversed, :reversed]
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], limit: 100))
+    end
+
+    # Claims an internal allocation into a payout. Freezes the net at claim
+    # time (paid_amount) and fences already-netted reversals out of future
+    # recovery (netted_reversal_amount) — see the no-double-claw invariant.
+    update :mark_paid_out do
+      require_atomic?(false)
+      accept([:payout_id])
+
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations can be paid out via the ledger"
+             )}
+
+          changeset.data.status not in [:settled, :partially_reversed] ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :status,
+               message: "only a settled allocation can be paid out"
+             )}
+
+          not is_nil(changeset.data.paid_out_at) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :paid_out_at,
+               message: "allocation is already claimed by a payout"
+             )}
+
+          is_nil(Ash.Changeset.get_attribute(changeset, :payout_id)) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_id,
+               message: "a payout must own the claim"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(fn changeset, _context ->
+        # frozen_paid_amount/1 is THE formula authority. netted is its
+        # algebraic complement (frozen = amount - netted, so netted = amount
+        # - frozen) — not a second copy of the subtraction, just the same
+        # result read the other way, kept for the no-double-claw fence
+        # (see recoverable_by_recipient's netted_reversal_amount branch).
+        frozen = __MODULE__.frozen_paid_amount(changeset.data)
+        netted = changeset.data.amount - frozen
+
+        changeset
+        |> Ash.Changeset.change_attribute(:paid_out_at, DateTime.utc_now())
+        |> Ash.Changeset.change_attribute(:paid_amount, frozen)
+        |> Ash.Changeset.change_attribute(:netted_reversal_amount, netted)
+      end)
+    end
+
+    # Un-claims after a failed/reversed transfer: nothing was paid, so the
+    # netted fence resets and reversals net at source again — but never below
+    # what's already been collected via recoverable_by_recipient, or a later
+    # re-claim would re-freeze the full reversal on top of that recovery.
+    update :release_from_payout do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations carry payout claims"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(fn changeset, _context ->
+        changeset =
+          changeset
+          |> Ash.Changeset.change_attribute(:paid_out_at, nil)
+          |> Ash.Changeset.change_attribute(:payout_id, nil)
+          |> Ash.Changeset.change_attribute(:paid_amount, nil)
+          |> Ash.Changeset.change_attribute(
+            :netted_reversal_amount,
+            changeset.data.recovered_amount + changeset.data.reserved_recovery_amount
+          )
+
+        # An unreclaimable split (fully reversed while claimed) exits the
+        # payable population forever — but it does NOT mark a debt. This
+        # split's payout never delivered anything (release_from_payout only
+        # fires on a failed/reversed transfer), so the recipient received
+        # nothing; the customer's refund came out of the platform's own held
+        # float, not the recipient's pocket. Any recovery the now-dead claim
+        # had justified is separately unwound by RefundLiability.
+        # release_payout_recovery!/1 (P2a), so nothing is double-counted
+        # either. The stamp below is purely a historical audit trail for
+        # finance to investigate WHY a claimed split was fully reversed — not
+        # a to-do list, and not evidence of money owed.
+        if changeset.data.status == :reversed do
+          Ash.Changeset.change_attribute(
+            changeset,
+            :recovery_breakdown,
+            Map.put(changeset.data.recovery_breakdown, "unreclaimable_release", true)
+          )
+        else
+          changeset
+        end
+      end)
+    end
+
+    read :by_payout do
+      argument(:payout_id, :uuid, allow_nil?: false)
+      filter(expr(payout_id == ^arg(:payout_id)))
+    end
+
+    # Splits `release_from_payout` stamped as unreclaimable (fully reversed
+    # while claimed — see that action's comment) — finance's audit trail, not
+    # a to-do list. These claims never delivered any money (the payout's
+    # transfer failed/reversed) and carry no outstanding debt; remediation
+    # here means investigating WHY a claimed split was fully reversed, not
+    # collecting anything. No args: this is a cross-store platform view.
+    #
+    # `recovery_breakdown["unreclaimable_release"] == true` (Ash bracket
+    # syntax) compiles but fails at the DB: AshPostgres's jsonb `get_path`
+    # returns text, so Postgrex rejects comparing it to the boolean `true`
+    # ("expected a binary, got true"). Falls back to a fragment casting the
+    # `->>` text extraction to boolean explicitly (mirrors the
+    # `PlatformAuditLog.list_for_store` jsonb-key fragment precedent).
+    read :needs_remediation do
+      filter(
+        expr(fragment("(? ->> 'unreclaimable_release')::boolean IS TRUE", recovery_breakdown))
+      )
+
+      prepare(build(sort: [updated_at: :desc]))
+    end
+
+    # Finds every split still carrying a `payout_recoveries` entry for a
+    # given payout's `transfer_reference` — the read counterpart to
+    # `RefundLiability.collect_at_payout!/3`'s write, used by
+    # `release_payout_recovery!/1` to undo a collection whose payout never
+    # actually transferred. `@>` containment on the jsonb array matches an
+    # entry with AT LEAST this `payout_ref` (the `amount` key riding along is
+    # irrelevant to the match).
+    read :recovered_via_payout do
+      argument(:transfer_reference, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          fragment(
+            "(? -> 'payout_recoveries') @> jsonb_build_array(jsonb_build_object('payout_ref', ?::text))",
+            recovery_breakdown,
+            ^arg(:transfer_reference)
+          )
+        )
+      )
     end
   end
 end

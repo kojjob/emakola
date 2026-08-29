@@ -50,7 +50,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Gallery --%>
             <div>
-              <div class="aspect-square home-living-card overflow-hidden">
+              <div class="aspect-[4/5] home-living-card overflow-hidden">
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
                   src={Shared.current_image(@product, @current_image_index)}
@@ -98,6 +98,8 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
               <h1 class="home-living-heading text-3xl sm:text-4xl lg:text-5xl font-medium text-[#3F2D1A] leading-tight mb-3">
                 {@product.title}
               </h1>
+
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
 
               <%!-- Price + dimensions --%>
               <div class="flex items-baseline gap-4 mb-6 flex-wrap">
@@ -249,6 +251,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
         reviews={assigns[:reviews] || []}
         can_review={assigns[:can_review] || false}
         already_reviewed={assigns[:already_reviewed] || false}
+        review_form={assigns[:review_form]}
         review_form_rating={assigns[:review_form_rating] || 0}
         review_form_title={assigns[:review_form_title] || ""}
         review_form_body={assigns[:review_form_body] || ""}

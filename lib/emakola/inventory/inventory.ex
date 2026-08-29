@@ -222,8 +222,12 @@ defmodule Emakola.Inventory do
       end
     end)
     |> case do
-      {:ok, :ok} -> {:ok, :adjusted}
-      {:error, reason} -> {:error, reason}
+      {:ok, :ok} ->
+        Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
+        {:ok, :adjusted}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -244,20 +248,116 @@ defmodule Emakola.Inventory do
         |> Ash.Changeset.for_update(:adjust_stock, %{delta: -quantity})
         |> Ash.update!(authorize?: false)
 
-        default = ensure_default_location!(store_id)
-        _seeded = seeded_level!(variant, default.id)
-
-        allocation_levels(variant.id, default.id)
-        |> allocate(quantity)
-        |> Enum.each(fn {level, take} ->
-          {:ok, _} = adjust_level(level, -take)
-          record_movement!(variant, level.location_id, -take, :sale, order_id)
-        end)
+        cascade_decrement!(variant, store_id, quantity, :sale, order_id)
 
         :ok
       end)
 
+    Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
     :ok
+  end
+
+  @doc """
+  Like `decrement_for_sale!/4`, but clamps to the variant's current total
+  instead of raising when `quantity` exceeds it, and takes an explicit
+  `reason` for the movement ledger. Returns `{:ok, taken}` — `taken` may be
+  less than `quantity` (clamped) or `0` (nothing to decrement; no movement
+  written, no locations touched). Never raises on insufficient stock.
+
+  Cascades default-location-first across active locations exactly like
+  `decrement_for_sale!/4`, so `total == sum(levels)` holds even for
+  multi-location suppliers — the clamp is computed against the (locked,
+  fresh-read) variant total, and the SAME clamped amount is what gets
+  allocated across levels, never a raw unclamped quantity.
+
+  Used by `Emakola.Suppliers.NetworkStock`, whose webhook-path contract
+  requires never raising when a confirmed network sale exceeds supplier
+  stock on hand.
+  """
+  def decrement_clamped(variant_id, store_id, quantity, reason, order_id)
+      when is_integer(quantity) and quantity > 0 do
+    result =
+      Emakola.Repo.transaction(fn ->
+        variant = locked_variant!(variant_id)
+        take = Kernel.min(quantity, Kernel.max(variant.stock_quantity, 0))
+
+        if take > 0 do
+          variant
+          |> Ash.Changeset.for_update(:adjust_stock, %{delta: -take})
+          |> Ash.update!(authorize?: false)
+
+          cascade_decrement!(variant, store_id, take, reason, order_id)
+        end
+
+        take
+      end)
+
+    case result do
+      {:ok, take} when take > 0 ->
+        Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
+
+      _ ->
+        :ok
+    end
+
+    result
+  end
+
+  @doc """
+  Restores stock previously decremented for a fully refunded order.
+
+  Both merchant-owned `:sale` movements and supplier-source `:network_sale`
+  movements are reversed at their original locations. Positive `:refund`
+  movements form the idempotency ledger: reprocessing the webhook restores
+  only any still-missing delta, never the same units twice.
+
+  This function is designed to run inside the refund reconciliation
+  transaction. Its own transaction is intentionally safe to nest; Ecto uses
+  the caller's checked-out connection and the outer rollback remains
+  authoritative.
+  """
+  @spec restore_refunded_order(binary()) :: {:ok, non_neg_integer()} | {:error, term()}
+  def restore_refunded_order(order_id) when is_binary(order_id) do
+    Emakola.Repo.transaction(fn ->
+      debits = movement_totals(order_id, [:sale, :network_sale], :negative)
+      credits = movement_totals(order_id, [:refund], :positive)
+
+      debits
+      |> Enum.sort_by(fn {{variant_id, location_id}, _quantity} -> {variant_id, location_id} end)
+      |> Enum.reduce(0, fn {{variant_id, location_id}, debited}, total ->
+        already_restored = Map.get(credits, {variant_id, location_id}, 0)
+        to_restore = Kernel.max(debited - already_restored, 0)
+
+        if to_restore > 0 do
+          {:ok, :adjusted} =
+            adjust(variant_id, location_id, to_restore, :refund, order_id: order_id)
+
+          total + to_restore
+        else
+          total
+        end
+      end)
+    end)
+    |> normalize_transaction()
+  end
+
+  def restore_refunded_order(_order_id), do: {:error, :invalid_order_id}
+
+  # Shared by decrement_for_sale!/4 and decrement_clamped/5: allocates
+  # `quantity` (assumed already valid — raised on or clamped to by the
+  # caller) across the variant's stock levels, default location first, then
+  # active locations by stock descending, recording one movement per touched
+  # location.
+  defp cascade_decrement!(variant, store_id, quantity, reason, order_id) do
+    default = ensure_default_location!(store_id)
+    _seeded = seeded_level!(variant, default.id)
+
+    allocation_levels(variant.id, default.id)
+    |> allocate(quantity)
+    |> Enum.each(fn {level, take} ->
+      {:ok, _} = adjust_level(level, -take)
+      record_movement!(variant, level.location_id, -take, reason, order_id)
+    end)
   end
 
   @doc "Moves stock between two locations; the variant total is unchanged."
@@ -404,6 +504,22 @@ defmodule Emakola.Inventory do
     |> Enum.filter(& &1.location.active)
     |> Enum.sort_by(fn level ->
       {if(level.location_id == default_location_id, do: 0, else: 1), -level.quantity}
+    end)
+  end
+
+  defp movement_totals(order_id, reasons, direction) do
+    StockMovement
+    |> Ash.Query.filter(order_id == ^order_id and reason in ^reasons)
+    |> Ash.read!(authorize?: false)
+    |> Enum.filter(fn movement ->
+      case direction do
+        :negative -> movement.delta < 0
+        :positive -> movement.delta > 0
+      end
+    end)
+    |> Enum.reduce(%{}, fn movement, totals ->
+      quantity = abs(movement.delta)
+      Map.update(totals, {movement.variant_id, movement.location_id}, quantity, &(&1 + quantity))
     end)
   end
 

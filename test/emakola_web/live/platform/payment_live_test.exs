@@ -102,12 +102,25 @@ defmodule EmakolaWeb.Platform.PaymentLiveTest do
     end
 
     test "shows stat labels", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/platform/payments")
+      {:ok, view, html} = live(conn, "/platform/payments")
 
       assert html =~ "Total payments"
       assert html =~ "Success rate"
       assert html =~ "GMV"
       assert html =~ "Refunds"
+      assert has_element?(view, "#recent-refunds[phx-update='stream']")
+      assert has_element?(view, "#recent-refunds > tr[id^='refunds-']")
+    end
+
+    test "the hero charts daily GMV and the strip counts failures", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/payments")
+
+      assert has_element?(
+               view,
+               "canvas#payments-gmv-chart[phx-hook='ChartHook'][data-chart-type='gmv-line']"
+             )
+
+      assert has_element?(view, "#payments-failed-count", "1")
     end
 
     test "shows gateway labels", %{conn: conn} do
@@ -118,8 +131,10 @@ defmodule EmakolaWeb.Platform.PaymentLiveTest do
     end
 
     test "shows failed payment email and store name", %{conn: conn, store_b: store_b} do
-      {:ok, _view, html} = live(conn, "/platform/payments")
+      {:ok, view, html} = live(conn, "/platform/payments")
 
+      assert has_element?(view, "#failed-payments[phx-update='stream']")
+      assert has_element?(view, "#failed-payments > tr[id^='failed-']")
       assert html =~ "fail@example.com"
       assert html =~ store_b.name
     end
@@ -145,9 +160,15 @@ defmodule EmakolaWeb.Platform.PaymentLiveTest do
       store = Factory.create_store!()
       pay!(store, :paystack, :success)
 
-      {:ok, _view, html} = live(conn, "/platform/payments")
+      {:ok, view, _html} = live(conn, "/platform/payments")
 
-      assert html =~ "No failed payments"
+      assert has_element?(view, "#failed-payments[phx-update='stream']")
+      assert has_element?(view, "#failed-payments-empty")
+
+      refute has_element?(
+               view,
+               "#failed-payments > tr[id^='failed-']:not(#failed-payments-empty)"
+             )
     end
   end
 end

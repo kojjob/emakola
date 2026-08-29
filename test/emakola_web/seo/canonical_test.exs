@@ -4,12 +4,12 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
 
   Store-scoped URLs are **subdomain-primary** when `:store_subdomain_base` is
   configured (`https://<slug>.<base>/...` — the SEO-primary host once subdomain
-  routing is live), and fall back to the apex `/s/:slug/...` subfolder when it is
+  routing is live), and fall back to the apex `/:slug/...` subfolder when it is
   not (dev, tests, pre-activation). Either way the URL is composed from config —
   never from the request host — so every host that serves a page emits the same
   canonical, consolidating authority onto one indexed URL per store.
   """
-  use ExUnit.Case, async: false
+  use Emakola.DataCase, async: false
 
   alias EmakolaWeb.SEO.Canonical
 
@@ -25,37 +25,37 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
       {:ok, base: EmakolaWeb.Endpoint.url(), store: %{slug: "kente-shop"}}
     end
 
-    test "store_url uses the apex host + /s/:slug subfolder", %{base: base, store: store} do
-      assert Canonical.store_url(store) == base <> "/s/kente-shop"
+    test "store_url uses the apex host + /:slug subfolder", %{base: base, store: store} do
+      assert Canonical.store_url(store) == base <> "/kente-shop"
     end
 
     test "product_url", %{base: base, store: store} do
       assert Canonical.product_url(store, %{slug: "red-shoes"}) ==
-               base <> "/s/kente-shop/products/red-shoes"
+               base <> "/kente-shop/products/red-shoes"
     end
 
     test "category_url", %{base: base, store: store} do
       assert Canonical.category_url(store, %{slug: "footwear"}) ==
-               base <> "/s/kente-shop/category/footwear"
+               base <> "/kente-shop/category/footwear"
     end
 
     test "blog_url", %{base: base, store: store} do
       assert Canonical.blog_url(store, %{slug: "best-kente-2026"}) ==
-               base <> "/s/kente-shop/blog/best-kente-2026"
+               base <> "/kente-shop/blog/best-kente-2026"
     end
 
     test "recipe_url", %{base: base, store: store} do
       assert Canonical.recipe_url(store, %{slug: "jollof"}) ==
-               base <> "/s/kente-shop/recipes/jollof"
+               base <> "/kente-shop/recipes/jollof"
     end
 
     test "page_url", %{base: base, store: store} do
       assert Canonical.page_url(store, %{slug: "about-us"}) ==
-               base <> "/s/kente-shop/p/about-us"
+               base <> "/kente-shop/p/about-us"
     end
 
     test "path/2 builds an arbitrary store-scoped canonical path", %{base: base, store: store} do
-      assert Canonical.path(store, "/products") == base <> "/s/kente-shop/products"
+      assert Canonical.path(store, "/products") == base <> "/kente-shop/products"
     end
 
     test "url/1 prefixes the apex to an absolute path", %{base: base} do
@@ -83,7 +83,7 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
       assert Canonical.store_url(store) == origin
     end
 
-    test "product_url is subdomain-rooted (drops the /s/:slug prefix)", %{
+    test "product_url is subdomain-rooted (drops the /:slug prefix)", %{
       origin: origin,
       store: store
     } do

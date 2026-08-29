@@ -31,6 +31,7 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   import Plug.Conn
 
   @session_key "utm_attribution"
+  @affiliate_clicks_session_key "affiliate_link_clicks"
   @share_clicks_session_key "earn_share_clicks"
 
   @utm_keys ~w(utm_source utm_medium utm_campaign utm_content utm_term)
@@ -40,6 +41,7 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   def call(conn, _opts) do
     captured = capture(conn.params)
     conn = maybe_record_share_click(conn, conn.params)
+    conn = maybe_record_affiliate_click(conn, conn.params)
 
     case captured do
       empty when map_size(empty) == 0 ->
@@ -68,36 +70,51 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   end
 
   defp capture(%{} = params) do
-    base =
-      Enum.reduce(@utm_keys, %{}, fn key, acc ->
-        case Map.get(params, key) do
-          val when is_binary(val) and val != "" -> Map.put(acc, key, val)
-          _ -> acc
-        end
-      end)
+    params
+    |> utm_keys()
+    |> put_token(params, "share", "share_token")
+    |> put_token(params, "aff", "affiliate_token")
+    |> put_sales_team(params)
+    |> put_click_to_whatsapp(params)
+  end
 
-    base =
-      case Map.get(params, "share") do
-        token when is_binary(token) and byte_size(token) <= 100 and token != "" ->
-          Map.put(base, "share_token", token)
+  defp capture(_params), do: %{}
 
-        _ ->
-          base
+  defp utm_keys(params) do
+    Enum.reduce(@utm_keys, %{}, fn key, acc ->
+      case Map.get(params, key) do
+        val when is_binary(val) and val != "" -> Map.put(acc, key, val)
+        _ -> acc
       end
+    end)
+  end
 
-    base =
-      case Ecto.UUID.cast(Map.get(params, "sales_team")) do
-        {:ok, team_id} -> Map.put(base, "sales_team_id", team_id)
-        :error -> base
-      end
+  # Share and affiliate tokens are captured identically — opaque strings,
+  # length-capped so a crafted URL cannot stuff the session. They are stored
+  # under different keys because they pay different people.
+  defp put_token(base, params, param, key) do
+    case Map.get(params, param) do
+      token when is_binary(token) and byte_size(token) <= 100 and token != "" ->
+        Map.put(base, key, token)
 
+      _ ->
+        base
+    end
+  end
+
+  defp put_sales_team(base, params) do
+    case Ecto.UUID.cast(Map.get(params, "sales_team")) do
+      {:ok, team_id} -> Map.put(base, "sales_team_id", team_id)
+      :error -> base
+    end
+  end
+
+  defp put_click_to_whatsapp(base, params) do
     case Map.get(params, "ref") do
       "whatsapp" -> Map.put(base, "click_to_whatsapp", true)
       _ -> base
     end
   end
-
-  defp capture(_params), do: %{}
 
   defp maybe_record_share_click(conn, %{"share" => token})
        when is_binary(token) and token != "" and byte_size(token) <= 100 do
@@ -112,4 +129,22 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   end
 
   defp maybe_record_share_click(conn, _params), do: conn
+
+  # Same once-per-session dedupe as share clicks: a buyer browsing three pages
+  # with the token in their session is one click, not three. The counter is
+  # for the affiliate's own page and never a basis for money — commission
+  # comes from PaymentSplit rows.
+  defp maybe_record_affiliate_click(conn, %{"aff" => token})
+       when is_binary(token) and token != "" and byte_size(token) <= 100 do
+    recorded = get_session(conn, @affiliate_clicks_session_key) || []
+
+    if token in recorded do
+      conn
+    else
+      Emakola.Affiliates.Programme.record_click(token)
+      put_session(conn, @affiliate_clicks_session_key, Enum.take([token | recorded], 20))
+    end
+  end
+
+  defp maybe_record_affiliate_click(conn, _params), do: conn
 end

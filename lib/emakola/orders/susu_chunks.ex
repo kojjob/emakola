@@ -1,0 +1,665 @@
+defmodule Emakola.Orders.SusuChunks do
+  @moduledoc """
+  Chunk initiation + webhook accumulation for a susu plan (TC-3 Task 3) —
+  the money core of lay-away.
+
+  ## Initiation ordering (verified, not invented)
+
+  `initiate_chunk/4` mirrors the EXACT sequence `CheckoutLive`/`PayLinkLive`
+  already use for every other gateway payment: the gateway's HTTP call
+  happens FIRST, and the `Payment` row is only created afterward, seeded
+  with the reference the gateway returned (`Payment.:update` has no action
+  that accepts `gateway_reference`, so there is no supported way to create
+  a placeholder row first and stamp the reference on later — the existing
+  pattern is also the only one the schema supports). The plan-row lock
+  covers only the pre-flight validation (status/deadline/one-pending-chunk/
+  amount bounds) — never the HTTP round trip.
+
+  This does leave a narrow window: two genuinely concurrent
+  `initiate_chunk/4` calls for the same plan can both pass the
+  one-pending-chunk check (no `Payment` row exists for either yet) and
+  both reach the gateway. That is the same structural shape every other
+  gateway-payment call site in this codebase already accepts (see
+  `Emakola.Suppliers.GroupBuys.create_customer_payment/4`, which has the
+  identical gateway-then-payment order) — not a new risk introduced here.
+
+  ## Confirmation
+
+  `confirm_chunk/1` is the webhook success block's hook (guarded on
+  `payment.susu_plan_id` — nil is an instant no-op, so ordinary
+  order-based payments are byte-identical to before this module existed).
+  It locks the plan row (`locked_plan_query/1`), re-reads the payment
+  fresh (redelivery-safe idempotency: a payment already stamped
+  `metadata["susu_counted"]` no-ops), and only then decides:
+
+    * plan not `:pending`/`:active` (expired/cancelled/completed between
+      initiation and webhook) -> the money is flagged on the payment for
+      merchant refund attention (dedup'd note, mirrors
+      `Emakola.Orders.PayLinkClaim`'s exact pattern) and logged. It is
+      never counted.
+    * first confirmed chunk against a `:pending` plan -> activates the
+      plan (customer find-or-create by the stashed buyer phone, delivery
+      address stored) and, for a catalog plan not yet flagged
+      `stock_reserved`, reserves stock (`Emakola.Orders.SusuStock.reserve/1`,
+      Task 4) — re-attempted on every confirm until it succeeds, not just
+      the first one (see `confirm_chunk/1`'s doc). Insufficient stock
+      cancels the plan and flags the payment for refund instead of
+      leaving the buyer's money parked in a dead plan.
+    * a contribution that would exceed the plan's `total_amount` (two
+      chunks initiated before either confirmed, say) is likewise never
+      recorded — flagged for refund instead of overshooting the total.
+    * otherwise records the contribution and, if it exactly completes the
+      plan, enqueues `Emakola.Payments.Workers.SusuCompletionWorker`
+      (shell only — Task 5 implements the real work).
+
+  Every business-rule outcome above is handled without raising into the
+  calling webhook worker (same discipline as `ProtectionHolds.ensure_hold/1`)
+  — with one deliberate exception: an unexpected raise from
+  `SusuStock.reserve/1` itself propagates so Oban retries the job instead of
+  recording a silent, uncounted success. See `confirm_chunk/1`'s doc.
+  """
+
+  import Ecto.Query, only: [from: 2]
+  require Ash.Query
+  require Logger
+
+  alias Emakola.Notifications.Dispatcher
+  alias Emakola.Orders.CheckoutService
+  alias Emakola.Orders.SusuLifecycle
+  alias Emakola.Orders.SusuPlan
+  alias Emakola.Orders.SusuStock
+  alias Emakola.Payments.Payment
+  alias Emakola.Repo
+
+  @refund_note "⚠️ Susu chunk confirmed against a non-active plan — refund this payment."
+
+  # Builds the FOR-UPDATE row lookup used by both `initiate_chunk/4` and
+  # `confirm_chunk/1`. Exposed (not private) so `SusuChunksTest` can pass it
+  # to `Ecto.Adapters.SQL.to_sql/3` and assert the lock clause is present —
+  # mirrors `ProtectionRelease.locked_row_query/1` / `PayLinkClaim.locked_row_query/1`.
+  @doc false
+  def locked_plan_query(plan_id) do
+    from(p in "susu_plans",
+      where: p.id == type(^plan_id, :binary_id),
+      lock: "FOR UPDATE",
+      # Schemaless queries decode a `timestamp` column as NaiveDateTime by
+      # default — the explicit `type/2` cast is required to get back a real
+      # `DateTime` that `deadline_ok/1` can pass to `DateTime.compare/2`.
+      select: %{status: p.status, deadline: type(p.deadline, :utc_datetime_usec)}
+    )
+  end
+
+  @doc """
+  Initiates a chunk payment toward `plan_code_or_struct` for `amount` (minor
+  units). `buyer_params` (string-keyed map: "name", "phone", required for the
+  very first chunk; "email", "address" optional) is stashed on the created
+  payment's `metadata["susu_buyer"]` for `confirm_chunk/1` to read at
+  activation — customer resolution does NOT happen here. `gateway` is the
+  `Emakola.Payments.Gateway` implementation to call: an explicit, required
+  argument (per this task's interface) rather than an `Application.get_env/3`
+  read, for the same testability reason `Emakola.Suppliers.GroupBuys` takes
+  its gateway as an argument.
+
+  Returns `{:ok, %{payment: payment, gateway: gateway_response}}` or
+  `{:error, reason}` — `:plan_not_found`, `:completed | :cancelled |
+  :expired` (plan not usable), `:already_started` (only possible with
+  `public_start?: true` — see below), `:chunk_in_flight` (a payment
+  already `:pending` for this plan), `:amount_below_min |
+  :amount_above_remaining`, `:buyer_details_required` (first chunk missing
+  name/phone), or whatever the gateway/payment-create call returns.
+
+  `opts`:
+
+    * `:public_start?` (default `false`) — set by a caller acting on
+      `EmakolaWeb.Storefront.SusuLinkLive`'s tokenless "start" form (the
+      bare-code public entry point — see that module's moduledoc), which
+      must only ever submit a plan's FIRST chunk. `true` makes the
+      LOCKED, freshly-read plan row the authority on that: any status
+      other than `"pending"` is rejected as `:already_started`, even
+      though `initiate_chunk/5` would otherwise accept `:active` too. This
+      closes a stale-socket race the LiveView's own mount-time state check
+      cannot: a socket that mounted while the plan was still `:pending`
+      keeps showing the tokenless start form even after the plan goes
+      `:active` via a different path (another tab/device paying the first
+      chunk); without this flag, a "start" push from that stale socket
+      would reach here with the plan genuinely `:active`, which
+      `status_ok/1` accepts — moving money on a tokenless form for a plan
+      that already has a signed link. A `false`/omitted `:public_start?`
+      (the signed "chunk" form, or any other caller) is unaffected.
+  """
+  def initiate_chunk(plan_code_or_struct, amount, buyer_params, gateway, opts \\ []) do
+    with {:ok, plan_id} <- resolve_plan_id(plan_code_or_struct),
+         {:ok, checked} <- validate_and_prepare(plan_id, amount, buyer_params, opts) do
+      do_initiate(checked, gateway)
+    end
+  end
+
+  @doc """
+  Accumulates a confirmed chunk payment onto its susu plan. A no-op for any
+  payment not parented to a plan (`susu_plan_id` nil) — see moduledoc.
+
+  Runs in (up to) two separate locked transactions rather than one, by
+  necessity: `SusuStock.reserve/1` (Task 4) manages its own transaction and
+  — on insufficient stock — rescues its own `Ash.Error.Invalid` internally
+  without issuing a rollback. Nested inside one of OUR transactions, that
+  CHECK-constraint violation would still abort the surrounding Postgres
+  transaction at the server level (a raised, DB-level constraint error
+  poisons the whole enclosing transaction regardless of what Elixir code
+  rescues), taking down the plan-cancel + refund-flag writes that need to
+  follow it. So stock reservation runs OUTSIDE any transaction of ours —
+  between the "activate" phase (`prepare/2`) and the "record contribution"
+  phase (`finish_recording/2`), each independently locked.
+
+  `prepare/2` routes to reservation whenever the (now-loaded, real) plan is
+  `type: :catalog` and `stock_reserved: false` — regardless of whether this
+  is the first confirmed chunk (status was `:pending`) or a later one on an
+  already-`:active` plan. That second case only happens if a PRIOR confirm
+  crashed between phase 1 committing (`:active`, `stock_reserved: false`)
+  and `SusuStock.reserve/1` completing — without re-checking the flag on
+  every confirm, that crash would leave stock never reserved and every
+  subsequent redelivery would sail past it straight to recording, since
+  status alone can no longer tell the two situations apart. Both
+  `SusuStock.reserve/1` and `Emakola.Orders.SusuPlan`'s
+  `:mark_stock_reserved` change are idempotent, so re-attempting it costs
+  nothing when it already succeeded.
+
+  ## Raise boundary: reservation failures are NOT swallowed
+
+  Every phase in this function — `prepare/2`, `finish_recording/2`, and the
+  insufficient-stock cancel+flag path — is individually rescued (never
+  raises into the caller), same discipline as `ProtectionHolds.ensure_hold/1`.
+  The one deliberate exception is the call to `SusuStock.reserve/1` itself:
+  it returns `:ok` or `{:error, :insufficient_stock}` for every outcome this
+  module treats as expected, but anything else it raises (the variant was
+  deleted since the plan was created, a transient `DBConnection` error, ...)
+  is an infrastructure failure, not a business-rule rejection. Swallowing
+  that here would let Oban record the job as a success while the chunk was
+  never counted, reserved, or flagged for refund — money silently stuck
+  with no retry and no signal. Letting it propagate out of `confirm_chunk/1`
+  makes Oban retry the job instead; that retry is safe precisely because
+  `metadata["susu_counted"]` and `stock_reserved` make every phase here
+  idempotent.
+  """
+  def confirm_chunk(%Payment{susu_plan_id: nil}), do: :ok
+
+  def confirm_chunk(%Payment{susu_plan_id: plan_id, id: payment_id}) do
+    case guarded_prepare(plan_id, payment_id) do
+      :short_circuited ->
+        :ok
+
+      {:record, plan, payment, just_activated?} ->
+        guarded_finish(plan_id, plan, payment, just_activated?)
+
+      {:needs_reservation, plan, payment, just_activated?} ->
+        reserve_and_continue(plan_id, plan, payment, just_activated?)
+    end
+  end
+
+  # Deliberately NOT rescued around the `SusuStock.reserve/1` call — see
+  # `confirm_chunk/1`'s "Raise boundary" doc. The two outcomes it DOES
+  # return (`:ok`, `{:error, :insufficient_stock}`) are handled explicitly;
+  # anything else propagates.
+  defp reserve_and_continue(plan_id, plan, payment, just_activated?) do
+    case SusuStock.reserve(plan) do
+      :ok ->
+        guarded_finish(plan_id, plan, payment, just_activated?)
+
+      {:error, :insufficient_stock} ->
+        guarded_cancel_and_flag(plan, payment, plan_id)
+    end
+  end
+
+  defp guarded_prepare(plan_id, payment_id) do
+    prepare(plan_id, payment_id)
+  rescue
+    error ->
+      log_confirm_error(payment_id, error, __STACKTRACE__)
+      :short_circuited
+  end
+
+  defp guarded_finish(plan_id, plan, payment, just_activated?) do
+    finish_recording(plan_id, plan, payment, just_activated?)
+  rescue
+    error ->
+      log_confirm_error(payment.id, error, __STACKTRACE__)
+      :ok
+  end
+
+  # The insufficient-stock path never reaches `finish_recording/4` — the
+  # ONLY place activation notifications dispatch from (see there) — so
+  # there is no `:susu_activated` to undo here; this used to call the bare
+  # `cancel_susu_plan!` directly, which left this path with no refund
+  # initiation and no notification at all. Routing through
+  # `SusuLifecycle.cancel/2` (`by: :system` — this cancellation is neither
+  # buyer-, merchant-, nor takedown-initiated, it's the plan's own stock
+  # check failing) gives it the SAME convergent handling every other susu
+  # termination gets for free: stock release (a no-op here — nothing was
+  # ever reserved), refund initiation for the activating payment (picked
+  # up by `SusuRefunds.refund_all_contributions/1` even though
+  # `mark_counted!/1` never ran for it — see that module's moduledoc), and
+  # the buyer/merchant end-of-life notifications.
+  #
+  # `flag_for_refund/2` runs FIRST, deliberately, on the `payment` struct
+  # this function was handed (fresh as of just before `SusuStock.reserve/1`
+  # was attempted) — belt-and-braces in case the automatic refund itself
+  # never gets attempted (e.g. `SusuLifecycle.cancel/2` raising). Calling it
+  # AFTER `SusuLifecycle.cancel/2` instead would race a stale struct against
+  # `SusuRefunds`' own claim-stamp write to this SAME payment row: this
+  # function's `payment` argument predates that stamp, so writing its
+  # (stale) `metadata` back with `Ash.Changeset.for_update(:update, ...)`
+  # would silently clobber `"susu_refund_claimed"` moments after it was set
+  # — a genuine lost-update bug this ordering avoids entirely rather than
+  # papering over with a re-fetch.
+  defp guarded_cancel_and_flag(plan, payment, plan_id) do
+    flag_for_refund(payment, plan_id)
+    SusuLifecycle.cancel(plan, :system)
+    :ok
+  rescue
+    error ->
+      log_confirm_error(payment.id, error, __STACKTRACE__)
+      :ok
+  end
+
+  defp log_confirm_error(payment_id, error, stacktrace) do
+    Logger.error(
+      "[susu_chunks] confirm_chunk failed for payment=#{payment_id}: " <>
+        Exception.format(:error, error, stacktrace)
+    )
+  end
+
+  # -- Initiation ------------------------------------------------------
+
+  defp resolve_plan_id(%SusuPlan{id: id}), do: {:ok, id}
+
+  defp resolve_plan_id(code) when is_binary(code) do
+    case Emakola.Orders.get_susu_plan_by_code(code, authorize?: false) do
+      {:ok, %SusuPlan{id: id}} -> {:ok, id}
+      _ -> {:error, :plan_not_found}
+    end
+  end
+
+  defp validate_and_prepare(plan_id, amount, buyer_params, opts) do
+    Repo.transaction(fn ->
+      case Repo.one(locked_plan_query(plan_id)) do
+        nil ->
+          Repo.rollback(:plan_not_found)
+
+        row ->
+          result =
+            with :ok <- status_ok(row.status),
+                 :ok <- public_start_ok(row.status, opts),
+                 :ok <- deadline_ok(row.deadline),
+                 :ok <- one_pending_chunk_ok(plan_id),
+                 plan <- Ash.get!(SusuPlan, plan_id, authorize?: false),
+                 :ok <- amount_within_bounds(plan, amount),
+                 :ok <- buyer_params_ok(row.status, buyer_params) do
+              {:ok,
+               %{
+                 plan: plan,
+                 amount: amount,
+                 buyer_params: buyer_params,
+                 first_chunk?: row.status == "pending"
+               }}
+            end
+
+          case result do
+            {:ok, checked} -> checked
+            {:error, reason} -> Repo.rollback(reason)
+          end
+      end
+    end)
+  end
+
+  defp status_ok("pending"), do: :ok
+  defp status_ok("active"), do: :ok
+  defp status_ok("completed"), do: {:error, :completed}
+  defp status_ok("cancelled"), do: {:error, :cancelled}
+  defp status_ok("expired"), do: {:error, :expired}
+
+  # Runs only after `status_ok/1` already passed (so the row is "pending"
+  # or "active" here) — narrows that down to "pending" ONLY when the
+  # caller is the tokenless public "start" path. See `initiate_chunk/5`'s
+  # doc for why this exists.
+  defp public_start_ok("pending", _opts), do: :ok
+
+  defp public_start_ok(_status, opts) do
+    if Keyword.get(opts, :public_start?, false),
+      do: {:error, :already_started},
+      else: :ok
+  end
+
+  defp deadline_ok(deadline) do
+    if DateTime.compare(deadline, DateTime.utc_now()) == :lt,
+      do: {:error, :expired},
+      else: :ok
+  end
+
+  defp one_pending_chunk_ok(plan_id) do
+    existing =
+      Payment
+      |> Ash.Query.filter(susu_plan_id == ^plan_id and status == :pending)
+      |> Ash.read_one!(authorize?: false)
+
+    if existing, do: {:error, :chunk_in_flight}, else: :ok
+  end
+
+  defp amount_within_bounds(plan, amount) do
+    %{min: min, max: max} = SusuPlan.chunk_bounds(plan)
+
+    cond do
+      amount < min -> {:error, :amount_below_min}
+      amount > max -> {:error, :amount_above_remaining}
+      true -> :ok
+    end
+  end
+
+  defp buyer_params_ok("pending", buyer_params) do
+    if presence(buyer_params["name"]) && presence(buyer_params["phone"]),
+      do: :ok,
+      else: {:error, :buyer_details_required}
+  end
+
+  defp buyer_params_ok(_status, _buyer_params), do: :ok
+
+  defp do_initiate(%{plan: plan, amount: amount, buyer_params: buyer_params} = checked, gateway) do
+    store = Ash.get!(Emakola.Stores.Store, plan.store_id, authorize?: false)
+
+    params = %{
+      amount: amount,
+      email: resolve_email(plan, store, buyer_params),
+      currency: store.currency || "GHS",
+      store_id: store.id,
+      callback_url: susu_page_url(plan),
+      return_url: susu_page_url(plan),
+      metadata: %{payment_method: "susu_chunk"}
+    }
+
+    case gateway.initiate_payment(params) do
+      {:ok, %{reference: reference} = resp} ->
+        create_chunk_payment(checked, store, reference, resp)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp create_chunk_payment(
+         %{plan: plan, amount: amount, buyer_params: buyer_params, first_chunk?: first_chunk?},
+         store,
+         reference,
+         resp
+       ) do
+    case Emakola.Payments.create_payment(
+           %{
+             store_id: store.id,
+             susu_plan_id: plan.id,
+             amount: amount,
+             currency: store.currency || "GHS",
+             gateway: :paystack,
+             gateway_reference: reference,
+             metadata: susu_payment_metadata(first_chunk?, buyer_params),
+             payout_held: true,
+             payout_hold_reason: "susu_plan"
+           },
+           authorize?: false
+         ) do
+      {:ok, payment} -> {:ok, %{payment: payment, gateway: resp}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp susu_payment_metadata(true, buyer_params),
+    do: %{"payment_method" => "susu_chunk", "susu_buyer" => buyer_params}
+
+  defp susu_payment_metadata(false, _buyer_params), do: %{"payment_method" => "susu_chunk"}
+
+  defp susu_page_url(plan), do: "#{EmakolaWeb.Endpoint.url()}/susu/#{plan.code}"
+
+  # Email for the gateway charge: the buyer's own (or a phone placeholder,
+  # same deterministic derivation checkout uses) when this chunk carries
+  # buyer_params; otherwise (a returning buyer topping up an already-active
+  # plan) the plan's already-resolved customer, falling back to the store's
+  # contact address — mirrors `PayLinkLive.customer_email/2`.
+  defp resolve_email(plan, store, buyer_params) do
+    presence(buyer_params["email"]) ||
+      case presence(buyer_params["phone"]) do
+        nil -> customer_or_store_email(plan, store)
+        phone -> CheckoutService.phone_placeholder_email(phone)
+      end
+  end
+
+  defp customer_or_store_email(%SusuPlan{customer_id: nil}, store),
+    do: store_fallback_email(store)
+
+  defp customer_or_store_email(%SusuPlan{customer_id: customer_id}, store) do
+    case Ash.get(Emakola.Customers.Customer, customer_id, authorize?: false) do
+      {:ok, %{email: email}} when not is_nil(email) -> to_string(email)
+      _ -> store_fallback_email(store)
+    end
+  end
+
+  defp store_fallback_email(store),
+    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@makola.io"
+
+  # -- Confirmation ------------------------------------------------------
+
+  # Phase 1: lock the plan row, resolve idempotency + plan-usability, and —
+  # for the first confirmed chunk — activate (customer resolution, delivery
+  # address, status -> :active). All pure Ash/Ecto writes with no
+  # DB-constraint risk, so safe to run inside this lock. Stock reservation
+  # deliberately does NOT happen here (see `confirm_chunk/1`'s doc) — this
+  # phase only DECIDES whether it's still needed, via `route_for_reservation/3`.
+  # Activation notifications ALSO deliberately do not dispatch here — they
+  # fire only from `finish_recording/4`, AFTER stock reservation (if any) has
+  # already succeeded, so an insufficient-stock cancellation right after
+  # this phase never has a "you're active!" SMS to walk back (see
+  # `guarded_cancel_and_flag/3`). The `just_activated?` flag threaded
+  # through `route_for_reservation/3` onward is what lets `finish_recording/4`
+  # know to dispatch activation instead of an ordinary chunk-progress
+  # notification.
+  defp prepare(plan_id, payment_id) do
+    {:ok, result} =
+      Repo.transaction(fn ->
+        row = Repo.one(locked_plan_query(plan_id))
+        fresh_payment = Ash.get!(Payment, payment_id, authorize?: false)
+
+        cond do
+          already_counted?(fresh_payment) ->
+            :short_circuited
+
+          is_nil(row) or row.status not in ["pending", "active"] ->
+            flag_for_refund(fresh_payment, plan_id)
+            :short_circuited
+
+          row.status == "pending" ->
+            plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
+            activated = activate_plan!(plan, fresh_payment)
+            route_for_reservation(activated, fresh_payment, true)
+
+          true ->
+            plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
+            route_for_reservation(plan, fresh_payment, false)
+        end
+      end)
+
+    result
+  end
+
+  # Routes to reservation for ANY catalog plan not yet flagged
+  # `stock_reserved` — not just a freshly-activated one. A plan can reach
+  # here already `:active` with `stock_reserved: false` if a prior confirm
+  # activated it and then crashed/raised before `SusuStock.reserve/1`
+  # finished (see `confirm_chunk/1`'s doc) — this makes that window
+  # retryable instead of silently skipped. `just_activated?` rides along
+  # unchanged either way — reservation success/failure doesn't affect
+  # whether THIS chunk is the one that activated the plan.
+  defp route_for_reservation(
+         %SusuPlan{type: :catalog, stock_reserved: false} = plan,
+         payment,
+         just_activated?
+       ),
+       do: {:needs_reservation, plan, payment, just_activated?}
+
+  defp route_for_reservation(plan, payment, just_activated?),
+    do: {:record, plan, payment, just_activated?}
+
+  # Phase 2: re-lock the plan (fresh — stock reservation, if it ran, was a
+  # separate transaction and may have changed nothing we care about here
+  # beyond `stock_reserved`) and record the contribution, guarding once
+  # more against a delta that would overshoot `total_amount`.
+  defp finish_recording(plan_id, plan, payment, just_activated?) do
+    Repo.transaction(fn ->
+      _row = Repo.one(locked_plan_query(plan_id))
+      fresh_plan = Ash.get!(SusuPlan, plan.id, authorize?: false)
+
+      if valid_contribution_amount?(payment.amount, fresh_plan) do
+        contributed =
+          Emakola.Orders.record_susu_contribution!(
+            fresh_plan,
+            %{amount_delta: payment.amount},
+            authorize?: false
+          )
+
+        mark_counted!(payment)
+        notify_recorded_contribution(contributed, just_activated?)
+        maybe_complete(contributed)
+      else
+        flag_for_refund(payment, plan_id)
+      end
+    end)
+
+    :ok
+  end
+
+  defp valid_contribution_amount?(amount, plan) do
+    is_integer(amount) and amount > 0 and amount <= SusuPlan.remaining(plan)
+  end
+
+  defp activate_plan!(plan, payment) do
+    buyer = (payment.metadata || %{})["susu_buyer"] || %{}
+
+    email =
+      presence(buyer["email"]) || CheckoutService.phone_placeholder_email(buyer["phone"] || "")
+
+    customer =
+      Emakola.Customers.Customer
+      |> Ash.ActionInput.for_action(:find_or_create, %{
+        email: email,
+        store_id: plan.store_id,
+        name: buyer["name"],
+        phone: buyer["phone"]
+      })
+      |> Ash.run_action!()
+
+    Emakola.Orders.activate_susu_plan!(
+      plan,
+      %{customer_id: customer.id, delivery_address: delivery_address(plan, buyer)},
+      authorize?: false
+    )
+  end
+
+  defp delivery_address(%SusuPlan{collect_delivery: true}, buyer),
+    do: %{"name" => buyer["name"], "phone" => buyer["phone"], "address" => buyer["address"]}
+
+  defp delivery_address(%SusuPlan{collect_delivery: false}, _buyer), do: nil
+
+  defp maybe_complete(%SusuPlan{contributed_amount: c, total_amount: t} = plan) when c == t do
+    completed = Emakola.Orders.complete_susu_plan!(plan, authorize?: false)
+    enqueue_completion_worker(completed.id)
+  end
+
+  defp maybe_complete(_plan), do: :ok
+
+  defp enqueue_completion_worker(plan_id) do
+    %{"susu_plan_id" => plan_id}
+    |> Emakola.Payments.Workers.SusuCompletionWorker.new()
+    |> Oban.insert!()
+  end
+
+  # The chunk that just activated the plan gets ONLY the activation
+  # notification, never `:susu_chunk_received` on top of it (regardless of
+  # whether it also happens to complete the plan) — a redundant "chunk
+  # received, keep going!" message on the SAME payment as "you're active!"
+  # would be confusing. Every later chunk on an already-active plan gets
+  # the ordinary progress-vs-completion choice `maybe_notify_chunk/1` makes.
+  defp notify_recorded_contribution(plan, true), do: dispatch_activation(plan)
+  defp notify_recorded_contribution(plan, false), do: maybe_notify_chunk(plan)
+
+  # `:susu_activated` (buyer) + `:susu_merchant_activated` (merchant) —
+  # dispatched from `finish_recording/4` (see there for why NOT from
+  # `prepare/2`, where activation itself happens) once per plan — the only
+  # path into `notify_recorded_contribution/2` with `just_activated?: true`
+  # is the plan's very first confirmed chunk.
+  defp dispatch_activation(plan) do
+    dispatch_susu_event(plan, :susu_activated)
+    dispatch_susu_event(plan, :susu_merchant_activated)
+  end
+
+  # `:susu_chunk_received` (buyer progress update) — skipped for the
+  # contribution that exactly completes the plan: that buyer instead gets
+  # `:susu_completed` (with the order's tracking link) once
+  # `SusuCompletionWorker` turns the plan into a real order, so a redundant
+  # "keep going!" message on the very chunk that finished it would be
+  # confusing. Only ever called for a NON-activating chunk (see
+  # `notify_recorded_contribution/2`) — the activating chunk's exclusion is
+  # handled one level up, independent of completion.
+  defp maybe_notify_chunk(%SusuPlan{contributed_amount: c, total_amount: t} = plan)
+       when c < t do
+    dispatch_susu_event(plan, :susu_chunk_received)
+  end
+
+  defp maybe_notify_chunk(_plan), do: :ok
+
+  defp dispatch_susu_event(plan, event) do
+    case Dispatcher.dispatch_susu(plan, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[susu_chunks] #{inspect(event)} dispatch failed: #{inspect(reason)}",
+          plan_id: plan.id
+        )
+    end
+  end
+
+  defp already_counted?(%Payment{metadata: metadata}),
+    do: Map.get(metadata || %{}, "susu_counted") == true
+
+  defp mark_counted!(payment) do
+    payment
+    |> Ash.Changeset.for_update(:update, %{
+      metadata: Map.put(payment.metadata || %{}, "susu_counted", true)
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
+  # Mirrors `PayLinkClaim.flag_for_refund/2`'s exact dedup-guard shape,
+  # adapted to Payment's `metadata` map (Payment has no `notes` column).
+  defp flag_for_refund(payment, plan_id) do
+    note = Map.get(payment.metadata || %{}, "refund_note", "")
+
+    if String.contains?(note, @refund_note) do
+      :ok
+    else
+      Logger.error(
+        "[susu_chunks] plan #{plan_id} not active — payment #{payment.id} needs a refund"
+      )
+
+      updated_note = String.trim("#{note}\n#{@refund_note}")
+
+      payment
+      |> Ash.Changeset.for_update(:update, %{
+        metadata: Map.put(payment.metadata || %{}, "refund_note", updated_note)
+      })
+      |> Ash.update!(authorize?: false)
+    end
+  end
+
+  defp presence(nil), do: nil
+
+  defp presence(value) when is_binary(value),
+    do: if(String.trim(value) == "", do: nil, else: value)
+
+  defp presence(_value), do: nil
+end

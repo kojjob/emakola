@@ -45,6 +45,7 @@ test.describe("Storefront Browsing", () => {
     await page.goto(`${STORE}/products`);
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("MTN MoMo").first()).toBeVisible();
-    await expect(page.getByText("Powered by Emakola")).toBeVisible();
+    // Visible brand is "Makola" (the code namespace stays Emakola.* on purpose).
+    await expect(page.getByText("Powered by Makola")).toBeVisible();
   });
 });

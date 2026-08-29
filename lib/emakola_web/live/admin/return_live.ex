@@ -25,7 +25,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
          |> redirect(to: "/onboarding")}
 
       store ->
-        returns = load_returns(store.id)
+        all_returns = load_returns(store.id)
 
         {:ok,
          socket
@@ -33,11 +33,15 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            page_title: "Returns",
            active_nav: :returns,
            store: store,
-           returns: returns,
+           all_returns: all_returns,
+           returns: all_returns,
+           return_stats: build_return_stats(all_returns),
            status_filter: "all",
            selected_return: nil,
            action_notes: "",
+           action_notes_form: to_form(%{"notes" => ""}),
            refund_amount_input: "",
+           refund_amount_form: to_form(%{"amount" => ""}),
            refund_dispatch_fee: false,
            selected_payment: nil,
            selected_fulfillments: []
@@ -47,11 +51,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
   @impl true
   def handle_event("filter_status", %{"status" => status}, socket) do
-    returns = load_returns(socket.assigns.store.id, status)
-
     {:noreply,
      assign(socket,
-       returns: returns,
+       returns: filter_returns(socket.assigns.all_returns, status),
        status_filter: status
      )}
   end
@@ -65,7 +67,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
      assign(socket,
        selected_return: selected,
        action_notes: "",
+       action_notes_form: to_form(%{"notes" => ""}),
        refund_amount_input: "",
+       refund_amount_form: to_form(%{"amount" => ""}),
        refund_dispatch_fee: false,
        selected_payment: payment,
        selected_fulfillments: fulfillments
@@ -79,17 +83,25 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
   @impl true
   def handle_event("update_notes", %{"notes" => notes}, socket) do
-    {:noreply, assign(socket, action_notes: notes)}
+    {:noreply,
+     assign(socket,
+       action_notes: notes,
+       action_notes_form: to_form(%{"notes" => notes})
+     )}
   end
 
   @impl true
   def handle_event("update_refund_amount", %{"amount" => amount}, socket) do
-    {:noreply, assign(socket, refund_amount_input: amount)}
+    {:noreply,
+     assign(socket,
+       refund_amount_input: amount,
+       refund_amount_form: to_form(%{"amount" => amount})
+     )}
   end
 
   @impl true
   def handle_event("noop_submit", _params, socket) do
-    # The notes/amount inputs live in their own <form> so LiveView can send
+    # The notes/amount inputs live in their own forms so LiveView can send
     # phx-change events (browsers refuse phx-change from an input with no
     # form ancestor). Neither form has a submit button, but pressing Enter
     # while focused in one still fires a submit — this swallows it so Enter
@@ -134,11 +146,18 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            params
          ) do
       {:ok, _updated} ->
-        returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
+        all_returns = load_returns(socket.assigns.store.id)
+
+        returns = filter_returns(all_returns, socket.assigns.status_filter)
 
         {:noreply,
          socket
-         |> assign(returns: returns, selected_return: nil)
+         |> assign(
+           all_returns: all_returns,
+           returns: returns,
+           return_stats: build_return_stats(all_returns),
+           selected_return: nil
+         )
          |> put_flash(:info, "Return approved")}
 
       {:error, reason} ->
@@ -156,11 +175,18 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            authorize?: false
          ) do
       {:ok, _updated} ->
-        returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
+        all_returns = load_returns(socket.assigns.store.id)
+
+        returns = filter_returns(all_returns, socket.assigns.status_filter)
 
         {:noreply,
          socket
-         |> assign(returns: returns, selected_return: nil)
+         |> assign(
+           all_returns: all_returns,
+           returns: returns,
+           return_stats: build_return_stats(all_returns),
+           selected_return: nil
+         )
          |> put_flash(:info, "Return denied")}
 
       {:error, _error} ->
@@ -174,11 +200,18 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
     case Emakola.Orders.mark_return_refunded(return, authorize?: false) do
       {:ok, _updated} ->
-        returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
+        all_returns = load_returns(socket.assigns.store.id)
+
+        returns = filter_returns(all_returns, socket.assigns.status_filter)
 
         {:noreply,
          socket
-         |> assign(returns: returns, selected_return: nil)
+         |> assign(
+           all_returns: all_returns,
+           returns: returns,
+           return_stats: build_return_stats(all_returns),
+           selected_return: nil
+         )
          |> put_flash(:info, "Return marked as refunded")}
 
       {:error, _error} ->
@@ -220,263 +253,302 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       <.admin_page_header
         title="Returns"
         subtitle="Review and manage customer return requests"
+        icon="hero-arrow-uturn-left"
       />
 
+      <%!-- KPI tiles: an icon and a hue per tile, so the row can be read at a
+            glance without reading the labels. --%>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div id="stat-returns-open">
+          <.stat_card label="Open requests" value={@return_stats.open} tone={:warning}>
+            <:icon><.icon name="hero-inbox-arrow-down" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Waiting for your answer</p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-returns-approved">
+          <.stat_card label="Approved, awaiting refund" value={@return_stats.approved} tone={:info}>
+            <:icon><.icon name="hero-clock" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Money not sent back yet</p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-returns-refunded">
+          <.stat_card
+            label="Refunded (30 days)"
+            value={Currency.format_price(@return_stats.refunded_30d, "GHS")}
+            tone={:cyan}
+          >
+            <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Sent back in the last month</p>
+            </:delta>
+          </.stat_card>
+        </div>
+      </div>
+
       <%!-- Status filter tabs --%>
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        <button
-          :for={status <- ["all", "requested", "approved", "denied", "refunded"]}
-          phx-click="filter_status"
-          phx-value-status={status}
-          class={[
-            "cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors",
-            if(@status_filter == status,
-              do: "bg-cta-dark text-white border-[#1C1917]",
-              else: "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
-            )
-          ]}
-        >
-          {String.capitalize(status)}
-        </button>
-      </div>
+      <.filter_tabs
+        id="returns-filter-tabs"
+        current={filter_tab_key(@status_filter)}
+        tabs={
+          Enum.map(["all", "requested", "approved", "denied", "refunded"], fn status ->
+            %{
+              key: filter_tab_key(status),
+              label: String.capitalize(status),
+              count: tab_count(@return_stats, status)
+            }
+          end)
+        }
+      />
 
-      <%!-- Returns list --%>
-      <div :if={@returns == []} class="bg-white rounded-2xl shadow-sm p-12 text-center">
-        <svg
-          class="mx-auto w-12 h-12 text-stone-300 mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-          />
-        </svg>
-        <h3 class="text-lg font-semibold text-stone-700">No returns found</h3>
-        <p class="text-sm text-stone-500 mt-1">Return requests from customers will appear here</p>
-      </div>
+      <%!-- No returns at all is good news, not a failed search — say so. A
+            narrowed filter that matched nothing says it was the filter. --%>
+      <.empty_state
+        :if={@returns == [] and @status_filter != "all"}
+        icon="hero-arrow-uturn-left"
+        title="No returns found"
+        description="Try another filter"
+      />
+      <%!-- No returns is good news; say so rather than framing it as a gap. --%>
+      <.empty_state
+        :if={@returns == [] and @status_filter == "all"}
+        icon="hero-check-circle"
+        tone={:success}
+        title="No returns — great job"
+        description="Requests will show here if they come"
+        secondary_label="Set your return rules"
+        secondary_path={~p"/admin/content/pages"}
+      />
 
-      <div :if={@returns != []} class="space-y-3">
-        <div
-          :for={return <- @returns}
-          phx-click="select_return"
-          phx-value-id={return.id}
-          class={[
-            "bg-white rounded-2xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md",
-            if(@selected_return && @selected_return.id == return.id,
-              do: "ring-2 ring-amber-700",
-              else: ""
-            )
-          ]}
-        >
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
-                <svg
-                  class="w-5 h-5 text-stone-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-cta-dark">
-                  Order #{return.order_id |> String.slice(0..7)}
-                </p>
-                <p class="text-xs text-stone-500 mt-0.5">
-                  <.reason_label reason={return.reason} />
-                  <span :if={return.reason_detail}>
-                    -- {String.slice(return.reason_detail, 0..60)}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center gap-4">
-              <span :if={return.refund_amount} class="text-sm font-medium text-cta-dark">
-                {Currency.format_price(return.refund_amount, return.currency)}
-              </span>
-              <.return_status_badge status={return.status} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <%!-- Detail panel --%>
-      <div
-        :if={@selected_return}
-        class="bg-white rounded-2xl shadow-sm p-6 space-y-6"
-      >
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-cta-dark">Return Details</h2>
-          <button
-            phx-click="close_detail"
-            class="cursor-pointer text-stone-400 hover:text-stone-600 transition-colors"
+      <div class={[
+        "grid grid-cols-1 gap-6 items-start",
+        @selected_return && "lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]"
+      ]}>
+        <div :if={@returns != []} class="space-y-3">
+          <div
+            :for={return <- @returns}
+            phx-click="select_return"
+            phx-value-id={return.id}
+            class={[
+              "bg-surface rounded-card border border-border shadow-sm p-5 cursor-pointer transition-all hover:shadow-md",
+              if(@selected_return && @selected_return.id == return.id,
+                do: "ring-2 ring-primary",
+                else: ""
+              )
+            ]}
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <%!-- Timeline --%>
-        <div class="flex justify-center py-2">
-          <.return_timeline status={@selected_return.status} />
-        </div>
-
-        <%!-- Info grid --%>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Reason</p>
-            <p class="text-sm text-cta-dark"><.reason_label reason={@selected_return.reason} /></p>
-          </div>
-          <div>
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Status</p>
-            <.return_status_badge status={@selected_return.status} />
-          </div>
-          <div :if={@selected_return.reason_detail} class="sm:col-span-2">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Details</p>
-            <p class="text-sm text-cta-dark">{@selected_return.reason_detail}</p>
-          </div>
-          <div :if={@selected_return.admin_notes} class="sm:col-span-2">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">
-              Admin Notes
-            </p>
-            <p class="text-sm text-cta-dark">{@selected_return.admin_notes}</p>
-          </div>
-          <div :if={@selected_return.refund_amount}>
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">
-              Refund Amount
-            </p>
-            <p class="text-sm font-semibold text-cta-dark">
-              {Currency.format_price(@selected_return.refund_amount, @selected_return.currency)}
-            </p>
-          </div>
-        </div>
-
-        <%!-- Actions for requested returns --%>
-        <div
-          :if={@selected_return.status == :requested}
-          class="space-y-4 border-t border-stone-100 pt-4"
-        >
-          <div>
-            <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
-              Notes
-            </label>
-            <form phx-submit="noop_submit" class="contents">
-              <textarea
-                phx-change="update_notes"
-                name="notes"
-                rows="3"
-                maxlength="2000"
-                placeholder="Add notes about this decision..."
-                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
-              >{@action_notes}</textarea>
-            </form>
-          </div>
-          <%!-- Refund guidance --%>
-          <div :if={@selected_payment} class="space-y-3">
-            <.stat_card
-              label="Refundable balance"
-              value={Currency.format_price(@refundable_balance, @selected_return.currency)}
-            />
-
-            <div
-              :if={@supplier_fulfillments != []}
-              class="rounded-2xl border border-stone-200 divide-y divide-stone-100"
-            >
-              <div
-                :for={f <- @supplier_fulfillments}
-                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3"
-              >
-                <div class="min-w-0 flex items-center gap-2">
-                  <p class="text-sm font-medium text-cta-dark truncate">{f.supplier.name}</p>
-                  <.status_badge status={f.status} variant={:delivery} />
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-control bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <.icon name="hero-arrow-uturn-left" class="size-5 text-slate-400" />
                 </div>
-                <span class="text-sm font-semibold text-cta-dark">
-                  {Currency.format_price(f.dispatch_fee, @selected_return.currency)}
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">
+                    Order #{return.order_id |> String.slice(0..7)}
+                  </p>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    <.reason_label reason={return.reason} />
+                    <span :if={return.reason_detail}>
+                      -- {String.slice(return.reason_detail, 0..60)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <span :if={return.refund_amount} class="text-sm font-medium text-slate-900">
+                  {Currency.format_price(return.refund_amount, return.currency)}
                 </span>
+                <.status_badge status={return.status} variant={:return} />
               </div>
             </div>
           </div>
-          <p :if={is_nil(@selected_payment)} class="text-sm text-stone-500">
-            No gateway payment on this order — there is nothing to refund automatically.
-          </p>
-
-          <div>
-            <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
-              Refund Amount (GHS)
-            </label>
-            <form phx-submit="noop_submit" class="contents">
-              <input
-                type="text"
-                phx-change="update_refund_amount"
-                name="amount"
-                value={@refund_amount_input}
-                placeholder="0.00"
-                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
-              />
-            </form>
-            <p :if={@amount_exceeds_suggested_max?} class="mt-2 text-xs font-medium text-amber-700">
-              Above the suggested limit of {Currency.format_price(
-                @suggested_max,
-                @selected_return.currency
-              )} — this refund would dip into a dispatched supplier's protected dispatch fee.
-            </p>
-          </div>
-          <label
-            :if={@show_dispatch_toggle?}
-            class="flex items-start gap-3 cursor-pointer rounded-2xl border border-stone-200 px-4 py-3 hover:border-amber-300 transition-colors"
-          >
-            <input
-              type="checkbox"
-              phx-click="toggle_dispatch_fee"
-              checked={@refund_dispatch_fee}
-              class="mt-0.5 w-4 h-4 rounded border-stone-300 text-amber-700 focus:ring-amber-700"
-            />
-            <span class="text-sm text-cta-dark">
-              Supplier is at fault — also refund their dispatch fee
-            </span>
-          </label>
-          <div class="flex gap-3">
-            <button
-              phx-click="approve_return"
-              phx-disable-with="Approving..."
-              class="cursor-pointer bg-green-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-green-700 transition-colors"
-            >
-              Approve
-            </button>
-            <button
-              phx-click="deny_return"
-              class="cursor-pointer bg-red-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-red-700 transition-colors"
-            >
-              Deny
-            </button>
-          </div>
         </div>
 
-        <%!-- Action for approved returns --%>
-        <div :if={@selected_return.status == :approved} class="border-t border-stone-100 pt-4">
-          <button
-            phx-click="mark_refunded"
-            class="cursor-pointer bg-emerald-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-emerald-700 transition-colors"
+        <%!-- Detail panel --%>
+        <div
+          :if={@selected_return}
+          class="bg-surface rounded-card border border-border shadow-sm p-6 space-y-6 lg:sticky lg:top-6"
+        >
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-900">Return Details</h2>
+            <button
+              phx-click="close_detail"
+              class="cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <%!-- Timeline --%>
+          <div class="flex justify-center py-2">
+            <.return_timeline status={@selected_return.status} />
+          </div>
+
+          <%!-- Info grid --%>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">Reason</p>
+              <p class="text-sm text-slate-900"><.reason_label reason={@selected_return.reason} /></p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">Status</p>
+              <.status_badge status={@selected_return.status} variant={:return} />
+            </div>
+            <div :if={@selected_return.reason_detail} class="sm:col-span-2">
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">Details</p>
+              <p class="text-sm text-slate-900">{@selected_return.reason_detail}</p>
+            </div>
+            <div :if={@selected_return.admin_notes} class="sm:col-span-2">
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">
+                Admin Notes
+              </p>
+              <p class="text-sm text-slate-900">{@selected_return.admin_notes}</p>
+            </div>
+            <div :if={@selected_return.refund_amount}>
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">
+                Refund Amount
+              </p>
+              <p class="text-sm font-semibold text-slate-900">
+                {Currency.format_price(@selected_return.refund_amount, @selected_return.currency)}
+              </p>
+            </div>
+          </div>
+
+          <%!-- Actions for requested returns --%>
+          <div
+            :if={@selected_return.status == :requested}
+            class="space-y-4 border-t border-border pt-4"
           >
-            Mark as Refunded
-          </button>
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
+                Notes
+              </label>
+              <.form
+                for={@action_notes_form}
+                id="return-action-notes-form"
+                phx-submit="noop_submit"
+                class="contents"
+              >
+                <.input
+                  field={@action_notes_form[:notes]}
+                  id="return-action-notes"
+                  type="textarea"
+                  phx-change="update_notes"
+                  rows="3"
+                  maxlength="2000"
+                  placeholder="Add notes about this decision..."
+                  class="w-full px-4 py-3 border border-border rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                />
+              </.form>
+            </div>
+            <%!-- Refund guidance --%>
+            <div :if={@selected_payment} class="space-y-3">
+              <.stat_card
+                label="Refundable balance"
+                value={Currency.format_price(@refundable_balance, @selected_return.currency)}
+                tone={:success}
+              >
+                <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+              </.stat_card>
+
+              <div
+                :if={@supplier_fulfillments != []}
+                class="rounded-2xl border border-border divide-y divide-slate-100"
+              >
+                <div
+                  :for={f <- @supplier_fulfillments}
+                  class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3"
+                >
+                  <div class="min-w-0 flex items-center gap-2">
+                    <p class="text-sm font-medium text-slate-900 truncate">{f.supplier.name}</p>
+                    <.status_badge status={f.status} variant={:delivery} />
+                  </div>
+                  <span class="text-sm font-semibold text-slate-900">
+                    {Currency.format_price(f.dispatch_fee, @selected_return.currency)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p :if={is_nil(@selected_payment)} class="text-sm text-slate-500">
+              No gateway payment on this order — there is nothing to refund automatically.
+            </p>
+
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
+                Refund Amount (GHS)
+              </label>
+              <.form
+                for={@refund_amount_form}
+                id="return-refund-amount-form"
+                phx-submit="noop_submit"
+                class="contents"
+              >
+                <.input
+                  field={@refund_amount_form[:amount]}
+                  id="return-refund-amount"
+                  type="text"
+                  phx-change="update_refund_amount"
+                  placeholder="0.00"
+                  class="w-full px-4 py-3 border border-border rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                />
+              </.form>
+              <p :if={@amount_exceeds_suggested_max?} class="mt-2 text-xs font-medium text-amber-700">
+                Above the suggested limit of {Currency.format_price(
+                  @suggested_max,
+                  @selected_return.currency
+                )} — this refund would dip into a dispatched supplier's protected dispatch fee.
+              </p>
+            </div>
+            <label
+              :if={@show_dispatch_toggle?}
+              class="flex items-start gap-3 cursor-pointer rounded-2xl border border-border px-4 py-3 hover:border-emerald-300 transition-colors"
+            >
+              <input
+                type="checkbox"
+                phx-click="toggle_dispatch_fee"
+                checked={@refund_dispatch_fee}
+                class="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span class="text-sm text-slate-900">
+                Supplier is at fault — also refund their dispatch fee
+              </span>
+            </label>
+            <div class="flex gap-3">
+              <button
+                phx-click="approve_return"
+                phx-disable-with="Approving..."
+                class="cursor-pointer bg-primary text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-control hover:bg-primary-hover transition-colors"
+              >
+                Approve
+              </button>
+              <button
+                phx-click="deny_return"
+                class="cursor-pointer bg-red-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-control hover:bg-red-700 transition-colors"
+              >
+                Deny
+              </button>
+            </div>
+          </div>
+
+          <%!-- Action for approved returns --%>
+          <div :if={@selected_return.status == :approved} class="border-t border-border pt-4">
+            <button
+              phx-click="mark_refunded"
+              class="cursor-pointer bg-primary text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-control hover:bg-primary-hover transition-colors"
+            >
+              Mark as Refunded
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -494,6 +566,10 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   defp refund_error(:amount_exceeds_refundable),
     do: "That is more than the amount still refundable on this payment."
 
+  defp refund_error(:partial_refund_on_protected),
+    do:
+      "This payment is protected until the buyer confirms delivery — it can only be refunded in full, not partially."
+
   defp refund_error(:payment_not_found),
     do: "No payment was found for this order, so there is nothing to refund."
 
@@ -502,14 +578,53 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
   defp refund_error(_reason), do: "Failed to approve return"
 
-  defp load_returns(store_id, status_filter \\ "all") do
-    returns = Emakola.Orders.list_returns_by_store!(store_id, authorize?: false)
-
-    case status_filter do
-      "all" -> returns
-      status -> Enum.filter(returns, &(Atom.to_string(&1.status) == status))
-    end
+  defp load_returns(store_id) do
+    Emakola.Orders.list_returns_by_store!(store_id, authorize?: false)
   end
+
+  defp filter_returns(returns, "all"), do: returns
+
+  defp filter_returns(returns, status) do
+    Enum.filter(returns, &(Atom.to_string(&1.status) == status))
+  end
+
+  # KPI numbers over the unfiltered list — stable while the list narrows.
+  # "Refunded (30 days)" uses updated_at as the refund moment: the refund
+  # transition is the last write a return receives.
+  defp build_return_stats(all_returns) do
+    thirty_days_ago = DateTime.add(DateTime.utc_now(), -30, :day)
+
+    refunded_30d =
+      all_returns
+      |> Enum.filter(fn return ->
+        return.status == :refunded and
+          DateTime.compare(return.updated_at, thirty_days_ago) != :lt
+      end)
+      |> Enum.map(&(&1.refund_amount || 0))
+      |> Enum.sum()
+
+    %{
+      open: Enum.count(all_returns, &(&1.status == :requested)),
+      approved: Enum.count(all_returns, &(&1.status == :approved)),
+      refunded_30d: refunded_30d,
+      by_status:
+        Map.new(["requested", "approved", "denied", "refunded"], fn status ->
+          {status, Enum.count(all_returns, &(Atom.to_string(&1.status) == status))}
+        end),
+      total: length(all_returns)
+    }
+  end
+
+  defp tab_count(stats, "all"), do: stats.total
+  defp tab_count(stats, status), do: Map.get(stats.by_status, status, 0)
+
+  # filter_tabs takes atoms; this page's filter state is a string.
+  defp filter_tab_key("all"), do: :all
+  defp filter_tab_key("requested"), do: :requested
+  defp filter_tab_key("approved"), do: :approved
+  defp filter_tab_key("denied"), do: :denied
+  defp filter_tab_key("refunded"), do: :refunded
+  defp filter_tab_key(_), do: :all
 
   # Loaded once when a return is selected, not per render — the guidance
   # panel only appears for requested returns, so nothing else needs it.

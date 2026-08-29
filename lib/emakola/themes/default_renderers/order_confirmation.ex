@@ -19,6 +19,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -239,21 +240,14 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
               </span>
             </div>
             <div
-              :if={order_has_field?(@order, :delivery_fee) && @order.delivery_fee > 0}
+              :if={delivery_line_total(@order) > 0}
               class="flex justify-between text-sm"
             >
+              <%!-- Includes any supplier dispatch fee — supply-chain wording
+                    stays out of buyer receipts. --%>
               <span class="text-[#78716C]">Delivery</span>
               <span class="text-[#44403C] tabular-nums">
-                {Currency.format_price(@order.delivery_fee, @store.currency)}
-              </span>
-            </div>
-            <div
-              :if={order_has_field?(@order, :dispatch_fee_total) && @order.dispatch_fee_total > 0}
-              class="flex justify-between text-sm"
-            >
-              <span class="text-[#78716C]">Supplier dispatch</span>
-              <span class="text-[#44403C] tabular-nums">
-                {Currency.format_price(@order.dispatch_fee_total, @store.currency)}
+                {Currency.format_price(delivery_line_total(@order), @store.currency)}
               </span>
             </div>
             <div class="flex justify-between items-baseline pt-3 border-t border-[#E7E5E4]">
@@ -332,6 +326,15 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
         <%!-- CTAs --%>
         <div class="space-y-3 mb-6">
+          <%!-- /track was reachable only from an SMS. A buyer who deleted the
+                message — or never got one, since SMS is dummy-keyed — had no
+                route back to it. --%>
+          <a
+            href={store_path(@store.slug, "/track/#{@order.order_number}")}
+            class="w-full flex items-center justify-center gap-2.5 px-8 py-4 border border-stone-200 text-cta-dark text-sm font-semibold tracking-wide rounded-2xl hover:bg-stone-50 transition-colors"
+          >
+            Track this order
+          </a>
           <a
             href={store_path(@store.slug, "/")}
             class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:opacity-90 transition-all hover:shadow-lg hover:shadow-stone-900/10"
@@ -384,6 +387,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
@@ -448,6 +452,17 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
     Map.has_key?(order, field) && not is_nil(Map.get(order, field))
   end
 
+  # Buyer-facing "Delivery" is delivery + supplier dispatch, summed explicitly
+  # from the snapshotted fields (guarded — older orders may lack them).
+  defp delivery_line_total(order) do
+    delivery = if order_has_field?(order, :delivery_fee), do: order.delivery_fee, else: 0
+
+    dispatch =
+      if order_has_field?(order, :dispatch_fee_total), do: order.dispatch_fee_total, else: 0
+
+    delivery + dispatch
+  end
+
   defp customer_phone(order) do
     cond do
       order.shipping_address && order.shipping_address["phone"] ->
@@ -491,7 +506,6 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   # storefront home so social shares from the order confirmation drive new
   # traffic into the store. Uses host from EmakolaWeb.Endpoint config.
   defp share_url(store, _order) do
-    base = EmakolaWeb.Endpoint.url()
-    "#{base}/s/#{store.slug}"
+    EmakolaWeb.SEO.Canonical.store_url(store)
   end
 end

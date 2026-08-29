@@ -27,8 +27,8 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
   - `:store` — resolved store struct
   - `:cart` — list of cart line items
   - `:cart_count` — total quantity
-  - `:cart_total` — running subtotal in pesewas
-  - `:coupon`, `:discount`, `:coupon_error`, `:coupon_input` — coupon UI state
+  - `:cart_subtotal`, `:cart_total` — item total in pesewas (shipping and
+    coupons are applied at checkout, and no tax is charged anywhere)
   - `:flash` — Phoenix flash messages
   """
 
@@ -36,14 +36,13 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
 
   import EmakolaWeb.Storefront.Path
 
-  import EmakolaWeb.StorefrontComponents
-
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -104,7 +103,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
               </svg>
               <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your bag is empty</h2>
               <p class="text-sm text-[#78716C] mb-8">
-                Discover our curated collection and find something you love.
+                Browse the store to find something you like.
               </p>
               <.link
                 navigate={store_path(@store.slug, "/")}
@@ -173,7 +172,10 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                     >
                       {item.product_title}
                     </.link>
-                    <div :if={item.variant_info} class="mt-2 space-y-0.5">
+                    <div
+                      :if={item.variant_info not in [nil, ""] && item.variant_info != item.sku}
+                      class="mt-2 space-y-0.5"
+                    >
                       <p class="text-xs sm:text-sm text-[#78716C]">{item.variant_info}</p>
                     </div>
                     <p class="mt-2 text-base font-semibold text-cta-dark sm:hidden">
@@ -202,22 +204,6 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                         </svg>
                       </button>
                     </div>
-                    <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-[#78716C] hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none rounded px-0.5 py-0.5">
-                      <svg
-                        class="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                      Move to Wishlist
-                    </button>
                   </div>
                   <div class="hidden sm:flex flex-col items-end justify-between flex-shrink-0 sm:min-w-[160px]">
                     <p class="text-base font-semibold text-cta-dark">
@@ -275,91 +261,6 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                   <span class="text-[#78716C]">Shipping</span>
                   <span class="font-medium text-cta-dark">Calculated at checkout</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-[#78716C]">Estimated Tax</span>
-                  <span id="summary-tax" class="font-medium text-cta-dark">
-                    {Currency.format_price(@cart_tax, @store.currency)}
-                  </span>
-                </div>
-              </div>
-
-              <div class="border-t border-[#E7E5E4] my-5"></div>
-              
-    <!-- Promo Code -->
-              <div id="promo-section">
-                <label
-                  for="promo-input"
-                  class="block text-xs font-semibold tracking-wider uppercase text-[#44403C] mb-2"
-                >
-                  Promo Code
-                </label>
-                <form phx-submit="apply_promo" class="flex gap-2">
-                  <input
-                    id="promo-input"
-                    name="promo"
-                    type="text"
-                    placeholder="Enter code"
-                    disabled={@promo_code != nil}
-                    class="flex-1 h-10 px-3 text-sm border border-[#E7E5E4] rounded-lg bg-transparent text-cta-dark placeholder:text-[#78716C]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-store-accent transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                    autocomplete="off"
-                  />
-                  <button
-                    type="submit"
-                    disabled={@promo_code != nil}
-                    class="h-10 px-5 text-xs font-semibold tracking-wider uppercase bg-cta-dark text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Apply
-                  </button>
-                </form>
-                <div :if={@promo_code} id="promo-success" class="mt-3 promo-success">
-                  <div class="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                    <svg
-                      class="w-4 h-4 text-[#16A34A] flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="text-xs font-medium text-green-800">
-                      {@promo_code} applied
-                    </span>
-                    <button
-                      type="button"
-                      phx-click="remove_promo"
-                      class="ml-auto text-green-600 hover:text-green-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none rounded"
-                      aria-label="Remove promo code"
-                    >
-                      <svg
-                        class="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div :if={@promo_error} id="promo-error" class="mt-2">
-                  <p class="text-xs text-[#DC2626]">{@promo_error}</p>
-                </div>
-              </div>
-              
-    <!-- Discount line -->
-              <div :if={@cart_discount > 0} id="discount-line" class="mt-4">
-                <div class="flex justify-between text-sm">
-                  <span class="text-[#16A34A] font-medium">Discount (10%)</span>
-                  <span id="summary-discount" class="font-medium text-[#16A34A]">
-                    -{Currency.format_price(@cart_discount, @store.currency)}
-                  </span>
-                </div>
               </div>
 
               <div class="border-t border-[#E7E5E4] my-5"></div>
@@ -410,39 +311,39 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                 Order via WhatsApp
               </a>
               
-    <!-- Trust Badges -->
-              <div class="mt-5 flex items-center justify-center gap-6 text-[#78716C]">
-                <div class="flex items-center gap-1.5">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    viewBox="0 0 24 24"
+    <!-- Trust: real rails + the store's own policies -->
+              <div class="mt-5 flex flex-col items-center gap-3">
+                <div class="flex flex-wrap items-center justify-center gap-1.5">
+                  <span
+                    :for={rail <- ["MTN MoMo", "Telecel Cash", "AirtelTigo", "Cards"]}
+                    class="inline-flex items-center rounded-md border border-[#E7E5E4] bg-stone-50 px-2 py-0.5 text-[10.5px] font-semibold text-[#44403C]"
                   >
-                    <path
-                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  <span class="text-xs font-medium">Secure Checkout</span>
+                    {rail}
+                  </span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    viewBox="0 0 24 24"
+                <div class="flex items-center gap-5 text-[#78716C]">
+                  <div class="flex items-center gap-1.5">
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span class="text-xs font-medium">Secure Checkout</span>
+                  </div>
+                  <.link
+                    navigate={store_path(@store.slug, "/policies#returns")}
+                    class="text-xs font-medium underline decoration-[#D6D3D1] underline-offset-2 hover:text-store-accent transition-colors focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none rounded"
                   >
-                    <path
-                      d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  <span class="text-xs font-medium">Free Returns</span>
+                    See this store's returns policy
+                  </.link>
                 </div>
               </div>
             </div>
@@ -462,7 +363,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
         <h2 class="text-2xl sm:text-3xl font-semibold text-cta-dark">
           You May Also Like
         </h2>
-        <p class="mt-2 text-sm text-[#78716C]">Curated selections to complement your style</p>
+        <p class="mt-2 text-sm text-[#78716C]">More from this store</p>
       </div>
 
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -511,12 +412,44 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
       </div>
     </section>
 
+    <%!-- Sticky mobile checkout bar — the total and the one action, one
+         thumb away, sitting just above the bottom tab bar. --%>
+    <div
+      :if={@cart != []}
+      id="mobile-checkout-bar"
+      class="fixed inset-x-0 bottom-14 z-40 border-t border-[#E7E5E4] bg-white/95 backdrop-blur px-4 py-3 sm:hidden"
+    >
+      <div class="flex items-center gap-3">
+        <div class="min-w-0">
+          <p class="text-[11px] font-medium text-[#78716C] leading-tight">
+            {"Total · #{@cart_count} #{if @cart_count == 1, do: "item", else: "items"}"}
+          </p>
+          <p class="text-lg font-bold text-cta-dark leading-tight tabular-nums">
+            {Currency.format_price(@cart_total, @store.currency)}
+          </p>
+        </div>
+        <.link
+          navigate={store_path(@store.slug, "/checkout")}
+          class="flex-1 flex items-center justify-center h-12 bg-store-accent text-white text-sm font-semibold tracking-wide uppercase rounded-xl hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none"
+        >
+          Checkout
+        </.link>
+      </div>
+    </div>
+
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
-    <.bottom_nav store_slug={@store.slug} active_tab={:cart} cart_count={@cart_count} />
+    <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
+      theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
+      store={@store}
+      active_tab={:cart}
+      cart_count={@cart_count}
+    />
     """
   end
 
@@ -531,7 +464,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
         phx-click="update_quantity"
         phx-value-index={@index}
         phx-value-delta="-1"
-        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-cta-dark hover:bg-stone-50 transition-colors cursor-pointer disabled:text-stone-300 disabled:cursor-not-allowed"
+        class="flex items-center justify-center w-11 h-11 text-[#44403C] hover:text-cta-dark hover:bg-stone-50 transition-colors cursor-pointer disabled:text-stone-300 disabled:cursor-not-allowed"
         aria-label="Decrease quantity"
       >
         <svg
@@ -544,7 +477,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
           <path d="M5 12h14" stroke-linecap="round" />
         </svg>
       </button>
-      <div class="flex items-center justify-center w-10 text-sm font-medium bg-transparent border-x sm:w-12 h-8 sm:h-9 text-cta-dark border-[#E7E5E4]">
+      <div class="flex items-center justify-center w-11 h-11 text-sm font-medium bg-transparent border-x text-cta-dark border-[#E7E5E4]">
         {@quantity}
       </div>
       <button
@@ -552,7 +485,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
         phx-click="update_quantity"
         phx-value-index={@index}
         phx-value-delta="1"
-        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-cta-dark hover:bg-stone-50 transition-colors cursor-pointer disabled:text-stone-300 disabled:cursor-not-allowed"
+        class="flex items-center justify-center w-11 h-11 text-[#44403C] hover:text-cta-dark hover:bg-stone-50 transition-colors cursor-pointer disabled:text-stone-300 disabled:cursor-not-allowed"
         aria-label="Increase quantity"
       >
         <svg

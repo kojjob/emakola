@@ -230,7 +230,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       _product = create_product!(store, title: "Kayan Gida Special")
 
       results = Emakola.Catalog.search_products!("Kayan", store.id)
-      assert length(results) >= 1
+      assert results != []
       assert hd(results).title == "Kayan Gida Special"
     end
 
@@ -240,10 +240,10 @@ defmodule Emakola.Catalog.EdgeCasesTest do
 
       # Search with different case
       results = Emakola.Catalog.search_products!("ntoma", store.id)
-      assert length(results) >= 1
+      assert results != []
 
       results_upper = Emakola.Catalog.search_products!("NTOMA", store.id)
-      assert length(results_upper) >= 1
+      assert results_upper != []
     end
   end
 

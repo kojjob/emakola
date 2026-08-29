@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   import EmakolaWeb.Storefront.Path
@@ -65,6 +67,17 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
   @impl true
   def handle_event("toggle_details", _params, socket) do
     {:noreply, assign(socket, :show_details, !socket.assigns.show_details)}
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   @impl true

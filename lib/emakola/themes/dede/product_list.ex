@@ -23,12 +23,12 @@ defmodule Emakola.Themes.Dede.ProductList do
         >
           Menu
         </h1>
-        <p :if={@products != []} class="mt-2 text-sm text-[#6B6355]">
-          {length(@products)} {if length(@products) == 1, do: "dish", else: "dishes"} on the board
+        <p :if={@products_count > 0} class="mt-2 text-sm text-[#6B6355]">
+          {@products_count} {if @products_count == 1, do: "dish", else: "dishes"} on the board
         </p>
 
         <form phx-change="search" class="mt-5">
-          <label for="dede-menu-search" class="sr-only">Search the menu</label>
+          <label for="dede-menu-search" class="sr-only">Search the shop</label>
           <div class="relative">
             <svg
               class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6B6355]"
@@ -49,7 +49,7 @@ defmodule Emakola.Themes.Dede.ProductList do
               type="text"
               name="query"
               value={@search_query}
-              placeholder="Search the menu..."
+              placeholder="Search the shop..."
               phx-debounce="300"
               class="min-h-12 w-full rounded-full border-2 border-[#26211A]/15 bg-white py-3 pl-11 pr-5 text-sm text-[#26211A] placeholder-[#6B6355] hover:border-[#26211A]/30 focus:border-[#26211A] focus:outline-none focus:ring-2 focus:ring-[#26211A]/15 motion-safe:transition-colors"
             />
@@ -94,31 +94,35 @@ defmodule Emakola.Themes.Dede.ProductList do
 
       <div class="mx-auto max-w-[880px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
         <div class="rounded-2xl bg-[#1B2E23] px-5 py-4 ring-1 ring-inset ring-white/10 sm:px-8 sm:py-6">
-          <ul :if={@products != []} role="list" class="divide-y divide-white/10">
-            <Shared.menu_row :for={product <- @products} product={product} store={@store} />
+          <ul id="product-list" phx-update="stream" role="list" class="divide-y divide-white/10">
+            <li id="product-list-empty" class="hidden py-12 text-center only:block">
+              <p class="text-xl uppercase tracking-wide text-[#F3EDDF]/90 [font-family:var(--dt-heading-font,'Anton',sans-serif)]">
+                {if @search_query != "" || @selected_category,
+                  do: "Nothing on the board matches",
+                  else: "The board is still being chalked up"}
+              </p>
+              <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#A8BAA5]">
+                {if @search_query != "" || @selected_category,
+                  do: "Try another dish, or see everything on the board.",
+                  else: "#{@store.name} hasn't added products yet — check back soon."}
+              </p>
+              <button
+                :if={@search_query != "" || @selected_category}
+                type="button"
+                phx-click="filter_category"
+                phx-value-category_id="all"
+                class="mt-5 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[#F3EDDF] px-6 text-sm font-bold text-[#1B2E23] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EDDF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B2E23] motion-safe:transition-colors"
+              >
+                Show the whole menu
+              </button>
+            </li>
+            <Shared.menu_row
+              :for={{dom_id, %{product: product}} <- @streams.products}
+              id={dom_id}
+              product={product}
+              store={@store}
+            />
           </ul>
-
-          <div :if={@products == []} class="py-12 text-center">
-            <p class="text-xl uppercase tracking-wide text-[#F3EDDF]/90 [font-family:var(--dt-heading-font,'Anton',sans-serif)]">
-              {if @search_query != "" || @selected_category,
-                do: "Nothing on the board matches",
-                else: "The board is still being chalked up"}
-            </p>
-            <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#A8BAA5]">
-              {if @search_query != "" || @selected_category,
-                do: "Try another dish, or see everything on the board.",
-                else: "#{@store.name} hasn't written up the menu yet — check back soon."}
-            </p>
-            <button
-              :if={@search_query != "" || @selected_category}
-              type="button"
-              phx-click="filter_category"
-              phx-value-category_id="all"
-              class="mt-5 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[#F3EDDF] px-6 text-sm font-bold text-[#1B2E23] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EDDF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B2E23] motion-safe:transition-colors"
-            >
-              Show the whole menu
-            </button>
-          </div>
         </div>
 
         <div :if={@has_more} class="mt-6 text-center">

@@ -7,7 +7,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   require Logger
 
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
+
   alias EmakolaWeb.Admin.ProductLive.Shared
+  alias EmakolaWeb.QR
 
   @upload_opts [
     accept: ~w(.jpg .jpeg .png .webp),
@@ -21,7 +24,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
     case socket.assigns.live_action do
       :edit ->
-        product = load_product(params["id"])
+        product = load_product(params["id"], socket)
 
         if is_nil(product) || product.store_id != store_id do
           {:ok,
@@ -38,6 +41,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               active_nav: :products,
               product: product,
               form_data: product_to_form_data(product),
+              form: to_form(product_to_form_data(product), as: :product),
               errors: %{},
               categories: categories,
               store_id: store_id,
@@ -59,15 +63,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             page_title: "New Product",
             active_nav: :products,
             product: nil,
-            form_data: %{
-              "title" => "",
-              "description" => "",
-              "category_id" => "",
-              "tags" => "",
-              "seo_title" => "",
-              "seo_description" => "",
-              "price" => ""
-            },
+            form_data: empty_form_data(),
+            form: to_form(empty_form_data(), as: :product),
             errors: %{},
             categories: categories,
             store_id: store_id,
@@ -84,7 +81,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   @impl true
   def handle_event("validate", %{"product" => params}, socket) do
     errors = validate_form(params)
-    {:noreply, assign(socket, form_data: params, errors: errors)}
+
+    {:noreply,
+     assign(socket,
+       form_data: params,
+       form: to_form(params, as: :product),
+       errors: errors
+     )}
   end
 
   @impl true
@@ -144,7 +147,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       </div>
 
       <%!-- Form --%>
-      <form id="product-form" phx-change="validate" phx-submit="save_product" class="space-y-6">
+      <.form
+        for={@form}
+        id="product-form"
+        phx-change="validate"
+        phx-submit="save_product"
+        class="space-y-6"
+      >
         <%!-- Basic Info --%>
         <div class="bg-white rounded-lg p-5 space-y-4">
           <h2 class="text-base font-semibold">Basic Information</h2>
@@ -153,11 +162,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <label for="product_title" class="block text-sm font-medium mb-1.5">
               Title <span class="text-red-500">*</span>
             </label>
-            <input
+            <.input
+              field={@form[:title]}
               type="text"
               id="product_title"
-              name="product[title]"
-              value={@form_data["title"]}
               placeholder="e.g., Ankara Print Fabric"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -174,46 +182,81 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <label for="product_description" class="block text-sm font-medium mb-1.5">
               Description
             </label>
-            <textarea
+            <.input
+              field={@form[:description]}
+              type="textarea"
               id="product_description"
-              name="product[description]"
               rows="4"
               placeholder="Describe your product..."
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >{@form_data["description"]}</textarea>
+            />
           </div>
 
           <div>
             <label for="product_category_id" class="block text-sm font-medium mb-1.5">
               Category
             </label>
-            <select
+            <.input
+              field={@form[:category_id]}
+              type="select"
               id="product_category_id"
-              name="product[category_id]"
+              prompt="No category"
+              options={Enum.map(@categories, &{&1.name, &1.id})}
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
+                     bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label for="product_product_type" class="block text-sm font-medium mb-1.5">
+              Product type
+            </label>
+            <select
+              id="product_product_type"
+              name="product[product_type]"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
-              <option value="">No category</option>
               <option
-                :for={cat <- @categories}
-                value={cat.id}
-                selected={@form_data["category_id"] == to_string(cat.id)}
+                :for={type <- Shared.allowed_product_types(@current_store)}
+                value={to_string(type)}
+                selected={@form_data["product_type"] == to_string(type)}
               >
-                {cat.name}
+                {product_type_label(type)}
               </option>
             </select>
+            <p
+              :if={Shared.allowed_product_types(@current_store) == [:physical]}
+              class="text-xs text-slate-400 mt-1.5"
+            >
+              Selling files instead? Turn on digital downloads in <.link
+                navigate={~p"/admin/settings"}
+                class="underline"
+              >settings</.link>.
+            </p>
+            <p
+              :if={@is_edit && @form_data["product_type"] == "digital_download"}
+              class="text-xs text-slate-500 mt-1.5"
+            >
+              <.link
+                navigate={~p"/admin/products/#{@product.id}/files"}
+                class="text-primary font-medium underline"
+              >
+                Digital files
+              </.link>
+              — upload what the buyer downloads.
+            </p>
           </div>
 
           <div>
             <label for="product_tags" class="block text-sm font-medium mb-1.5">
               Tags
             </label>
-            <input
+            <.input
+              field={@form[:tags]}
               type="text"
               id="product_tags"
-              name="product[tags]"
-              value={@form_data["tags"]}
               placeholder="e.g., ankara, fabric, fashion (comma-separated)"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -226,11 +269,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <label for="product_price" class="block text-sm font-medium mb-1.5">
               Price (GHS)
             </label>
-            <input
+            <.input
+              field={@form[:price]}
               type="text"
               id="product_price"
-              name="product[price]"
-              value={@form_data["price"]}
               placeholder="e.g. 25.00"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -258,11 +300,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <label for="product_seo_title" class="block text-sm font-medium mb-1.5">
               SEO Title
             </label>
-            <input
+            <.input
+              field={@form[:seo_title]}
               type="text"
               id="product_seo_title"
-              name="product[seo_title]"
-              value={@form_data["seo_title"]}
               placeholder="Custom title for search engines"
               maxlength="70"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
@@ -277,15 +318,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <label for="product_seo_description" class="block text-sm font-medium mb-1.5">
               SEO Description
             </label>
-            <textarea
+            <.input
+              field={@form[:seo_description]}
+              type="textarea"
               id="product_seo_description"
-              name="product[seo_description]"
               rows="2"
               maxlength="160"
               placeholder="Brief description for search results"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >{@form_data["seo_description"]}</textarea>
+            />
             <p class="mt-1 text-xs text-slate-500">
               {String.length(@form_data["seo_description"] || "")}/160 characters
             </p>
@@ -301,7 +343,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
         <div class="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="submit"
-            name="product[_action]"
+            name={@form[:_action].name}
             value="draft"
             class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 border-emerald-600
                    text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all"
@@ -310,7 +352,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           </button>
           <button
             type="submit"
-            name="product[_action]"
+            name={@form[:_action].name}
             value="activate"
             class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white
                    hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
@@ -323,7 +365,40 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             Save &amp; Activate
           </button>
         </div>
-      </form>
+      </.form>
+
+      <%!-- Shelf label. Printed and stuck on the bin, it does double duty: a
+            customer scans it to read about the item, and the merchant scans it
+            on the stock page to pull this product up without typing its name.
+            Edit only — a product being created has no slug to point at yet. --%>
+      <.admin_card :if={@is_edit && @current_store} id="product-shelf-label" class="print-sheet">
+        <.qr_panel
+          id="product-qr"
+          svg={QR.product_svg(@current_store, @product)}
+          eyebrow={@current_store.name}
+          title={@product.title}
+          hint="Stick it on the shelf. Scan to count stock."
+          caption="Scan for this item"
+          url={QR.product_url(@current_store, @product)}
+        >
+          <:actions>
+            <.admin_button
+              variant={:secondary}
+              size={:sm}
+              phx-click={
+                JS.dispatch("copy-to-clipboard",
+                  detail: %{text: QR.product_url(@current_store, @product)}
+                )
+              }
+            >
+              Copy link
+            </.admin_button>
+            <.admin_button id="product-label-print" size={:sm} phx-click={JS.dispatch("makola:print")}>
+              Print label
+            </.admin_button>
+          </:actions>
+        </.qr_panel>
+      </.admin_card>
     </div>
     """
   end
@@ -336,9 +411,21 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     errors = validate_form(product_params) |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
-      {:noreply, assign(socket, form_data: params, errors: errors)}
+      {:noreply,
+       assign(socket,
+         form_data: params,
+         form: to_form(params, as: :product),
+         errors: errors
+       )}
     else
-      attrs = build_attrs(product_params, socket.assigns.store_id)
+      # Resolved from assigns at handle-event time, never from a value carried
+      # in the form. The allowlist is UX; ProductTypeAcceptedByStore on the
+      # resource is the security boundary.
+      attrs =
+        product_params
+        |> build_attrs(socket.assigns.store_id)
+        |> Shared.put_product_type(product_params, socket.assigns[:current_store])
+
       pesewas = pesewas_from_price_result(price_result)
 
       result =
@@ -363,7 +450,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
         {:error, error} ->
           {:noreply,
            socket
-           |> assign(form_data: params)
+           |> assign(form_data: params, form: to_form(params, as: :product))
            |> put_flash(:error, format_error(error))}
       end
     end
@@ -432,9 +519,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     errors
   end
 
-  defp load_product(id) do
-    case Emakola.Catalog.get_product(id) do
-      {:ok, product} -> Ash.load!(product, [:variants, :images], authorize?: false)
+  defp load_product(id, socket) do
+    store_id = get_store_id(socket)
+
+    opts = [
+      actor: socket.assigns[:current_merchant],
+      tenant: store_id,
+      load: [:variants, :images]
+    ]
+
+    case Emakola.Catalog.get_product_for_store(id, store_id, opts) do
+      {:ok, product} -> product
       _ -> nil
     end
   end
@@ -460,9 +555,26 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       "tags" => Enum.join(product.tags || [], ", "),
       "seo_title" => product.seo_title || "",
       "seo_description" => product.seo_description || "",
+      "product_type" => to_string(product.product_type),
       "price" => ""
     }
   end
+
+  defp empty_form_data do
+    %{
+      "title" => "",
+      "description" => "",
+      "category_id" => "",
+      "tags" => "",
+      "seo_title" => "",
+      "seo_description" => "",
+      "price" => ""
+    }
+  end
+
+  defp product_type_label(:physical), do: "Physical — you ship it"
+  defp product_type_label(:digital_download), do: "Digital download — buyer downloads a file"
+  defp product_type_label(type), do: type |> to_string() |> String.replace("_", " ")
 
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do

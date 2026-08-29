@@ -19,26 +19,48 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   def product_list(assigns) do
     ~H"""
     <%= if @products == [] do %>
-      <div id="product-empty-state" class="text-center py-16 bg-white rounded-lg">
-        <.icon name="hero-cube" class="size-12 mx-auto text-slate-500/30 mb-3" />
-        <p class="text-slate-500 font-medium">No products found</p>
-        <p class="text-sm text-slate-500/60 mt-1">
-          <%= if @search_query != "" or @status_filter != :all do %>
-            Try adjusting your search or filters
-          <% else %>
-            Get started by adding your first product
-          <% end %>
-        </p>
+      <%!-- A brand-new merchant gets directions and a photo-first way in; a
+            search that matched nothing gets told it was the search. --%>
+      <div id="product-empty-state">
+        <.empty_state
+          :if={@search_query != "" or @status_filter != :all}
+          icon="hero-cube"
+          title="No products found"
+          description="Try adjusting your search or filters"
+        />
+        <%!-- Photo first: a merchant who reads slowly can point a camera long
+              before they can fill a form. The snap flow only exists when the
+              AI key is set, so fall back to the form as the primary. --%>
+        <.empty_state
+          :if={@search_query == "" and @status_filter == :all and EmakolaWeb.AiGate.enabled?()}
+          icon="hero-camera"
+          tone={:warning}
+          title="Add your first product"
+          description="Take a photo — Makola writes the listing"
+          action_label="Snap a photo"
+          action_icon="hero-camera"
+          action_path="/admin/products/snap"
+        />
+        <.empty_state
+          :if={@search_query == "" and @status_filter == :all and not EmakolaWeb.AiGate.enabled?()}
+          icon="hero-camera"
+          tone={:warning}
+          title="Add your first product"
+          description="Add pictures of what you sell"
+          action_label="Add a product"
+          action_icon="hero-plus"
+          action_path="/admin/products/new"
+        />
       </div>
     <% else %>
       <%!-- Desktop Table (hidden on mobile) --%>
-      <div class="hidden md:block bg-white rounded-lg overflow-hidden">
+      <div class="hidden md:block bg-surface rounded-card border border-border shadow-sm overflow-hidden">
         <table class="w-full">
           <thead>
-            <tr class="border-b border-slate-100 text-left text-xs font-mono uppercase tracking-wider text-slate-500">
+            <tr class="border-b border-slate-200 bg-slate-50/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
               <th class="px-4 py-3">Product</th>
               <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Category</th>
+              <th class="px-4 py-3">Stock</th>
               <th class="px-4 py-3 text-right">Variants</th>
               <th class="px-4 py-3 text-right">Price</th>
               <th class="px-4 py-3"></th>
@@ -47,29 +69,26 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           <tbody>
             <tr
               :for={product <- @products}
-              class="border-b border-slate-100/50 hover:bg-slate-200/30 transition-colors"
+              class="border-b border-slate-100/50 hover:bg-slate-50 transition-colors"
             >
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <%= if first_image_url(product) do %>
-                      <img
-                        src={first_image_url(product)}
-                        alt={product.title}
-                        class="w-full h-full object-cover"
-                      />
-                    <% else %>
-                      <.icon name="hero-photo" class="size-5 text-slate-500/40" />
-                    <% end %>
+                  <.product_thumb url={first_image_url(product)} alt={product.title} />
+                  <div class="min-w-0">
+                    <p class="font-semibold text-sm text-slate-900 truncate max-w-[220px]">
+                      {product.title}
+                    </p>
+                    <p class="text-xs text-slate-400 truncate">
+                      {category_name(product.category_id, @categories)}
+                    </p>
                   </div>
-                  <span class="font-medium text-sm truncate max-w-[200px]">{product.title}</span>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <.status_badge status={product.status} variant={:product} />
               </td>
-              <td class="px-4 py-3 text-sm text-slate-500">
-                {category_name(product.category_id, @categories)}
+              <td class="px-4 py-3">
+                <.stock_meter quantity={total_stock(product)} />
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
                 {variant_count(product)} variants
@@ -131,24 +150,14 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       <div class="md:hidden space-y-3">
         <div
           :for={product <- @products}
-          class="bg-white rounded-lg p-4 space-y-3"
+          class="bg-surface rounded-card border border-border shadow-sm p-4 space-y-3"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <%= if first_image_url(product) do %>
-                  <img
-                    src={first_image_url(product)}
-                    alt={product.title}
-                    class="w-full h-full object-cover"
-                  />
-                <% else %>
-                  <.icon name="hero-photo" class="size-6 text-slate-500/40" />
-                <% end %>
-              </div>
+              <.product_thumb url={first_image_url(product)} alt={product.title} class="w-12 h-12" />
               <div class="min-w-0">
-                <p class="font-medium text-sm truncate">{product.title}</p>
-                <p class="text-xs text-slate-500">
+                <p class="font-semibold text-sm text-slate-900 truncate">{product.title}</p>
+                <p class="text-xs text-slate-400">
                   {category_name(product.category_id, @categories)}
                 </p>
               </div>
@@ -156,9 +165,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             <.status_badge status={product.status} variant={:product} />
           </div>
           <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500 font-mono">
-              {variant_count(product)} variants
-            </span>
+            <.stock_meter quantity={total_stock(product)} />
             <span class="font-mono font-medium">{price_range(product)}</span>
           </div>
           <div class="flex gap-2">
@@ -181,6 +188,31 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                        text-sm font-medium hover:bg-primary-soft transition-colors"
             >
               Edit
+            </button>
+            <%!-- Archive/Activate must exist here too: this card is the ONLY
+            product UI on phones (the table above is `hidden md:block`), and
+            most merchants are on mobile. Same events and modal as desktop. --%>
+            <button
+              :if={product.status != :archived}
+              phx-click={
+                JS.push("open_archive", value: %{id: product.id})
+                |> show_modal("product-action-modal")
+              }
+              class="flex-1 text-center py-2 rounded-lg border border-red-200 text-red-600
+                       text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              Archive
+            </button>
+            <button
+              :if={product.status == :archived}
+              phx-click={
+                JS.push("open_activate", value: %{id: product.id})
+                |> show_modal("product-action-modal")
+              }
+              class="flex-1 text-center py-2 rounded-lg border border-emerald-200 text-primary
+                       text-sm font-medium hover:bg-primary-soft transition-colors"
+            >
+              Activate
             </button>
           </div>
         </div>
@@ -277,39 +309,64 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   def confirm_action_modal(assigns) do
     ~H"""
     <div>
-      <%!-- Archive/Activate Confirmation Modal --%>
-      <%= if @action_product && @action_type == :archive do %>
-        <.confirm_modal
-          id="product-action-modal"
-          title="Archive Product"
-          message={"Are you sure you want to archive \"#{@action_product.title}\"? It will no longer be visible in your storefront."}
-          confirm_text="Archive"
-          confirm_class="bg-red-600 hover:bg-red-700 text-white"
-          on_confirm="archive_product"
-          icon="warning"
-          icon_class="text-red-500"
-        />
-      <% end %>
-
-      <%= if @action_product && @action_type == :activate do %>
-        <.confirm_modal
-          id="product-action-modal"
-          title="Activate Product"
-          message={"Activate \"#{@action_product.title}\"? It must have at least one variant to be published. It will become visible in your storefront."}
-          confirm_text="Activate"
-          confirm_class="bg-primary hover:bg-primary-hover text-white"
-          on_confirm="activate_product"
-        />
-      <% end %>
+      <%!-- Archive/Activate confirmation. ALWAYS rendered and nil-safe (same
+      pattern as the platform merchant drawer). It must not be wrapped in an
+      `if @action_product`: the trigger fires
+      `JS.push("open_archive") |> show_modal("product-action-modal")`, and
+      JS.show runs on the client immediately while the push that sets
+      @action_product is a server round-trip. A conditionally-rendered modal
+      therefore does not exist yet when show runs — the first click did
+      nothing and the merchant had to click Archive twice. --%>
+      <.confirm_modal
+        id="product-action-modal"
+        title={action_title(@action_type)}
+        message={action_message(@action_type, @action_product)}
+        confirm_text={action_confirm_text(@action_type)}
+        confirm_class={action_confirm_class(@action_type)}
+        on_confirm={action_event(@action_type)}
+        icon={action_icon(@action_type)}
+        icon_class={action_icon_class(@action_type)}
+      />
     </div>
     """
   end
 
+  defp action_title(:activate), do: "Activate Product"
+  defp action_title(_), do: "Archive Product"
+
+  defp action_message(:activate, %{title: title}),
+    do:
+      "Activate \"#{title}\"? It must have at least one variant to be published. It will become visible in your storefront."
+
+  defp action_message(_type, %{title: title}),
+    do:
+      "Are you sure you want to archive \"#{title}\"? It will no longer be visible in your storefront."
+
+  # No product selected yet — the modal is hidden, so the copy is never seen.
+  defp action_message(_type, _product), do: ""
+
+  defp action_confirm_text(:activate), do: "Activate"
+  defp action_confirm_text(_), do: "Archive"
+
+  defp action_confirm_class(:activate), do: "bg-primary hover:bg-primary-hover text-white"
+  defp action_confirm_class(_), do: "bg-red-600 hover:bg-red-700 text-white"
+
+  defp action_event(:activate), do: "activate_product"
+  defp action_event(_), do: "archive_product"
+
+  defp action_icon(:activate), do: nil
+  defp action_icon(_), do: "warning"
+
+  defp action_icon_class(:activate), do: "text-amber-500"
+  defp action_icon_class(_), do: "text-red-500"
+
   attr :editing_product, :any, required: true
   attr :form_data, :map, required: true
+  attr :product_form, Phoenix.HTML.Form, required: true
   attr :form_errors, :map, required: true
   attr :categories_list, :list, required: true
   attr :uploads, :any, required: true
+  attr :bulk_upload_form, :any, required: true
   attr :csv_preview, :any, required: true
   attr :csv_errors, :list, required: true
   attr :bulk_importing, :boolean, required: true
@@ -324,7 +381,8 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
         kind={:slide_over}
         on_cancel={JS.push("cancel_product_form")}
       >
-        <form
+        <.form
+          for={@product_form}
           phx-change="validate_product"
           phx-submit="save_product"
           id="product-slide-over-form"
@@ -340,11 +398,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               <label for="pf_title" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Title <span class="text-red-500">*</span>
               </label>
-              <input
+              <.input
+                field={@product_form[:title]}
                 type="text"
                 id="pf_title"
-                name="product[title]"
-                value={@form_data["title"]}
                 placeholder="e.g., Ankara Print Fabric"
                 class={[
                   "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -366,14 +423,15 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 Description
               </label>
-              <textarea
+              <.input
+                field={@product_form[:description]}
+                type="textarea"
                 id="pf_description"
-                name="product[description]"
                 rows="4"
                 placeholder="Describe your product..."
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >{@form_data["description"]}</textarea>
+              />
             </div>
 
             <div>
@@ -383,32 +441,25 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 Category
               </label>
-              <select
+              <.input
+                field={@product_form[:category_id]}
+                type="select"
                 id="pf_category_id"
-                name="product[category_id]"
+                prompt="No category"
+                options={Enum.map(@categories_list, &{&1.name, &1.id})}
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="">No category</option>
-                <option
-                  :for={cat <- @categories_list}
-                  value={cat.id}
-                  selected={@form_data["category_id"] == to_string(cat.id)}
-                >
-                  {cat.name}
-                </option>
-              </select>
+              />
             </div>
 
             <div>
               <label for="pf_tags" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Tags
               </label>
-              <input
+              <.input
+                field={@product_form[:tags]}
                 type="text"
                 id="pf_tags"
-                name="product[tags]"
-                value={@form_data["tags"]}
                 placeholder="e.g., ankara, fabric, fashion (comma-separated)"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -421,12 +472,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               <label for="pf_price" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Price (GHS)
               </label>
-              <input
+              <.input
+                field={@product_form[:price]}
                 type="text"
                 inputmode="decimal"
                 id="pf_price"
-                name="product[price]"
-                value={@form_data["price"]}
                 placeholder="e.g. 25.00"
                 class={[
                   "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -443,6 +493,18 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 Required to publish. You can add more pricing options later.
               </p>
             </div>
+          </div>
+
+          <%!-- The slide-over is the quick-edit path and deliberately has no
+               product-type field. Without this link the Products list is a dead
+               end to the full form, where type and digital files live. --%>
+          <div :if={@editing_product} class="border-t border-slate-200 pt-5">
+            <.link
+              navigate={"/admin/products/#{@editing_product.id}/edit"}
+              class="text-sm text-primary font-medium underline"
+            >
+              Edit full details
+            </.link>
           </div>
 
           <%!-- Pricing (edit mode — prices live on variants) --%>
@@ -464,11 +526,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 >
                   {variant.sku || "Variant #{idx + 1}"}
                 </label>
-                <input
+                <.input
                   type="text"
                   inputmode="decimal"
                   id={"pf_price_#{variant.id}"}
-                  name={"product[variant_prices][#{variant.id}]"}
+                  name={"#{@product_form.name}[variant_prices][#{variant.id}]"}
                   value={
                     get_in(@form_data, ["variant_prices", variant.id]) ||
                       Shared.format_pesewas(variant.price)
@@ -514,11 +576,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 SEO Title
               </label>
-              <input
+              <.input
+                field={@product_form[:seo_title]}
                 type="text"
                 id="pf_seo_title"
-                name="product[seo_title]"
-                value={@form_data["seo_title"]}
                 placeholder="Custom title for search engines"
                 maxlength="70"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
@@ -536,15 +597,16 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               >
                 SEO Description
               </label>
-              <textarea
+              <.input
+                field={@product_form[:seo_description]}
+                type="textarea"
                 id="pf_seo_description"
-                name="product[seo_description]"
                 rows="2"
                 maxlength="160"
                 placeholder="Brief description for search results"
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >{@form_data["seo_description"]}</textarea>
+              />
               <p class="mt-1 text-xs text-slate-500">
                 {String.length(@form_data["seo_description"] || "")}/160 characters
               </p>
@@ -552,8 +614,8 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           </div>
 
           <%!-- Hidden action field for button differentiation --%>
-          <input type="hidden" name="product[_action]" id="pf_action_field" value="draft" />
-        </form>
+          <.input field={@product_form[:_action]} type="hidden" id="pf_action_field" value="draft" />
+        </.form>
         <:footer>
           <div class="flex flex-col sm:flex-row gap-3">
             <button
@@ -578,34 +640,13 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       </.modal>
 
       <.bulk_upload_modal
+        form={@bulk_upload_form}
         uploads={@uploads}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}
         bulk_importing={@bulk_importing}
       />
     </div>
-    """
-  end
-
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-  attr :label, :string, required: true
-
-  def status_tab(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-900"
-        )
-      ]}
-    >
-      {@label}
-    </button>
     """
   end
 
@@ -618,6 +659,11 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
   defp variant_count(product) do
     Map.get(product, :variant_count, 0)
+  end
+
+  # A product with no variants has a nil sum — read that as no stock.
+  defp total_stock(product) do
+    Map.get(product, :total_stock) || 0
   end
 
   defp price_range(product) do

@@ -112,6 +112,18 @@ defmodule Emakola.Payments.OrderSettlementTest do
       assert by_role[:dropshipper].amount == 10_560
     end
 
+    test "buyer_protection_enabled ON does not prevent a dropship split from winning", %{
+      dropshipper: dropshipper,
+      order: order
+    } do
+      dropshipper
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      assert {:split, %{mode: :dropship_split}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
+    end
+
     test "nets an older refund liability from the recipient's gateway share", %{
       dropshipper: dropshipper,
       wholesaler: wholesaler,
@@ -232,7 +244,10 @@ defmodule Emakola.Payments.OrderSettlementTest do
       assert by_role[:platform].amount == 200
     end
 
-    test "an own-stock order with no verified subaccount yields no split" do
+    # Task 4 (the flip): this used to yield {:no_split, :payout_unverified};
+    # it now routes to the internal rail instead of refusing the charge — see
+    # order_settlement_internal_test.exs "the flip" for full coverage.
+    test "an own-stock order with no verified subaccount routes to the internal rail (the flip)" do
       merchant = create_store!(name: "No Payout")
       product = create_product!(merchant, title: "No Payout Product")
       own = create_variant!(product, merchant, price: 5_000, sku: "PF-NOPAY", stock_quantity: 20)
@@ -244,12 +259,109 @@ defmodule Emakola.Payments.OrderSettlementTest do
           []
         )
 
-      assert {:no_split, :payout_unverified} = OrderSettlement.prepare(order.id, merchant.id)
+      assert {:split, %{mode: :internal, shares: []}} =
+               OrderSettlement.prepare(order.id, merchant.id)
+    end
+
+    # Regression pin (TC-2 Task 4, case iii): buyer_protection_enabled defaults
+    # to false, so this must keep returning exactly what it returned before
+    # the hold-mode branch existed — byte-identical to the assertions above.
+    test "buyer_protection default OFF: platform-fee settlement is unaffected (regression pin)",
+         %{dropshipper: merchant, product: product} do
+      own = create_variant!(product, merchant, price: 5_000, sku: "PF-PIN", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 1}],
+          []
+        )
+
+      assert {:split,
+              %{
+                mode: :platform_fee,
+                total: 5_000,
+                shares: [%{subaccount: "ACCT_drop", share: 4_900}],
+                allocations: allocs
+              }} = OrderSettlement.prepare(order.id, merchant.id)
+
+      by_role = Map.new(allocs, &{&1.role, &1})
+      assert by_role.merchant.amount == 4_900
+      assert by_role.merchant.subaccount_code == "ACCT_drop"
+      assert by_role.platform.amount == 100
+      assert by_role.platform.subaccount_code == nil
+    end
+  end
+
+  describe "prepare/2 — buyer protection hold (TC-2)" do
+    test "toggle ON + own-stock order → prepare returns a hold", %{
+      dropshipper: merchant,
+      product: product
+    } do
+      merchant
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      own = create_variant!(product, merchant, price: 5_000, sku: "PROT-OWN", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 1}],
+          []
+        )
+
+      assert {:hold, :buyer_protection} = OrderSettlement.prepare(order.id, merchant.id)
+    end
+
+    test "pay-link protected: false on a protection-enabled store → no hold", %{
+      dropshipper: merchant
+    } do
+      merchant
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      link =
+        Emakola.Orders.PayLink
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: merchant.id,
+          type: :custom,
+          title: "Deal",
+          amount: 4_000,
+          protected: false
+        })
+        |> Ash.create!(authorize?: false)
+
+      order = create_order!(merchant, %{pay_link_id: link.id, total: 4_000})
+
+      refute match?({:hold, _}, OrderSettlement.prepare(order.id, merchant.id))
+    end
+
+    test "pay-link protected: true on a protection-disabled store → hold", %{
+      dropshipper: merchant
+    } do
+      link =
+        Emakola.Orders.PayLink
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: merchant.id,
+          type: :custom,
+          title: "Deal",
+          amount: 4_000,
+          protected: true
+        })
+        |> Ash.create!(authorize?: false)
+
+      order = create_order!(merchant, %{pay_link_id: link.id, total: 4_000})
+
+      assert {:hold, :buyer_protection} = OrderSettlement.prepare(order.id, merchant.id)
     end
   end
 
   describe "prepare/2 — fallback" do
-    test "external (unlinked) supplier yields no split", %{
+    # Task 4 (the flip): this used to yield {:no_split, :supplier_not_linked};
+    # it now routes to the internal rail (the supplier's cost folds into the
+    # dropshipper, payable to them manually).
+    test "external (unlinked) supplier routes to the internal rail (the flip)", %{
       dropshipper: dropshipper,
       product: product
     } do
@@ -270,7 +382,8 @@ defmodule Emakola.Payments.OrderSettlementTest do
           []
         )
 
-      assert {:no_split, :supplier_not_linked} = OrderSettlement.prepare(order.id, dropshipper.id)
+      assert {:split, %{mode: :internal, shares: []}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
     end
   end
 
@@ -516,7 +629,9 @@ defmodule Emakola.Payments.OrderSettlementTest do
           assert OrderSettlement.sum_matches_total?(order, allocations)
         end)
 
-      assert log == ""
+      # Async-suite capture_log sees concurrent tests' output; assert only
+      # that OUR order id was not logged, not that the world was silent.
+      refute log =~ order.id
     end
 
     test "returns false and logs an error naming the order id and both sums on mismatch" do

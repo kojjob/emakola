@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "SAVE10",
             "discount_type" => "percentage",
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "FIVEOFF",
             "discount_type" => "fixed_amount",
@@ -133,6 +133,53 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
       assert html =~ "FIVEOFF"
     end
 
+    test "a negative discount value is never stored", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/coupons")
+
+      render_click(view, "show_create_form")
+      render_click(view, "set_discount_type", %{"type" => "fixed_amount"})
+
+      view
+      |> form("#coupon-form", %{
+        "coupon" => %{
+          "code" => "NEGATIVE",
+          "discount_type" => "fixed_amount",
+          "discount_value" => "-500",
+          "active" => "true"
+        }
+      })
+      |> render_submit()
+
+      coupons = Emakola.Marketing.list_coupons_by_store!(store.id, authorize?: false)
+      refute Enum.any?(coupons, fn c -> c.discount_value < 0 end)
+    end
+
+    test "a trailing-garbage discount value is not silently accepted as money", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/coupons")
+
+      render_click(view, "show_create_form")
+      render_click(view, "set_discount_type", %{"type" => "fixed_amount"})
+
+      view
+      |> form("#coupon-form", %{
+        "coupon" => %{
+          "code" => "GARBAGE",
+          "discount_type" => "fixed_amount",
+          "discount_value" => "50abc",
+          "active" => "true"
+        }
+      })
+      |> render_submit()
+
+      coupons = Emakola.Marketing.list_coupons_by_store!(store.id, authorize?: false)
+      garbage = Enum.find(coupons, &(&1.code == "GARBAGE"))
+      # "50abc" must not be read as GHS 50; it parses to no value at all.
+      refute garbage && garbage.discount_value == 5000
+    end
+
     test "creates a free shipping coupon", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/coupons")
 
@@ -141,7 +188,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
       html =
         view
-        |> form("form", %{
+        |> form("#coupon-form", %{
           "coupon" => %{
             "code" => "FREESHIP",
             "discount_type" => "free_shipping",

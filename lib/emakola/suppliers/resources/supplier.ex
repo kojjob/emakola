@@ -48,7 +48,7 @@ defmodule Emakola.Suppliers.Supplier do
     end
 
     attribute :payment_details, :map do
-      public?(true)
+      sensitive?(true)
     end
 
     # Bridges an external supplier to a wholesaler that is itself an Emakola
@@ -96,8 +96,12 @@ defmodule Emakola.Suppliers.Supplier do
   end
 
   aggregates do
+    # A claimed entry (settlement_source != :manual) is being settled by the
+    # platform — it's no longer part of the merchant's manual payable balance,
+    # even while still :owed (claimed-but-unpaid, awaiting an allocation
+    # payout). See SupplierLedgerEntry.claim_for_platform_settlement.
     sum :outstanding_balance, :supplier_ledger_entries, :amount_owed do
-      filter(expr(status == :owed))
+      filter(expr(status == :owed and settlement_source == :manual))
       default(0)
     end
   end

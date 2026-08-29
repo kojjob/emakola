@@ -24,6 +24,7 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -49,6 +50,7 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
       <div class="space-y-3">
         <details
           :for={item <- @faq_items}
+          name="faq"
           class="bg-white rounded-xl border border-stone-200 group"
         >
           <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
@@ -73,6 +75,7 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
 
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />

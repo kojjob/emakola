@@ -24,15 +24,44 @@ defmodule EmakolaWeb.Platform.DashboardLiveTest do
     end
   end
 
+  describe "trend charts" do
+    test "renders the GMV and new-store trend charts with data", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn)
+      _store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform")
+
+      assert has_element?(
+               view,
+               ~s(canvas#gmv-trend-chart[phx-hook="ChartHook"][data-chart-type="gmv-line"])
+             )
+
+      assert has_element?(
+               view,
+               ~s(canvas#new-stores-chart[phx-hook="ChartHook"][data-chart-type="count-bar"])
+             )
+    end
+  end
+
   describe "connected mount" do
+    test "shows an explicit empty state when the platform has no stores", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, "/platform")
+
+      assert has_element?(view, "#platform-recent-stores-empty")
+      refute has_element?(view, "#platform-recent-stores-loading")
+    end
+
     test "shows recent stores", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)
       store = Factory.create_store!()
 
-      {:ok, _view, html} = live(conn, "/platform")
+      {:ok, view, _html} = live(conn, "/platform")
 
-      assert html =~ store.name
-      refute html =~ "Loading stores"
+      assert has_element?(view, "#platform-recent-stores[phx-update='stream']")
+      assert has_element?(view, "#recent_stores-#{store.id}")
+      refute has_element?(view, "#platform-recent-stores-loading")
     end
   end
 end

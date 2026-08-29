@@ -215,6 +215,66 @@ defmodule Emakola.Suppliers.InventoryReservationsTest do
              10
   end
 
+  test "a refunded order restores consumed reserved units exactly once", ctx do
+    Emakola.Stores.StorePayoutAccount
+    |> Ash.Changeset.for_create(:create, %{store_id: ctx.supplier.id})
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: "ACCT_refund_supplier"})
+    |> Ash.update!(authorize?: false)
+
+    Emakola.Stores.StorePayoutAccount
+    |> Ash.Changeset.for_create(:create, %{store_id: ctx.reseller.id})
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: "ACCT_refund_reseller"})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, listing} = ListingImporter.import(ctx.reseller_actor, ctx.reseller.id, ctx.offer)
+    mapping = List.first(listing.listing_variants)
+
+    {:ok, policy} =
+      InventoryReservations.create_policy(
+        ctx.supplier_actor,
+        ctx.supplier.id,
+        ctx.terms.id,
+        %{minimum_tier: :starter, max_quantity_per_reseller: 5, reservation_hours: 24}
+      )
+
+    {:ok, reservation} =
+      InventoryReservations.reserve(ctx.reseller_actor, ctx.reseller.id, policy.id, 5)
+
+    {:ok, order} =
+      Emakola.Orders.CheckoutService.checkout!(
+        ctx.reseller.id,
+        [%{variant_id: mapping.reseller_variant_id, quantity: 2}],
+        []
+      )
+
+    assert :ok = InventoryReservations.consume_for_order(order.id, ctx.reseller.id)
+
+    assert Ash.get!(Emakola.Catalog.Variant, ctx.variant.id, authorize?: false).stock_quantity ==
+             7
+
+    assert {:ok, 2} = InventoryReservations.restore_for_refunded_order(order.id)
+
+    assert Ash.get!(Emakola.Catalog.Variant, ctx.variant.id, authorize?: false).stock_quantity ==
+             9
+
+    assert {:ok, 0} = InventoryReservations.restore_for_refunded_order(order.id)
+
+    assert Ash.get!(Emakola.Catalog.Variant, ctx.variant.id, authorize?: false).stock_quantity ==
+             9
+
+    assert {:ok, _released} =
+             InventoryReservations.release(
+               ctx.supplier_actor,
+               ctx.supplier.id,
+               reservation.id
+             )
+
+    assert Ash.get!(Emakola.Catalog.Variant, ctx.variant.id, authorize?: false).stock_quantity ==
+             12
+  end
+
   # Post-merge hardening (2026-07-11 review).
   test "expiry worker jobs are unique — a duplicate insert is a no-op" do
     %{} |> Emakola.Suppliers.Workers.InventoryReservationExpiryWorker.new() |> Oban.insert!()

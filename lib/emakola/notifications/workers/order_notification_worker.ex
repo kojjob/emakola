@@ -24,10 +24,35 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   require Ash.Query
   require Logger
 
+  alias Emakola.Notifications.Reach
   alias Emakola.Notifications.Templates
   alias Emakola.Notifications.Emails.DeliveryEmail
   alias Emakola.Notifications.Emails.OrderEmail
   alias Emakola.Notifications.Emails.ShippingEmail
+
+  # TC-2 buyer protection lifecycle events (Task 10) join the existing order
+  # events on each side: `:protection_held`/`:protection_delivery_nudge` are
+  # buyer-only (no merchant SMS — mirrors :order_shipped/:order_confirmed/
+  # :order_delivered), `:protection_released`/`:protection_complaint` are
+  # merchant-only (no customer SMS/WhatsApp/email at all).
+  # TC-3 susu completion events (Task 8) join the same two lists: by the
+  # time either fires the plan's order already exists (`SusuCompletion.
+  # complete/1` dispatches them right after confirming it), so they're
+  # genuinely order-based — unlike the plan-based pre-completion susu
+  # events, which route through `SusuNotificationWorker` instead (see
+  # `Emakola.Notifications.Dispatcher`'s "Susu coupling" moduledoc section).
+  # `:susu_completed` is buyer-only (SMS with the same signed tracking link
+  # `:protection_held` uses — susu bypasses `ensure_hold`, so this is the
+  # buyer's only route to a tracking link); `:susu_merchant_completed` is
+  # merchant-only, mirroring the `:protection_released`/`:protection_complaint` split.
+  @buyer_events ~w(
+    order_placed order_confirmed order_shipped order_delivered order_cancelled
+    protection_held protection_delivery_nudge susu_completed
+  )a
+  @merchant_events ~w(
+    order_placed order_cancelled protection_released protection_complaint
+    susu_merchant_completed
+  )a
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => event_string}}) do
@@ -39,7 +64,13 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
           :order_confirmed,
           :order_shipped,
           :order_delivered,
-          :order_cancelled
+          :order_cancelled,
+          :protection_held,
+          :protection_delivery_nudge,
+          :protection_released,
+          :protection_complaint,
+          :susu_completed,
+          :susu_merchant_completed
         ],
         :order_placed
       )
@@ -47,23 +78,12 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     with {:ok, order} <- load_order(order_id),
          {:ok, store} <- load_store(order.store_id),
          customer <- load_customer(order.customer_id) do
-      # Send customer notification if they have a phone number
-      if customer && customer.phone do
-        send_customer_sms(order, store, customer, event)
-        send_customer_whatsapp(order, store, customer, event)
-      else
-        Logger.info(
-          "[OrderNotificationWorker] No customer phone for order #{order_id}, skipping customer notification"
-        )
-      end
-
-      # Send customer email if they have an email address
-      if customer && customer.email do
-        send_customer_email(order, store, customer, event)
+      if event in @buyer_events do
+        notify_customer(order, store, customer, event)
       end
 
       # Send merchant notification for relevant events
-      if event in [:order_placed, :order_cancelled] do
+      if event in @merchant_events do
         send_merchant_sms(order, store, event)
       end
 
@@ -114,9 +134,73 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     end
   end
 
+  # One place decides which channels can reach this buyer. Reach answers
+  # phone-first (whatsapp → sms → email) and treats a blank contact detail as
+  # absent, so no caller re-implements "do they have a phone" slightly
+  # differently.
+  defp notify_customer(order, store, customer, event) do
+    case customer && Reach.channels_for(customer, :transactional) do
+      nil ->
+        :ok
+
+      [] ->
+        Logger.info(
+          "[OrderNotificationWorker] No way to reach the customer for order " <>
+            "#{order.id} — no phone and no email"
+        )
+
+      channels ->
+        deliver_by_phone(channels, order, store, customer, event)
+
+        # Email is additive, not an alternative: it costs nothing and a buyer
+        # who has one may well read it first.
+        if :email in channels, do: send_customer_email(order, store, customer, event)
+    end
+  end
+
+  # WhatsApp first, SMS only if WhatsApp actually failed.
+  #
+  # Both used to send, so the merchant paid twice to say one thing. WhatsApp
+  # is cheaper and usually free to the buyer, and a real failure is visible —
+  # a rejected template or bad request comes back {:error, _} — so the
+  # fallback fires when it matters. This is the same shape Accounts.PhoneAuth
+  # has always used for login codes, where a missed delivery locks a merchant
+  # out of their shop.
+  #
+  # The residual risk is a number Meta accepts and then fails on
+  # asynchronously (a buyer not on WhatsApp): they get nothing rather than an
+  # SMS. Worth revisiting if buyers report missed notifications.
+  defp deliver_by_phone(channels, order, store, customer, event) do
+    cond do
+      :whatsapp in channels ->
+        case send_customer_whatsapp(order, store, customer, event) do
+          {:ok, _} ->
+            :ok
+
+          _failed ->
+            if :sms in channels, do: send_customer_sms(order, store, customer, event)
+        end
+
+      :sms in channels ->
+        send_customer_sms(order, store, customer, event)
+
+      true ->
+        :ok
+    end
+  end
+
   defp send_customer_sms(order, store, customer, event) do
     message = customer_sms_template(order, store, event)
     sms_provider().send_sms(customer.phone, message, store_id: order.store_id)
+  end
+
+  # No approved WhatsApp Business template exists for these events yet — SMS
+  # only (the tracking link body doesn't fit a templated-params WhatsApp
+  # message anyway). Returned as an explicit skip so deliver_by_phone/5 falls
+  # through to SMS on purpose rather than by mistaking :ok for a send.
+  defp send_customer_whatsapp(_order, _store, _customer, event)
+       when event in [:protection_held, :protection_delivery_nudge, :susu_completed] do
+    {:error, :no_template}
   end
 
   defp send_customer_whatsapp(order, store, customer, event) do
@@ -181,6 +265,42 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     end
   end
 
+  defp send_merchant_sms(order, store, :protection_released) do
+    message = Templates.protection_released_merchant_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
+  defp send_merchant_sms(order, store, :protection_complaint) do
+    message = Templates.protection_complaint_merchant_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
+  defp send_merchant_sms(order, store, :susu_merchant_completed) do
+    message = Templates.susu_merchant_completed_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
   defp customer_sms_template(order, store, :order_placed),
     do: Templates.order_placed_sms(order, store)
 
@@ -195,6 +315,15 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   defp customer_sms_template(order, store, :order_cancelled),
     do: Templates.order_cancelled_sms(order, store)
+
+  defp customer_sms_template(order, store, :protection_held),
+    do: Templates.protection_held_sms(order, store)
+
+  defp customer_sms_template(order, store, :protection_delivery_nudge),
+    do: Templates.protection_delivery_nudge_sms(order, store)
+
+  defp customer_sms_template(order, store, :susu_completed),
+    do: Templates.susu_completed_sms(order, store)
 
   defp sms_provider do
     Application.get_env(

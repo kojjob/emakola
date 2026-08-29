@@ -92,8 +92,8 @@ defmodule EmakolaWeb.HowItWorksHTML do
       role: "The market",
       subtitle: "The trust layer connecting every trade",
       icon: "hero-squares-plus",
-      image: "/images/dashboard-preview.png",
-      alt: "Makola merchant dashboard showing commerce operations",
+      image: "/images/makola-dashboard-preview.png",
+      alt: "Makola merchant dashboard showing revenue, orders, and top products",
       tone: "bg-[#ede9fe] text-[#6d28d9]",
       bullets: [
         "Records every pesewa of every settlement",
@@ -189,7 +189,7 @@ defmodule EmakolaWeb.HowItWorksHTML do
               />
             </a>
             <a
-              href="#sale-journey"
+              href="/how-it-works/tour"
               class={[
                 "inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur transition duration-300 hover:border-white/30 hover:bg-white/10"
               ]}
@@ -982,5 +982,80 @@ defmodule EmakolaWeb.HowItWorksHTML do
       </div>
     </section>
     """
+  end
+
+  @doc """
+  The scroll film: a full-viewport scrubbed flight through one Makola sale.
+
+  All behaviour lives in /tour/tour.js + /tour/scrub-engine.js (self-contained
+  vanilla JS) — the template is only the mount point, so the film needs no
+  LiveView process and no app.js coupling.
+  """
+
+  def tour(assigns) do
+    ~H"""
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>{@page_title}</title>
+        <meta name="description" content={@meta_description} />
+        <link rel="canonical" href={@canonical_url} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={@page_title} />
+        <meta property="og:description" content={@meta_description} />
+        <meta property="og:image" content={@og_image} />
+        <meta property="og:url" content={@canonical_url} />
+        <meta name="theme-color" content="#7b7051" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preload" as="image" href="/tour/workshop-m.webp" media="(max-width: 860px)" />
+        <link rel="preload" as="image" href="/tour/workshop.webp" media="(min-width: 861px)" />
+      </head>
+      <body style="margin:0;background:#7b7051">
+        <main id="tour-world" style="min-height:100vh">
+          <%!-- Semantic fallback: agents and no-JS browsers get the full story;
+                tour.js clears this before mounting the film. --%>
+          <article style="max-width:640px;margin:0 auto;padding:48px 24px;color:#FAF3E3;font-family:system-ui,sans-serif">
+            <h1>How Makola works — one sale, start to finish</h1>
+            <p>
+              Scroll through one connected sale on Makola, Ghana's connected commerce
+              network. Six scenes follow a single tote bag from a maker's hands to
+              money in everyone's pocket.
+            </p>
+            <section :for={{title, body} <- tour_scenes()}>
+              <h2>{title}</h2>
+              <p>{body}</p>
+            </section>
+            <p>
+              <a href="/auth/register" style="color:#F5B301">Start your shop — free</a>
+              · <a href="/stores" style="color:#F5B301">Browse stores</a>
+              · <a href="/how-it-works" style="color:#F5B301">Read the full explainer</a>
+            </p>
+          </article>
+        </main>
+        <script src={~p"/tour/scrub-engine.js"}>
+        </script>
+        <script src={~p"/tour/tour.js"}>
+        </script>
+      </body>
+    </html>
+    """
+  end
+
+  defp tour_scenes do
+    [
+      {"It starts with a maker.",
+       "She lists her goods on Makola one time. That is all she does."},
+      {"You stock it in one tap.",
+       "No buying stock first. You see your profit before you add it."},
+      {"They pay like always.", "One MoMo payment. One receipt. Money people already use."},
+      {"It goes straight to them.",
+       "The maker gets the order on her phone and sends it to your customer's door."},
+      {"The money shares itself.",
+       "Everyone's part reaches them by itself. No chasing. No promises."},
+      {"Every stall connected.", "Open your shop today. It is free to start."}
+    ]
   end
 end

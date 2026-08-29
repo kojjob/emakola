@@ -124,6 +124,79 @@ defmodule Emakola.Suppliers.SalesTeamsTest do
     assert Enum.all?(reversed, &(&1.status == :partially_reversed))
   end
 
+  # internal-settlement P3: this own-stock checkout never touches
+  # NetworkCheckoutEligibility (no reseller-listing mappings, so it
+  # short-circuits to :ok regardless of the gate) — the internal-rail
+  # routing here comes from OrderSettlement.prepare/2's own unverified-store
+  # fallback (the flip landed in an earlier task). Mirrors "settles an
+  # attributed order's merchant proceeds exactly and reverses
+  # proportionally" above, with the store left unverified — same team, same
+  # order shape, same numbers — to prove settlement fires identically
+  # regardless of rail.
+  test "settles an attributed order identically on the internal rail for an unverified store" do
+    {owner, store} = create_merchant_with_store!()
+    seller = create_merchant!()
+
+    {:ok, team} =
+      SalesTeams.create(owner, store.id, "Settlement crew", [
+        %{merchant_id: owner.id, role: :owner, split_bps: 6_000},
+        %{merchant_id: seller.id, role: :seller, split_bps: 4_000}
+      ])
+
+    invited = Enum.find(team.members, &(&1.merchant_id == seller.id))
+    {:ok, _accepted} = SalesTeams.accept(seller, invited.id)
+
+    # No StorePayoutAccount is created here — store stays unverified.
+
+    product = create_product!(store, title: "Team Basket")
+    variant = create_variant!(product, store, price: 5_000, stock_quantity: 10)
+
+    {:ok, order} =
+      Emakola.Orders.CheckoutService.checkout!(
+        store.id,
+        [%{variant_id: variant.id, quantity: 2}],
+        attribution: %{"sales_team_id" => team.id}
+      )
+
+    assert {:split, %{mode: :internal, allocations: payment_allocations}} =
+             Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
+
+    payment = create_payment!(store, order_id: order.id, amount: order.total)
+    :ok = Emakola.Payments.OrderSettlement.record_splits!(payment, payment_allocations)
+
+    payment =
+      payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+
+    assert :ok = SalesTeams.settle_attributed_payment(payment)
+    assert :ok = SalesTeams.settle_attributed_payment(payment)
+
+    settlements =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    assert length(settlements) == 2
+    assert Enum.sum(Enum.map(settlements, & &1.amount)) == 9_800
+    assert Enum.find(settlements, &(&1.role == :owner)).amount == 5_880
+    assert Enum.find(settlements, &(&1.role == :seller)).amount == 3_920
+    assert Enum.all?(settlements, &(&1.settlement_base == 9_800))
+
+    payment =
+      payment
+      |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 5_000})
+      |> Ash.update!(authorize?: false)
+
+    assert :ok = SalesTeams.reverse_attributed_payment(payment)
+
+    reversed =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    assert Enum.sum(Enum.map(reversed, & &1.reversed_amount)) == 4_900
+    assert Enum.all?(reversed, &(&1.status == :partially_reversed))
+  end
+
   test "does not settle an unconsented team or an unattributed order" do
     {owner, store} = create_merchant_with_store!()
     seller = create_merchant!()

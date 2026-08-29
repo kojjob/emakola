@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   import EmakolaWeb.Storefront.Path
@@ -63,8 +65,20 @@ defmodule EmakolaWeb.Storefront.AccountLive do
          |> assign(:return_order, nil)
          |> assign(:return_reason, nil)
          |> assign(:return_detail, "")
-         |> assign(:order_returns, order_returns)}
+         |> assign(:order_returns, order_returns)
+         |> assign_notifications(customer)}
     end
+  end
+
+  # Buyers already receive notifications — a merchant replying writes one, and
+  # so does Makola. Until this, nothing rendered them and they piled up unread
+  # forever, which is the same dead-in-one-direction shape the merchant bell
+  # had before it was fixed.
+  defp assign_notifications(socket, customer) do
+    assign(socket,
+      notifications: Emakola.Notifications.list_for(customer),
+      unread_notification_count: Emakola.Notifications.unread_count_for(customer)
+    )
   end
 
   @impl true
@@ -152,6 +166,17 @@ defmodule EmakolaWeb.Storefront.AccountLive do
          |> assign(show_return_modal: false, return_order: nil)
          |> put_flash(:error, "We couldn't submit that return request.")}
     end
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   @impl true

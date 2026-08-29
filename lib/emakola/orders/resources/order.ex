@@ -39,6 +39,14 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
+    attribute :pay_link_id, :uuid do
+      public?(true)
+    end
+
+    attribute :susu_plan_id, :uuid do
+      public?(true)
+    end
+
     attribute :order_number, :string do
       allow_nil?(false)
       public?(true)
@@ -97,6 +105,16 @@ defmodule Emakola.Orders.Order do
       constraints(max_length: 100)
     end
 
+    # Which courier the reference above belongs to, so the buyer gets a link
+    # instead of a number they must guess where to type. Inlined rather than
+    # read from Emakola.Shipping.Couriers to keep the DSL free of a
+    # compile-order dependency; CouriersTest pins the two lists in lockstep.
+    attribute :courier, :atom do
+      public?(true)
+
+      constraints(one_of: [:dhl, :ems_ghana, :speedaf, :jumia_express, :local_rider, :other])
+    end
+
     attribute :shipping_address, :map do
       public?(true)
       filterable?(false)
@@ -151,6 +169,16 @@ defmodule Emakola.Orders.Order do
       :fulfillment_status,
       :atom,
       Emakola.Orders.Calculations.FulfillmentStatus
+    )
+
+    # Whether a supplier needs the merchant, in one value, so the orders LIST
+    # can show it without loading and reasoning per row in the template.
+    # Unlike FulfillmentStatus above, this one never raises on an unfamiliar
+    # status — a list chip is not worth a 500.
+    calculate(
+      :supplier_alert,
+      :atom,
+      Emakola.Orders.Calculations.SupplierAlert
     )
 
     # Additive: gross margin (minor units) summed from line items, treating
@@ -224,6 +252,8 @@ defmodule Emakola.Orders.Order do
       accept([
         :store_id,
         :customer_id,
+        :pay_link_id,
+        :susu_plan_id,
         :notes,
         :shipping_address,
         :billing_address,
@@ -268,7 +298,15 @@ defmodule Emakola.Orders.Order do
          from: [:pending], message: "can only confirm a pending order"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending]})
+
       change(set_attribute(:status, :confirmed))
+
+      # Before NotifyConfirmation on purpose: the clock must exist before the
+      # supplier is messaged, so a supplier who answers instantly has something
+      # to stop.
+      change(Emakola.Orders.Changes.StampSupplierRespondBy)
 
       change(Emakola.Orders.Changes.NotifyConfirmation)
 
@@ -288,17 +326,23 @@ defmodule Emakola.Orders.Order do
          from: [:confirmed], message: "can only start processing from confirmed"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:confirmed]})
+
       change(set_attribute(:status, :processing))
     end
 
     update :mark_shipped do
       require_atomic?(false)
-      accept([:tracking_number])
+      accept([:tracking_number, :courier])
 
       validate(
         {Emakola.Validations.StatusGuard,
          from: [:processing], message: "can only mark as shipped from processing"}
       )
+
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:processing]})
 
       change(set_attribute(:status, :shipped))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_shipped})
@@ -313,6 +357,9 @@ defmodule Emakola.Orders.Order do
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
+
       change(set_attribute(:status, :delivered))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_delivered})
     end
@@ -325,6 +372,12 @@ defmodule Emakola.Orders.Order do
         {Emakola.Validations.StatusGuard,
          from: [:pending, :confirmed, :processing, :shipped],
          message: "can only cancel an active order (not delivered or already cancelled)"}
+      )
+
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change(
+        {Emakola.Orders.Changes.RequireStatusIn,
+         from: [:pending, :confirmed, :processing, :shipped]}
       )
 
       change(set_attribute(:status, :cancelled))

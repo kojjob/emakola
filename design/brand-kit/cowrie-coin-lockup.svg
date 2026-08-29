@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 64" width="248" height="64" role="img" aria-label="Makola.io">
+  <circle cx="32" cy="32" r="26" fill="#d4a843"/>
+  <path d="M31 11 C27 21 27 43 30 53" stroke="#0c1526" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <g stroke="#0c1526" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M26.5 17 L22.5 15.5"/>
+    <path d="M25.2 24 L20.8 23"/>
+    <path d="M24.8 31 L20.2 30.7"/>
+    <path d="M25 38 L20.6 38.5"/>
+    <path d="M26 45 L22 46.5"/>
+    <path d="M34 17.5 L38 16"/>
+    <path d="M33 24.5 L37.3 23.6"/>
+    <path d="M32.7 31.5 L37 31.3"/>
+    <path d="M32.9 38.5 L37 39"/>
+    <path d="M33.8 45.5 L37.6 46.8"/>
+  </g>
+  <text x="74" y="44" font-family="Archivo, -apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="-0.5" fill="#0c1526">Makola<tspan fill="#d4a843">.io</tspan></text>
+</svg>

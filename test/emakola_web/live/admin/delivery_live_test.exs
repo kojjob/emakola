@@ -49,6 +49,24 @@ defmodule EmakolaWeb.Admin.DeliveryLiveTest do
       assert html =~ "Greater Accra"
     end
 
+    test "a negative zone fee is never stored", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      view |> element("[phx-click=\"show_form\"]") |> render_click()
+
+      view
+      |> form("#new-zone-form", %{
+        zone: %{name: "Negative Zone", fee: "-5", estimated_days: 1}
+      })
+      |> render_submit()
+
+      zones = Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
+      zone = Enum.find(zones, &(&1.name == "Negative Zone"))
+      # The zone submit went through; the negative fee must not survive it.
+      assert zone
+      assert zone.fee >= 0
+    end
+
     test "zone form renders free-above and per-kg pricing inputs", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
 

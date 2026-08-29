@@ -11,87 +11,6 @@
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
 
-/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
-   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
-   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
-@plugin "../vendor/daisyui" {
-  themes: false;
-}
-
-/* daisyUI theme plugin. You can update this file by fetching the latest version with:
-  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
-@plugin "../vendor/daisyui-theme" {
-  name: "dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
-
-@plugin "../vendor/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
-
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
@@ -135,6 +54,10 @@
 @theme {
   /* ── Emakola semantic tokens (Design System v1) ── */
   /* Actions */
+  /* Makola emerald, one brand everywhere: the admin, makola.io, every
+     storefront, and the public pay-link / susu-link / contact forms all
+     resolve these three. Tile hues (violet / green / blue / red / cyan) carry
+     meaning inside the admin; the chrome stays green. */
   --color-primary: #059669;        /* emerald-600 — every primary action */
   --color-primary-hover: #047857;  /* emerald-700 */
   --color-primary-soft: #ECFDF5;   /* emerald-50 — soft bg, selected states */
@@ -175,7 +98,8 @@
   --color-cta-dark: var(--theme-primary, #1C1917);
   --color-store-bg: var(--theme-bg, #FAFAF9);
   --color-mtn: #FFC107;                   /* MTN MoMo brand */
-  --color-voda: #E60000;                  /* Vodafone Cash brand */
+  --color-voda: #E60000;                  /* Telecel Cash brand (red carried over from Vodafone) */
+  --color-atl: #004F9F;                   /* AT (AirtelTigo) Money brand */
   --color-whatsapp: #25D366;              /* WhatsApp green */
   --color-whatsapp-dark: #1FAF55;         /* WhatsApp hover */
   --color-facebook: #1877F2;
@@ -187,10 +111,10 @@
   --color-instagram-purple: #8134AF;
 
   /* ── Fonts ── */
-  --font-headline: 'Manrope', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-label: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-headline: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-label: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 /* Theme-following tints — modern browsers derive them from the accent;
@@ -431,37 +355,37 @@ html.high-contrast {
   /* ═══════════════════════════════════════════
      COLLAPSED STATE (desktop toggle)
      ═══════════════════════════════════════════ */
-  .admin-shell.collapsed .sidebar {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar {
     width: 72px;
   }
-  .admin-shell.collapsed .nav-label,
-  .admin-shell.collapsed .nav-section-label,
-  .admin-shell.collapsed .sidebar-badge,
-  .admin-shell.collapsed .store-selector .nav-label,
-  .admin-shell.collapsed .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+  .admin-shell.collapsed:not(.mobile-open) .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .nav-section-label,
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
 
-  .admin-shell.collapsed .sidebar-header { padding: 0 16px; justify-content: center; }
-  .admin-shell.collapsed .sidebar-header a { justify-content: center; }
-  .admin-shell.collapsed .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
-  .admin-shell.collapsed .collapse-icon { transform: rotate(180deg); }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0 16px; justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header a { justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-icon { transform: rotate(180deg); }
 
-  .admin-shell.collapsed .sidebar-link {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link {
     justify-content: center;
     padding: 11px;
     gap: 0;
   }
-  .admin-shell.collapsed .sidebar-link::before { left: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::before { left: 0; }
 
-  .admin-shell.collapsed .store-selector { padding: 8px; justify-content: center; }
-  .admin-shell.collapsed .store-selector > div { justify-content: center; }
-  .admin-shell.collapsed .sidebar-user { justify-content: center; padding: 8px; }
-  .admin-shell.collapsed .sidebar-user .nav-label { display: none; }
-  .admin-shell.collapsed .sidebar-user svg { display: none; }
-  .admin-shell.collapsed .sidebar-nav { padding: 8px 10px; }
-  .admin-shell.collapsed .sidebar-footer { padding: 8px 10px; }
+  .admin-shell.collapsed:not(.mobile-open) .store-selector { padding: 8px; justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .store-selector > div { justify-content: center; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user { justify-content: center; padding: 8px; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user .nav-label { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user svg { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-nav { padding: 8px 10px; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-footer { padding: 8px 10px; }
 
   /* Tooltip on hover (collapsed) */
-  .admin-shell.collapsed .sidebar-link::after {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::after {
     content: attr(title);
     position: absolute;
     left: calc(100% + 12px);
@@ -480,7 +404,7 @@ html.high-contrast {
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-  .admin-shell.collapsed .sidebar-link:hover::after {
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link:hover::after {
     opacity: 1;
     transform: translateY(-50%) scale(1);
   }
@@ -498,7 +422,10 @@ html.high-contrast {
     visibility: visible;
   }
   .admin-shell.mobile-open .sidebar {
+    /* Tailwind v4's -translate-x-full uses the `translate` property, not
+       `transform` — both must be reset or the sidebar stays off-canvas. */
     transform: translateX(0) !important;
+    translate: 0 !important;
     width: 280px;
   }
 
@@ -536,6 +463,36 @@ html.high-contrast {
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .admin-shell:not(.expanded) .sidebar-link:hover::after { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+
+
+  /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+     that shove icons off-center, and the hover tooltips can never render
+     (the aside clips them) yet their boxes create a phantom horizontal
+     scrollbar — so labels leave the layout and tooltips are disabled. */
+  .admin-shell.collapsed:not(.mobile-open) .nav-label,
+  .admin-shell.collapsed:not(.mobile-open) .nav-section-label,
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-badge,
+  .admin-shell.collapsed:not(.mobile-open) .store-selector svg:last-child { display: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .admin-shell.collapsed:not(.mobile-open) .collapse-btn { position: static; margin-left: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-link::after { content: none; }
+  .admin-shell.collapsed:not(.mobile-open) .sidebar-nav { overflow-x: hidden; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    /* Narrow-rail alignment. The width-0 label trick leaves flex-grow ghosts
+       that shove icons off-center, and the hover tooltips can never render
+       (the aside clips them) yet their boxes create a phantom horizontal
+       scrollbar — so labels leave the layout and tooltips are disabled. */
+        .admin-shell:not(.expanded) .nav-label,
+        .admin-shell:not(.expanded) .nav-section-label,
+        .admin-shell:not(.expanded) .sidebar-badge,
+        .admin-shell:not(.expanded) .store-selector svg:last-child { display: none; }
+        .admin-shell:not(.expanded) .sidebar-header { padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+        .admin-shell:not(.expanded) .collapse-btn { position: static; margin-left: 0; }
+        .admin-shell:not(.expanded) .sidebar-user button { justify-content: center; padding: 8px; gap: 0; }
+        .admin-shell:not(.expanded) .sidebar-link::after { content: none; }
+        .admin-shell:not(.expanded) .sidebar-nav { overflow-x: hidden; }
   }
 
   /* ═══════════════════════════════════════════
@@ -863,5 +820,220 @@ html.high-contrast {
   }
   .section-drop-below {
     box-shadow: inset 0 -2px 0 0 var(--color-primary);
+  }
+}
+
+/* Print isolation for QR sheets (the stall sign on Settings, the packing slip
+   on an order). Admin pages are dense — sidebar, header, cards — and none of
+   that belongs on paper next to a QR a buyer has to scan.
+
+   A page marks the one block it wants printed with .print-sheet. Everything on
+   the page is then hidden for print EXCEPT the sheet, the sheet's own subtree,
+   and the sheet's ancestors — which must survive, or the sheet goes down with
+   them.
+
+   Hiding by `display` rather than `visibility` is deliberate: a hidden element
+   takes up no space, so the sheet lands at the top of page 1 by ordinary flow.
+   The obvious alternative — keep everything laid out with `visibility: hidden`
+   and drag the sheet up with `position: absolute` — resolves against the
+   nearest positioned ancestor rather than the page, and admin layouts are full
+   of `relative` wrappers. That yields blank leading pages. No positioning here,
+   so there is nothing to resolve against.
+
+   Wrapped in @layer components so Tailwind's own print: utilities still
+   compose — a control inside a sheet can carry print:hidden and stay off the
+   paper, and the sheet can size itself up for paper. */
+@layer components {
+  @media print {
+    body:has(.print-sheet)
+      *:not(:has(.print-sheet)):not(.print-sheet):not(.print-sheet *) {
+      display: none !important;
+    }
+
+    .print-sheet {
+      margin: 0;
+      box-shadow: none;
+    }
+  }
+}
+
+/* ── Makola mark motion ──────────────────────────────────────────────────────
+   Drives EmakolaWeb.BrandComponents.logo_mark/1. The mark is a cowrie struck
+   as a coin — one face, one slit, ten teeth — so it moves like money: struck,
+   shimmering, received.
+
+   Three rules hold this together:
+     1. Every part is authored in its finished state. Keyframes live behind
+        prefers-reduced-motion, so stillness yields the mark, not a blank box.
+     2. transform-box: fill-box on every animated element — without it an SVG
+        element scales from the viewBox corner instead of its own, and the
+        mark slides off rather than unfurling.
+     3. Only transform and opacity animate. The one exception is .logo-paid's
+        face, which animates fill; it fires once on one element, so the
+        uncomposited repaint costs nothing. Do not reuse it in a loop.
+   ────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .logo-reveal *,
+  .logo-loading *,
+  .logo-awaiting *,
+  .logo-paid *,
+  .logo-splash * {
+    transform-box: fill-box;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* The coin is struck — 1.1s, first paint only. */
+    .logo-reveal .logo-face {
+      transform-origin: center center;
+      animation: makola-strike 420ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+    }
+
+    .logo-reveal .logo-slit {
+      transform-origin: center top;
+      animation: makola-draw 320ms cubic-bezier(0.3, 0.9, 0.4, 1) 340ms both;
+    }
+
+    .logo-reveal .logo-tooth {
+      transform-origin: center center;
+      animation: makola-bite 220ms cubic-bezier(0.2, 0.8, 0.3, 1.3) both;
+    }
+
+    .logo-reveal .logo-tooth:nth-of-type(1) { animation-delay: 560ms; }
+    .logo-reveal .logo-tooth:nth-of-type(6) { animation-delay: 590ms; }
+    .logo-reveal .logo-tooth:nth-of-type(2) { animation-delay: 620ms; }
+    .logo-reveal .logo-tooth:nth-of-type(7) { animation-delay: 650ms; }
+    .logo-reveal .logo-tooth:nth-of-type(3) { animation-delay: 680ms; }
+    .logo-reveal .logo-tooth:nth-of-type(8) { animation-delay: 710ms; }
+    .logo-reveal .logo-tooth:nth-of-type(4) { animation-delay: 740ms; }
+    .logo-reveal .logo-tooth:nth-of-type(9) { animation-delay: 770ms; }
+    .logo-reveal .logo-tooth:nth-of-type(5) { animation-delay: 800ms; }
+    .logo-reveal .logo-tooth:nth-of-type(10) { animation-delay: 830ms; }
+
+    /* Working — the teeth shimmer down the shell. This is our spinner. */
+    .logo-loading .logo-tooth {
+      transform-origin: center center;
+      animation: makola-shimmer 1.25s ease-in-out infinite;
+    }
+
+    .logo-loading .logo-tooth:nth-of-type(6) { animation-delay: 40ms; }
+    .logo-loading .logo-tooth:nth-of-type(2) { animation-delay: 90ms; }
+    .logo-loading .logo-tooth:nth-of-type(7) { animation-delay: 130ms; }
+    .logo-loading .logo-tooth:nth-of-type(3) { animation-delay: 180ms; }
+    .logo-loading .logo-tooth:nth-of-type(8) { animation-delay: 220ms; }
+    .logo-loading .logo-tooth:nth-of-type(4) { animation-delay: 270ms; }
+    .logo-loading .logo-tooth:nth-of-type(9) { animation-delay: 310ms; }
+    .logo-loading .logo-tooth:nth-of-type(5) { animation-delay: 360ms; }
+    .logo-loading .logo-tooth:nth-of-type(10) { animation-delay: 400ms; }
+
+    /* Payment pending — a coin falls and sinks into the slit. */
+    .logo-awaiting .logo-coin {
+      animation: makola-coin-drop 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+
+    /* Paid — the face flashes green and a tick lands. Plays once. */
+    .logo-paid .logo-face {
+      animation: makola-face-flash 900ms ease-in-out 120ms both;
+    }
+
+    .logo-paid .logo-tick {
+      transform-origin: center center;
+      animation: makola-tick 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 260ms both;
+    }
+
+    /* Cold start — it breathes. */
+    .logo-splash {
+      transform-origin: center center;
+      animation: makola-breathe 3s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes makola-strike {
+  from {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes makola-draw {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes makola-bite {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes makola-shimmer {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  45% {
+    transform: scale(0.4);
+    opacity: 0.35;
+  }
+}
+
+@keyframes makola-coin-drop {
+  0% {
+    transform: translateY(-34px);
+    opacity: 0;
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  58% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translateY(5px) scale(0.45);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(5px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes makola-face-flash {
+  0%,
+  100% {
+    fill: #d4a843;
+  }
+
+  25%,
+  70% {
+    fill: #10b981;
+  }
+}
+
+@keyframes makola-tick {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes makola-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.045);
   }
 }

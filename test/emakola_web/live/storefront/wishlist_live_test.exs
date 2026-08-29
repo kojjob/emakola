@@ -12,32 +12,33 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
 
   describe "WishlistLive" do
     test "renders wishlist page with title", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
 
-      assert html =~ "My Wishlist"
+      assert has_element?(view, "#wishlist-title")
+      assert has_element?(view, "#wishlist-items[phx-update='stream']")
     end
 
     test "shows empty state when wishlist is empty", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
 
-      assert html =~ "Your wishlist is empty"
-      assert html =~ "Browse Products"
+      assert has_element?(view, "#wishlist-items[data-count='0']")
+      assert has_element?(view, "#wishlist-empty")
+      assert has_element?(view, "#wishlist-browse-products[href$='/products']")
     end
 
     test "shows product grid when items exist", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
 
       # Add an item to the wishlist
-      html =
-        render_click(view, "add_to_wishlist", %{
-          "product_id" => "placeholder-1",
-          "title" => "Kente Dress",
-          "price" => "28000",
-          "image_url" => "/images/placeholder.jpg"
-        })
+      render_click(view, "add_to_wishlist", %{
+        "product_id" => "placeholder-1",
+        "title" => "Kente Dress",
+        "price" => "28000",
+        "image_url" => "/images/placeholder.jpg"
+      })
 
-      assert html =~ "Kente Dress"
-      assert html =~ "1 saved item"
+      assert has_element?(view, "#wishlist-item-placeholder-1")
+      assert has_element?(view, "#wishlist-count[data-count='1']")
     end
 
     test "remove button removes item from wishlist", %{conn: conn, store: store} do
@@ -52,10 +53,11 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
       })
 
       # Remove it
-      html = render_click(view, "remove_from_wishlist", %{"product_id" => "placeholder-1"})
+      render_click(view, "remove_from_wishlist", %{"product_id" => "placeholder-1"})
 
-      assert html =~ "Your wishlist is empty"
-      refute html =~ "Kente Dress"
+      refute has_element?(view, "#wishlist-item-placeholder-1")
+      assert has_element?(view, "#wishlist-items[data-count='0']")
+      assert has_element?(view, "#wishlist-empty")
     end
 
     # This asserted the toast appeared for product_id "placeholder-1" — a product
@@ -84,15 +86,16 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
         "image_url" => "/images/1.jpg"
       })
 
-      html =
-        render_click(view, "add_to_wishlist", %{
-          "product_id" => "p2",
-          "title" => "Item 2",
-          "price" => "20000",
-          "image_url" => "/images/2.jpg"
-        })
+      render_click(view, "add_to_wishlist", %{
+        "product_id" => "p2",
+        "title" => "Item 2",
+        "price" => "20000",
+        "image_url" => "/images/2.jpg"
+      })
 
-      assert html =~ "2 saved items"
+      assert has_element?(view, "#wishlist-count[data-count='2']")
+      assert has_element?(view, "#wishlist-item-p1")
+      assert has_element?(view, "#wishlist-item-p2")
     end
 
     test "redirects for non-existent store", %{conn: conn} do
@@ -106,9 +109,10 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
 
       # A crafted event without "price" must not crash (was String.to_integer(nil)).
-      html = render_click(view, "add_to_wishlist", %{"product_id" => "p-x", "title" => "X"})
+      render_click(view, "add_to_wishlist", %{"product_id" => "p-x", "title" => "X"})
 
-      assert html =~ "My Wishlist"
+      assert has_element?(view, "#wishlist-title")
+      assert has_element?(view, "#wishlist-item-p-x")
     end
   end
 

@@ -5,7 +5,7 @@ defmodule Emakola.Notifications.ContactMailer do
   alias Emakola.Mailer
 
   def deliver_contact_message(%{name: name, email: email, subject: subject, message: message}) do
-    to_address = Application.get_env(:emakola, :contact_email, "support@emakola.com")
+    to_address = Application.get_env(:emakola, :contact_email, "support@makola.io")
 
     new()
     |> to(to_address)

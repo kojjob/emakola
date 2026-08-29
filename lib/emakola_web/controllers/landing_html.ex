@@ -10,7 +10,7 @@ defmodule EmakolaWeb.LandingHTML do
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
 
   # Mirrored by the hero-rotate keyframes in assets/css/app.css — update both if word count changes.
-  @rotating_words ["big name in Accra", "household brand", "MoMo success story", "market leader"]
+  @rotating_words ["big name", "household brand", "MoMo success story", "market leader"]
 
   @faqs [
     {"What is Makola?",
@@ -39,6 +39,7 @@ defmodule EmakolaWeb.LandingHTML do
       <.landing_nav />
       <main>
         <.hero />
+        <.built_for_ghana />
         <.store_wall />
         <.feature_stories />
         <.features_grid />
@@ -65,7 +66,7 @@ defmodule EmakolaWeb.LandingHTML do
         </span>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.1] [text-shadow:0_2px_18px_rgba(12,21,38,0.6)]">
           Be the next<br />
-          <span class="sr-only">big name in Accra</span>
+          <span class="sr-only">big name</span>
           <span
             class="hero-rotator whitespace-nowrap text-[1.75rem] sm:text-5xl lg:text-6xl"
             aria-hidden="true"
@@ -76,8 +77,8 @@ defmodule EmakolaWeb.LandingHTML do
           </span>
         </h1>
         <p class="text-base lg:text-lg text-[#e2e8f0] mt-6 mb-8 max-w-xl mx-auto">
-          Dream big and sell fast on Makola. Mobile money payments, WhatsApp updates,
-          and a storefront built for Ghana.
+          You already sell in your DMs. Makola gives you a link that takes MoMo —
+          so you stop chasing transfer screenshots and start getting paid.
         </p>
         <a
           href="/auth/register"
@@ -86,6 +87,48 @@ defmodule EmakolaWeb.LandingHTML do
           Start selling — free
         </a>
         <p class="text-xs text-[#cbd5e1] mt-4">No credit card needed</p>
+      </div>
+    </section>
+    """
+  end
+
+  # The differentiators, in objection order: "this is how I already sell" →
+  # "but will buyers trust me?" → "but can they afford it?" → "but can I start?".
+  # Every claim maps to shipped code (#363, #364, #367, #372-374) — nothing here
+  # describes anything Makola cannot do today.
+  defp built_for_ghana(assigns) do
+    ~H"""
+    <section class="bg-[#0c1526] pb-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-5xl mx-auto">
+        <h2 class="text-2xl lg:text-3xl font-headline font-bold text-center mb-2">
+          Built for how Ghana actually sells
+        </h2>
+        <p class="text-base text-[#94a3b8] text-center mb-12">
+          The parts other platforms leave you to figure out
+        </p>
+        <div class="stagger-grid grid grid-cols-1 sm:grid-cols-2 gap-5" data-reveal>
+          <div
+            :for={item <- differentiators()}
+            class="bg-white/[0.04] border border-white/10 rounded-2xl p-6 text-center sm:text-left transition duration-300 hover:bg-white/[0.07]"
+          >
+            <span class="inline-flex w-20 h-20 items-center justify-center rounded-2xl bg-[#d4a843] text-[#0c1526] mb-4">
+              <span class="material-symbols-outlined text-5xl" aria-hidden="true">
+                {item.icon}
+              </span>
+            </span>
+            <h3 class="text-xl font-bold mb-1">{item.title}</h3>
+            <p class="text-base text-[#cbd5e1]">{item.blurb}</p>
+          </div>
+        </div>
+        <div class="text-center mt-10">
+          <a
+            href="/how-it-works/tour"
+            class="inline-flex items-center gap-2 text-[#d4a843] font-semibold hover:underline"
+          >
+            <span class="material-symbols-outlined text-2xl" aria-hidden="true">play_circle</span>
+            Watch how it works
+          </a>
+        </div>
       </div>
     </section>
     """
@@ -423,7 +466,11 @@ defmodule EmakolaWeb.LandingHTML do
           Questions, answered
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <details :for={{question, answer} <- @faqs} class="group bg-[#f7f8fa] rounded-xl p-5">
+          <details
+            :for={{question, answer} <- @faqs}
+            name="faq"
+            class="group bg-[#f7f8fa] rounded-xl p-5"
+          >
             <summary class="cursor-pointer text-base font-semibold text-[#0c1526] list-none flex items-center justify-between gap-3">
               {question}
               <span
@@ -545,6 +592,23 @@ defmodule EmakolaWeb.LandingHTML do
     ]
   end
 
+  defp differentiators do
+    [
+      %{title: "Pay Links", blurb: "Send a link. Get paid on MoMo.", icon: "link"},
+      %{
+        title: "Buyer Protection",
+        blurb: "We hold the money until they get it.",
+        icon: "verified_user"
+      },
+      %{title: "Susu Lay-away", blurb: "Let them pay small amounts over time.", icon: "savings"},
+      %{
+        title: "Start with nothing",
+        blurb: "No stock. No capital. Start today.",
+        icon: "rocket_launch"
+      }
+    ]
+  end
+
   defp features do
     [
       %{
@@ -557,7 +621,7 @@ defmodule EmakolaWeb.LandingHTML do
       },
       %{
         title: "Themes",
-        blurb: "14 beautiful looks for your store",
+        blurb: "A look for every trade",
         icon: "palette",
         badge: "bg-rose-500 shadow-rose-500/40",
         img: "/images/landing/store-tailor.jpg",

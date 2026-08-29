@@ -40,8 +40,8 @@ defmodule Emakola.Themes.Dede.ProductDetail do
                 alt={@product.title}
                 priority={:high}
                 width={640}
-                height={480}
-                class="aspect-[4/3] w-full object-cover"
+                height={800}
+                class="aspect-[4/5] w-full object-cover"
               />
             </div>
             <div
@@ -80,6 +80,8 @@ defmodule Emakola.Themes.Dede.ProductDetail do
             <h1 class="text-3xl uppercase leading-[0.95] tracking-wide text-[#26211A] [font-family:var(--dt-heading-font,'Anton',sans-serif)] sm:text-4xl">
               {@product.title}
             </h1>
+
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
 
             <p
               :if={@orderable}
@@ -279,6 +281,7 @@ defmodule Emakola.Themes.Dede.ProductDetail do
           reviews={@reviews}
           can_review={@can_review}
           already_reviewed={@already_reviewed}
+          review_form={assigns[:review_form]}
           review_form_rating={@review_form_rating}
           review_form_title={@review_form_title}
           review_form_body={@review_form_body}

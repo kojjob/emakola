@@ -71,8 +71,8 @@ defmodule Emakola.Themes.HomeLiving do
         # Living store's goods were made of, asserted by the theme. The hero
         # title is the most editable field on the storefront; its default should
         # describe the page, not the furniture.
-        title: "Furniture and home goods",
-        subtitle: "Modern furniture and home goods, made for the way you live.",
+        title: "For the way you live",
+        subtitle: "Good things for your home and your day.",
         cta_text: "Explore More",
         cta_url: "/products"
       },
@@ -155,9 +155,6 @@ defmodule Emakola.Themes.HomeLiving do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.HomeLiving.ProductDetail,
     as: :render
-
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
 
   @impl true
   def storefront_nav(assigns) do

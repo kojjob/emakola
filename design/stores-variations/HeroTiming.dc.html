@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #f7f6f1; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #047857; } a:hover { color: #065f46; }
+    .ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+    .ring circle.track { stroke: #e2e0d9; }
+    .ring circle.fill { stroke: #d4a843; stroke-dasharray: 138; stroke-dashoffset: 138; }
+    @media (prefers-reduced-motion: no-preference) {
+      .ring circle.fill { animation: heroTick 8s linear infinite; }
+      .tickbar span { animation: heroBar 8s linear infinite; }
+    }
+    @keyframes heroTick { from { stroke-dashoffset: 138; } to { stroke-dashoffset: 0; } }
+    @keyframes heroBar { from { width: 0%; } to { width: 100%; } }
+  </style>
+</helmet>
+<div style="width: 1440px; background: #f7f6f1; color: #132219; padding: 44px 48px 52px; box-sizing: border-box; display: flex; flex-direction: column; gap: 38px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; border-bottom: 1px solid #d6d3cb; padding-bottom: 22px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #94a3b8;">Timing the hero</span>
+      <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -0.04em; color: #132219;">Where the clock should live</h1>
+    </div>
+    <p style="margin: 0; max-width: 470px; font-size: 14px; line-height: 1.6; color: #64748b; text-align: right;">A timer in the browser decides which shop is showing <em>right now</em>. A timer on the server decides which shop is rank one <em>today</em>. Only one of those is fair to merchants and free for shoppers.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 36px; align-items: center;">
+    <div style="position: relative; border-radius: 26px; overflow: hidden; background: #0f172a; box-shadow: 0 20px 50px -30px rgba(12,31,23,0.65);">
+      <div style="position: relative; aspect-ratio: 3 / 2; background: #e2e8f0;">
+        <img src="shop-fruit.jpg" alt="Adom Fresh Produce" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(12,31,23,0.92) 0%, rgba(12,31,23,0.3) 52%);"></div>
+
+        <div style="position: absolute; top: 18px; left: 18px; right: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #fcd34d; font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #052e16;">Featured</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 10px; border-radius: 999px; background: rgba(12,31,23,0.62); font-size: 11px; font-weight: 700; color: #ffffff;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="#ffffff" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg>
+            Pause
+          </span>
+        </div>
+
+        <div style="position: absolute; left: 26px; right: 26px; bottom: 26px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.8);">Fresh &middot; Greater Accra</span>
+            <span style="font-size: 38px; font-weight: 900; letter-spacing: -0.03em; color: #ffffff; line-height: 1.03;">Adom Fresh Produce</span>
+          </div>
+          <span style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; flex-shrink: 0;">
+            <svg class="ring" viewBox="0 0 50 50" width="60" height="60" aria-hidden="true">
+              <circle class="track" cx="25" cy="25" r="22" fill="none" stroke-width="3"/>
+              <circle class="fill" cx="25" cy="25" r="22" fill="none" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position: absolute;" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>
+          </span>
+        </div>
+
+        <div class="tickbar" style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.16);">
+          <span style="display: block; height: 100%; width: 0%; background: #d4a843;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #047857;">If you do time it, this is the anatomy</span>
+      <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #475569;">A ring that fills on the Next control, a bar along the bottom edge, and a visible Pause. The ring is the honest one — it shows the wait attached to the thing that will act, rather than making the whole slide feel restless.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border-radius: 16px; background: #fef3c7; border: 1px solid #fde68a;">
+        <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #78350f;">Not optional</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350f;">WCAG 2.2.2: anything that moves by itself for more than five seconds beside other content must have a way to pause, stop or hide it. An auto-advancing hero without a Pause control is an accessibility failure, not a taste question.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350f;">It must also stop under <span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">prefers-reduced-motion</span>, and pause the moment a finger or cursor touches it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch;">
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 20px; background: #ffffff; border: 1px solid #e9e7e0;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <span style="font-size: 19px; font-weight: 900; letter-spacing: -0.02em; color: #132219;">No timer</span>
+          <span style="font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: #94a3b8;">&mdash;</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #475569; flex: 1 1 auto;">The hero holds one shop until someone acts. The rail beside it carries the other seven, so &ldquo;there is more&rdquo; is shown by layout instead of by motion. Costs nothing on a slow connection because the other photos load lazily, when scrolled to.</p>
+        <div style="border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 12px; padding: 12px 14px;">
+          <span style="font-size: 13px; line-height: 1.55; font-weight: 600; color: #065f46;">What the rail already does. Nothing moves, nothing is missed.</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 20px; background: #ffffff; border: 1px solid #e9e7e0;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <span style="font-size: 19px; font-weight: 900; letter-spacing: -0.02em; color: #132219;">One slow pass</span>
+          <span style="font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: #94a3b8;">8s, then stops</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #475569; flex: 1 1 auto;">Advances once every eight seconds, stops after it has been through the set once, and pauses on any touch. Long enough to read a shop name and decide; short enough that a bored visitor sees a second shop. Never loops back to the start.</p>
+        <div style="border: 1px solid #a7f3d0; background: #ecfdf5; border-radius: 12px; padding: 12px 14px;">
+          <span style="font-size: 13px; line-height: 1.55; font-weight: 600; color: #065f46;">Reasonable compromise if the hero must feel alive.</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 20px; background: #ffffff; border: 1px solid #e9e7e0;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <span style="font-size: 19px; font-weight: 900; letter-spacing: -0.02em; color: #132219;">Continuous loop</span>
+          <span style="font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; color: #94a3b8;">5s, forever</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #475569; flex: 1 1 auto;">Keeps cycling while the page is open. Visitors learn to ignore the region entirely, the first slide takes nearly all the clicks anyway, and every photo has to load up front &mdash; real money on a 2G connection for slides most people never see.</p>
+        <div style="border: 1px solid #fed7aa; background: #fff7ed; border-radius: 12px; padding: 12px 14px;">
+          <span style="font-size: 13px; line-height: 1.55; font-weight: 600; color: #9a3412;">The pattern with the most evidence against it.</span>
+        </div>
+      </div>
+  </div>
+
+  <div style="border-radius: 20px; background: #0c1f17; padding: 30px 34px; display: flex; flex-direction: column; gap: 12px;">
+    <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #e4bd63;">What I would do</span>
+    <p style="margin: 0; font-size: 17px; line-height: 1.7; color: #d7e0da; max-width: 980px;">Put the clock on the server. Rank one changes once a day, so every featured merchant gets a real turn in the big space and a shopper can still go back to the shop they saw this morning. Leave the hero still, and let the rail do the work of saying there are more.</p>
+    <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #9fb3a8; max-width: 980px;">A browser timer only changes who is on screen in the next eight seconds. It does not make featuring fairer, it costs bandwidth your merchants&#39; customers pay for, and it drags a Pause control and a reduced-motion branch along behind it.</p>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

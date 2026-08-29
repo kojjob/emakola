@@ -58,7 +58,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
           <%!-- Image column --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
             <div class="border border-[#E8E3D9] bg-white p-2 sm:p-3">
-              <div class="relative aspect-square overflow-hidden">
+              <div class="relative aspect-[4/5] overflow-hidden">
                 <Shared.tray name={@product.title} />
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
@@ -105,6 +105,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
             <h1 class="mt-2 text-3xl text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)] sm:text-4xl">
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <Shared.caught_light class="mt-5 w-16" />
 
             <p class="mt-5 text-2xl tabular-nums text-[#211D16]">
@@ -322,6 +323,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
             reviews={assigns[:reviews] || []}
             can_review={assigns[:can_review] || false}
             already_reviewed={assigns[:already_reviewed] || false}
+            review_form={assigns[:review_form]}
             review_form_rating={assigns[:review_form_rating] || 0}
             review_form_title={assigns[:review_form_title] || ""}
             review_form_body={assigns[:review_form_body] || ""}

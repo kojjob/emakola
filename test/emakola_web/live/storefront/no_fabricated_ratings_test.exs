@@ -11,7 +11,8 @@ defmodule EmakolaWeb.Storefront.NoFabricatedRatingsTest do
   alias Emakola.Factory
 
   @all_themes ~w(atelier beauty bold electronics fashion fresh
-                 home_living market pharmacy spotlight starter vibrant)
+                 home_living market pharmacy spotlight starter vibrant
+                 adwuma)
 
   # Literals the audit found hardcoded in templates: "4.5", "(4.8)",
   # "4.8 · 254 reviews", "4.9 · 87 reviews", "4.5 (24 reviews)" etc.

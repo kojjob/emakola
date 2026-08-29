@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #059669; text-decoration: none; }
+    a:hover { color: #047857; }
+    .ck {
+      --accent: #B45309;
+      --on-accent: #FFFFFF;
+      --safe-accent: #B45309;
+      --ink: #111111;
+      --ink2: #6B7280;
+      --ink3: #9CA3AF;
+      --line: #EAEAEA;
+      --line2: #F1F1F1;
+      --panel: #F7F7F7;
+      --ground: #E8E8E8;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.005em;
+    }
+    .ck .sheet { background: #fff; border-radius: 22px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 36px rgba(0,0,0,.06); }
+    .ck .h { font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+    .ck .num { font-variant-numeric: tabular-nums; }
+    .ck .group { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+    .ck .opt { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; cursor: pointer;
+      background: #fff; font-family: inherit; text-align: left; width: 100%; box-sizing: border-box; border: 0; }
+    .ck .radio { width: 18px; height: 18px; border-radius: 999px; box-sizing: border-box; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .ck .inp { width: 100%; box-sizing: border-box; background: #fff; border: 1px solid var(--line);
+      border-radius: 8px; padding: 0 12px; height: 42px; font-size: 13px; color: var(--ink);
+      font-family: inherit; }
+    .ck .inp:focus { outline: none; border-color: var(--safe-accent); }
+    .ck .inp::placeholder { color: #B8BCC4; }
+    .ck .lbl { display: block; font-size: 12px; color: var(--ink2); margin-bottom: 6px; }
+    .ck .cta { width: 100%; height: 48px; border: 0; border-radius: 10px; background: var(--accent);
+      color: var(--on-accent); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 9px; }
+    .ck .qty { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: #fff;
+      color: var(--ink2); font-size: 14px; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-family: inherit; line-height: 1; }
+    .ck .thumb { width: 62px; height: 62px; border-radius: 9px; object-fit: cover; flex-shrink: 0; display: block; }
+    .ck .mark { border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ck .done { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid var(--line);
+      border-radius: 12px; background: #fff; }
+    .ck .edit { font-size: 12px; font-weight: 600; color: var(--safe-accent); cursor: pointer; background: none;
+      border: 0; font-family: inherit; padding: 6px 8px; margin: -6px -8px -6px 0; }
+  </style>
+</helmet>
+
+<div class="ck" style="--accent: {{accent}}; --on-accent: {{onAccent}}; --safe-accent: {{safeAccent}}; --ground: {{ground}}; width: 1160px; height: 860px; box-sizing: border-box; background: var(--ground); padding: 40px; display: flex">
+  <div class="sheet" style="flex: 1; display: flex; flex-direction: column">
+
+    <!-- Store bar. Checkout keeps its own minimal chrome: no shop nav to wander into. -->
+    <div style="height: 58px; border-bottom: 1px solid var(--line2); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div class="mark" style="width: 30px; height: 30px; border-radius: 8px; background: var(--accent)">
+          <span style="color: var(--on-accent); font-weight: 800; font-size: 13px">V</span>
+        </div>
+        <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.1em">VIBRANT DEMO</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 7px; color: var(--ink3)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+        <span style="font-size: 12px; font-weight: 500">Secure checkout</span>
+      </div>
+    </div>
+
+    <div style="flex: 1; display: flex; gap: 40px; padding: 30px 24px 26px; min-height: 0">
+
+      <!-- LEFT: every choice is a picture. Words caption them, never carry them. -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <sc-if value="{{buying}}" hint-placeholder-val="{{true}}">
+          <div>
+            <div style="display: flex; align-items: flex-end; gap: 14px">
+              <div style="flex: 1">
+                <label class="lbl">Your number</label>
+                <input class="inp num" style="height: 46px; font-size: 15px; font-weight: 600" type="tel" value="{{phone}}" onChange="{{setPhone}}" />
+              </div>
+              <sc-if value="{{canSpeak}}" hint-placeholder-val="{{true}}">
+                <button onClick="{{speak}}" style="display: flex; align-items: center; gap: 7px; height: 46px; padding: 0 15px; border-radius: 8px; border: 1px solid {{safeAccent}}; background: #fff; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: {{safeAccent}}; flex-shrink: 0">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.5v13l-5-4H4a1 1 0 01-1-1v-3a1 1 0 011-1h3z" /><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" /></svg>
+                  Listen
+                </button>
+              </sc-if>
+            </div>
+
+            <p class="h" style="margin: 24px 0 12px">Where should we bring it?</p>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px">
+              <sc-for list="{{regions}}" as="r" hint-placeholder-count="4">
+                <button onClick="{{r.pick}}" style="border: 2px solid {{r.border}}; background: {{r.bg}}; border-radius: 11px; padding: 13px 10px; cursor: pointer; font-family: inherit; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 7px">
+                  <svg width="20" height="20" fill="none" stroke="{{r.ink}}" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--ink)">{{r.label}}</span>
+                  <span class="num" style="font-size: 13px; font-weight: 700; color: {{r.ink}}">{{r.fee}}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <p class="h" style="margin: 24px 0 12px">How will you pay?</p>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{methods}}" as="m" hint-placeholder-count="5">
+                <button onClick="{{m.pick}}" style="border: 2px solid {{m.border}}; background: #fff; border-radius: 13px; padding: 16px 8px 13px; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 112px; justify-content: center">
+                  <span class="mark" style="width: 64px; height: 44px; border-radius: 9px; background: {{m.markBg}}">
+                    <sc-if value="{{m.isWord}}" hint-placeholder-val="{{true}}">
+                      <span style="color: {{m.markFg}}; font-weight: 800; font-size: {{m.bigSize}}; letter-spacing: -0.03em">{{m.markText}}</span>
+                    </sc-if>
+                    <sc-if value="{{m.isCard}}" hint-placeholder-val="{{false}}">
+                      <svg width="26" height="26" fill="none" stroke="#fff" stroke-width="1.7" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 9.5h19" stroke-width="2.8" /></svg>
+                    </sc-if>
+                    <sc-if value="{{m.isCash}}" hint-placeholder-val="{{false}}">
+                      <svg width="26" height="26" fill="none" stroke="#fff" stroke-width="1.7" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="10" rx="1.6" /><circle cx="12" cy="11" r="2.3" /><path stroke-linecap="round" d="M3 19.4c2.2 0 3-1.2 5.2-1.2h6" /></svg>
+                    </sc-if>
+                  </span>
+                  <span style="font-size: 12.5px; font-weight: 600; color: var(--ink2); text-align: center; line-height: 1.3">{{m.name}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- POST-SUBMIT: told per method, because cash and card send no prompt -->
+        <sc-if value="{{approving}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; padding-bottom: 20px">
+            <div style="width: 84px; height: 84px; border-radius: 999px; background: {{waitTint}}; display: flex; align-items: center; justify-content: center">
+              <sc-if value="{{waitIsPhone}}" hint-placeholder-val="{{true}}">
+                <svg width="36" height="36" fill="none" stroke="{{waitStroke}}" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+              </sc-if>
+              <sc-if value="{{waitIsRider}}" hint-placeholder-val="{{false}}">
+                <svg width="40" height="40" fill="none" stroke="{{waitStroke}}" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="2.6" /><circle cx="18.5" cy="17.5" r="2.6" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 17.5h7.9M5.5 17.5 9 8.5h4.2l2.6 6.4M12 5.5h3" /></svg>
+              </sc-if>
+            </div>
+            <p class="num" style="font-size: 40px; font-weight: 800; margin: 20px 0 0; letter-spacing: -0.03em">{{total}}</p>
+            <p style="font-size: 15px; font-weight: 600; margin: 8px 0 0">{{waitTitle}}</p>
+            <p style="font-size: 13px; color: var(--ink2); margin: 6px 0 0; max-width: 320px; line-height: 1.5">{{waitSay}}</p>
+            <sc-if value="{{hasUssd}}" hint-placeholder-val="{{true}}">
+              <p style="font-size: 13px; color: var(--ink2); margin: 18px 0 0">No prompt? Dial <span class="num" style="font-size: 16px; font-weight: 800; color: var(--ink)">{{ussd}}</span></p>
+            </sc-if>
+            <button class="edit" style="margin-top: 22px; font-size: 13px" onClick="{{restart}}">Start again</button>
+          </div>
+        </sc-if>
+      </div>
+
+
+      <!-- RIGHT: the order, and the amount as the biggest thing on the page -->
+      <div style="width: 340px; flex-shrink: 0; display: flex; flex-direction: column">
+        <p class="h">Order summary</p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <!-- Unrolled on purpose: the runtime swaps an image in by matching the
+               literal filename in src, so a {{hole}} here renders as a broken image. -->
+          <div style="border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px">
+            <img class="thumb" src="melon.jpg" alt="Large watermelon" />
+            <div style="flex: 1; min-width: 0">
+              <p style="font-size: 13px; font-weight: 600; margin: 0">Watermelon, large</p>
+              <p class="num" style="font-size: 13px; font-weight: 600; margin: 5px 0 0">{{price0}}</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0">
+              <button class="qty" onClick="{{dec0}}" aria-label="One less">&#8722;</button>
+              <span class="num" style="font-size: 13px; font-weight: 600; min-width: 12px; text-align: center">{{qty0}}</span>
+              <button class="qty" onClick="{{inc0}}" aria-label="One more">+</button>
+            </div>
+          </div>
+          <div style="border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px">
+            <img class="thumb" src="citrus.jpg" alt="Basket of sweet limes" />
+            <div style="flex: 1; min-width: 0">
+              <p style="font-size: 13px; font-weight: 600; margin: 0">Sweet limes, basket</p>
+              <p class="num" style="font-size: 13px; font-weight: 600; margin: 5px 0 0">{{price1}}</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0">
+              <button class="qty" onClick="{{dec1}}" aria-label="One less">&#8722;</button>
+              <span class="num" style="font-size: 13px; font-weight: 600; min-width: 12px; text-align: center">{{qty1}}</span>
+              <button class="qty" onClick="{{inc1}}" aria-label="One more">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--panel); border-radius: 12px; padding: 14px 16px; margin-top: 12px">
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink2)">
+            <span>Goods</span><span class="num" style="color: var(--ink)">{{goods}}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink2); margin-top: 8px">
+            <span>Delivery</span><span class="num" style="color: var(--ink)">{{deliveryLabel}}</span>
+          </div>
+          <div style="height: 1px; background: #E4E4E4; margin: 12px 0"></div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <span style="font-size: 13px; font-weight: 600">Total</span>
+            <span class="num" style="font-size: 26px; font-weight: 800; letter-spacing: -0.03em">{{total}}</span>
+          </div>
+        </div>
+
+        <sc-if value="{{showCta}}" hint-placeholder-val="{{true}}">
+          <button class="cta" style="margin-top: 12px" onClick="{{next}}">
+            <span>{{ctaLabel}}</span>
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-7 7 7-7 7" /></svg>
+          </button>
+        </sc-if>
+
+        <sc-if value="{{protection}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; align-items: center; gap: 9px; margin-top: 12px; padding: 11px 13px; border: 1px solid #CFEBDD; background: #F2FBF6; border-radius: 10px">
+            <svg width="16" height="16" style="flex-shrink: 0" fill="none" stroke="#059669" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+            <span style="font-size: 12px; color: #065F46; line-height: 1.4">Your money waits until you say it came.</span>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","default":"vibrant","options":["vibrant","atelier","akwaaba","starter","market","adwuma","beauty","bold","chale","dede","depot","electronics","fashion","fie","fresh","heirloom","home_living","ntoma","pace","pharmacy","sika","spotlight"],"section":"Theme"},"themeBackground":{"editor":"boolean","default":false,"section":"Theme"},"protection":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":1160,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { phase: 'buying', method: 'momo', region: 'accra', qty: [1, 1], phone: '024 412 3456' };
+  }
+
+  cedis(pesewas) {
+    const major = Math.floor(pesewas / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return 'GH₵ ' + major + '.' + (pesewas % 100).toString().padStart(2, '0');
+  }
+
+  rgb(hex) {
+    const h = (hex || '#B45309').replace('#', '');
+    const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    return [f.slice(0, 2), f.slice(2, 4), f.slice(4, 6)].map((p) => parseInt(p, 16));
+  }
+
+  luminance(parts) {
+    const lin = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+    return 0.2126 * lin(parts[0]) + 0.7152 * lin(parts[1]) + 0.0722 * lin(parts[2]);
+  }
+
+  inkOn(hex) { return this.luminance(this.rgb(hex)) > 0.42 ? '#111111' : '#FFFFFF'; }
+
+  legibleOn(hex, backdrop, ratio) {
+    const back = this.luminance(this.rgb(backdrop));
+    const parts = this.rgb(hex);
+    for (let scale = 100; scale >= 5; scale -= 5) {
+      const shade = parts.map((c) => Math.round((c * scale) / 100));
+      const fore = this.luminance(shade);
+      const hi = Math.max(fore, back);
+      const lo = Math.min(fore, back);
+      if ((hi + 0.05) / (lo + 0.05) >= ratio) {
+        return '#' + shade.map((c) => c.toString(16).padStart(2, '0')).join('');
+      }
+    }
+    return '#111111';
+  }
+
+  // The 22 storefront themes, values lifted from lib/emakola/themes/*.ex.
+  // Checkout consumes primary twice — as --color-store-accent and as
+  // --color-cta-dark — so primary is the only theme colour this page moves.
+  themeList() {
+    return [
+      { id: 'vibrant', name: 'Vibrant', primary: '#B45309', bg: '#FFFBEB' },
+      { id: 'atelier', name: 'Atelier', primary: '#16A34A', bg: '#FFFFFF' },
+      { id: 'akwaaba', name: 'Akwaaba', primary: '#F0531F', bg: '#FFFFFF' },
+      { id: 'starter', name: 'Starter', primary: '#6366F1', bg: '#FFFFFF' },
+      { id: 'market', name: 'Market', primary: '#1C1917', bg: '#FAFAF9' },
+      { id: 'adwuma', name: 'Adwuma', primary: '#6E56CF', bg: '#FBFBFA' },
+      { id: 'beauty', name: 'Beauty', primary: '#6B4423', bg: '#F5EFE5' },
+      { id: 'bold', name: 'Bold', primary: '#0F172A', bg: '#F8FAFC' },
+      { id: 'chale', name: 'Chale', primary: '#2547E8', bg: '#F7F5F1' },
+      { id: 'dede', name: 'Dede', primary: '#8C2F0D', bg: '#FAF5EA' },
+      { id: 'depot', name: 'Depot', primary: '#18181B', bg: '#FAFAFA' },
+      { id: 'electronics', name: 'Electronics', primary: '#134E4A', bg: '#F5EFE5' },
+      { id: 'fashion', name: 'Fashion', primary: '#5B21B6', bg: '#FAF6EE' },
+      { id: 'fie', name: 'Fie', primary: '#211C1A', bg: '#FDFCFB' },
+      { id: 'fresh', name: 'Fresh', primary: '#047857', bg: '#FEFCE8' },
+      { id: 'heirloom', name: 'Heirloom', primary: '#1B1208', bg: '#EFEFEF' },
+      { id: 'home_living', name: 'Home Living', primary: '#1F2937', bg: '#FAF7F2' },
+      { id: 'ntoma', name: 'Ntoma', primary: '#9E3B14', bg: '#FAF4EA' },
+      { id: 'pace', name: 'Pace', primary: '#1D4ED8', bg: '#E6EFF6' },
+      { id: 'pharmacy', name: 'Pharmacy', primary: '#14543E', bg: '#F9F6F0' },
+      { id: 'sika', name: 'Sika', primary: '#1F332C', bg: '#FAF9F7' },
+      { id: 'spotlight', name: 'Spotlight', primary: '#16130F', bg: '#FBF9F5' }
+    ];
+  }
+
+  methodList() {
+    return [
+      { id: 'momo', name: 'MTN MoMo', hint: 'Mobile money', markBg: '#FFC107', markFg: '#1C1917', markText: 'MTN', markSize: '11px', kind: 'word', ussd: '*170#', fieldLabel: 'MoMo number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'telecel', name: 'Telecel Cash', hint: 'Mobile money', markBg: '#E60000', markFg: '#FFFFFF', markText: 'Telecel', markSize: '8px', kind: 'word', ussd: '*110#', fieldLabel: 'Telecel number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'airteltigo', name: 'AirtelTigo Money', hint: 'Mobile money', markBg: '#004F9F', markFg: '#FFFFFF', markText: 'AT', markSize: '12px', kind: 'word', ussd: '*110#', fieldLabel: 'AirtelTigo number', blurb: 'A prompt comes to this phone. Approve it to pay.' },
+      { id: 'card', name: 'Bank card', hint: 'Visa, Mastercard', markBg: '#1D4ED8', markFg: '#FFFFFF', markText: '', markSize: '11px', kind: 'card', ussd: '', fieldLabel: 'Phone for the receipt', blurb: 'The next page asks for your card, on a safe page.' },
+      { id: 'cod', name: 'Cash when it comes', hint: 'Pay the rider', markBg: '#047857', markFg: '#FFFFFF', markText: '', markSize: '11px', kind: 'cash', ussd: '', fieldLabel: 'Number for the rider', blurb: 'Have the money ready when the rider reaches you.' }
+    ];
+  }
+
+  regionList() {
+    return [
+      { id: 'accra', label: 'Greater Accra', note: 'Seller confirms the day', fee: 1500 },
+      { id: 'ashanti', label: 'Ashanti', note: 'Seller confirms the day', fee: 2500 },
+      { id: 'central', label: 'Central', note: 'Seller confirms the day', fee: 2500 },
+      { id: 'northern', label: 'Northern', note: 'Seller confirms the day', fee: 4000 }
+    ];
+  }
+
+  // English only. Browsers ship no Twi, Ga or Hausa voice, so a real build
+  // would play a recording the merchant made, not synthesised speech.
+  speakNow(total, region) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const say = new SpeechSynthesisUtterance('Your total is ' + total + '. Delivery to ' + region + '. Choose how you want to pay, then press the pay button.');
+    say.lang = 'en-GH';
+    say.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(say);
+  }
+
+  renderVals() {
+    const theme = this.themeList().find((t) => t.id === this.props.theme) || this.themeList()[0];
+    const accent = theme.primary;
+    const ground = this.props.themeBackground ? theme.bg : '#E8E8E8';
+    const onAccent = this.inkOn(accent);
+    const safeAccent = this.legibleOn(accent, '#FFFFFF', 4.5);
+
+    const region = this.regionList().find((r) => r.id === this.state.region) || this.regionList()[0];
+    const chosen = this.methodList().find((m) => m.id === this.state.method) || this.methodList()[0];
+
+    const lines = [{ unit: 1800 }, { unit: 2400 }];
+    const goods = lines.reduce((sum, line, i) => sum + line.unit * this.state.qty[i], 0);
+    const total = goods + region.fee;
+    const bump = (i, by) => this.setState({ qty: this.state.qty.map((q, j) => (j === i ? Math.min(Math.max(q + by, 1), 9) : q)) });
+
+    const cash = chosen.id === 'cod';
+    const card = chosen.id === 'card';
+
+    return {
+      accent: accent,
+      onAccent: onAccent,
+      safeAccent: safeAccent,
+      ground: ground,
+      protection: this.props.protection !== false,
+      buying: this.state.phase === 'buying',
+      approving: this.state.phase === 'approving',
+      showCta: this.state.phase === 'buying',
+      ctaLabel: 'Pay ' + this.cedis(total),
+      canSpeak: typeof window !== 'undefined' && !!window.speechSynthesis,
+      methods: this.methodList().map((m) => Object.assign({}, m, {
+        isWord: m.kind === 'word',
+        isCard: m.kind === 'card',
+        isCash: m.kind === 'cash',
+        bigSize: m.id === 'telecel' ? '13px' : '18px',
+        border: m.id === this.state.method ? m.markBg : '#EAEAEA',
+        pick: () => this.setState({ method: m.id })
+      })),
+      regions: this.regionList().map((r) => {
+        const sel = r.id === this.state.region;
+        return {
+          label: r.label,
+          fee: this.cedis(r.fee),
+          border: sel ? accent : '#EAEAEA',
+          bg: sel ? '#FCFBFA' : '#FFFFFF',
+          ink: sel ? safeAccent : '#9CA3AF',
+          pick: () => this.setState({ region: r.id })
+        };
+      }),
+      phone: this.state.phone,
+      price0: this.cedis(lines[0].unit * this.state.qty[0]),
+      price1: this.cedis(lines[1].unit * this.state.qty[1]),
+      qty0: this.state.qty[0],
+      qty1: this.state.qty[1],
+      inc0: () => bump(0, 1),
+      dec0: () => bump(0, -1),
+      inc1: () => bump(1, 1),
+      dec1: () => bump(1, -1),
+      goods: this.cedis(goods),
+      deliveryLabel: this.cedis(region.fee),
+      total: this.cedis(total),
+      waitIsPhone: !cash,
+      waitIsRider: cash,
+      waitTitle: cash ? 'Order sent' : card ? 'One more page' : 'Look at your phone',
+      waitSay: cash ? 'Pay the rider when your goods come.' : card ? 'You go to a safe page to type your card.' : chosen.name + ' is asking you to approve this amount.',
+      waitStroke: this.legibleOn(chosen.markBg, '#FFFFFF', 3),
+      waitTint: chosen.markBg + '1F',
+      hasUssd: !!chosen.ussd,
+      ussd: chosen.ussd,
+      setPhone: (event) => this.setState({ phone: event.target.value }),
+      speak: () => this.speakNow(this.cedis(total), region.label),
+      next: () => this.setState({ phase: 'approving' }),
+      restart: () => this.setState({ phase: 'buying' })
+    };
+  }
+}
+</script>
+</body>
+</html>

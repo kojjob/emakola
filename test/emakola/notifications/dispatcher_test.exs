@@ -3,13 +3,23 @@ defmodule Emakola.Notifications.DispatcherTest do
   use Oban.Testing, repo: Emakola.Repo
 
   alias Emakola.Notifications.Dispatcher
+  alias Emakola.Notifications.Workers.EarningsNotificationWorker
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
+  alias Emakola.Notifications.Workers.SusuNotificationWorker
 
   # ── Helpers ────────────────────────────────────────────────────
 
   defp fake_order do
     %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
+  end
+
+  defp fake_plan do
+    %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
+  end
+
+  defp fake_earnings_payload do
+    %{payment_id: Ash.UUID.generate(), recipient_store_id: Ash.UUID.generate()}
   end
 
   # ── Valid events ───────────────────────────────────────────────
@@ -68,6 +78,266 @@ defmodule Emakola.Notifications.DispatcherTest do
         args: %{order_id: order.id, event: "order_cancelled"},
         queue: :notifications
       )
+    end
+
+    # ── TC-2 buyer protection lifecycle events (Task 10) ──────────
+
+    test "enqueues Oban job for protection_held" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_held)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_held"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_delivery_nudge" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_delivery_nudge)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_delivery_nudge"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_released" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_released)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_released"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_complaint" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_complaint)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_complaint"},
+        queue: :notifications
+      )
+    end
+
+    # ── TC-3 susu completion events (Task 8) — order-based ────────
+
+    test "enqueues Oban job for susu_completed" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :susu_completed)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "susu_completed"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_completed" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :susu_merchant_completed)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "susu_merchant_completed"},
+        queue: :notifications
+      )
+    end
+  end
+
+  # ── TC-3 susu plan-based events (Task 8) ────────────────────────
+  # Pre-completion susu events have NO order — `dispatch_susu/2` is the
+  # plan-based counterpart to `dispatch/2`, enqueuing `SusuNotificationWorker`
+  # instead (see `Dispatcher`'s "Susu coupling" moduledoc section).
+
+  describe "dispatch_susu/2 with valid events" do
+    test "enqueues Oban job for susu_activated" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_activated)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_activated"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_chunk_received" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_chunk_received)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_chunk_received"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_nudge" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_nudge)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_nudge"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_deadline_warning" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_deadline_warning)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_deadline_warning"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_refunded" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_refunded)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_refunded"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_activated" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_merchant_activated)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_merchant_activated"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_expired" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_merchant_expired)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_merchant_expired"},
+        queue: :notifications
+      )
+    end
+  end
+
+  describe "dispatch_susu/2 with unknown events" do
+    test "returns error for unrecognized event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, :susu_bogus)
+    end
+
+    test "returns error for nil event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, nil)
+    end
+
+    test "an order-based event is not a valid susu event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, :order_placed)
+    end
+  end
+
+  describe "dispatch_susu/2 does not raise" do
+    test "malformed plan (no :id) returns {:error, :missing_plan_id}" do
+      plan_without_id = %{store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_plan_id} =
+               Dispatcher.dispatch_susu(plan_without_id, :susu_activated)
+    end
+
+    test "plan with nil :id returns {:error, :missing_plan_id}" do
+      plan = %{id: nil, store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_plan_id} = Dispatcher.dispatch_susu(plan, :susu_activated)
+    end
+
+    test "nil plan with valid event returns {:error, _} (no crash)" do
+      result = Dispatcher.dispatch_susu(nil, :susu_activated)
+
+      assert match?({:error, _}, result),
+             "expected dispatch_susu(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
+    end
+  end
+
+  # ── Earnings (money-surfaces PR-2 Task 3) ──────────────────────
+  # Pre-payload-shaped dispatch — keyed on {payment_id, recipient_store_id}
+  # rather than one entity id, since there's no single "earnings event"
+  # struct (see `dispatch_earnings/2`'s moduledoc).
+
+  describe "dispatch_earnings/2 with valid events" do
+    test "enqueues Oban job for earnings_accrued" do
+      payload = fake_earnings_payload()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+
+      assert_enqueued(
+        worker: EarningsNotificationWorker,
+        args: %{
+          payment_id: payload.payment_id,
+          recipient_store_id: payload.recipient_store_id,
+          event: "earnings_accrued"
+        },
+        queue: :notifications
+      )
+    end
+  end
+
+  describe "dispatch_earnings/2 with unknown events" do
+    test "returns error for unrecognized event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, :earnings_bogus)
+    end
+
+    test "returns error for nil event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, nil)
+    end
+
+    test "an order-based event is not a valid earnings event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, :order_placed)
+    end
+  end
+
+  # (d) dispatch failure cannot raise into the webhook — same "does not
+  # raise" contract as dispatch/2 and dispatch_susu/2, pinned the same way:
+  # malformed/missing payloads fall through to an {:error, _} tuple rather
+  # than crashing. `PaystackWebhookHandlerTest`'s "webhook replay does not
+  # re-dispatch" test additionally covers the settle_splits call site.
+  describe "dispatch_earnings/2 does not raise" do
+    test "malformed payload (missing recipient_store_id) returns {:error, :missing_earnings_ids}" do
+      payload = %{payment_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_earnings_ids} =
+               Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+    end
+
+    test "payload with nil ids returns {:error, :missing_earnings_ids}" do
+      payload = %{payment_id: nil, recipient_store_id: nil}
+
+      assert {:error, :missing_earnings_ids} =
+               Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+    end
+
+    test "nil payload with valid event returns {:error, _} (no crash)" do
+      result = Dispatcher.dispatch_earnings(nil, :earnings_accrued)
+
+      assert match?({:error, _}, result),
+             "expected dispatch_earnings(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
     end
   end
 

@@ -18,6 +18,47 @@ defmodule Emakola.Release do
   end
 
   @doc """
+  Backfills encrypted shadow columns after the expand migrations have run.
+
+  Invoke this against a running production release so the work happens outside
+  the migration transaction and each database statement can commit promptly:
+
+      bin/emakola rpc 'Emakola.Release.backfill_field_encryption(500)'
+
+  The returned map contains row counts only; it never contains secret values.
+  """
+  @spec backfill_field_encryption(pos_integer()) :: %{
+          required(String.t()) => non_neg_integer()
+        }
+  def backfill_field_encryption(batch_size \\ 500) do
+    field_encryption_operation(:run!, batch_size)
+  end
+
+  @doc """
+  Reconciles encrypted shadows after all old nodes have drained.
+
+      bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
+  """
+  @spec reconcile_field_encryption(pos_integer()) :: %{
+          required(String.t()) => non_neg_integer()
+        }
+  def reconcile_field_encryption(batch_size \\ 500) do
+    field_encryption_operation(:reconcile!, batch_size)
+  end
+
+  @doc """
+  Re-encrypts shadows with the active encryption and blind-index keys.
+
+      bin/emakola rpc 'Emakola.Release.rotate_field_encryption(500)'
+  """
+  @spec rotate_field_encryption(pos_integer()) :: %{
+          required(String.t()) => non_neg_integer()
+        }
+  def rotate_field_encryption(batch_size \\ 500) do
+    field_encryption_operation(:rotate!, batch_size)
+  end
+
+  @doc """
   Creates or promotes the platform owner with `email` in production, where Mix
   (and the `emakola.bootstrap_platform_owner` task) isn't available.
 
@@ -44,6 +85,16 @@ defmodule Emakola.Release do
       {:error, error} ->
         "Error: #{inspect(error)}"
     end
+  end
+
+  defp field_encryption_operation(operation, batch_size)
+       when operation in [:run!, :reconcile!, :rotate!] and is_integer(batch_size) and
+              batch_size > 0 do
+    apply(Emakola.Security.SecretBackfill, operation, [Emakola.Repo, [batch_size: batch_size]])
+  end
+
+  defp field_encryption_operation(_operation, batch_size) do
+    raise ArgumentError, "batch_size must be a positive integer, got: #{inspect(batch_size)}"
   end
 
   defp repos do

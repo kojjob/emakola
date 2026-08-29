@@ -31,7 +31,15 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
   defp verified_payout!(store, code) do
     Emakola.Stores.StorePayoutAccount
-    |> Ash.Changeset.for_create(:create, %{store_id: store.id})
+    |> Ash.Changeset.for_create(:create, %{
+      store_id: store.id,
+      payout_destination: %{
+        "method" => "mobile_money",
+        "provider" => "mtn",
+        "number" => "0244000111",
+        "account_name" => "Test Merchant"
+      }
+    })
     |> Ash.create!(authorize?: false)
     |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
     |> Ash.update!(authorize?: false)
@@ -117,6 +125,35 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
       assert FinanceStats.total_outstanding_payouts() == 0
     end
+
+    test "a released buyer-protection payment counts at its snapshotted net, not the gross amount" do
+      store = Factory.create_store!()
+      order = Factory.create_order!(store, %{total: 25_000})
+
+      payment =
+        store
+        |> success_payment!(%{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert :ok = Emakola.Payments.ProtectionRelease.release(hold, :buyer_confirmed)
+
+      # Parity with what PayoutService.prepare_payout/1 would actually pay —
+      # the snapshotted net, never the gross amount.
+      assert FinanceStats.total_outstanding_payouts() == hold.net
+      refute FinanceStats.total_outstanding_payouts() == payment.amount
+    end
   end
 
   describe "per_store_finance/0" do
@@ -138,6 +175,8 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
       assert by_id[fee_store.id].fees_collected == 200
       assert by_id[fee_store.id].outstanding_owed == 0
+
+      # payouts_ready? = MoMo-destination-present (P2 semantic — transfers are what payouts actually need)
       assert by_id[fee_store.id].payouts_ready? == true
 
       ids = Enum.map(rows, & &1.store.id)
@@ -150,6 +189,94 @@ defmodule Emakola.Platform.FinanceStatsTest do
       Factory.create_store!(%{name: "Quiet Co"})
 
       assert FinanceStats.per_store_finance() == []
+    end
+
+    test "a released buyer-protection payment's outstanding_owed is the snapshotted net" do
+      store = Factory.create_store!()
+      order = Factory.create_order!(store, %{total: 25_000})
+
+      payment =
+        store
+        |> success_payment!(%{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert :ok = Emakola.Payments.ProtectionRelease.release(hold, :buyer_confirmed)
+
+      row = Enum.find(FinanceStats.per_store_finance(), &(&1.store.id == store.id))
+      assert row.outstanding_owed == hold.net
+    end
+  end
+
+  describe "remediation_splits/0" do
+    defp unreclaimable_split!(store, payment, attrs \\ %{}) do
+      split =
+        %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 10_000,
+          settlement_method: :internal_hold
+        }
+        |> Map.merge(Map.new(attrs))
+        |> then(&Emakola.Payments.create_payment_split!(&1, authorize?: false))
+
+      split
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: split.amount})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a flagged split renders with its recipient store resolved" do
+      store = Factory.create_store!(%{name: "Remediate Co"})
+      payment = Factory.create_payment!(store, %{amount: 10_000})
+      remediate = unreclaimable_split!(store, payment)
+
+      assert [row] = FinanceStats.remediation_splits()
+      assert row.split.id == remediate.id
+      assert row.store.id == store.id
+    end
+
+    test "is empty with no flagged splits" do
+      assert FinanceStats.remediation_splits() == []
+    end
+  end
+
+  describe "platform_fees_by_day/1" do
+    test "buckets settled fees per day, oldest first, gaps filled" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+      payment |> platform_fee_split!(200) |> settle!()
+
+      series = FinanceStats.platform_fees_by_day(7)
+
+      assert length(series.labels) == 7
+      assert length(series.values) == 7
+      assert List.last(series.values) == 200
+      assert Enum.sum(series.values) == 200
+    end
+
+    test "pending splits stay out of the series" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+      _pending = platform_fee_split!(payment, 300)
+
+      series = FinanceStats.platform_fees_by_day(7)
+
+      assert Enum.sum(series.values) == 0
     end
   end
 end

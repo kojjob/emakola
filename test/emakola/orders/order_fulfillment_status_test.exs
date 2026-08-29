@@ -65,6 +65,47 @@ defmodule Emakola.Orders.OrderFulfillmentStatusTest do
     assert fulfillment_status(order) == :notified
   end
 
+  # A supplier declining is the loudest signal an order can carry: someone has
+  # to re-source or refund. So :declined sits at the HEAD of the progress order
+  # and wins over anything still in flight.
+  test "a declined group makes the whole order :declined", %{store: store, order: order} do
+    supplier = create_supplier!(store)
+
+    create_fulfillment!(order, store, supplier_id: supplier.id)
+    |> Ash.Changeset.for_update(:supplier_decline, %{decline_reason: :out_of_stock})
+    |> Ash.update!(authorize?: false)
+
+    create_fulfillment!(order, store)
+    |> Ash.Changeset.for_update(:mark_shipped, %{})
+    |> Ash.update!(authorize?: false)
+
+    assert fulfillment_status(order) == :declined
+  end
+
+  test "an all-declined order is :declined, not a raise", %{store: store, order: order} do
+    supplier = create_supplier!(store)
+
+    create_fulfillment!(order, store, supplier_id: supplier.id)
+    |> Ash.Changeset.for_update(:supplier_decline, %{decline_reason: :out_of_stock})
+    |> Ash.update!(authorize?: false)
+
+    assert fulfillment_status(order) == :declined
+  end
+
+  test "declined alongside cancelled still resolves", %{store: store, order: order} do
+    supplier = create_supplier!(store)
+
+    create_fulfillment!(order, store, supplier_id: supplier.id)
+    |> Ash.Changeset.for_update(:supplier_decline, %{decline_reason: :out_of_stock})
+    |> Ash.update!(authorize?: false)
+
+    create_fulfillment!(order, store)
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update!(authorize?: false)
+
+    assert fulfillment_status(order) == :declined
+  end
+
   test "ignores cancelled when computing least-progressed", %{store: store, order: order} do
     # One cancelled, one shipped → :shipped (cancelled ignored)
     create_fulfillment!(order, store)

@@ -16,6 +16,11 @@ defmodule EmakolaWeb.Storefront.FaqLiveTest do
 
       assert html =~ "Frequently Asked Questions"
       assert html =~ "No FAQs have been added yet"
+
+      assert html
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query(~s(meta[name="robots"][content="noindex, follow"]))
+             |> Enum.any?()
     end
 
     test "renders the store's questions and answers", %{conn: conn} do
@@ -33,6 +38,38 @@ defmodule EmakolaWeb.Storefront.FaqLiveTest do
       assert html =~ "Do you ship nationwide?"
       assert html =~ "Yes, across Ghana."
       assert html =~ "What payment methods?"
+
+      document = LazyHTML.from_fragment(html)
+
+      assert document
+             |> LazyHTML.query(~s(meta[name="robots"][content="index, follow"]))
+             |> Enum.any?()
+
+      assert document
+             |> LazyHTML.query(~s(script[type="application/ld+json"]))
+             |> LazyHTML.text() =~ ~s("FAQPage")
+    end
+
+    test "questions form a single-open accordion", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Accordion Shop", slug: "accordion-faq"})
+
+      Factory.create_page_content!(store, %{
+        faq_items: [
+          %{"question" => "First?", "answer" => "One."},
+          %{"question" => "Second?", "answer" => "Two."}
+        ]
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/faq")
+
+      # Native <details> siblings that share a `name` are mutually exclusive:
+      # opening one answer closes the other, no JavaScript.
+      names =
+        Regex.scan(~r/<details[^>]*\bname="([^"]+)"/, html)
+        |> Enum.map(fn [_, name] -> name end)
+
+      assert length(names) == 2
+      assert Enum.uniq(names) == ["faq"]
     end
 
     test "drops blank FAQ rows from a half-filled form", %{conn: conn} do

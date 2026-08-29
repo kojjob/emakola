@@ -17,6 +17,7 @@ defmodule Emakola.Catalog do
       define(:list_root_categories, action: :list_roots, args: [:store_id])
       define(:list_child_categories, action: :list_children, args: [:parent_id, :store_id])
       define(:get_category, action: :read, get_by: [:id])
+      define(:get_category_for_store, action: :get_by_store, args: [:id, :store_id])
       define(:get_category_by_slug, action: :get_by_slug, args: [:store_id, :slug])
       define(:update_category, action: :update)
       define(:destroy_category, action: :destroy)
@@ -25,6 +26,7 @@ defmodule Emakola.Catalog do
     resource Emakola.Catalog.Product do
       define(:create_product, action: :create)
       define(:get_product, action: :read, get_by: [:id])
+      define(:get_product_for_store, action: :get_by_store, args: [:id, :store_id])
       define(:get_product_by_slug, action: :get_by_slug, args: [:store_id, :slug])
       # Storefront-safe single-product fetch — active, moderation-ok, store-scoped.
       define(:get_active_product, action: :get_active_by_id, args: [:store_id, :id])
@@ -67,6 +69,7 @@ defmodule Emakola.Catalog do
       define(:list_variants_admin, action: :list_admin, args: [:store_id])
       define(:adjust_variant_stock, action: :adjust_stock)
       define(:update_variant, action: :update)
+      define(:sync_availability_variant, action: :sync_availability)
     end
 
     resource Emakola.Catalog.VariantOptionValue do

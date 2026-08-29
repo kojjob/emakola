@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <style>
+    body { margin: 0; background: #ffffff; font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #b98a1f; } a:hover { color: #8f6a14; }
+    .sec { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab; }
+    .sw { display: flex; flex-direction: column; gap: 8px; }
+    .sw .chip { height: 76px; border-radius: 10px; }
+    .sw .hex { font-size: 13px; font-weight: 700; color: #0f172a; font-variant-numeric: tabular-nums; }
+    .sw .role { font-size: 12px; line-height: 1.4; color: #64748b; }
+    .sw .tok { font-size: 11px; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</helmet>
+
+<div style="width: 1400px; background: #ffffff; color: #0f172a; padding: 44px 48px 52px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span class="sec">Foundations</span>
+      <h1 style="margin: 0; font-size: 34px; font-weight: 800; font-stretch: 118%; letter-spacing: -0.02em;">Every value here is already in the code</h1>
+    </div>
+    <p style="max-width: 440px; margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; text-align: right;">Lifted from <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px;">assets/css/app.css</span> and the live marketing pages — not invented for this kit. Change one here and change it there in the same pass.</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <span class="sec">Brand — marketing, print, social</span>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+      <div class="sw"><div class="chip" style="background: #0c1526;"></div><span class="hex">#0C1526</span><span class="role">Ink. Every dark surface, every header.</span><span class="tok">landing bg</span></div>
+      <div class="sw"><div class="chip" style="background: #d4a843;"></div><span class="hex">#D4A843</span><span class="role">Gold. One primary action per view.</span><span class="tok">landing CTA</span></div>
+      <div class="sw"><div class="chip" style="background: #f4f1e9; border: 1px solid #e2e8f0;"></div><span class="hex">#F4F1E9</span><span class="role">Paper. Email ground, print ground.</span><span class="tok">kit</span></div>
+      <div class="sw"><div class="chip" style="background: #f1f5f9; border: 1px solid #e2e8f0;"></div><span class="hex">#F1F5F9</span><span class="role">Snow. Type on ink.</span><span class="tok">landing text</span></div>
+      <div class="sw"><div class="chip" style="background: #8896ab;"></div><span class="hex">#8896AB</span><span class="role">Mist. Quiet type on ink.</span><span class="tok">landing muted</span></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <span class="sec">Product — the app, and any status in an email</span>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+      <div class="sw"><div class="chip" style="background: #059669;"></div><span class="hex">#059669</span><span class="role">Money in, done, delivered.</span><span class="tok">--color-primary</span></div>
+      <div class="sw"><div class="chip" style="background: #d97706;"></div><span class="hex">#D97706</span><span class="role">Do something soon.</span><span class="tok">--color-warning</span></div>
+      <div class="sw"><div class="chip" style="background: #dc2626;"></div><span class="hex">#DC2626</span><span class="role">Stopped. Money did not move.</span><span class="tok">--color-danger</span></div>
+      <div class="sw"><div class="chip" style="background: #2563eb;"></div><span class="hex">#2563EB</span><span class="role">Just so you know.</span><span class="tok">--color-info</span></div>
+      <div class="sw"><div class="chip" style="background: #ca8a04;"></div><span class="hex">#CA8A04</span><span class="role">Atelier gold — admin accent only.</span><span class="tok">--color-emakola-gold</span></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <span class="sec">Mobile money — never recolour these</span>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+      <div class="sw"><div class="chip" style="background: #ffc107;"></div><span class="hex">#FFC107</span><span class="role">MTN MoMo</span><span class="tok">--color-mtn</span></div>
+      <div class="sw"><div class="chip" style="background: #e60000;"></div><span class="hex">#E60000</span><span class="role">Telecel Cash</span><span class="tok">--color-voda</span></div>
+      <div class="sw"><div class="chip" style="background: #004f9f;"></div><span class="hex">#004F9F</span><span class="role">AT Money</span><span class="tok">--color-atl</span></div>
+      <div class="sw"><div class="chip" style="background: #25d366;"></div><span class="hex">#25D366</span><span class="role">WhatsApp</span><span class="tok">--color-whatsapp</span></div>
+      <div class="sw"><div class="chip" style="background: #ecfdf5; border: 1px solid #a7f3d0;"></div><span class="hex">#ECFDF5</span><span class="role">Soft green behind good news.</span><span class="tok">--color-success-soft</span></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 26px;">
+
+    <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <span class="sec">Type — Archivo, one family, two voices</span>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: baseline; gap: 16px;">
+          <span style="font-size: 44px; font-weight: 800; font-stretch: 120%; letter-spacing: -0.035em; line-height: 1;">Get paid</span>
+          <span style="font-size: 12px; color: #94a3b8; font-family: ui-monospace, Menlo, monospace;">800 · wdth 120 · -3.5%</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 16px;">
+          <span style="font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1;">Section heading</span>
+          <span style="font-size: 12px; color: #94a3b8; font-family: ui-monospace, Menlo, monospace;">700 · wdth 100</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 16px;">
+          <span style="font-size: 17px; font-weight: 400; line-height: 1.6;">Body copy sits at 17&nbsp;px and never below 16.</span>
+          <span style="font-size: 12px; color: #94a3b8; font-family: ui-monospace, Menlo, monospace;">400</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 16px;">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8896ab;">Label above a number</span>
+          <span style="font-size: 12px; color: #94a3b8; font-family: ui-monospace, Menlo, monospace;">700 · +14% tracking</span>
+        </div>
+      </div>
+      <div style="background: #fef3c7; border-radius: 10px; padding: 14px 16px;">
+        <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #78350f;"><strong>Two places Archivo does not go.</strong> Email clients strip webfonts, and PNG/PDF export cannot embed them — so the email templates and the social and print artboards are set in the system stack and sized to it. That is why they look slightly different from this sheet: it is deliberate, not drift.</p>
+      </div>
+    </div>
+
+    <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <span class="sec">Buttons</span>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; height: 52px; border-radius: 12px; background: #d4a843; font-size: 17px; font-weight: 700; color: #0c1526;">Primary — marketing</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; height: 52px; border-radius: 12px; background: #059669; font-size: 17px; font-weight: 700; color: #ffffff;">Primary — in the app</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; height: 52px; border-radius: 12px; background: #ffffff; border: 1.5px solid #cbd5e1; font-size: 17px; font-weight: 600; color: #0f172a;">Secondary</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 52px; border-radius: 12px; background: #25d366; font-size: 17px; font-weight: 700; color: #06301a;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#06301a" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 1 4 7.2L3.5 20.5l1.3-4A8.4 8.4 0 0 1 3.5 12z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5"/></svg>
+          Ask on WhatsApp
+        </span>
+      </div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #64748b;">52&nbsp;px tall, 12&nbsp;px radius, one per view. Never below 44&nbsp;px — that is a thumb on a cheap phone, not a design preference.</p>
+    </div>
+  </div>
+
+  <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px 28px; display: flex; flex-direction: column; gap: 18px;">
+    <span class="sec">The rule the whole kit is built on</span>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+      <div style="display: flex; gap: 14px;">
+        <div style="flex: 0 0 44px; height: 44px; border-radius: 11px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: 15px;">Picture first, then the words</strong>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">A 72&nbsp;px pictogram opens every email. If the picture alone does not carry the message, the email is wrong.</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 14px;">
+        <div style="flex: 0 0 44px; height: 44px; border-radius: 11px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: 15px;">Numbers are read by everyone</strong>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Digits are learned long before prose. The amount is the biggest thing on the page, at 40–52&nbsp;px.</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 14px;">
+        <div style="flex: 0 0 44px; height: 44px; border-radius: 11px; background: #fee2e2; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: 15px;">Shorter copy is not the fix</strong>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Trimming words helps a slow reader and does nothing for a non-reader. Change the channel — picture, number, colour, voice note.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 26px 28px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;"><span class="sec">Email width</span><span style="font-size: 22px; font-weight: 700;">600 px</span><span style="font-size: 12px; color: #64748b;">Table-based, inline styles, no external CSS.</span></div>
+    <div style="display: flex; flex-direction: column; gap: 6px;"><span class="sec">Card radius</span><span style="font-size: 22px; font-weight: 700;">12 px</span><span style="font-size: 12px; color: #64748b;">Shipped emails use 8 — this kit standardises on 12.</span></div>
+    <div style="display: flex; flex-direction: column; gap: 6px;"><span class="sec">Header colour</span><span style="font-size: 22px; font-weight: 700;">#0C1526</span><span style="font-size: 12px; color: #64748b;">Shipped emails use #1A1A2E — drift; unify on brand ink.</span></div>
+    <div style="display: flex; flex-direction: column; gap: 6px;"><span class="sec">Money</span><span style="font-size: 22px; font-weight: 700;">GH&#8373;1,240.00</span><span style="font-size: 12px; color: #64748b;">Integers in pesewas, formatted only at the last step.</span></div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

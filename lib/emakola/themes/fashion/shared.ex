@@ -142,7 +142,6 @@ defmodule Emakola.Themes.Fashion.Shared do
 
         <div class="border-t border-[#FAF6EE]/15 mt-14 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#FAF6EE]/50 uppercase tracking-wider">
           <p>&copy; {DateTime.utc_now().year} {@store.name}</p>
-          <p>Volume IV · {DateTime.utc_now().year}</p>
         </div>
       </div>
     </footer>

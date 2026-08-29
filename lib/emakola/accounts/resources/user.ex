@@ -70,6 +70,11 @@ defmodule Emakola.Accounts.User do
       sensitive?(true)
     end
 
+    attribute :totp_secret_encrypted, :string do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
     attribute(:totp_last_used_at, :utc_datetime_usec)
 
     attribute(:deactivated_at, :utc_datetime_usec, public?: true)
@@ -273,6 +278,12 @@ defmodule Emakola.Accounts.User do
       validate(Emakola.Accounts.Validations.ValidateTotpCode)
 
       change(set_attribute(:totp_secret, arg(:secret)))
+
+      change({
+        Emakola.Security.Changes.EncryptAttribute,
+        source: :totp_secret, encrypted: :totp_secret_encrypted, context: "users.totp_secret"
+      })
+
       change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
 
       change(
@@ -296,6 +307,12 @@ defmodule Emakola.Accounts.User do
       accept([])
 
       change(set_attribute(:totp_secret, nil))
+
+      change({
+        Emakola.Security.Changes.EncryptAttribute,
+        source: :totp_secret, encrypted: :totp_secret_encrypted, context: "users.totp_secret"
+      })
+
       change(set_attribute(:totp_last_used_at, nil))
 
       change(

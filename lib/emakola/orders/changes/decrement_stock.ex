@@ -29,14 +29,24 @@ defmodule Emakola.Orders.Changes.DecrementStock do
     end)
   end
 
+  # Susu orders are pre-decremented at plan activation (SusuStock.reserve/1)
+  # — decrementing again here would double-count the same units against the
+  # variant, so the entire decrement is skipped for them.
+  defp decrement(%{susu_plan_id: susu_plan_id}) when not is_nil(susu_plan_id), do: :ok
+
   defp decrement(order) do
     order = Ash.load!(order, [line_items: [:variant]], authorize?: false)
 
     Enum.each(order.line_items, fn line_item ->
-      variant = line_item.variant
+      case line_item.variant do
+        nil ->
+          # Custom (variant-less) pay-link line — no stock to decrement.
+          :ok
 
-      if variant && variant.track_inventory do
-        decrement_variant(order, variant, line_item.quantity)
+        variant ->
+          if variant.track_inventory do
+            decrement_variant(order, variant, line_item.quantity)
+          end
       end
     end)
   end

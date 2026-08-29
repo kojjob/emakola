@@ -836,19 +836,18 @@ defmodule Emakola.Themes.NtomaTest do
 
   describe "product list page" do
     defp list_assigns(overrides) do
-      Map.merge(
-        %{
-          store: @component_store,
-          categories: [%{id: "cat-1", name: "Kaftans", slug: "kaftans"}],
-          products: [component_product()],
-          selected_category: nil,
-          search_query: "",
-          has_more: false,
-          cart_count: 2,
-          __changed__: nil
-        },
-        overrides
-      )
+      %{
+        store: @component_store,
+        categories: [%{id: "cat-1", name: "Kaftans", slug: "kaftans"}],
+        products: [component_product()],
+        selected_category: nil,
+        search_query: "",
+        has_more: false,
+        cart_count: 2,
+        __changed__: nil
+      }
+      |> Map.merge(overrides)
+      |> Emakola.LiveViewHelpers.with_product_stream()
     end
 
     defp render_list(overrides \\ %{}) do

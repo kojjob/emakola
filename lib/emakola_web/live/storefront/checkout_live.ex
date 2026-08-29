@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Ash.Query
   require Logger
 
@@ -74,6 +76,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart_total, cart_total)
      |> assign(:cart_weight_grams, cart_weight_grams)
      |> assign(:dispatch_variants, dispatch_variants)
+     # Mirrors the server-side gate in CheckoutService.run_checkout/4 so what
+     # the shopper is shown matches what they are charged. Computed once: this
+     # LiveView has no add/remove events, so the cart is fixed for its lifetime.
+     # An empty cart (disconnected mount) resolves to true and keeps rendering
+     # the address form, as before.
+     |> assign(:requires_shipping, CheckoutService.requires_shipping?(dispatch_variants))
+     |> assign(:has_digital_items, CheckoutService.has_digital?(dispatch_variants))
      |> assign(:utm_attribution, utm_attribution)
      |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
@@ -84,6 +93,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:address, "")
      |> assign(:region, "greater_accra")
      |> assign(:notes, "")
+     |> assign(:digital_address, "")
+     |> assign(:landmark, "")
      |> assign(:processing, false)
      |> assign(:order, nil)
      |> assign(:checkout_error, nil)
@@ -130,6 +141,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:address, Map.get(params, "address", socket.assigns.address))
      |> assign(:region, Map.get(params, "region", socket.assigns.region))
      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+     |> assign(
+       :digital_address,
+       Map.get(params, "digital_address", socket.assigns.digital_address)
+     )
+     |> assign(:landmark, Map.get(params, "landmark", socket.assigns.landmark))
      |> assign(:coupon_code, Map.get(params, "coupon_code", socket.assigns.coupon_code))
      |> assign(:form_errors, %{})
      |> update_delivery_fee()
@@ -137,25 +153,39 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   end
 
   @impl true
+  # Step 1 -> 2. Only the fields this step renders are in `params`, so every
+  # other field must fall back to its assign. Defaulting to "" here would blank
+  # an address the shopper typed before stepping back to fix their name.
   def handle_event("submit_details", params, socket) do
     socket =
       socket
-      |> assign(:phone, Map.get(params, "phone", ""))
-      |> assign(:email, Map.get(params, "email", ""))
-      |> assign(:fullname, Map.get(params, "fullname", ""))
-      |> assign(:address, Map.get(params, "address", ""))
-      |> assign(:region, Map.get(params, "region", "greater_accra"))
-      |> assign(:notes, Map.get(params, "notes", ""))
+      |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+      |> assign(:email, Map.get(params, "email", socket.assigns.email))
+      |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
       |> update_delivery_fee()
       |> update_dispatch_fees()
 
-    errors = validate_contact_fields(socket.assigns)
+    next = if socket.assigns.requires_shipping, do: 2, else: 3
 
-    if errors == %{} do
-      {:noreply, socket |> assign(:form_errors, %{}) |> assign(:step, 2)}
-    else
-      {:noreply, assign(socket, :form_errors, errors)}
-    end
+    advance_when_valid(socket, validate_contact_step(socket.assigns), next)
+  end
+
+  # Step 2 -> 3.
+  def handle_event("submit_delivery", params, socket) do
+    socket =
+      socket
+      |> assign(:address, Map.get(params, "address", socket.assigns.address))
+      |> assign(:region, Map.get(params, "region", socket.assigns.region))
+      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+      |> assign(
+        :digital_address,
+        Map.get(params, "digital_address", socket.assigns.digital_address)
+      )
+      |> assign(:landmark, Map.get(params, "landmark", socket.assigns.landmark))
+      |> update_delivery_fee()
+      |> update_dispatch_fees()
+
+    advance_when_valid(socket, validate_delivery_step(socket.assigns), 3)
   end
 
   @impl true
@@ -222,20 +252,44 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:address, Map.get(params, "address", socket.assigns.address))
       |> assign(:region, Map.get(params, "region", socket.assigns.region))
       |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+      |> assign(
+        :digital_address,
+        Map.get(params, "digital_address", socket.assigns.digital_address)
+      )
+      |> assign(:landmark, Map.get(params, "landmark", socket.assigns.landmark))
       |> update_delivery_fee()
       |> update_dispatch_fees()
 
     errors = validate_contact_fields(socket.assigns)
 
     cond do
+      # Send the shopper back to the step that owns the failing field. Without
+      # this the error renders on the payment step, where the input it is about
+      # is not on screen to fix.
       errors != %{} ->
-        {:noreply, assign(socket, :form_errors, errors)}
+        {:noreply,
+         socket
+         |> assign(:form_errors, errors)
+         |> assign(:step, step_owning(errors, socket.assigns.requires_shipping))}
 
       socket.assigns.cart == [] ->
         {:noreply,
          socket
          |> assign(:processing, false)
          |> put_flash(:error, "Your cart is empty -- please add items before checking out")}
+
+      # A guest's grant is created with customer_id: nil and can never be
+      # redeemed — the emailed-token flow does not exist. Taking the money
+      # would be taking it for nothing, so refuse before creating anything.
+      # Keyed on "contains any download", not "needs no shipping": a MIXED
+      # cart requires shipping and still mints an unredeemable grant. Purely
+      # physical guest checkout, the dominant Ghana flow, is untouched.
+      socket.assigns.has_digital_items and is_nil(socket.assigns[:current_customer]) ->
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> put_flash(:error, "Please sign in — downloads are saved to your account.")
+         |> redirect(to: store_path(socket.assigns.store.slug, "/login"))}
 
       true ->
         socket = assign(socket, processing: true, form_errors: %{})
@@ -264,6 +318,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     else
       {:noreply, put_flash(socket, :error, "No order to retry payment for")}
     end
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   # -- Info Handlers --------------------------------------------------------
@@ -408,17 +473,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       fullname: fullname,
       address: address,
       region: region,
-      notes: notes
+      notes: notes,
+      digital_address: digital_address,
+      landmark: landmark
     } = socket.assigns
 
     items = Enum.map(cart, fn item -> %{variant_id: item.variant_id, quantity: item.quantity} end)
 
-    shipping_address = %{
-      "name" => fullname,
-      "phone" => "+233#{phone}",
-      "address" => address,
-      "region" => region
-    }
+    shipping_address =
+      %{
+        "name" => fullname,
+        "phone" => "+233#{phone}",
+        "address" => address,
+        "region" => region
+      }
+      |> put_digital_address(digital_address)
+      |> put_landmark(landmark)
 
     delivery_fee = socket.assigns[:delivery_fee] || 0
 
@@ -437,11 +507,52 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         opts
       end
 
+    # Every storefront order was created with customer_id: nil, so every
+    # DownloadGrant was a guest grant and Storefront.DownloadController 404s
+    # those forever. CheckoutService.resolve_customer/2 has always handled
+    # :customer_id — the branch was simply dead on this path. Signed-in buyers
+    # of physical goods gain a correct account Orders tab as a side effect.
+    opts =
+      case socket.assigns[:current_customer] do
+        %{id: customer_id} -> Keyword.put(opts, :customer_id, customer_id)
+        _ -> opts
+      end
+
     CheckoutService.checkout!(store.id, items, opts)
   end
 
+  defp put_digital_address(map, raw) do
+    case Emakola.GhanaDigitalAddress.normalize(raw) do
+      blank when blank in [nil, ""] -> map
+      normalized -> Map.put(map, "digital_address", normalized)
+    end
+  end
+
+  # Truncated (not rejected) at 200 chars — landmark is best-effort rider
+  # help on a buyer checkout flow, which must never block on it. This is the
+  # deliberate opposite of the Address/Store resources' landmark attribute,
+  # which REJECTS over 200 chars via `constraints(max_length: 200)`: those
+  # are merchant/profile-data writes, where surfacing a validation error is
+  # the right call.
+  defp put_landmark(map, raw) do
+    case String.trim(raw || "") do
+      "" -> map
+      landmark -> Map.put(map, "landmark", String.slice(landmark, 0, 200))
+    end
+  end
+
+  # "Pay on Delivery" is meaningless for a download — there is no delivery for
+  # the buyer to hand cash at, and accepting it would mark an order paid that
+  # nobody ever collects money for. The button is hidden for these carts, so a
+  # "cod" here means a crafted select_payment event; fall back to MoMo rather
+  # than trusting it.
+  defp payment_method_for(%{assigns: %{requires_shipping: false, payment_method: "cod"}}),
+    do: "momo"
+
+  defp payment_method_for(socket), do: socket.assigns.payment_method
+
   defp handle_payment(socket, order) do
-    case socket.assigns.payment_method do
+    case payment_method_for(socket) do
       "cod" ->
         if socket.assigns[:cart_session_id],
           do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
@@ -453,7 +564,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
            to: store_path(socket.assigns.store.slug, "/orders/#{order.order_number}/confirmation")
          )}
 
-      method when method in ["momo", "vodafone", "card"] ->
+      method when method in ["momo", "vodafone", "airteltigo", "card"] ->
         initiate_gateway_payment(socket, order, method)
 
       _ ->
@@ -491,21 +602,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
-        case Emakola.Payments.create_payment(
-               %{
-                 store_id: store.id,
-                 order_id: order.id,
-                 amount: order.total,
-                 currency: store.currency || "GHS",
-                 gateway: :paystack,
-                 gateway_reference: reference,
-                 metadata: %{payment_method: method},
-                 split_mode: split_mode(settlement)
-               },
-               authorize?: false
+        case Emakola.Payments.OrderSettlement.persist_payment(
+               Map.merge(
+                 %{
+                   store_id: store.id,
+                   order_id: order.id,
+                   amount: order.total,
+                   currency: store.currency || "GHS",
+                   gateway: :paystack,
+                   gateway_reference: reference,
+                   metadata: %{payment_method: method},
+                   split_mode: split_mode(settlement)
+                 },
+                 payout_hold_attrs(settlement)
+               ),
+               settlement
              ) do
-          {:ok, payment} ->
-            record_splits(payment, settlement)
+          {:ok, _payment} ->
             :ok
 
           {:error, reason} ->
@@ -553,11 +666,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       {:error, reason} ->
         release_recovery_reservations(settlement)
 
+        # The raw reason carries gateway internals (status codes, API keys
+        # hints, provider payloads) — log it for operators, never render it
+        # to the shopper.
+        Logger.error(
+          "[Checkout] Payment initiation failed for order #{order.order_number}: #{inspect(reason)}"
+        )
+
         {:noreply,
          socket
          |> assign(:processing, false)
          |> assign(:checkout_error, "Payment initiation failed.")
-         |> put_flash(:error, "Payment error: #{inspect(reason)}")}
+         |> put_flash(
+           :error,
+           "We couldn't start your payment just now. Your order #{order.order_number} is saved — please try again."
+         )}
     end
   end
 
@@ -567,19 +690,25 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     do: Map.put(params, :split, shares)
 
   defp maybe_attach_split(params, {:no_split, _reason}), do: params
+  defp maybe_attach_split(params, {:hold, _}), do: params
 
   defp split_mode({:split, %{mode: mode}}), do: mode
   defp split_mode({:no_split, _}), do: :none
+  defp split_mode({:hold, _}), do: :none
 
-  defp record_splits(payment, {:split, %{allocations: allocations}}),
-    do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
+  # TC-2 Buyer Protection: a hold settles with NO merchant gateway share — the
+  # payment is flagged so PayoutService (Task 5+) excludes it until the hold
+  # releases (same literal pattern as GroupBuys/ProtectedPreorders escrow).
+  defp payout_hold_attrs({:hold, :buyer_protection}),
+    do: %{payout_held: true, payout_hold_reason: "buyer_protection"}
 
-  defp record_splits(_payment, {:no_split, _}), do: :ok
+  defp payout_hold_attrs(_settlement), do: %{}
 
   defp release_recovery_reservations({:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
 
   defp release_recovery_reservations({:no_split, _}), do: :ok
+  defp release_recovery_reservations({:hold, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]
@@ -605,6 +734,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   defp paystack_channel("momo"), do: "mobile_money"
   defp paystack_channel("vodafone"), do: "mobile_money"
+  defp paystack_channel("airteltigo"), do: "mobile_money"
   defp paystack_channel("card"), do: "card"
   defp paystack_channel(_), do: "mobile_money"
 
@@ -622,7 +752,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     cond do
       assigns[:email] not in [nil, ""] -> assigns.email
       Map.get(store, :contact_email) not in [nil, ""] -> store.contact_email
-      true -> "checkout+#{store.slug}@emakola.com"
+      true -> "checkout+#{store.slug}@makola.io"
     end
   end
 
@@ -636,6 +766,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     "central" => 2500
   }
   @default_region_fee 3500
+
+  defp update_delivery_fee(%{assigns: %{requires_shipping: false}} = socket) do
+    socket
+    |> assign(:delivery_fee, 0)
+    |> assign(:delivery_estimate, nil)
+  end
 
   defp update_delivery_fee(socket) do
     region = socket.assigns.region
@@ -666,6 +802,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   # (the map is stale, or was never populated for it) are dropped before
   # calling dispatch_fees_for/3, which otherwise assumes every item has a
   # matching variant.
+  defp update_dispatch_fees(%{assigns: %{requires_shipping: false}} = socket) do
+    assign(socket, :dispatch_fee_total, 0)
+  end
+
   defp update_dispatch_fees(socket) do
     variants = socket.assigns.dispatch_variants
 
@@ -690,6 +830,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     Emakola.Catalog.Variant
     |> Ash.Query.filter(id in ^variant_ids and store_id == ^store_id)
+    |> Ash.Query.load(:product)
     |> Ash.read!(authorize?: false)
     |> Map.new(&{&1.id, &1})
   end
@@ -738,6 +879,62 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     |> Emakola.Shipping.total_weight_grams()
   end
 
+  # Which step a shopper has to be on to fix a given error.
+  @contact_fields [:phone, :fullname, :email]
+
+  defp step_owning(errors, requires_shipping) do
+    cond do
+      Enum.any?(@contact_fields, &Map.has_key?(errors, &1)) -> 1
+      requires_shipping -> 2
+      true -> 1
+    end
+  end
+
+  defp advance_when_valid(socket, errors, next_step) do
+    if errors == %{} do
+      {:noreply, socket |> assign(:form_errors, %{}) |> assign(:step, next_step)}
+    else
+      {:noreply, assign(socket, :form_errors, errors)}
+    end
+  end
+
+  # What step 1 can answer for. Phone and full name stay required even for
+  # downloads — the storefront is phone-first and the merchant still has to be
+  # able to reach the buyer.
+  defp validate_contact_step(assigns) do
+    errors = %{}
+
+    errors =
+      if assigns.phone == "",
+        do: Map.put(errors, :phone, "Phone number is required"),
+        else: errors
+
+    errors =
+      if assigns.fullname == "",
+        do: Map.put(errors, :fullname, "Full name is required"),
+        else: errors
+
+    email = assigns[:email] || ""
+
+    if email != "" and not email_format_ok?(email) do
+      Map.put(errors, :email, "Email format looks invalid")
+    else
+      errors
+    end
+  end
+
+  # What step 2 can answer for. A cart of downloads has nothing to deliver, so
+  # it has nothing to fail on here either.
+  defp validate_delivery_step(assigns) do
+    if Map.get(assigns, :requires_shipping, true) do
+      assigns
+      |> validate_contact_fields()
+      |> Map.take([:address, :digital_address])
+    else
+      %{}
+    end
+  end
+
   defp validate_contact_fields(assigns) do
     errors = %{}
 
@@ -751,10 +948,30 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         do: Map.put(errors, :fullname, "Full name is required"),
         else: errors
 
+    # Phone and full name stay required even for downloads — the storefront is
+    # phone-first and the merchant still has to be able to reach the buyer.
+    ships? = Map.get(assigns, :requires_shipping, true)
+
     errors =
-      if assigns.address == "",
+      if ships? and assigns.address == "",
         do: Map.put(errors, :address, "Delivery address is required"),
         else: errors
+
+    errors =
+      cond do
+        not ships? ->
+          errors
+
+        Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) ->
+          errors
+
+        true ->
+          Map.put(
+            errors,
+            :digital_address,
+            "Check the digital address — it looks like GA-183-8164"
+          )
+      end
 
     # Email is optional, but if provided must look like an email address.
     email = assigns[:email] || ""
@@ -792,12 +1009,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:variant_not_found), do: "Some items are no longer available"
   defp checkout_error_message(:variant_not_in_store), do: "Some items are not from this store"
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
-
-  defp checkout_error_message(:reseller_payout_unverified),
-    do: "This store is finishing payout verification. Please try again soon."
-
-  defp checkout_error_message(:wholesaler_payout_unverified),
-    do: "A fulfillment partner is finishing payout verification. Please try again soon."
 
   defp checkout_error_message(:network_coupon_not_allowed),
     do: "Coupons cannot be used with partner-fulfilled products yet."

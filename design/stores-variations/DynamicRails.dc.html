@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #f7f6f1; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #047857; } a:hover { color: #065f46; }
+  </style>
+</helmet>
+<div style="width: 1440px; background: #f7f6f1; color: #132219; padding: 44px 48px 52px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; border-bottom: 1px solid #d6d3cb; padding-bottom: 22px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #94a3b8;">Dynamic</span>
+      <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -0.04em; color: #132219;">Every rail is a query, not a list</h1>
+    </div>
+    <p style="margin: 0; max-width: 470px; font-size: 14px; line-height: 1.6; color: #64748b; text-align: right;">Nobody edits this page. Each rail names the rule that fills it, how often it recomputes, and what it does when it comes back empty — which is the part that breaks pages on a young marketplace.</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; padding: 0 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">
+      <span>Rail</span><span>Filled by</span><span>Recomputes</span><span>If it comes back empty</span><span></span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Spotlight hero</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">featured_rank window, seeded by the date</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Daily</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Highest view_count active shop</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Also featured</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">featured == true, by featured_rank</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Live</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Hidden entirely</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Fresh</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">theme == &quot;fresh&quot;, newest product image first</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Hourly</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Hidden entirely</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Atelier</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">theme == &quot;atelier&quot;, newest product image first</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Hourly</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Hidden entirely</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Most visited this week</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">view_count delta over 7 days, desc</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Hourly</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">All-time view_count</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Just opened</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">inserted_at desc, limit 12</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Live</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Hidden entirely</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Selling now</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">count of orders in the last 7 days, desc</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Hourly</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Falls back to Most visited</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #fff7ed; border: 1px solid #fed7aa; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #9a3412;">Needs one aggregate</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 210px minmax(0, 1.15fr) 120px minmax(0, 1fr) 150px; gap: 18px; align-items: center; padding: 16px 20px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: #132219;">Near you</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: #475569;">region == visitor region</span>
+          <span style="font-size: 13px; font-weight: 600; color: #64748b;">Live</span>
+          <span style="font-size: 13px; line-height: 1.5; color: #64748b;">Hidden until region is known</span>
+          <span style="justify-self: start; display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #065f46;">Works today</span>
+        </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: start;">
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 26px; border-radius: 20px; background: #ffffff; border: 1px solid #e9e7e0;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #b45309;">The hero moves on its own</span>
+        <h2 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.025em; color: #132219;">Seeded by the date, not by a timer</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Mon</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Adom Fresh</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Tue</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Nana Yaa</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #0c1f17; border: 1px solid #0c1f17;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #e4bd63;">Wed</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #ffffff;">Serwaa Skin</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Thu</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Akosua Hair</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Fri</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Boakye Poultry</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Sat</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Kofi Cuts</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px; border-radius: 12px; background: #ffffff; border: 1px solid #e9e7e0;">
+            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">Sun</span>
+            <span style="font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3; color: #334155;">Ntoma House</span>
+          </div>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #475569;">The window over <span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">featured_rank</span> is derived from today&#39;s date, so it is the same shop for every visitor all day and a different one tomorrow. Every featured merchant gets a real turn, the page still caches, and a shopper can go back to the shop they saw this morning.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 26px; border-radius: 20px; background: #fff7ed; border: 1px solid #fed7aa;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #9a3412;">The rule that saves the page</span>
+        <h2 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.025em; color: #7c2d12;">A thin rail hides itself</h2>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #7c2d12;">A rail that cannot fill at least four cards does not render at all. One lonely shop under a confident heading reads as a broken shop, not a small one — and with twenty shops on the platform most category rails will be empty on day one.</p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.65; color: #7c2d12;">So the page has no fixed number of rails. It shows the ones that are full today and grows more as merchants join, without anyone touching a template.</p>
+    </div>
+  </div>
+
+  <div style="border-radius: 20px; background: #0c1f17; padding: 28px 32px; display: flex; flex-direction: column; gap: 12px;">
+    <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #e4bd63;">What this costs to build</span>
+    <p style="margin: 0; font-size: 16px; line-height: 1.7; color: #d7e0da; max-width: 1000px;">Seven of the eight rails run on columns the Store resource already has — <span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px;">featured_rank</span>, <span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px;">view_count</span>, <span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px;">inserted_at</span>, <span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px;">region</span>, the theme, and the <span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px;">product_count</span> aggregate. They are new read actions, not new data.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.7; color: #9fb3a8; max-width: 1000px;">Only &ldquo;Selling now&rdquo; needs anything new: Store has no orders relationship today, so it would take one aggregate counting orders in the last seven days. It is also the strongest signal on the page — a shopper trusts a shop that is selling more than one that is merely new.</p>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

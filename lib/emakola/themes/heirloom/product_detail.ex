@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
         <div class="mt-8 grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <div class="relative overflow-hidden rounded-[28px] bg-[color:var(--hl-tile)]">
-              <div class="aspect-square">
+              <div class="aspect-[4/5]">
                 <.optimized_image
                   src={current_image(@images, @current_image_index)}
                   alt={@product.title}
@@ -123,6 +123,8 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
             <h1 class="text-4xl font-light leading-tight tracking-tight text-[color:var(--hl-ink)] [font-family:var(--hl-display)] sm:text-5xl">
               {@product.title}
             </h1>
+
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
 
             <p class="mt-5 flex flex-wrap items-baseline gap-3">
               <span
@@ -257,6 +259,7 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
           reviews={assigns[:reviews] || []}
           can_review={assigns[:can_review] || false}
           already_reviewed={assigns[:already_reviewed] || false}
+          review_form={assigns[:review_form]}
           review_form_rating={assigns[:review_form_rating] || 0}
           review_form_title={assigns[:review_form_title] || ""}
           review_form_body={assigns[:review_form_body] || ""}

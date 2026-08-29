@@ -30,6 +30,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -108,7 +109,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="text-sm text-stone-500">
-              {length(@filtered_products)} {if length(@filtered_products) == 1,
+              {@products_count} {if @products_count == 1,
                 do: "product",
                 else: "products"}
             </span>
@@ -140,8 +141,13 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
 
       <%!-- Product Grid --%>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-20 sm:pb-10">
-        <%= if @filtered_products == [] do %>
-          <div class="text-center py-20">
+        <div
+          id="category-products"
+          phx-update="stream"
+          data-count={@products_count}
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5"
+        >
+          <div id="category-products-empty" class="hidden only:block col-span-full text-center py-20">
             <div class="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
               <svg
                 class="w-10 h-10 text-stone-300"
@@ -181,16 +187,15 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
               </svg>
             </a>
           </div>
-        <% else %>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+
+          <div :for={{id, item} <- @streams.products} id={id}>
             <.category_product_card
-              :for={{product, idx} <- Enum.with_index(@filtered_products)}
-              product={product}
+              product={item.product}
               store={@store}
-              index={idx}
+              index={item.index}
             />
           </div>
-        <% end %>
+        </div>
       </div>
 
       <%!-- Trust strip --%>
@@ -251,10 +256,17 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     <%!-- Footer --%>
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
-    <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
+    <Emakola.Themes.DefaultRenderers.Chrome.bottom_nav
+      theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
+      store={@store}
+      active_tab={:search}
+      cart_count={@cart_count}
+    />
     """
   end
 

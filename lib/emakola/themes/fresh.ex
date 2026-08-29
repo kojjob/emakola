@@ -110,8 +110,6 @@ defmodule Emakola.Themes.Fresh do
     to: Emakola.Themes.Fresh.ProductDetail,
     as: :render
 
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   def storefront_nav(assigns) do
     Emakola.Themes.Fresh.Shared.fresh_nav(%{
       __changed__: nil,

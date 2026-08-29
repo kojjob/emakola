@@ -28,6 +28,31 @@ defmodule Emakola.Orders do
 
     resource Emakola.Orders.LineItem do
       define(:create_line_item, action: :create)
+      define(:create_custom_line_item, action: :create_custom)
+    end
+
+    resource Emakola.Orders.PayLink do
+      define(:create_pay_link, action: :create)
+      define(:get_pay_link_by_code, action: :get_by_code, args: [:code])
+      define(:cancel_pay_link, action: :cancel)
+      define(:mark_pay_link_paid, action: :mark_paid)
+      define(:list_pay_links_for_admin, action: :list_for_admin)
+    end
+
+    resource Emakola.Orders.SusuPlan do
+      define(:create_susu_plan, action: :create)
+      define(:get_susu_plan_by_code, action: :get_by_code, args: [:code])
+      define(:list_susu_plans_for_admin, action: :list_for_admin)
+      define(:activate_susu_plan, action: :activate)
+      define(:record_susu_contribution, action: :record_contribution)
+      define(:complete_susu_plan, action: :complete)
+      define(:cancel_susu_plan, action: :cancel)
+      define(:expire_susu_plan, action: :expire)
+      define(:extend_susu_plan_deadline, action: :extend_deadline)
+      define(:update_susu_plan_delivery, action: :update_delivery)
+      define(:mark_susu_plan_nudged, action: :mark_nudged)
+      define(:mark_susu_plan_warned_7d, action: :mark_warned_7d)
+      define(:mark_susu_plan_warned_1d, action: :mark_warned_1d)
     end
 
     resource Emakola.Orders.Fulfillment do
@@ -36,6 +61,13 @@ defmodule Emakola.Orders do
       define(:mark_fulfillment_shipped, action: :mark_shipped)
       define(:mark_fulfillment_delivered, action: :mark_delivered)
       define(:cancel_fulfillment, action: :cancel)
+      define(:supplier_accept_fulfillment, action: :supplier_accept)
+      define(:supplier_decline_fulfillment, action: :supplier_decline)
+      define(:rotate_fulfillment_supplier_link, action: :rotate_supplier_link)
+      define(:record_fulfillment_send_failure, action: :record_send_failure)
+      define(:self_attest_fulfillment_delivered, action: :self_attest_delivered)
+      define(:list_unverified_deliveries, action: :list_unverified_deliveries)
+      define(:escalate_fulfillment, action: :escalate)
     end
 
     resource Emakola.Orders.FulfillmentDeliveryProof do
@@ -49,6 +81,7 @@ defmodule Emakola.Orders do
       define(:request_return, action: :request_return)
       define(:approve_return, action: :approve)
       define(:deny_return, action: :deny)
+      define(:reopen_return, action: :reopen)
       define(:mark_return_refunded, action: :mark_refunded)
       define(:list_returns_by_store, action: :list_by_store, args: [:store_id])
       define(:get_return_by_order, action: :get_by_order, args: [:order_id])

@@ -42,7 +42,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLiveTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog/#{post.slug}")
 
     assert html =~
-             ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/blog/#{post.slug}")
+             ~s(<link rel="canonical" href="http://localhost:4000/#{store.slug}/blog/#{post.slug}")
 
     assert html =~ ~s("@type":"BlogPosting")
     assert html =~ ~s("headline":"Smoky Jollof Secrets")

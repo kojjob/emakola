@@ -28,7 +28,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
   defp seed_store! do
     # The brand story is the merchant's own description now. Its default used to
-    # read "We work with local craftspeople … Solid wood, natural fibres … 
+    # read "We work with local craftspeople … Solid wood, natural fibres …
     # Delivered across all 16 regions of Ghana" — makers, materials and reach,
     # on every store that installed the theme. A store with no description has no
     # story, and gets no section.
@@ -82,7 +82,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # Hero — charcoal signboard, the theme's default headline, lime CTA.
       # The nav lives INSIDE the hero section (today's markup) and is the
       # only cart link on the page.
-      assert html =~ "Furniture and home goods"
+      assert html =~ "For the way you live"
       assert html =~ "Explore More"
       assert html =~ ~s(href="/s/#{store.slug}/cart")
       assert length(String.split(html, "<h1")) == 2
@@ -148,7 +148,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # -> editor pick -> trust -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/Furniture and home goods.*by categories.*Featured products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
+               ~r/For the way you live.*by categories.*Featured products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
              )
     end
 
@@ -158,7 +158,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
       html = render_home(store)
 
-      assert html =~ "Furniture and home goods"
+      assert html =~ "For the way you live"
       assert html =~ "by categories"
       # "Daily Curation — Hand-picked" claimed someone at the shop selected these
       # goods by hand, every day. Gone.
@@ -201,7 +201,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Built in Ghana, made for life."
       refute html =~ "New pieces, in your inbox"
       # Untouched blocks still render
-      assert html =~ "Furniture and home goods"
+      assert html =~ "For the way you live"
       assert html =~ "by categories"
     end
   end

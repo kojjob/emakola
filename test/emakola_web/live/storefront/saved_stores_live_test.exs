@@ -23,22 +23,31 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
     end
 
     test "shows empty state when customer has no favorites", %{conn: conn, host: host} do
-      {:ok, _view, html} = live(conn, "/s/#{host.slug}/saved-stores")
-      assert html =~ "No saved stores yet"
+      {:ok, view, _html} = live(conn, "/s/#{host.slug}/saved-stores")
+
+      assert has_element?(view, "#saved-stores[phx-update='stream'][data-count='0']")
+      assert has_element?(view, "#saved-stores-empty")
+      assert has_element?(view, "#saved-stores-count")
     end
 
     test "lists favorited stores", %{conn: conn, customer: customer, host: host} do
       shop = Factory.create_store!(%{name: "Cool Shop", slug: "cool-shop"})
 
-      {:ok, _} =
+      {:ok, favorite} =
         Emakola.Customers.favorite_store(
           %{customer_id: customer.id, store_id: shop.id},
           actor: customer
         )
 
-      {:ok, _view, html} = live(conn, "/s/#{host.slug}/saved-stores")
-      assert html =~ "Cool Shop"
-      assert html =~ "1 store you"
+      {:ok, view, _html} = live(conn, "/s/#{host.slug}/saved-stores")
+
+      assert has_element?(view, "#saved-stores[data-count='1']")
+      assert has_element?(view, "#favorites-#{favorite.id}")
+
+      assert has_element?(
+               view,
+               "#favorites-#{favorite.id} button[aria-label='Remove Cool Shop from saved']"
+             )
     end
 
     test "unfavorite button removes the row", %{conn: conn, customer: customer, host: host} do
@@ -50,16 +59,47 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
           actor: customer
         )
 
-      {:ok, view, html} = live(conn, "/s/#{host.slug}/saved-stores")
-      assert html =~ "Drop Me"
+      {:ok, view, _html} = live(conn, "/s/#{host.slug}/saved-stores")
+      assert has_element?(view, "#favorites-#{fav.id}")
 
-      html =
-        view
-        |> element(~s|button[phx-click="unfavorite"][phx-value-id="#{fav.id}"]|)
-        |> render_click()
+      view
+      |> element(~s|button[phx-click="unfavorite"][phx-value-id="#{fav.id}"]|)
+      |> render_click()
 
-      refute html =~ "Drop Me"
-      assert html =~ "No saved stores yet"
+      refute has_element?(view, "#favorites-#{fav.id}")
+      assert has_element?(view, "#saved-stores[data-count='0']")
+      assert has_element?(view, "#saved-stores-empty")
+    end
+
+    test "a forged event cannot remove another customer's favorite", %{
+      conn: conn,
+      host: host
+    } do
+      other_customer =
+        Factory.create_customer!(host, %{
+          email: "other-saved-stores-#{System.unique_integer([:positive])}@example.com"
+        })
+
+      shop = Factory.create_store!(%{name: "Private Shop", slug: "private-shop"})
+
+      {:ok, other_favorite} =
+        Emakola.Customers.favorite_store(
+          %{customer_id: other_customer.id, store_id: shop.id},
+          actor: other_customer
+        )
+
+      {:ok, view, _html} = live(conn, "/s/#{host.slug}/saved-stores")
+      render_hook(view, "unfavorite", %{"id" => other_favorite.id})
+
+      assert has_element?(view, "#flash-error[role='alert']")
+      assert has_element?(view, "#saved-stores[data-count='0']")
+
+      assert {:ok, [remaining]} =
+               Emakola.Customers.list_favorite_stores(other_customer.id,
+                 actor: other_customer
+               )
+
+      assert remaining.id == other_favorite.id
     end
   end
 

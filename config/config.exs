@@ -11,6 +11,21 @@ config :emakola,
   env: config_env(),
   generators: [timestamp_type: :utc_datetime]
 
+# Hosts that serve the apex (marketing + platform/app admin), never a store.
+# Read at compile time by EmakolaWeb.Router (`scope host:` requires a literal)
+# and by Emakola.Stores.Validations.ValidStoreHost, so a merchant can never
+# claim a platform host as a custom domain. One list, two readers.
+config :emakola,
+       :apex_hosts,
+       ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1) ++
+         if(config_env() == :dev,
+           # Dev-only: containerized browsers and phones on the LAN reach the
+           # admin through these; without them every non-localhost host is
+           # treated as a store domain and admin routes 404.
+           do: ~w(host.docker.internal),
+           else: []
+         )
+
 # Configure the endpoint
 config :emakola, EmakolaWeb.Endpoint,
   url: [host: "localhost"],
@@ -40,11 +55,46 @@ config :emakola, :mail_from_domain, "emakola.com"
 # effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
 config :emakola, :dropship_fee_rate_bps, 1000
 
+# Whether a failed WhatsApp to a supplier falls through to a PAID SMS.
+#
+# Off by default, and the default is the point. Production wires
+# Emakola.Notifications.Channels.SMS unconditionally (runtime.exs raises at boot
+# without SMS_API_KEY), so switching this on starts real HTTP sends to the SMS
+# gateway for every supplier notification — and WhatsApp currently fails for
+# every store, so that is ~100% of them. Whether those sends BILL depends on
+# whether the configured key is live, which can only be answered at the
+# provider's dashboard, never by trusting the app's {:ok, _}.
+#
+# Turn on with SUPPLIER_SMS_FALLBACK=true once that is confirmed and the volume
+# is budgeted. Everything else about the rail — the blank-number guard, the
+# recorded failure, the merchant's "Message not delivered" card — works either
+# way, because none of those spend money.
+config :emakola, :supplier_sms_fallback, false
+
+# DNS targets a merchant points their own domain at. Apex domains need BOTH
+# A and AAAA: the IPv4 is a SHARED Fly address, so only the dedicated IPv6
+# lets Fly prove ownership and issue the certificate.
+#
+# Deliberately NOT at the top of this file: :apex_hosts sits there, and having
+# both blocks at one anchor is what made this key vanish in a merge once.
+config :emakola, :fly_dns_targets,
+  a: "66.241.124.228",
+  aaaa: "2a09:8280:1::126:6f75:0",
+  cname: "emakola.fly.dev"
+
+# Settlement-rail policy (SplitPay). :gateway_first preserves Paystack
+# split-at-source for verified parties; :internal_first routes every charge
+# to the internal ledger regardless of subaccount state. The pin list keeps
+# individual stores on the gateway rail under an :internal_first default.
+config :emakola, Emakola.SplitPay,
+  default_rail: :gateway_first,
+  gateway_rail_store_ids: []
+
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
-  contact_email: "support@emakola.com",
-  careers_email: "careers@emakola.com",
-  press_email: "press@emakola.com",
+  contact_email: "support@makola.io",
+  careers_email: "careers@makola.io",
+  press_email: "press@makola.io",
   support_whatsapp: "233200000000",
   support_phone: "+233 20 000 0000"
 
@@ -53,7 +103,7 @@ config :esbuild,
   version: "0.25.4",
   emakola: [
     args:
-      ~w(js/app.js js/theme-init.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/app.js js/theme-init.js js/qr_decoder.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
@@ -100,12 +150,23 @@ config :emakola,
     Emakola.Pages,
     Emakola.Fulfillment,
     Emakola.Security,
-    Emakola.AI
+    Emakola.AI,
+    Emakola.Conversations,
+    Emakola.Affiliates
   ]
 
-# JSON:API content type (ash_json_api)
+# The app's single :mime block — a second `config :mime` elsewhere would
+# silently replace this map, so every custom type lives here.
+# vnd.api+json: ash_json_api. audio/mp4 + audio/ogg: chat attachments —
+# iOS voice notes are .m4a, some Android recorders emit .ogg, and
+# allow_upload refuses extensions the MIME table cannot type.
+# (Changing this table requires: mix deps.clean mime --build)
 config :mime,
-  types: %{"application/vnd.api+json" => ["json"]},
+  types: %{
+    "application/vnd.api+json" => ["json"],
+    "audio/mp4" => ["m4a"],
+    "audio/ogg" => ["ogg"]
+  },
   extensions: %{"json" => "application/vnd.api+json"}
 
 # Token signing secret is set per environment: dev.exs/test.exs use a
@@ -132,7 +193,9 @@ config :emakola, Oban,
     orders: 5,
     whatsapp_catalog: 3,
     # Low concurrency bounds AI spend + respects Anthropic rate limits.
-    ai_content: 3
+    ai_content: 3,
+    # Low concurrency keeps custom-domain traffic to Fly's API modest.
+    domains: 3
   ],
   repo: Emakola.Repo,
   plugins: [
@@ -144,12 +207,27 @@ config :emakola, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+       # Re-checks custom-domain certificates and retires the ones whose DNS
+       # was never connected.
+       {"*/10 * * * *", Emakola.Stores.Workers.DomainSweepWorker},
        {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
        {"*/5 * * * *", Emakola.Suppliers.Workers.GroupBuyExpiryWorker},
        {"*/10 * * * *", Emakola.Suppliers.Workers.InventoryReservationExpiryWorker},
        {"*/5 * * * *", Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker},
        {"15 * * * *", Emakola.Payments.Workers.PaymentExpiryWorker},
-       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
+       {"0 * * * *", Emakola.Payments.Workers.ProtectionSweepWorker},
+       # Chases a supplier who has not answered a paid order. :05/:35 rather
+       # than */30 dodges the :00 pile-up above and SusuExpiryWorker at :20.
+       # The worker's `unique: period` must stay strictly under this interval.
+       {"5,35 * * * *", Emakola.Orders.Workers.SupplierSlaWorker},
+       {"20 * * * *", Emakola.Payments.Workers.SusuExpiryWorker},
+       {"0 9 * * *", Emakola.Payments.Workers.SusuNudgeWorker},
+       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker},
+       # GSC reports a 2-3 day lag, so daily is as fresh as the data gets.
+       # No-ops until :gsc_credentials is set (runtime.exs).
+       # Nightly featuring run — before the 05:00 GSC sync, off-peak for Ghana (UTC+0).
+       {"30 2 * * *", Emakola.Stores.Workers.DirectoryRankingWorker},
+       {"0 5 * * *", Emakola.Analytics.Workers.GscSyncWorker}
      ]}
   ]
 
@@ -167,6 +245,10 @@ config :emakola,
   ai_provider: Emakola.AI.Providers.Anthropic,
   ai_model_pricing: %{
     "claude-haiku-4-5" => %{input: 1, output: 5},
+    # Sticker rate; Sonnet 5's intro pricing ($2/$10 through 2026-08-31) is
+    # deliberately ignored — a brief conservative overestimate beats a rate
+    # that silently becomes wrong in September.
+    "claude-sonnet-5" => %{input: 3, output: 15},
     "claude-sonnet-4-6" => %{input: 3, output: 15},
     "claude-opus-4-8" => %{input: 5, output: 25}
   }

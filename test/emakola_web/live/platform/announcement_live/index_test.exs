@@ -24,6 +24,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
 
     test "creating an announcement persists it and enqueues the publish worker", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/platform/announcements")
+      assert has_element?(view, "#announcement-form")
+      assert has_element?(view, "#platform-announcements[phx-update='stream'][data-count='0']")
 
       view
       |> form("#announcement-form", %{
@@ -44,8 +46,32 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       assert ann.severity == :warning
       assert ann.channels == [:banner, :email]
       assert ann.status == :scheduled
+      assert has_element?(view, "#platform-announcements[data-count='1']")
+      assert has_element?(view, "#announcement-#{ann.id}", "Scheduled maintenance")
+      assert has_element?(view, "#flash-info", "Announcement scheduled")
 
       assert_enqueued(worker: AnnouncementPublishWorker, args: %{"announcement_id" => ann.id})
+    end
+
+    test "timeline entries show status, channels, and the message body", %{conn: conn} do
+      {:ok, ann} =
+        Notifications.create_announcement(
+          %{
+            title: "New payout schedule",
+            body: "Daily MoMo settlements start Monday.",
+            channels: [:banner, :email],
+            audience: :all,
+            publish_at: ~U[2026-09-01 06:00:00Z]
+          },
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/announcements")
+
+      assert has_element?(view, "#announcement-#{ann.id}", "Scheduled")
+      assert has_element?(view, "#announcement-#{ann.id}", "Banner")
+      assert has_element?(view, "#announcement-#{ann.id}", "Email")
+      assert has_element?(view, "#announcement-#{ann.id}", "Daily MoMo settlements start Monday.")
     end
 
     test "canceling a scheduled announcement flips it to :canceled", %{conn: conn} do
@@ -66,6 +92,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       view
       |> element("button[phx-value-id='#{ann.id}'][phx-click='cancel']")
       |> render_click()
+
+      assert has_element?(view, "#announcement-#{ann.id}", "Canceled")
 
       {:ok, reloaded} = Notifications.get_announcement(ann.id, authorize?: false)
       assert reloaded.status == :canceled

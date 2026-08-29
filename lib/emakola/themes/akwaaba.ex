@@ -19,6 +19,8 @@ defmodule Emakola.Themes.Akwaaba do
   - `Emakola.Themes.Akwaaba.Shared` — nav, footer, cards
   """
 
+  use Phoenix.Component
+
   @behaviour Emakola.Themes.ThemeBehaviour
 
   alias Emakola.Themes.Akwaaba.Shared
@@ -130,17 +132,28 @@ defmodule Emakola.Themes.Akwaaba do
     as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
-    Shared.akwaaba_nav(%{
+    # Shared pages (cart, checkout, …) render this chrome via Chrome without
+    # the theme's page wrapper, so the theme_styles block must ride with the
+    # nav — otherwise every var(--akwaaba-*)-styled element silently loses
+    # its color (the cart footer rendered white-on-white this way).
+    assigns = %{
       __changed__: nil,
+      theme: Map.get(assigns, :theme) || %{},
       store: assigns.store,
       categories: Map.get(assigns, :categories) || [],
-      cart_count: Map.get(assigns, :cart_count) || 0,
-      overlay: false
-    })
+      cart_count: Map.get(assigns, :cart_count) || 0
+    }
+
+    ~H"""
+    <Shared.theme_styles theme={@theme} />
+    <Shared.akwaaba_nav
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      overlay={false}
+    />
+    """
   end
 
   @impl true
@@ -152,4 +165,20 @@ defmodule Emakola.Themes.Akwaaba do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Shared.bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Akwaaba's bar uses
+  # :home | :shop on its own pages.
+  defp bottom_nav_active(:cart), do: :cart
+  defp bottom_nav_active(:search), do: :shop
+  defp bottom_nav_active(_), do: :home
 end

@@ -13,32 +13,34 @@ defmodule EmakolaWeb.Company.CareersLive do
          "Join Makola and help build commerce tools for West African merchants. Remote-friendly, mission-driven, early-stage.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/careers"),
-       careers_email: Application.get_env(:emakola, :careers_email, "careers@emakola.com")
+       careers_email: Application.get_env(:emakola, :careers_email, "careers@makola.io")
      ), layout: false}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="careers-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="Careers"
-          title="Help merchants across West Africa"
-          highlight="grow"
-          subtitle="We're building the commerce platform the region deserves. If that excites you, we'd love to meet you."
-        />
-        <.life />
-        <.perks />
-        <.open_roles careers_email={@careers_email} />
-      </main>
-      <.landing_footer />
-    </div>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="careers-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="Careers"
+            title="Help merchants across West Africa"
+            highlight="grow"
+            subtitle="We're building the commerce platform the region deserves. If that excites you, we'd love to meet you."
+          />
+          <.life />
+          <.perks />
+          <.open_roles careers_email={@careers_email} />
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 

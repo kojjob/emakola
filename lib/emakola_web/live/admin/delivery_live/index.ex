@@ -160,9 +160,11 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   end
 
   defp parse_fee(fee_str) when is_binary(fee_str) do
-    case Float.parse(fee_str) do
-      {amount, _} -> round(amount * 100)
-      :error -> 0
+    # Money.parse_price rejects negatives and trailing garbage Float.parse let
+    # through — a "-5" fee would have SUBTRACTED from the order total.
+    case Emakola.Money.parse_price(fee_str) do
+      {:ok, pesewas} -> pesewas
+      _zero_skip_or_error -> 0
     end
   end
 
@@ -172,9 +174,10 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   # Optional GHS inputs: blank/invalid means "not configured" (nil), keeping
   # the zone on flat per-zone pricing.
   defp parse_optional_fee(fee_str) when is_binary(fee_str) do
-    case Float.parse(fee_str) do
-      {amount, _} -> round(amount * 100)
-      :error -> nil
+    case Emakola.Money.parse_price(fee_str) do
+      {:ok, pesewas} -> pesewas
+      :zero -> 0
+      _skip_or_error -> nil
     end
   end
 
@@ -203,16 +206,18 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <.link navigate={~p"/admin/settings"} class="text-slate-400 hover:text-slate-600">
-              <.icon name="hero-arrow-left" class="size-4" />
-            </.link>
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Delivery Zones</h1>
-          </div>
-          <p class="text-sm text-slate-500">Configure delivery areas and fees for your store</p>
-        </div>
+      <.link
+        navigate={~p"/admin/settings"}
+        class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Settings
+      </.link>
+
+      <.admin_page_header
+        icon="hero-truck"
+        title="Delivery Zones"
+        subtitle="Where you deliver, and what it costs"
+      >
         <div class="flex gap-2">
           <button
             :if={@zones == []}
@@ -228,7 +233,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
             <.icon name="hero-plus" class="size-4" /> Add Zone
           </button>
         </div>
-      </div>
+      </.admin_page_header>
 
       <%!-- Add/Edit form --%>
       <div

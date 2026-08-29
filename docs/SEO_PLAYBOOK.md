@@ -5,6 +5,10 @@ on/off switches, the marketing/outreach work, and the custom-domains decision.
 No jargon; where a command is needed it's copy-paste ready. Replace `emakola`
 with your real Fly app name if different.
 
+For the full beginner-friendly production checklist covering DNS/TLS, Google
+Search Console, Bing, Merchant Center, ChatGPT product feeds, and catalog
+quality, see **`docs/SEO_PRODUCTION_SETUP_BEGINNERS_GUIDE.md`**.
+
 > The SEO features are all **built and shipped "dark"** — they sit quietly doing
 > nothing until you flip their switch. Nothing below can break the live site;
 > each step only turns something *on*.
@@ -13,11 +17,18 @@ with your real Fly app name if different.
 
 ## Part 1 — The On/Off Switches
 
-### 1A. Turn on AI content writing (easiest — do anytime)
+### 1A. Turn on AI-assisted catalog writing
 
-This lets merchants click "Generate with AI" to auto-write product descriptions,
-image alt-text, and blog drafts. Costs roughly **$5–20/month** (it's hard-capped
-at 50 generations per shop per day, so it can't run away).
+This lets merchants generate missing product descriptions and image alt text,
+and prepare blog drafts. Product descriptions and alt text generated from
+`/admin/seo` are saved directly to the catalog. Merchants must review the result
+after each batch and replace generic language with concrete facts about the
+actual product. The prompt is constrained not to invent product claims, but it
+cannot verify the source data.
+
+Usage is hard-capped at 50 generations per shop per day. Check current Anthropic
+pricing and expected catalog volume before setting a budget; do not rely on an
+old fixed monthly estimate.
 
 1. Go to **console.anthropic.com** → sign in → **Settings → API Keys → Create Key**.
 2. Copy the key (starts with `sk-ant-…`).
@@ -26,8 +37,12 @@ at 50 generations per shop per day, so it can't run away).
    fly secrets set ANTHROPIC_API_KEY=sk-ant-your-key-here --app emakola
    ```
 4. Done. Fly restarts the app automatically. To check: log in as a merchant,
-   visit **/admin/seo**, and click **"Generate descriptions"** — jobs queue and
-   fill in any missing product descriptions.
+   visit **/admin/seo**, and click **"Generate and save"** — jobs queue and fill
+   in missing fields.
+5. Review the changed products and images. Add details the merchant can verify:
+   materials, dimensions, ingredients, origin, compatibility, care instructions,
+   and what makes this specific item useful. Never add unsupported guarantees,
+   certifications, delivery promises, reviews, or “best” claims.
 
 To turn it back **off**: `fly secrets unset ANTHROPIC_API_KEY --app emakola`.
 

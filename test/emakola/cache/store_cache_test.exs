@@ -5,15 +5,14 @@ defmodule Emakola.Cache.StoreCacheTest do
   Verifies TTL-based expiration, per-store invalidation,
   and concurrent access safety.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Emakola.Cache.StoreCache
 
   @store_id "store-#{:erlang.unique_integer([:positive])}"
 
   setup do
-    # Each test gets a unique table to allow async tests
-    table_name = :"test_cache_#{:erlang.unique_integer([:positive])}"
+    table_name = :test_store_cache
     {:ok, pid} = StoreCache.start_link(name: table_name)
 
     on_exit(fn ->
@@ -94,6 +93,26 @@ defmodule Emakola.Cache.StoreCacheTest do
       assert :miss == StoreCache.get(cache, "products:#{store_a}:all")
       assert :miss == StoreCache.get(cache, "categories:#{store_a}:roots")
       assert {:hit, "store_b_products"} = StoreCache.get(cache, "products:#{store_b}:all")
+    end
+
+    test "matches the exact store key segment", %{cache: cache} do
+      :ok = StoreCache.put(cache, "products:store-1:all", "first")
+      :ok = StoreCache.put(cache, "products:store-10:all", "tenth")
+
+      :ok = StoreCache.invalidate_store(cache, "store-1")
+
+      assert :miss == StoreCache.get(cache, "products:store-1:all")
+      assert {:hit, "tenth"} = StoreCache.get(cache, "products:store-10:all")
+    end
+
+    test "applies invalidations received from another node", %{cache: cache} do
+      key = "products:remote-store:all"
+      :ok = StoreCache.put(cache, key, "cached")
+
+      send(cache, {:invalidate_store, cache, "remote-store"})
+      _state = :sys.get_state(cache)
+
+      assert :miss == StoreCache.get(cache, key)
     end
   end
 

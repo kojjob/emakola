@@ -40,11 +40,23 @@ defmodule Emakola.Notifications.Workers.VerificationStatusNotificationWorker do
   end
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"store_id" => store_id, "event" => event_string}}) do
+  def perform(%Oban.Job{
+        args: %{"store_id" => store_id, "event" => event_string},
+        attempt: attempt
+      }) do
     event = Emakola.SafeAtom.to_atom_in(event_string, @events, :verification_rejected)
 
     case load_store(store_id) do
       {:ok, store} ->
+        # First attempt only — the :notify create has no uniqueness, so a
+        # retry after a failed send would mint the bell rows again.
+        if attempt <= 1 do
+          Emakola.Notifications.notify_store(store.id, :verification_result, %{
+            title: verification_bell_title(event),
+            action_url: "/admin/verification"
+          })
+        end
+
         results = [maybe_send_sms(store, event), maybe_send_email(store, event)]
 
         if Enum.any?(results, &match?({:error, _}, &1)) do
@@ -78,6 +90,9 @@ defmodule Emakola.Notifications.Workers.VerificationStatusNotificationWorker do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  defp verification_bell_title(:verification_approved), do: "Your shop is verified"
+  defp verification_bell_title(_rejected), do: "Verification needs another look"
 
   defp maybe_send_sms(%{contact_phone: phone} = store, event)
        when is_binary(phone) and phone != "" do

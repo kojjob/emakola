@@ -76,12 +76,16 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:page_title, "#{product.title} - #{store.name}")
+         |> assign(
+           :page_title,
+           SEOHelpers.meta_title([product.seo_title], "#{product.title} - #{store.name}")
+         )
          |> assign_seo_metadata(store, product)
          |> assign(:reviews, load_reviews(product.id))
          |> assign(:review_form_rating, 0)
          |> assign(:review_form_title, "")
          |> assign(:review_form_body, "")
+         |> assign(:review_form, review_form())
          |> assign(:review_submitting, false)
          |> assign_review_eligibility(store, product)
          |> allow_upload(:review_photos,
@@ -278,6 +282,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:review_form_rating, 0)
              |> assign(:review_form_title, "")
              |> assign(:review_form_body, "")
+             |> assign(:review_form, review_form())
              |> put_flash(:info, "Review submitted!")}
 
           {:error, _} ->
@@ -305,11 +310,28 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
-  def handle_event("validate_review", _params, socket), do: {:noreply, socket}
+  def handle_event("validate_review", params, socket) do
+    {:noreply,
+     socket
+     |> assign(:review_form, review_form(params))
+     |> assign(:review_form_title, Map.get(params, "title", ""))
+     |> assign(:review_form_body, Map.get(params, "body", ""))}
+  end
 
   @impl true
   def handle_event("cancel_review_photo", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :review_photos, ref)}
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -385,6 +407,11 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     </section>
     {@theme_content}
     """
+  end
+
+  defp review_form(params \\ %{}) do
+    defaults = %{"title" => "", "body" => ""}
+    to_form(Map.merge(defaults, params))
   end
 
   # -- Helpers --
@@ -480,9 +507,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     end) || List.first(variants)
   end
 
+  # A product without options has nothing to describe — an empty label, not
+  # the SKU: "EARN-0728fd5b" under a product title is stock-keeping noise to
+  # a customer.
   defp variant_label(variant, option_types, vov_map) do
     if option_types == [] do
-      variant.sku || "Default"
+      ""
     else
       vovs = Map.get(vov_map, variant.id, [])
 
@@ -567,9 +597,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
     breadcrumb_json_ld =
       SEOHelpers.json_ld_breadcrumb([
-        %{name: store.name, url: "/s/#{store.slug}"},
-        %{name: "Products", url: "/s/#{store.slug}/products"},
-        %{name: product.title, url: "/s/#{store.slug}/products/#{product.slug}"}
+        %{name: store.name, url: EmakolaWeb.SEO.Canonical.store_url(store)},
+        %{name: "Products", url: EmakolaWeb.SEO.Canonical.path(store, "/products")},
+        %{name: product.title, url: EmakolaWeb.SEO.Canonical.product_url(store, product)}
       ])
 
     combined_json_ld = [product_json_ld, breadcrumb_json_ld]
@@ -583,28 +613,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   # Prefer the SEO-specific description, fall back to the main description,
-  # then to a generic store-anchored fallback. Truncated to keep under
-  # ~155 chars so social platforms don't cut mid-sentence.
+  # then to a factual store-anchored fallback.
   defp product_description_for_seo(product, store) do
-    raw =
-      Map.get(product, :seo_description) ||
-        Map.get(product, :description) ||
-        "Shop #{product.title} at #{store.name} — authentic products, delivered across Ghana."
-
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
-  end
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
+    SEOHelpers.meta_description(
+      [Map.get(product, :seo_description), Map.get(product, :description)],
+      "View #{product.title} from #{store.name}, including current price, options, availability, and product details."
+    )
   end
 
   # Returns the URL of the product's first image (sorted by position),

@@ -7,12 +7,56 @@ defmodule EmakolaWeb.LandingControllerTest do
 
       assert html =~ "For Ghana&#39;s Merchants" or html =~ "For Ghana's Merchants"
       assert html =~ "Be the next"
-      assert html =~ "big name in Accra"
+      assert html =~ "big name"
+      # The hero speaks to all of West Africa, not one city — a rotating word
+      # naming Accra excludes Kumasi, Takoradi and everywhere Makola expands to.
+      refute html =~ "big name in Accra"
       assert html =~ "household brand"
       assert html =~ "MoMo success story"
       assert html =~ "market leader"
       assert html =~ "Start selling — free"
       assert html =~ "No credit card needed"
+    end
+
+    # Cold-traffic repositioning: the page led with generic ecommerce features
+    # (Discounts, Reports, Blog) while the differentiators shipped in #363/#364/
+    # #367/#372-374 were invisible. Every claim below maps to shipped code.
+    test "sells the differentiators, not just table stakes", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      assert html =~ "Pay Links"
+      assert html =~ "Buyer Protection"
+      assert html =~ "Susu"
+      assert html =~ "MoMo"
+      assert html =~ "Start with nothing"
+      # Merchants here read less, so the film is the real explainer — it must
+      # be reachable from the pitch, not buried in the nav.
+      assert html =~ "/how-it-works/tour"
+    end
+
+    # These merchants are not strong readers. Card copy has to stay scannable;
+    # the previous version averaged 20 words per card, which is a wall of text.
+    test "differentiator copy stays short enough to scan", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      for phrase <- [
+            "Send a link. Get paid on MoMo.",
+            "We hold the money until they get it.",
+            "Let them pay small amounts over time.",
+            "No stock. No capital. Start today."
+          ] do
+        assert html =~ phrase
+        assert length(String.split(phrase, " ")) <= 8, "#{phrase} is too long to scan"
+      end
+    end
+
+    test "makes no stale claim about the theme count", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      # There are 21 selectable themes, not 14. Hardcoded counts rot silently,
+      # so the copy carries no number at all.
+      refute html =~ "14 beautiful looks"
+      refute html =~ "14 themes"
     end
 
     test "has no shopper hero", %{conn: conn} do
@@ -230,6 +274,22 @@ defmodule EmakolaWeb.LandingControllerTest do
 
       assert length(software_app["offers"]) == 3
       assert length(faq_page["mainEntity"]) == 7
+    end
+  end
+
+  describe "FAQ" do
+    test "items share a name so opening one closes the others", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      # A single-open accordion: native <details> siblings that share a
+      # `name` are mutually exclusive, so a reader never has to close the
+      # previous answer by hand.
+      names =
+        Regex.scan(~r/<details[^>]*\bname="([^"]+)"/, html)
+        |> Enum.map(fn [_, name] -> name end)
+
+      assert length(names) == 7
+      assert Enum.uniq(names) == ["faq"]
     end
   end
 

@@ -5,21 +5,22 @@ defmodule Emakola.NotificationsTest do
   import Emakola.Factory
 
   describe "Notification" do
-    test "creates a notification for a user" do
+    test "creates a notification for a recipient" do
       user = create_user!()
 
       assert {:ok, notif} =
                Notification
-               |> Ash.Changeset.for_create(:create, %{
-                 type: :team_invite,
+               |> Ash.Changeset.for_create(:notify, %{
+                 type: :announcement,
                  title: "You've been invited",
                  body: "Join the team!",
                  action_url: "/teams/123",
-                 user_id: user.id
+                 recipient_kind: :user,
+                 recipient_id: user.id
                })
                |> Ash.create(authorize?: false)
 
-      assert notif.type == :team_invite
+      assert notif.type == :announcement
       assert is_nil(notif.read_at)
     end
 
@@ -28,10 +29,11 @@ defmodule Emakola.NotificationsTest do
 
       {:ok, notif} =
         Notification
-        |> Ash.Changeset.for_create(:create, %{
-          type: :system_announcement,
+        |> Ash.Changeset.for_create(:notify, %{
+          type: :system,
           title: "New feature!",
-          user_id: user.id
+          recipient_kind: :user,
+          recipient_id: user.id
         })
         |> Ash.create(authorize?: false)
 
@@ -86,15 +88,13 @@ defmodule Emakola.NotificationsTest do
   end
 
   describe "PubSub broadcast" do
-    test "broadcasts notification to user channel" do
-      Phoenix.PubSub.subscribe(Emakola.PubSub, "user_notifications:test-user-id")
+    test "broadcasts notification to its recipient's channel" do
+      user = create_user!()
+      Emakola.Notifications.subscribe(user)
 
-      Emakola.Notifications.broadcast_to_user("test-user-id", %{
-        type: :team_invite,
-        title: "Test"
-      })
+      {:ok, _} = Emakola.Notifications.notify(user, :system, %{title: "Test"})
 
-      assert_receive {:new_notification, %{type: :team_invite}}
+      assert_receive {:new_notification, %{type: :system}}
     end
   end
 end

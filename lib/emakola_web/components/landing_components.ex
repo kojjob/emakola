@@ -11,6 +11,7 @@ defmodule EmakolaWeb.LandingComponents do
 
   import EmakolaWeb.CoreComponents, only: [icon: 1]
 
+  alias EmakolaWeb.BrandComponents
   alias Phoenix.LiveView.JS
 
   # ─────────────────────────────────────────────────────────────────────
@@ -34,7 +35,12 @@ defmodule EmakolaWeb.LandingComponents do
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <a href="/" class="flex items-center gap-2">
-            <img src="/images/emakola-logo.svg" alt="Makola" class="h-8 w-auto" />
+            <BrandComponents.logo_mark
+              motion="reveal"
+              tone="reversed"
+              size={32}
+              class="shrink-0"
+            />
             <span class="text-xl font-headline font-bold text-[#f1f5f9]">Makola</span>
           </a>
           <div class="hidden md:flex items-center gap-6">
@@ -43,6 +49,12 @@ defmodule EmakolaWeb.LandingComponents do
               class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
             >
               How it works
+            </a>
+            <a
+              href="/how-it-works/tour"
+              class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
+            >
+              Watch the tour
             </a>
             <a href="/#features" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
               Features
@@ -105,6 +117,13 @@ defmodule EmakolaWeb.LandingComponents do
       <a href="/how-it-works" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         How it works
       </a>
+      <a
+        href="/how-it-works/tour"
+        phx-click={toggle_mobile_menu()}
+        class="text-lg text-[#e2e8f0]"
+      >
+        Watch the tour
+      </a>
       <a href="/#features" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         Features
       </a>
@@ -154,6 +173,7 @@ defmodule EmakolaWeb.LandingComponents do
           </.footer_column>
 
           <.footer_column title="Resources">
+            <:link href="/blog">Blog</:link>
             <:link href="/contact">Help Center</:link>
             <:link href="/docs">Developer Docs</:link>
             <:link href="/stores">Browse stores</:link>
@@ -209,7 +229,7 @@ defmodule EmakolaWeb.LandingComponents do
   defp footer_column(assigns) do
     ~H"""
     <div>
-      <h4 class="text-sm font-semibold text-[#f1f5f9] mb-4">{@title}</h4>
+      <h3 class="text-sm font-semibold text-[#f1f5f9] mb-4">{@title}</h3>
       <ul class="space-y-2">
         <li :for={l <- @link}>
           <a

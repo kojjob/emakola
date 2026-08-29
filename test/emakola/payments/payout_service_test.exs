@@ -8,7 +8,7 @@ defmodule Emakola.Payments.PayoutServiceTest do
 
   alias Emakola.Factory
   alias Emakola.Payments
-  alias Emakola.Payments.PayoutService
+  alias Emakola.Payments.{Payment, PayoutService, ProtectionHolds, ProtectionRelease}
 
   defp success_payment!(store, attrs) do
     store
@@ -107,6 +107,124 @@ defmodule Emakola.Payments.PayoutServiceTest do
       # The FOR UPDATE claim stamped the charges, so a concurrent/second approval
       # can't re-claim the same balance (no double-pay).
       assert {:error, :nothing_outstanding} = PayoutService.prepare_payout(store.id)
+    end
+  end
+
+  describe "prepare_payout/1 with buyer-protection holds" do
+    defp protected_payment!(store, attrs) do
+      attrs = Map.new(attrs)
+      amount = Map.get(attrs, :amount, 25_000)
+      order = Factory.create_order!(store, %{total: amount})
+
+      payment =
+        store
+        |> Factory.create_payment!(
+          Map.merge(
+            %{
+              order_id: order.id,
+              amount: amount,
+              payout_held: true,
+              payout_hold_reason: "buyer_protection"
+            },
+            attrs
+          )
+        )
+        |> Ash.Changeset.for_update(:mark_success, %{})
+        |> Ash.update!(authorize?: false)
+
+      :ok = ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+      {payment, hold}
+    end
+
+    test "a released protected payment enters the backlog at net" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      {payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      assert :ok = ProtectionRelease.release(hold, :buyer_confirmed)
+
+      assert {:ok, payout} = PayoutService.prepare_payout(store.id)
+      assert payout.amount == hold.net
+      refute payout.amount == payment.amount
+
+      reloaded = Ash.get!(Payment, payment.id, authorize?: false)
+      assert reloaded.payout_id == payout.id
+      assert reloaded.paid_out_at != nil
+    end
+
+    test "a still-held protected payment never enters the backlog" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      {_payment, _hold} = protected_payment!(store, %{amount: 25_000})
+
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_payout(store.id)
+    end
+
+    test "an unprotected payment is unaffected — payable_amount nil pays the full amount, byte-identical" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      payment = success_payment!(store, %{amount: 40_000})
+      assert payment.payable_amount == nil
+
+      assert {:ok, payout} = PayoutService.prepare_payout(store.id)
+      assert payout.amount == 40_000
+
+      reloaded = Ash.get!(Payment, payment.id, authorize?: false)
+      assert reloaded.payable_amount == nil
+      assert reloaded.amount == 40_000
+      assert reloaded.payout_id == payout.id
+    end
+  end
+
+  describe "prepare_payout/1 with susu holds (TC-3 cross-cutting guard)" do
+    # A susu contribution is held under `payout_hold_reason: "susu_plan"` from
+    # the moment `SusuChunks.confirm_chunk/1` records it, until
+    # `SusuCompletion.complete/1` either releases it (unprotected store) or
+    # converts it to a `buyer_protection` hold (protected store) — see both
+    # modules' moduledocs. `outstanding_for_payout`'s `payout_held == false`
+    # filter is what excludes it here, same mechanism as a buyer-protection
+    # hold above — there is no susu-specific carve-out in the payout query.
+    defp susu_held_payment!(store, attrs) do
+      attrs = Map.new(attrs)
+      amount = Map.get(attrs, :amount, 25_000)
+
+      store
+      |> Factory.create_payment!(
+        Map.merge(
+          %{
+            susu_plan_id: Ash.UUID.generate(),
+            amount: amount,
+            payout_held: true,
+            payout_hold_reason: "susu_plan",
+            metadata: %{"susu_counted" => true}
+          },
+          attrs
+        )
+      )
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a still-held susu-plan payment never enters the backlog" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      susu_held_payment!(store, %{amount: 25_000})
+
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_payout(store.id)
+    end
+
+    test "excludes a susu-held payment while still paying out the store's other outstanding balance" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      susu_held_payment!(store, %{amount: 25_000})
+      success_payment!(store, %{amount: 40_000})
+
+      assert {:ok, payout} = PayoutService.prepare_payout(store.id)
+      assert payout.amount == 40_000
     end
   end
 end

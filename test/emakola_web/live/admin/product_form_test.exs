@@ -402,4 +402,124 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       assert images == []
     end
   end
+
+  describe "product type" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    defp enable_digital!(store) do
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{
+        enabled_product_types: [:physical, :digital_download]
+      })
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a store with digital enabled is offered both types", %{conn: conn, store: store} do
+      enable_digital!(store)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+
+      assert html =~ "product[product_type]"
+      assert html =~ "digital_download"
+    end
+
+    # Store.accepts?/2 exists precisely to gate the merchant admin's type
+    # picker. Offering a type the store cannot accept would fail server-side
+    # in ProductTypeAcceptedByStore with no explanation.
+    test "a store without digital enabled is not offered it", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+
+      refute html =~ "digital_download"
+      assert html =~ ~p"/admin/settings"
+    end
+
+    test "submitting the type persists it", %{conn: conn, store: store} do
+      enable_digital!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+
+      view
+      |> element("#product-form")
+      |> render_submit(%{
+        "product" => %{
+          "title" => "Highlife Sample Pack",
+          "price" => "50.00",
+          "product_type" => "digital_download"
+        }
+      })
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Highlife Sample Pack")
+        |> Ash.read_one!(authorize?: false)
+
+      assert product.product_type == :digital_download
+    end
+
+    # /admin/products/:id/files has existed and been routed since the feature
+    # shipped, with no link from anywhere — reachable only by typing the URL.
+    test "editing a digital product links to its digital files", %{conn: conn, store: store} do
+      store = enable_digital!(store)
+      product = create_product!(store, product_type: :digital_download)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      assert html =~ ~p"/admin/products/#{product.id}/files"
+    end
+
+    # Load-bearing: the type select must not silently reset a digital product
+    # to :physical on an unrelated save. put_product_type/3 omits the key when
+    # the param is absent, which is also what keeps the Index slide-over safe.
+    test "saving the edit form without touching the type preserves it", %{
+      conn: conn,
+      store: store
+    } do
+      store = enable_digital!(store)
+      product = create_product!(store, product_type: :digital_download)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      view
+      |> element("#product-form")
+      |> render_submit(%{"product" => %{"title" => "Renamed Pack"}})
+
+      reloaded = Ash.get!(Emakola.Catalog.Product, product.id, authorize?: false)
+      assert reloaded.product_type == :digital_download
+      assert reloaded.title == "Renamed Pack"
+    end
+  end
+
+  describe "shelf label" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    test "an existing product carries a printable QR label", %{conn: conn, store: store} do
+      product = Emakola.Factory.create_product!(store, %{title: "Kente Wrap Dress"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      # The other half of the stock scanner: without a label on the bin there
+      # is nothing for the inventory page's camera to read.
+      assert has_element?(view, "#product-qr svg")
+      assert has_element?(view, "#product-label-print")
+
+      assert has_element?(
+               view,
+               "#product-qr-url[value='#{EmakolaWeb.QR.product_url(store, product)}']"
+             )
+    end
+
+    test "a product being created has no label yet", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+
+      # Nothing to point at: the slug the code would carry does not exist until
+      # the product is saved.
+      refute has_element?(view, "#product-qr svg")
+    end
+  end
 end

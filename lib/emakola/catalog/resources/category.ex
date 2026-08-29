@@ -82,6 +82,17 @@ defmodule Emakola.Catalog.Category do
     has_many :children, Emakola.Catalog.Category do
       destination_attribute(:parent_id)
     end
+
+    has_many :products, Emakola.Catalog.Product do
+      destination_attribute(:category_id)
+      public?(true)
+    end
+  end
+
+  aggregates do
+    count :product_count, :products do
+      public?(true)
+    end
   end
 
   identities do
@@ -107,6 +118,7 @@ defmodule Emakola.Catalog.Category do
       accept([:name, :description, :parent_id, :position, :store_id])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :name})
+      validate(Emakola.Catalog.Validations.ParentBelongsToStore)
       change(Emakola.Catalog.Changes.GenerateSlug)
     end
 
@@ -116,7 +128,16 @@ defmodule Emakola.Catalog.Category do
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :name})
       validate(Emakola.Catalog.Validations.NoSelfParent)
+      validate(Emakola.Catalog.Validations.ParentBelongsToStore)
       change(Emakola.Catalog.Changes.GenerateSlug)
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
     end
 
     read :get_by_slug do

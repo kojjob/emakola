@@ -7,6 +7,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  # Page window for the product list; "Load more" grows it by this much.
+  @admin_products_limit 100
+
   require Logger
 
   import EmakolaWeb.Admin.ProductLive.IndexComponents
@@ -24,8 +27,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         active_nav: :products,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         status_filter: :all,
         products: [],
+        products_limit: @admin_products_limit,
+        more_products?: false,
         categories: %{},
         categories_list: [],
         quick_view_product: nil,
@@ -34,10 +40,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         # Product form slide-over
         show_product_form: false,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{},
         editing_product: nil,
         # Bulk upload slide-over
         show_bulk_upload: false,
+        bulk_upload_form: to_form(%{}),
         csv_preview: [],
         csv_errors: [],
         bulk_importing: false
@@ -58,6 +66,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         max_file_size: 10_000_000
       )
       |> load_products()
+      |> load_product_stats()
       |> load_categories()
 
     {:ok, socket}
@@ -69,10 +78,22 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        products_limit: @admin_products_limit
+      )
       |> load_products()
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("load_more_products", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(products_limit: socket.assigns.products_limit + @admin_products_limit)
+     |> load_products()}
   end
 
   @impl true
@@ -88,7 +109,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
     socket =
       socket
-      |> assign(status_filter: status_atom)
+      |> assign(status_filter: status_atom, products_limit: @admin_products_limit)
       |> load_products()
 
     {:noreply, socket}
@@ -129,6 +150,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
            socket
            |> assign(action_product: nil, action_type: nil)
            |> load_products()
+           |> load_product_stats()
            |> put_flash(:info, "Product archived")}
 
         {:error, _} ->
@@ -152,6 +174,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
            socket
            |> assign(action_product: nil, action_type: nil)
            |> load_products()
+           |> load_product_stats()
            |> put_flash(:info, "Product activated")}
 
         {:error, _} ->
@@ -176,13 +199,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: true,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
 
   @impl true
   def handle_event("open_edit_product", %{"id" => id}, socket) do
-    product = load_product(id)
+    product = load_product(id, socket)
 
     if product do
       {:noreply,
@@ -190,6 +214,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
          show_product_form: true,
          editing_product: product,
          form_data: product_to_form_data(product),
+         product_form: to_form(product_to_form_data(product), as: :product),
          form_errors: %{}
        )}
     else
@@ -200,7 +225,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   @impl true
   def handle_event("validate_product", %{"product" => params}, socket) do
     errors = validate_form(params)
-    {:noreply, assign(socket, form_data: params, form_errors: errors)}
+
+    {:noreply,
+     assign(socket,
+       form_data: params,
+       product_form: to_form(params, as: :product),
+       form_errors: errors
+     )}
   end
 
   @impl true
@@ -222,7 +253,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
-      {:noreply, assign(socket, form_data: params, form_errors: errors)}
+      {:noreply,
+       assign(socket,
+         form_data: params,
+         product_form: to_form(params, as: :product),
+         form_errors: errors
+       )}
     else
       attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
       pesewas = pesewas_from_price_result(price_result)
@@ -246,7 +282,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:error, error} ->
           {:noreply,
            socket
-           |> assign(form_data: params)
+           |> assign(form_data: params, product_form: to_form(params, as: :product))
            |> put_flash(:error, format_error(error))}
       end
     end
@@ -259,6 +295,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: false,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
@@ -375,6 +412,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         socket
         |> assign(bulk_importing: false, csv_errors: warnings, csv_preview: [])
         |> load_products()
+        |> load_product_stats()
         |> put_flash(:info, bulk_summary(imported, skipped))
 
       {:noreply, socket}
@@ -387,52 +425,105 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold font-headline tracking-tight">Products</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Manage your store catalog
-          </p>
+      <%!-- Header. "Add by photo" leads because it is the one route into the
+            catalog that needs no typing. --%>
+      <.admin_page_header
+        icon="hero-cube"
+        title="Products"
+        subtitle="Manage your store catalog"
+      >
+        <.link
+          :if={EmakolaWeb.AiGate.enabled?()}
+          navigate={~p"/admin/products/snap"}
+          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm bg-primary hover:bg-primary-hover text-white"
+        >
+          <.icon name="hero-camera" class="size-5" /> Add by photo
+        </.link>
+        <.link
+          navigate={~p"/admin/products/bulk"}
+          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm border border-border bg-surface text-text hover:bg-surface-subtle"
+        >
+          <.icon name="hero-photo" class="size-5" /> Add many
+        </.link>
+        <.admin_button
+          variant={:secondary}
+          phx-click={
+            JS.push("open_bulk_upload")
+            |> show_modal("bulk-upload-modal")
+          }
+        >
+          <.icon name="hero-arrow-up-tray" class="size-5" /> Bulk
+        </.admin_button>
+        <.admin_button phx-click={
+          JS.push("open_new_product")
+          |> show_modal("product-form-modal")
+        }>
+          <.icon name="hero-plus" class="size-5" /> New Product
+        </.admin_button>
+      </.admin_page_header>
+
+      <%!-- KPI tiles (store-wide, independent of search/filter) --%>
+      <div id="product-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="stat-products-total">
+          <.stat_card
+            label="Total products"
+            value={to_string(@product_stats.all)}
+            tone={:accent}
+          >
+            <:icon><.icon name="hero-cube" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Everything in your catalog</p>
+            </:delta>
+          </.stat_card>
         </div>
-        <div class="flex items-center gap-2">
-          <.link
-            navigate={~p"/admin/products/bulk"}
-            class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-white"
+        <div id="stat-products-active">
+          <.stat_card label="Active" value={to_string(@product_stats.active)} tone={:success}>
+            <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Buyers can see these</p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-products-draft">
+          <.stat_card label="Draft" value={to_string(@product_stats.draft)} tone={:warning}>
+            <:icon><.icon name="hero-pencil" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Not shown yet</p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-products-archived">
+          <.stat_card
+            label="Archived"
+            value={to_string(@product_stats.archived)}
+            tone={:neutral}
           >
-            <.icon name="hero-photo" class="size-3.5" /> Add many products
-          </.link>
-          <.admin_button
-            variant={:secondary}
-            size={:sm}
-            phx-click={
-              JS.push("open_bulk_upload")
-              |> show_modal("bulk-upload-modal")
-            }
-          >
-            <.icon name="hero-arrow-up-tray" class="size-3.5" /> Bulk
-          </.admin_button>
-          <.admin_button
-            size={:sm}
-            phx-click={
-              JS.push("open_new_product")
-              |> show_modal("product-form-modal")
-            }
-          >
-            <.icon name="hero-plus" class="size-3.5" /> New Product
-          </.admin_button>
+            <:icon><.icon name="hero-archive-box" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Put away, not deleted</p>
+            </:delta>
+          </.stat_card>
         </div>
       </div>
 
       <%!-- Search & Filters --%>
-      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+      <.table_toolbar
+        id="product-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search products..."
+      >
         <:filters>
-          <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
-            <.status_tab status={:all} current={@status_filter} label="All" />
-            <.status_tab status={:draft} current={@status_filter} label="Draft" />
-            <.status_tab status={:active} current={@status_filter} label="Active" />
-            <.status_tab status={:archived} current={@status_filter} label="Archived" />
-          </div>
+          <.filter_tabs
+            id="products-filter-tabs"
+            current={@status_filter}
+            tabs={[
+              %{key: :all, label: "All", count: @product_stats.all},
+              %{key: :active, label: "Active", count: @product_stats.active},
+              %{key: :draft, label: "Draft", count: @product_stats.draft},
+              %{key: :archived, label: "Archived", count: @product_stats.archived}
+            ]}
+          />
         </:filters>
       </.table_toolbar>
 
@@ -444,6 +535,20 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         status_filter={@status_filter}
       />
 
+      <%!-- The list is a window, not the whole catalogue. Without this the page
+      stopped at the limit with no hint that more products existed. --%>
+      <div :if={@more_products?} class="mt-4 flex flex-col items-center gap-2">
+        <p class="text-xs text-slate-500">Showing {length(@products)} products.</p>
+        <.admin_button
+          id="load-more-products"
+          variant={:secondary}
+          phx-click="load_more_products"
+          phx-disable-with="Loading..."
+        >
+          Load more products
+        </.admin_button>
+      </div>
+
       <%!-- Quick View Modal --%>
       <.quick_view_modal quick_view_product={@quick_view_product} categories={@categories} />
 
@@ -454,9 +559,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       <.product_form_slideover
         editing_product={@editing_product}
         form_data={@form_data}
+        product_form={@product_form}
         form_errors={@form_errors}
         categories_list={@categories_list}
         uploads={@uploads}
+        bulk_upload_form={@bulk_upload_form}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}
         bulk_importing={@bulk_importing}
@@ -465,14 +572,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     """
   end
 
-  @admin_products_limit 100
-
   defp load_products(%{assigns: %{store_id: nil}} = socket) do
-    assign(socket, products: [])
+    assign(socket, products: [], more_products?: false)
   end
 
   defp load_products(socket) do
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
+    limit = socket.assigns[:products_limit] || @admin_products_limit
 
     products =
       try do
@@ -485,7 +591,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           search: search,
           status: status_arg
         })
-        |> Ash.Query.limit(@admin_products_limit)
+        |> Ash.Query.limit(limit + 1)
         |> Ash.read!(authorize?: false)
       rescue
         exception ->
@@ -496,7 +602,49 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           []
       end
 
-    assign(socket, products: products)
+    # One row past the window answers "is there more?" without a second COUNT.
+    {products, more?} =
+      if length(products) > limit,
+        do: {Enum.take(products, limit), true},
+        else: {products, false}
+
+    assign(socket, products: products, products_limit: limit, more_products?: more?)
+  end
+
+  # Store-wide status counts feed the KPI tiles and the tab count chips —
+  # they deliberately ignore the search/filter so the numbers stay stable
+  # while the list narrows.
+  defp load_product_stats(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, product_stats: %{all: 0, active: 0, draft: 0, archived: 0})
+  end
+
+  defp load_product_stats(socket) do
+    store_id = socket.assigns.store_id
+
+    counts =
+      Map.new([:active, :draft, :archived], fn status ->
+        {status, count_products_by_status(store_id, status)}
+      end)
+
+    stats = Map.put(counts, :all, counts.active + counts.draft + counts.archived)
+    assign(socket, product_stats: stats)
+  end
+
+  defp count_products_by_status(store_id, status) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_admin, %{store_id: store_id, search: nil, status: status})
+    |> Ash.count(authorize?: false)
+    |> case do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[product_live.index] count_products_by_status raised: #{Exception.message(exception)}"
+      )
+
+      0
   end
 
   defp load_categories(%{assigns: %{store_id: nil}} = socket) do
@@ -554,9 +702,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         show_product_form: false,
         editing_product: nil,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{}
       )
       |> load_products()
+      |> load_product_stats()
 
     if upload_failed > 0 do
       put_flash(
@@ -569,11 +719,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     end
   end
 
-  defp load_product(id) do
+  defp load_product(id, socket) do
     # The edit slide-over renders @editing_product.images and .variants —
     # load them here or the render crashes with Enumerable not implemented
     # for Ash.NotLoaded.
-    case Emakola.Catalog.get_product(id, load: [:images, :variants]) do
+    opts = [
+      actor: socket.assigns[:current_merchant],
+      tenant: socket.assigns.store_id,
+      load: [:images, :variants]
+    ]
+
+    case Emakola.Catalog.get_product_for_store(id, socket.assigns.store_id, opts) do
       {:ok, product} -> product
       _ -> nil
     end

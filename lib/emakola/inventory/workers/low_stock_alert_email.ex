@@ -26,7 +26,7 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker.Email do
     name_str = if merchant.name, do: to_string(merchant.name), else: email_str
 
     new()
-    |> from({"Makola", "noreply@emakola.com"})
+    |> from({"Makola", "noreply@makola.io"})
     |> to({name_str, email_str})
     |> subject("Low Stock Alert — #{store.name}")
     |> text_body(text_body_content(store, variants))

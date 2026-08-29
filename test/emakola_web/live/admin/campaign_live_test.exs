@@ -1,197 +1,109 @@
 defmodule EmakolaWeb.Admin.CampaignLiveTest do
   @moduledoc """
-  LiveView tests for the admin campaigns page.
-  Tests campaign listing, KPI cards, quick start templates, modals, and auth redirect.
+  The previous suite here asserted the fabrication itself — "displays campaign
+  cards with sample data" — so it was deleted with the invented data it
+  pinned. These test the real engine instead.
   """
   use EmakolaWeb.ConnCase, async: false
+  use Oban.Testing, repo: Emakola.Repo
 
   import Phoenix.LiveViewTest
+  import Emakola.Factory
 
-  setup %{conn: conn} do
-    # Create merchant, store, and authenticate
-    {merchant, store} = create_authenticated_merchant!()
-    conn = authenticate_conn(conn, merchant)
+  alias Emakola.Marketing.Campaigns
 
-    {:ok, conn: conn, store: store, merchant: merchant}
+  setup do
+    {merchant, store} = create_merchant_with_store!()
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+    conn =
+      build_conn()
+      |> Phoenix.ConnTest.init_test_session(%{})
+      |> Plug.Conn.put_session(:user_token, token)
+
+    %{conn: conn, merchant: merchant, store: store}
   end
 
-  describe "CampaignLive.Index" do
-    test "renders campaigns page with header", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
+  test "shows an empty state, and never invented figures", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
 
-      assert html =~ "Campaigns"
-      assert html =~ "Engage customers with targeted messages"
-    end
-
-    test "displays KPI cards", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Total Campaigns"
-      assert html =~ "Messages Sent"
-      assert html =~ "Avg. Open Rate"
-      assert html =~ "2,847"
-      assert html =~ "72.4%"
-    end
-
-    test "displays campaign cards with sample data", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Welcome Series"
-      assert html =~ "Abandoned Cart Recovery"
-      assert html =~ "Easter Sale Announcement"
-      assert html =~ "Re-engagement"
-    end
-
-    test "displays campaign status badges", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Active"
-      assert html =~ "Scheduled"
-      assert html =~ "Draft"
-    end
-
-    test "displays campaign channel labels", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "WhatsApp"
-      assert html =~ "WhatsApp + SMS"
-      assert html =~ "SMS"
-    end
-
-    test "displays campaign performance chart section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Campaign Performance"
-      assert html =~ "Last 6 campaigns"
-    end
-
-    test "displays quick start templates", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Quick Start Templates"
-      assert html =~ "Abandoned Cart"
-      assert html =~ "Welcome Series"
-      assert html =~ "Product Launch"
-    end
-
-    test "renders create campaign button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Create Campaign"
-    end
-
-    test "renders create campaign modal markup", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      # The modal is always in the DOM (hidden by default)
-      assert html =~ "create-campaign-modal"
-      assert html =~ "Campaign Name"
-      assert html =~ "Channel"
-    end
-
-    test "handles save_campaign event", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
-
-      html =
-        view
-        |> element("form[phx-submit='save_campaign']")
-        |> render_submit(%{
-          "campaign" => %{
-            "name" => "Test Campaign",
-            "channel" => "whatsapp",
-            "description" => "Test"
-          }
-        })
-
-      assert html =~ "Campaign created successfully!"
-    end
-
-    test "displays campaign stats in cards", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      # Welcome Series stats
-      assert html =~ "456"
-      assert html =~ "89%"
-      assert html =~ "34%"
-
-      # Abandoned Cart Recovery stats
-      assert html =~ "1,247"
-      assert html =~ "18%"
-    end
-
-    test "displays delete button for each campaign", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
-
-      assert has_element?(view, "button[aria-label='Delete Welcome Series']")
-      assert has_element?(view, "button[aria-label='Delete Re-engagement']")
-    end
-
-    test "renders delete confirmation modal markup", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "delete-campaign-modal"
-      assert html =~ "Delete Campaign"
-    end
-
-    test "handles delete_campaign event", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
-
-      html = render_click(view, "delete_campaign", %{})
-
-      assert html =~ "Campaign deleted."
-    end
-
-    test "sets page title to Campaigns", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/campaigns")
-
-      assert html =~ "Campaigns"
-    end
+    assert html =~ "No campaigns yet"
+    # Neither channel reports these without provider webhooks.
+    refute html =~ "Opened"
+    refute html =~ "Clicked"
   end
 
-  describe "authentication" do
-    test "redirects unauthenticated users to login" do
-      conn = build_conn()
+  test "names the audience before the merchant writes anything", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+    create_customer!(ctx.store, %{phone: "+233202222222"})
+    create_customer!(ctx.store, %{phone: nil})
 
-      assert {:error, {:live_redirect, %{to: "/auth/login"}}} =
-               live(conn, ~p"/admin/campaigns")
-    end
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    # 2, not 3 — a customer with no phone cannot be reached, and the merchant
+    # should know the real number before spending money.
+    assert has_element?(view, "#campaign-audience-count", "2")
   end
 
-  # ── Test Helpers ──
+  test "creates a campaign from the merchant's own input", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
 
-  defp create_authenticated_merchant! do
-    store =
-      Emakola.Stores.Store
-      |> Ash.Changeset.for_create(:create, %{
-        name: "Test Store #{System.unique_integer([:positive])}",
-        slug: "test-store-#{System.unique_integer([:positive])}"
+    view
+    |> form("#campaign-form", campaign: %{name: "Weekend sale", body: "20% off this weekend."})
+    |> render_submit()
+
+    assert has_element?(view, "#campaigns", "Weekend sale")
+    assert {:ok, [campaign]} = Campaigns.list(ctx.merchant, ctx.store.id)
+    assert campaign.name == "Weekend sale"
+    assert campaign.status == :draft
+  end
+
+  test "refuses an over-long message instead of charging for it", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    html =
+      view
+      |> form("#campaign-form",
+        campaign: %{name: "Too long", body: String.duplicate("a", 481)}
+      )
+      |> render_submit()
+
+    assert html =~ "too long"
+    assert {:ok, []} = Campaigns.list(ctx.merchant, ctx.store.id)
+  end
+
+  test "sending queues the job rather than blocking the page", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    {:ok, campaign} =
+      Campaigns.create(ctx.merchant, ctx.store.id, %{
+        name: "Weekend sale",
+        channel: :sms,
+        body: "20% off."
       })
-      |> Ash.create!(authorize?: false)
 
-    merchant =
-      Emakola.Accounts.Merchant
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "merchant-#{System.unique_integer([:positive])}@test.com",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create!(authorize?: false)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
 
-    Emakola.Accounts.StoreMembership
-    |> Ash.Changeset.for_create(:create, %{
-      merchant_id: merchant.id,
-      store_id: store.id,
-      role: :owner
-    })
-    |> Ash.create!(authorize?: false)
+    view |> element("#send-campaign-#{campaign.id}") |> render_click()
 
-    {merchant, store}
+    assert_enqueued(
+      worker: Emakola.Marketing.CampaignSendWorker,
+      args: %{"campaign_id" => campaign.id}
+    )
   end
 
-  defp authenticate_conn(conn, merchant) do
-    subject = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+  test "another store's campaigns never appear", ctx do
+    {other_merchant, other_store} = create_merchant_with_store!()
 
-    conn
-    |> init_test_session(%{"user_token" => subject})
+    {:ok, _theirs} =
+      Campaigns.create(other_merchant, other_store.id, %{
+        name: "Their private campaign",
+        channel: :sms,
+        body: "hello"
+      })
+
+    {:ok, _view, html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    refute html =~ "Their private campaign"
   end
 end

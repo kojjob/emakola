@@ -332,4 +332,42 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
       variants -> Enum.sort_by(variants, & &1.position)
     end
   end
+
+  @doc """
+  Merges a submitted `product_type` into the attrs a product action receives.
+
+  **Omits the key entirely when the param is absent or blank.** That is the
+  whole point of centralising this: the Products index slide-over never renders
+  a type field, and an omitted key leaves an existing product's type alone,
+  whereas a defaulted one would silently reset every digital product to
+  `:physical` on an unrelated save.
+
+  The string is matched against the store's own allowed set rather than
+  converted — `String.to_atom/1` on user input is an atom-table exhaustion DoS,
+  and `String.to_existing_atom/1` raises on unknown input, which is a 500.
+  An unrecognised value is dropped here and would be refused server-side by
+  `ProductTypeAcceptedByStore` regardless: this list is UX, that validation is
+  the security boundary.
+  """
+  def put_product_type(attrs, params, store) do
+    submitted = params["product_type"]
+
+    case Enum.find(allowed_product_types(store), &(to_string(&1) == submitted)) do
+      nil -> attrs
+      type -> Map.put(attrs, :product_type, type)
+    end
+  end
+
+  @doc """
+  The product types this store may actually choose: the platform's sellable
+  set intersected with what the merchant enabled in settings.
+  """
+  def allowed_product_types(nil), do: [:physical]
+
+  def allowed_product_types(store) do
+    Enum.filter(
+      Emakola.Catalog.Product.sellable_types(),
+      &Emakola.Stores.Store.accepts?(store, &1)
+    )
+  end
 end

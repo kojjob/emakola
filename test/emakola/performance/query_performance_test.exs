@@ -421,7 +421,7 @@ defmodule Emakola.Performance.QueryPerformanceTest do
       {"variant_option_values", "variant_option_values_option_value_id_index"},
       {"store_memberships", "store_memberships_store_id_index"},
       # Notifications
-      {"notifications", "notifications_user_id_index"},
+      {"notifications", "notifications_recipient_index"},
       {"email_logs", "email_logs_user_id_index"},
       # Billing
       {"subscriptions", "subscriptions_organisation_id_index"},

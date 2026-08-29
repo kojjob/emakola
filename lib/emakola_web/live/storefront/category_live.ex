@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Cart.CartStore
@@ -45,8 +47,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                category: category,
                parent_category: parent,
                categories: categories,
-               products: products,
-               filtered_products: products,
+               products_count: length(products),
                sort_by: :newest,
                cart_session_id: cart_session_id,
                cart_count: cart_count,
@@ -55,13 +56,15 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                og_image: first_product_image(products),
                og_type: "website",
                og_site_name: store.name,
+               robots: if(product_count == 0, do: "noindex, follow", else: "index, follow"),
                canonical_url: Canonical.category_url(store, category),
                json_ld:
                  SEO.json_ld_breadcrumb([
                    %{name: store.name, url: Canonical.store_url(store)},
                    %{name: category.name, url: Canonical.category_url(store, category)}
                  ])
-             )}
+             )
+             |> stream(:products, product_stream_items(products))}
         end
 
       {:error, :not_found} ->
@@ -83,13 +86,31 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
         :newest
       )
 
-    sorted = sort_products(socket.assigns.products, sort)
-    {:noreply, assign(socket, filtered_products: sorted, sort_by: sort)}
+    sorted =
+      socket.assigns.store.id
+      |> load_category_products(socket.assigns.category.id)
+      |> sort_products(sort)
+
+    {:noreply,
+     socket
+     |> assign(products_count: length(sorted), sort_by: sort)
+     |> stream(:products, product_stream_items(sorted), reset: true)}
   end
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
     EmakolaWeb.Storefront.QuickAdd.add_to_cart(socket, product_id)
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -145,17 +166,21 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   defp sort_products(products, _), do: products
 
+  defp product_stream_items(products) do
+    products
+    |> Enum.with_index()
+    |> Enum.map(fn {product, index} -> %{id: product.id, product: product, index: index} end)
+  end
+
   # -- SEO --
 
   defp category_meta_description(category, store, count) do
-    raw =
-      Map.get(category, :description) ||
-        "Shop #{category.name} at #{store.name}. #{count} products available. Fast delivery, mobile money accepted."
+    product_label = if(count == 1, do: "product", else: "products")
 
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
+    SEO.meta_description(
+      [Map.get(category, :description)],
+      "Browse #{count} #{category.name} #{product_label} from #{store.name} with current prices, options, and availability."
+    )
   end
 
   defp count_category_products(store_id, category_id) do
@@ -185,14 +210,4 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp first_product_image(_), do: nil
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
-  end
 end

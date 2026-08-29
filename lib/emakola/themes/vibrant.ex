@@ -125,8 +125,6 @@ defmodule Emakola.Themes.Vibrant do
     to: Emakola.Themes.Vibrant.ProductDetail,
     as: :render
 
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Vibrant's own pages borrow Atelier's footer, so only the nav is adopted
   # here — Chrome's Atelier footer fallback stays coherent for this theme.
   def storefront_nav(assigns) do

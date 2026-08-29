@@ -83,6 +83,18 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # GhanaPost GPS digital address (e.g. GA-183-8164) — optional, normalized
+    # and validated by Emakola.Changes.NormalizeDigitalAddress on write.
+    attribute :digital_address, :string do
+      public?(true)
+    end
+
+    # Free-text delivery hint (e.g. "behind Achimota Melcom, blue gate").
+    attribute :landmark, :string do
+      public?(true)
+      constraints(max_length: 200)
+    end
+
     attribute :whatsapp_number, :string do
       public?(true)
     end
@@ -125,6 +137,24 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # Merchant opt-in for TC-2 Buyer Protection (escrow-lite payout hold): off
+    # by default. New PayLinks inherit this value at creation unless the
+    # merchant explicitly overrides it per link (see `PayLink.protected`).
+    # Deliberately opt-in, revisited 2026-08-04. Turning it on does not merely
+    # delay a payout: OrderSettlement.prepare/2 returns {:hold, :buyer_protection},
+    # which attaches NO merchant gateway share — the whole charge stays in the
+    # platform account until release. That makes Makola custodian of the
+    # merchant's money between sale and delivery, which is an escrow-shaped
+    # arrangement rather than a settings toggle.
+    #
+    # So the fix for "almost nobody opts in" is to ASK, not to decide for them:
+    # see the onboarding prompt. A merchant who turns it on gets the delivery
+    # OTP (Orders.CustomerDelivery) as the proof that releases the hold.
+    attribute :buyer_protection_enabled, :boolean do
+      default(false)
+      public?(true)
+    end
+
     # Platform-owned lifecycle state. Merchants cannot change this — only
     # platform staff, via the `:suspend`/`:block`/`:archive`/`:reactivate`
     # actions. `:archived` is the "delete" (hidden forever, row kept, no
@@ -134,6 +164,21 @@ defmodule Emakola.Stores.Store do
       default(:active)
       public?(true)
       constraints(one_of: [:active, :suspended, :blocked, :archived])
+    end
+
+    # What this row IS. `:shop` is a real store with a storefront; a
+    # `:affiliate_payout` row is a payout container for an affiliate who has
+    # no shop — it exists only because every payout rail here is keyed to a
+    # store id, and it must never appear anywhere a shop appears.
+    #
+    # Explicit rather than leaning on `active: false`: a merchant reopening
+    # their shop flips `active`, and a payout container must not become
+    # visible by accident.
+    attribute :kind, :atom do
+      allow_nil?(false)
+      default(:shop)
+      public?(true)
+      constraints(one_of: [:shop, :affiliate_payout])
     end
 
     # Why the store is in its current non-active status. Surfaced to the
@@ -165,6 +210,41 @@ defmodule Emakola.Stores.Store do
 
     # Manual ordering within featured. Lower numbers appear first.
     # Nil = not in the manual rank; falls back to view_count desc.
+    # When the shop entered the featured set. Stamped by FeaturedRanking on
+    # feature, cleared on unfeature; rank moves never touch it. Display-only
+    # today — it exists so featured tenure is answerable from the day the
+    # first shop was featured, not from the day someone asks.
+    # ── Directory read cache ──
+    # Written only by the featuring worker (and DirectoryCuration), read by
+    # the public slot queries so they stay plain indexed column filters. The
+    # standing row holds the explanation; these hold the answer.
+    #
+    # directory_eligible defaults TRUE — fail-open. A fail-closed default
+    # would empty the directory between this migration landing and the first
+    # worker run: an outage on deploy. The worker only flips it false for
+    # stores it has assessed and has evidence against.
+    attribute :directory_eligible, :boolean do
+      allow_nil?(false)
+      default(true)
+      public?(false)
+    end
+
+    attribute :directory_score, :integer do
+      allow_nil?(true)
+      public?(false)
+    end
+
+    attribute :directory_slot, :atom do
+      allow_nil?(true)
+      constraints(one_of: [:spotlight, :rising, :editors_pick, :promoted])
+      public?(false)
+    end
+
+    attribute :featured_at, :utc_datetime_usec do
+      allow_nil?(true)
+      public?(true)
+    end
+
     attribute :featured_rank, :integer do
       public?(true)
     end
@@ -222,6 +302,17 @@ defmodule Emakola.Stores.Store do
   relationships do
     has_many :store_memberships, Emakola.Accounts.StoreMembership
     has_many :products, Emakola.Catalog.Product
+
+    # ── Directory signal sources ──
+    # These exist so the featuring worker can load every merit signal for the
+    # whole population in one query. Nothing storefront-facing loads them.
+    has_many :orders, Emakola.Orders.Order
+    has_many :returns, Emakola.Orders.Return
+    has_many :reviews, Emakola.Catalog.Review
+    has_many :payments, Emakola.Payments.Payment
+    has_many :protection_holds, Emakola.Payments.ProtectionHold
+    has_one :payout_account, Emakola.Stores.StorePayoutAccount
+    has_one :verification, Emakola.Stores.StoreVerification
   end
 
   aggregates do
@@ -229,6 +320,88 @@ defmodule Emakola.Stores.Store do
     # and the "Most popular" tiebreaker on the main grid sort.
     count :product_count, :products do
       filter(expr(status == :active))
+    end
+
+    # The newest photo on an active product — the directory card's fallback
+    # when the merchant hasn't set a cover image, so shop cards show real
+    # goods instead of a gradient placeholder. Draft products stay invisible.
+    first :card_image_url, [:products, :images], :url do
+      filter(expr(product.status == :active))
+      sort(inserted_at: :desc)
+    end
+
+    # The same first image's webp variant, when the processor has made one.
+    # Same filter and sort as :card_image_url so both describe one photo.
+    first :card_image_medium_url, [:products, :images], :medium_url do
+      filter(expr(product.status == :active))
+      sort(inserted_at: :desc)
+    end
+
+    # ── Directory merit signals ──
+    # Inputs to DirectoryScore and DirectoryEligibility, loaded in one shot by
+    # the nightly featuring worker. 90-day windows because the directory
+    # rewards recent behaviour, not lifetime totals.
+
+    count :delivered_order_count_90d, :orders do
+      filter(expr(status == :delivered and inserted_at > ago(90, :day)))
+    end
+
+    count :cancelled_order_count_90d, :orders do
+      filter(expr(status == :cancelled and inserted_at > ago(90, :day)))
+    end
+
+    max(:last_order_at, :orders, :inserted_at)
+
+    max(:last_product_published_at, :products, :published_at)
+
+    count :successful_payment_count_90d, :payments do
+      filter(expr(status == :success and inserted_at > ago(90, :day)))
+    end
+
+    # :partially_refunded is not a Payment status — partial refunds live in
+    # refunded_amount > 0 alongside status: :success, so both shapes count.
+    count :refunded_payment_count_90d, :payments do
+      filter(expr((status == :refunded or refunded_amount > 0) and inserted_at > ago(90, :day)))
+    end
+
+    count :taken_down_product_count_90d, :products do
+      filter(expr(moderation_status == :taken_down and moderation_at > ago(90, :day)))
+    end
+
+    # Reviews count regardless of :status — a merchant can hide a bad review,
+    # and a hidden one-star still counts against merit. verified_purchase is
+    # the gate, enforced by PurchaseVerifier plus a unique identity.
+    count :verified_review_count, :reviews do
+      filter(expr(verified_purchase == true))
+    end
+
+    sum :verified_review_rating_sum, :reviews, :rating do
+      filter(expr(verified_purchase == true))
+    end
+
+    # :changed_mind is deliberately absent — a buyer changing their mind is
+    # not the merchant's fault.
+    count :merchant_fault_return_count_90d, :returns do
+      filter(
+        expr(
+          reason in [:defective, :wrong_item, :not_as_described] and status == :refunded and
+            inserted_at > ago(90, :day)
+        )
+      )
+    end
+
+    count :staff_refunded_hold_count_90d, :protection_holds do
+      filter(expr(resolution == :refunded_by_staff and inserted_at > ago(90, :day)))
+    end
+
+    exists :payout_verified, :payout_account do
+      filter(expr(verification_status == :verified))
+    end
+
+    # Reads the real KYC record, never the manual Store.verified boolean an
+    # admin can set with no verification behind it.
+    exists :kyc_approved, :verification do
+      filter(expr(status == :approved))
     end
   end
 
@@ -276,12 +449,30 @@ defmodule Emakola.Stores.Store do
       authorize_if(always())
     end
 
-    # Platform lifecycle actions are platform-only — callable solely via
-    # `authorize?: false` from the platform admin (gated there by
-    # :manage_stores). Forbidding every actor here means a suspended merchant
-    # can't un-suspend themselves by calling :reactivate (etc.) directly, even
-    # though the general update policy below would otherwise admit them.
-    policy action([:suspend, :block, :archive, :reactivate]) do
+    # Platform-only actions — callable solely via `authorize?: false` from the
+    # platform admin (gated there by :manage_stores) or from storefront system
+    # code. Forbidding every actor here means a suspended merchant can't
+    # un-suspend themselves by calling :reactivate (etc.) directly, even though
+    # the general update policy below would otherwise admit them.
+    #
+    # The same reasoning covers two actions that are not lifecycle:
+    #
+    #   :update_directory_meta grants :featured, :featured_rank and the public
+    #   :verified badge. A merchant awarding themselves a trust badge shoppers
+    #   rely on is the exact shape of thing this block exists to stop.
+    #
+    #   :increment_view_count looks harmless but :view_count is the tiebreak on
+    #   the default featured sort, the whole :popular sort and the :list_featured
+    #   order — so a merchant able to call it can climb the directory at will.
+    policy action([
+             :suspend,
+             :block,
+             :archive,
+             :reactivate,
+             :update_directory_meta,
+             :set_directory_standing,
+             :increment_view_count
+           ]) do
       forbid_if(always())
     end
 
@@ -302,11 +493,24 @@ defmodule Emakola.Stores.Store do
       change(Emakola.Stores.Changes.EnsureUniqueSlug)
     end
 
+    # An affiliate's payout container — never a shop. Its own action rather
+    # than widening :create to accept `kind`, so a merchant-facing create can
+    # never mint one, deliberately or by a stray parameter.
+    create :create_payout_container do
+      accept([:name, :slug])
+
+      change(set_attribute(:kind, :affiliate_payout))
+      change(set_attribute(:active, false))
+      change(Emakola.Stores.Changes.EnsureUniqueSlug)
+    end
+
     update :update do
       accept([:name, :currency, :theme_config])
     end
 
     update :update_settings do
+      require_atomic?(false)
+
       accept([
         :name,
         :description,
@@ -318,6 +522,8 @@ defmodule Emakola.Stores.Store do
         :address,
         :city,
         :region,
+        :digital_address,
+        :landmark,
         :whatsapp_number,
         :instagram_url,
         :tiktok_url,
@@ -326,9 +532,12 @@ defmodule Emakola.Stores.Store do
         :x_url,
         :whatsapp_catalog_id,
         :active,
+        :buyer_protection_enabled,
         :theme_config,
         :enabled_product_types
       ])
+
+      change(Emakola.Changes.NormalizeDigitalAddress)
     end
 
     # ── Lookup read actions ──
@@ -341,7 +550,10 @@ defmodule Emakola.Stores.Store do
 
     read :list_by_slugs do
       argument(:slugs, {:array, :string}, allow_nil?: false)
-      filter(expr(active == true and status == :active and slug in ^arg(:slugs)))
+
+      filter(
+        expr(active == true and status == :active and kind == :shop and slug in ^arg(:slugs))
+      )
     end
 
     read :list_for_admin do
@@ -360,32 +572,54 @@ defmodule Emakola.Stores.Store do
     # ── Directory read actions ──
 
     read :list_active do
-      filter(expr(active == true and status == :active))
+      filter(expr(active == true and status == :active and kind == :shop))
       prepare(build(sort: [name: :asc]))
     end
 
     read :list_featured do
       argument(:limit, :integer, default: 8)
-      filter(expr(active == true and status == :active and featured == true))
+      # directory_eligible is the worker-maintained floor. Fail-open default
+      # true, so staff picks show until the worker has evidence otherwise —
+      # and "must bar a shop from every featured slot" includes this one.
+      filter(
+        expr(
+          active == true and status == :active and featured == true and kind == :shop and
+            directory_eligible == true
+        )
+      )
+
       prepare(build(sort: [featured_rank: :asc_nils_last, view_count: :desc]))
       pagination(offset?: true, default_limit: 8, max_page_size: 50, required?: false)
     end
 
-    read :list_recent do
+    # ── Worker-assigned slot reads ──
+    # Plain indexed column filters over the cache the nightly ranking worker
+    # maintains. Empty until the worker has run — callers fall back to the
+    # staff-featured list, so a fresh deploy never shows a blank page.
+
+    read :list_spotlight do
       argument(:limit, :integer, default: 6)
-      filter(expr(active == true and status == :active))
-      prepare(build(sort: [inserted_at: :desc]))
+      filter(expr(active == true and status == :active and directory_slot == :spotlight))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
     end
 
-    read :list_editor_picks do
-      filter(
-        expr(
-          active == true and status == :active and not is_nil(featured_rank) and
-            featured_rank <= 6
-        )
-      )
+    read :list_rising do
+      argument(:limit, :integer, default: 12)
+      filter(expr(active == true and status == :active and directory_slot == :rising))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
+    end
 
-      prepare(build(sort: [featured_rank: :asc]))
+    # Written in its final form; returns [] until placement is ever sold.
+    read :list_promoted do
+      argument(:limit, :integer, default: 4)
+      filter(expr(active == true and status == :active and directory_slot == :promoted))
+      prepare(build(sort: [directory_score: :desc_nils_last, name: :asc]))
+    end
+
+    read :list_recent do
+      argument(:limit, :integer, default: 6)
+      filter(expr(active == true and status == :active and kind == :shop))
+      prepare(build(sort: [inserted_at: :desc]))
     end
 
     # Workhorse for the main grid. Filters by theme (string in
@@ -399,7 +633,7 @@ defmodule Emakola.Stores.Store do
       argument(:limit, :integer, default: 12)
       argument(:offset, :integer, default: 0)
 
-      filter(expr(active == true and status == :active))
+      filter(expr(active == true and status == :active and kind == :shop))
 
       filter(
         expr(
@@ -443,7 +677,14 @@ defmodule Emakola.Stores.Store do
     end
 
     update :update_directory_meta do
-      accept([:featured, :featured_rank, :verified])
+      accept([:featured, :featured_at, :featured_rank, :verified])
+    end
+
+    # The ranking worker's cache write. Separate from :update_directory_meta
+    # so the worker cannot touch the featured flag and the Directory Studio
+    # cannot touch the computed cache by accident.
+    update :set_directory_standing do
+      accept([:directory_eligible, :directory_score, :directory_slot])
     end
 
     # ── Platform lifecycle actions ──

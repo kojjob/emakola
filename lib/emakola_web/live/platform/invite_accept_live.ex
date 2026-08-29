@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
   """
   use EmakolaWeb, :live_view
 
+  alias EmakolaWeb.BrandComponents
   alias Emakola.Accounts.PlatformTeam
 
   @accepted_flash "This invite has already been used — sign in instead."
@@ -89,11 +90,11 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
 
   defp error_messages(%Ash.Error.Invalid{errors: errors}) do
     Enum.map_join(errors, ". ", fn
-      %{field: field, message: message} when not is_nil(field) ->
-        "#{Phoenix.Naming.humanize(field)} #{message}"
+      %{field: field} = error when not is_nil(field) ->
+        "#{Phoenix.Naming.humanize(field)} #{EmakolaWeb.AshErrors.message(error)}"
 
-      %{message: message} ->
-        message
+      %{message: message} = error when is_binary(message) ->
+        EmakolaWeb.AshErrors.message(error)
 
       _other ->
         "Something went wrong. Please try again."
@@ -106,104 +107,109 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
-      <div class="w-full max-w-md">
-        <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
-          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-          <div :if={@state == :loading} class="py-8 text-center text-sm text-[#8896ab]">
-            Checking invite…
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
+        <div class="w-full max-w-md">
+          <div class="flex items-center justify-center gap-2 mb-8">
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-8 w-auto" />
+            <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
           </div>
 
-          <.dead_end :if={@state == :invalid} title="Invite not valid">
-            This invite link is invalid or has been revoked.
-          </.dead_end>
+          <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+            <BrandComponents.brand_loader
+              :if={@state == :loading}
+              label="Checking invite"
+              size={48}
+              class="py-8"
+            />
 
-          <.dead_end :if={@state == :expired} title="Invite expired">
-            This invite has expired — ask an owner to send a new one.
-          </.dead_end>
+            <.dead_end :if={@state == :invalid} title="Invite not valid">
+              This invite link is invalid or has been revoked.
+            </.dead_end>
 
-          <div :if={@state == :form}>
-            <div class="mb-6">
-              <h1 class="text-2xl font-bold text-[#0c1526]">Join the platform team</h1>
-              <p class="text-[#5f6b7a] mt-1 text-sm">
-                Create your Makola staff account to accept the invite.
-              </p>
-            </div>
+            <.dead_end :if={@state == :expired} title="Invite expired">
+              This invite has expired — ask an owner to send a new one.
+            </.dead_end>
 
-            <div
-              :if={@error}
-              class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-              role="alert"
-            >
-              <span class="material-symbols-outlined text-lg text-red-500">error</span>
-              <span>{@error}</span>
-            </div>
+            <div :if={@state == :form}>
+              <div class="mb-6">
+                <h1 class="text-2xl font-bold text-[#0c1526]">Join the platform team</h1>
+                <p class="text-[#5f6b7a] mt-1 text-sm">
+                  Create your Makola staff account to accept the invite.
+                </p>
+              </div>
 
-            <.form for={@form} id="platform-invite-form" phx-submit="submit" class="space-y-4">
-              <div>
-                <label for="invite-email" class={label_class()}>Email</label>
-                <input
-                  type="email"
-                  id="invite-email"
-                  value={@invite_email}
-                  disabled
-                  class={input_class() <> " bg-gray-50 text-[#5f6b7a] cursor-not-allowed"}
-                />
-              </div>
-              <div>
-                <label for="invite-name" class={label_class()}>Full name</label>
-                <input
-                  type="text"
-                  id="invite-name"
-                  name="user[name]"
-                  value={@form[:name].value}
-                  placeholder="Kwame Asante"
-                  required
-                  autocomplete="name"
-                  class={input_class()}
-                />
-              </div>
-              <div>
-                <label for="invite-password" class={label_class()}>Password</label>
-                <input
-                  type="password"
-                  id="invite-password"
-                  name="user[password]"
-                  placeholder="Min. 8 characters"
-                  required
-                  autocomplete="new-password"
-                  class={input_class()}
-                />
-              </div>
-              <div>
-                <label for="invite-password-confirmation" class={label_class()}>
-                  Confirm password
-                </label>
-                <input
-                  type="password"
-                  id="invite-password-confirmation"
-                  name="user[password_confirmation]"
-                  placeholder="Repeat your password"
-                  required
-                  autocomplete="new-password"
-                  class={input_class()}
-                />
-              </div>
-              <button
-                type="submit"
-                class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
+              <div
+                :if={@error}
+                class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+                role="alert"
               >
-                Create account
-              </button>
-            </.form>
+                <span class="material-symbols-outlined text-lg text-red-500">error</span>
+                <span>{@error}</span>
+              </div>
+
+              <.form for={@form} id="platform-invite-form" phx-submit="submit" class="space-y-4">
+                <div>
+                  <label for="invite-email" class={label_class()}>Email</label>
+                  <input
+                    type="email"
+                    id="invite-email"
+                    value={@invite_email}
+                    disabled
+                    class={input_class() <> " bg-gray-50 text-[#5f6b7a] cursor-not-allowed"}
+                  />
+                </div>
+                <div>
+                  <label for="invite-name" class={label_class()}>Full name</label>
+                  <input
+                    type="text"
+                    id="invite-name"
+                    name="user[name]"
+                    value={@form[:name].value}
+                    placeholder="Kwame Asante"
+                    required
+                    autocomplete="name"
+                    class={input_class()}
+                  />
+                </div>
+                <div>
+                  <label for="invite-password" class={label_class()}>Password</label>
+                  <input
+                    type="password"
+                    id="invite-password"
+                    name="user[password]"
+                    placeholder="Min. 8 characters"
+                    required
+                    autocomplete="new-password"
+                    class={input_class()}
+                  />
+                </div>
+                <div>
+                  <label for="invite-password-confirmation" class={label_class()}>
+                    Confirm password
+                  </label>
+                  <input
+                    type="password"
+                    id="invite-password-confirmation"
+                    name="user[password_confirmation]"
+                    placeholder="Repeat your password"
+                    required
+                    autocomplete="new-password"
+                    class={input_class()}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
+                >
+                  Create account
+                </button>
+              </.form>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

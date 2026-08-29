@@ -41,6 +41,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
            show_form: false,
            editing_coupon: nil,
            form_changeset: empty_form(),
+           coupon_form: coupon_form(empty_form()),
            form_errors: %{},
            discount_type: "percentage"
          )}
@@ -54,6 +55,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
        show_form: true,
        editing_coupon: nil,
        form_changeset: empty_form(),
+       coupon_form: coupon_form(empty_form()),
        form_errors: %{},
        discount_type: "percentage"
      )}
@@ -89,6 +91,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
          show_form: true,
          editing_coupon: coupon,
          form_changeset: form,
+         coupon_form: coupon_form(form),
          form_errors: %{},
          discount_type: to_string(coupon.discount_type)
        )}
@@ -108,13 +111,14 @@ defmodule EmakolaWeb.Admin.CouponLive do
         form
       end
 
-    {:noreply, assign(socket, discount_type: type, form_changeset: form)}
+    {:noreply,
+     assign(socket, discount_type: type, form_changeset: form, coupon_form: coupon_form(form))}
   end
 
   @impl true
   def handle_event("validate_form", %{"coupon" => params}, socket) do
     form = Map.merge(socket.assigns.form_changeset, params)
-    {:noreply, assign(socket, form_changeset: form)}
+    {:noreply, assign(socket, form_changeset: form, coupon_form: coupon_form(form))}
   end
 
   @impl true
@@ -183,6 +187,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <.admin_page_header
+        icon="hero-ticket"
         title="Coupons"
         subtitle="Create and manage coupon codes for your customers"
         action_label="+ Create Coupon"
@@ -314,16 +319,22 @@ defmodule EmakolaWeb.Admin.CouponLive do
           </button>
         </div>
 
-        <form phx-submit="save_coupon" phx-change="validate_form" class="space-y-6">
+        <.form
+          for={@coupon_form}
+          id="coupon-form"
+          phx-submit="save_coupon"
+          phx-change="validate_form"
+          class="space-y-6"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <%!-- Code --%>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1.5">
                 Coupon Code <span class="text-red-500">*</span>
               </label>
-              <input
+              <.input
+                field={@coupon_form[:code]}
                 type="text"
-                name="coupon[code]"
                 value={@form_changeset["code"]}
                 placeholder="e.g. WELCOME10"
                 class={"w-full px-3.5 py-2.5 rounded-control border text-sm transition-colors uppercase placeholder:normal-case #{if @form_errors[:code], do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"}"}
@@ -338,9 +349,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
               <label class="block text-sm font-medium text-slate-700 mb-1.5">
                 Description
               </label>
-              <input
+              <.input
+                field={@coupon_form[:description]}
                 type="text"
-                name="coupon[description]"
                 value={@form_changeset["description"]}
                 placeholder="Internal note (not shown to customers)"
                 class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
@@ -411,7 +422,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 </div>
               </button>
             </div>
-            <input type="hidden" name="coupon[discount_type]" value={@discount_type} />
+            <.input field={@coupon_form[:discount_type]} type="hidden" value={@discount_type} />
           </div>
 
           <%!-- Discount Value (hidden for free_shipping) --%>
@@ -421,9 +432,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 Discount Value <span class="text-red-500">*</span>
               </label>
               <div class="relative">
-                <input
+                <.input
+                  field={@coupon_form[:discount_value]}
                   type="number"
-                  name="coupon[discount_value]"
                   value={@form_changeset["discount_value"]}
                   placeholder={if @discount_type == "percentage", do: "10", else: "5.00"}
                   step={if @discount_type == "percentage", do: "1", else: "0.01"}
@@ -451,9 +462,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 Max Discount Amount
               </label>
               <div class="relative">
-                <input
+                <.input
+                  field={@coupon_form[:max_discount_amount]}
                   type="number"
-                  name="coupon[max_discount_amount]"
                   value={@form_changeset["max_discount_amount"]}
                   placeholder="No limit"
                   step="0.01"
@@ -477,9 +488,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 Minimum Order Amount
               </label>
               <div class="relative">
-                <input
+                <.input
+                  field={@coupon_form[:minimum_order_amount]}
                   type="number"
-                  name="coupon[minimum_order_amount]"
                   value={@form_changeset["minimum_order_amount"]}
                   placeholder="No minimum"
                   step="0.01"
@@ -499,9 +510,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
               <label class="block text-sm font-medium text-slate-700 mb-1.5">
                 Max Uses
               </label>
-              <input
+              <.input
+                field={@coupon_form[:max_uses]}
                 type="number"
-                name="coupon[max_uses]"
                 value={@form_changeset["max_uses"]}
                 placeholder="Unlimited"
                 min="1"
@@ -520,9 +531,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
               <label class="block text-sm font-medium text-slate-700 mb-1.5">
                 Start Date
               </label>
-              <input
+              <.input
+                field={@coupon_form[:starts_at]}
                 type="datetime-local"
-                name="coupon[starts_at]"
                 value={@form_changeset["starts_at"]}
                 class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
@@ -535,9 +546,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
               <label class="block text-sm font-medium text-slate-700 mb-1.5">
                 Expiry Date
               </label>
-              <input
+              <.input
+                field={@coupon_form[:expires_at]}
                 type="datetime-local"
-                name="coupon[expires_at]"
                 value={@form_changeset["expires_at"]}
                 class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
@@ -552,8 +563,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
             <div class="flex items-center gap-3">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input
+                  id="coupon-active"
                   type="checkbox"
-                  name="coupon[active]"
+                  name={@coupon_form[:active].name}
                   value="true"
                   checked={@form_changeset["active"] == "true"}
                   class="sr-only peer"
@@ -567,8 +579,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
             <div class="flex items-center gap-3">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input
+                  id="coupon-is-public"
                   type="checkbox"
-                  name="coupon[is_public]"
+                  name={@coupon_form[:is_public].name}
                   value="true"
                   checked={@form_changeset["is_public"] == "true"}
                   class="sr-only peer"
@@ -599,7 +612,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
               Cancel
             </button>
           </div>
-        </form>
+        </.form>
       </.admin_card>
 
       <%!-- Coupons Table --%>
@@ -791,6 +804,8 @@ defmodule EmakolaWeb.Admin.CouponLive do
     }
   end
 
+  defp coupon_form(params), do: to_form(params, as: :coupon)
+
   defp build_attrs(params, store_id) do
     discount_type =
       Emakola.SafeAtom.to_atom_in(
@@ -822,11 +837,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
 
   defp parse_discount_value(:free_shipping, _value), do: 0
 
+  # "12.5" (percent) -> 1250 bps: the same x100 transform as GHS -> pesewas,
+  # so Money.parse_price does both. It rejects signs and trailing garbage that
+  # Float.parse silently accepted ("-500", "50abc").
   defp parse_discount_value(:percentage, value) do
-    case parse_number(value) do
-      nil -> 0
-      num -> round(num * 100)
-    end
+    parse_pesewas(value) || 0
   end
 
   defp parse_discount_value(:fixed_amount, value) do
@@ -836,20 +851,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
   defp parse_pesewas(nil), do: nil
   defp parse_pesewas(""), do: nil
 
-  defp parse_pesewas(value) do
-    case parse_number(value) do
-      nil -> nil
-      num -> round(num * 100)
-    end
-  end
-
-  defp parse_number(nil), do: nil
-  defp parse_number(""), do: nil
-
-  defp parse_number(value) when is_binary(value) do
-    case Float.parse(String.trim(value)) do
-      {num, _} -> num
-      :error -> nil
+  defp parse_pesewas(value) when is_binary(value) do
+    case Emakola.Money.parse_price(value) do
+      {:ok, pesewas} -> pesewas
+      :zero -> 0
+      _skip_or_error -> nil
     end
   end
 

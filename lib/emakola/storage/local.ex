@@ -26,6 +26,23 @@ defmodule Emakola.Storage.Local do
   def replicate(_source_url, _destination_path, _opts), do: {:error, :untrusted_source_url}
 
   @impl true
+  def object_key("/uploads/" <> path) do
+    case validate_path(path) do
+      :ok -> {:ok, path}
+      error -> error
+    end
+  end
+
+  def object_key(_url), do: {:error, :untrusted_source_url}
+
+  @impl true
+  def get(path) do
+    with :ok <- validate_path(path) do
+      File.read(Path.join(@upload_dir, path))
+    end
+  end
+
+  @impl true
   def delete(path) do
     dest = Path.join(@upload_dir, path)
 

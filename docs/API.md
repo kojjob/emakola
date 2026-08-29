@@ -334,6 +334,135 @@ shipped → cancelled
 
 ---
 
+### Pay links
+
+Shareable checkout links a merchant drops into a DM (`/pay/:code` on the storefront).
+Requires the `Authorization` + `X-Store-ID` headers described above; all endpoints are
+tenant-scoped to `X-Store-ID`.
+
+#### List pay links
+
+```
+GET /api/v1/pay_links
+```
+
+**200 OK:**
+```json
+{
+  "data": [
+    {
+      "type": "pay_link",
+      "id": "uuid",
+      "attributes": {
+        "store_id": "uuid",
+        "code": "ab3k9xyz",
+        "type": "custom",
+        "variant_id": null,
+        "quantity": 1,
+        "title": "Deal",
+        "amount": 25000,
+        "collect_delivery": true,
+        "status": "active",
+        "expires_at": "2026-08-06T12:00:00Z",
+        "note": null,
+        "opened_count": 0,
+        "created_by_user_id": "uuid",
+        "claimed_order_id": null
+      }
+    }
+  ]
+}
+```
+
+#### Get pay link
+
+```
+GET /api/v1/pay_links/:id
+```
+
+**200 OK** — same `data` object shape as above. **404** if the pay link doesn't belong to
+`X-Store-ID` (no existence leak across tenants).
+
+#### Create pay link (POST create, custom type)
+
+```
+POST /api/v1/pay_links
+Content-Type: application/vnd.api+json
+
+{
+  "data": {
+    "type": "pay_link",
+    "attributes": {
+      "store_id": "uuid",
+      "type": "custom",
+      "title": "Deal",
+      "amount": 25000
+    }
+  }
+}
+```
+
+**201 Created:**
+```json
+{
+  "data": {
+    "type": "pay_link",
+    "id": "uuid",
+    "attributes": {
+      "store_id": "uuid",
+      "code": "ab3k9xyz",
+      "type": "custom",
+      "variant_id": null,
+      "quantity": 1,
+      "title": "Deal",
+      "amount": 25000,
+      "collect_delivery": true,
+      "status": "active",
+      "expires_at": "2026-08-06T12:00:00Z",
+      "note": null,
+      "opened_count": 0,
+      "created_by_user_id": null,
+      "claimed_order_id": null
+    }
+  }
+}
+```
+
+Two link types:
+
+| Type | Required attributes | Behavior |
+|------|---------------------|----------|
+| `custom` | `title`, `amount` (minor units, min 100) | Single-use — consumed to `:paid` on payment; `expires_at` defaults to 7 days from creation when omitted |
+| `catalog` | `variant_id` (must belong to `X-Store-ID`'s store — a cross-tenant variant is rejected as `422`) | Reusable, no default expiry |
+
+`code` is a random 8-character lowercase base32 string (`^[a-z2-7]{8}$`), globally unique
+across every store — it's the buyer-facing `/pay/:code` URL, not scoped by tenant.
+
+`store_id` in the request body is accepted but cannot escape `X-Store-ID`: Ash's
+attribute-multitenancy forces it from the tenant header immediately before insert, so a
+spoofed `store_id` never wins.
+
+#### Cancel pay link
+
+```
+PATCH /api/v1/pay_links/:id/cancel
+Content-Type: application/vnd.api+json
+
+{
+  "data": { "type": "pay_link", "id": "<pay-link-uuid>", "attributes": {} }
+}
+```
+
+**200 OK** — returns the pay link with `status: "cancelled"`. Only an `:active` link can be
+cancelled; cancelling a foreign link (or one already paid) fails with `403`/`404`/`422` and
+does not mutate it.
+
+> `mark_paid` is **not exposed** via the API. It's an internal action the payment webhook
+> handlers (Paystack/Hubtel) call directly (`authorize?: false`) once the gateway confirms
+> payment — there is no client-facing route to mark a link paid.
+
+---
+
 ### Device tokens (push notifications)
 
 #### Register (upsert)

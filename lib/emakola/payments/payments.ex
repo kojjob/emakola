@@ -34,6 +34,17 @@ defmodule Emakola.Payments do
         action: :recoverable_by_recipient,
         args: [:recipient_store_id]
       )
+
+      define(:list_payable_internal_splits,
+        action: :payable_internal,
+        args: [:recipient_store_id]
+      )
+
+      define(:list_earnings_splits, action: :earnings_by_recipient, args: [:recipient_store_id])
+      define(:mark_payment_split_paid_out, action: :mark_paid_out)
+      define(:release_payment_split_from_payout, action: :release_from_payout)
+      define(:list_payment_splits_by_payout, action: :by_payout, args: [:payout_id])
+      define(:list_remediation_splits, action: :needs_remediation)
     end
 
     resource Emakola.Payments.Payout do
@@ -45,11 +56,22 @@ defmodule Emakola.Payments do
       define(:mark_payout_reversed, action: :mark_reversed)
       define(:list_payouts_by_store, action: :by_store, args: [:store_id])
       define(:list_recent_payouts, action: :list_recent)
+      define(:list_store_payouts, action: :recent_by_store, args: [:store_id])
+      define(:update_payout_metadata, action: :stamp_approval_ref, args: [:metadata])
 
       define(:get_payout_by_transfer_reference,
         action: :by_transfer_reference,
         args: [:transfer_reference]
       )
+    end
+
+    resource Emakola.Payments.ProtectionHold do
+      define(:create_protection_hold, action: :create)
+      define(:release_protection_hold, action: :release)
+      define(:freeze_protection_hold, action: :freeze)
+      define(:update_complaint_protection_hold, action: :update_complaint)
+      define(:mark_refunded_protection_hold, action: :mark_refunded)
+      define(:get_protection_hold_by_payment, action: :get_by_payment, args: [:payment_id])
     end
   end
 end

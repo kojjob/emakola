@@ -78,7 +78,15 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
       |> Enum.filter(&is_map/1)
 
     {:ok,
-     assign(socket,
+     socket
+     |> allow_upload(:section_image,
+       accept: ~w(.jpg .jpeg .png .webp .gif),
+       max_entries: 1,
+       max_file_size: 10_000_000,
+       auto_upload: true,
+       progress: &handle_section_image_progress/3
+     )
+     |> assign(
        page_title: "Sections",
        active_nav: :design,
        store: store,
@@ -86,10 +94,51 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
        theme: resolved,
        draft: draft,
        dirty: false,
+       image_target: nil,
        products: products,
        categories: categories,
        delivery_zones: delivery_zones
      )}
+  end
+
+  # Merchants pick photos, they don't paste URLs. One upload slot serves
+  # every image field; pick_photo aims it at a {section, field} pair and
+  # the finished upload writes the stored URL into that field's setting.
+  defp handle_section_image_progress(:section_image, entry, socket) do
+    with true <- entry.done?,
+         {section_id, field_key} <- socket.assigns.image_target do
+      [url] =
+        consume_uploaded_entries(socket, :section_image, fn %{path: tmp_path}, entry ->
+          filename = "#{System.system_time(:second)}_#{sanitize_filename(entry.client_name)}"
+          path = "sections/#{socket.assigns.store.id}/#{filename}"
+
+          case Emakola.Storage.upload(File.read!(tmp_path), path, content_type: entry.client_type) do
+            {:ok, url} -> {:ok, url}
+            {:error, _reason} -> {:ok, nil}
+          end
+        end)
+
+      if url do
+        draft =
+          update_entry(socket.assigns.draft, section_id, fn section ->
+            settings = Map.put(section["settings"] || %{}, field_key, url)
+            Map.put(section, "settings", settings)
+          end)
+
+        {:noreply, assign(socket, draft: draft, dirty: true, image_target: nil)}
+      else
+        {:noreply,
+         socket
+         |> assign(image_target: nil)
+         |> put_flash(:error, "That photo did not upload. Try again.")}
+      end
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  defp sanitize_filename(name) do
+    String.replace(name || "photo", ~r/[^A-Za-z0-9._-]/, "_")
   end
 
   @impl true
@@ -196,6 +245,16 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # is not a security boundary — it's crash prevention for the in-process
   # preview: BlockSection-bridged content (e.g. ProductGrid's `count`) feeds
   # straight into functions like Enum.take/2 that require an integer.
+  @impl true
+  def handle_event("pick_photo", %{"id" => id, "field" => field}, socket) do
+    socket =
+      Enum.reduce(socket.assigns.uploads.section_image.entries, socket, fn entry, acc ->
+        cancel_upload(acc, :section_image, entry.ref)
+      end)
+
+    {:noreply, assign(socket, image_target: {id, field})}
+  end
+
   @impl true
   def handle_event("update_settings", %{"id" => id, "settings" => settings}, socket)
       when is_map(settings) do
@@ -464,14 +523,20 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       case Sections.resolve(entry["type"]) do
         {:ok, {module, meta}} ->
+          schema = schema_for(module, meta)
+          settings = entry["settings"] || %{}
+          style = entry["style"] || %{}
+
           Map.merge(base, %{
             label: module.label(),
             missing?: false,
             enabled?: entry["enabled"] == true,
             custom?: custom_entry?(entry),
-            schema: schema_for(module, meta),
-            settings: entry["settings"] || %{},
-            style: entry["style"] || %{}
+            schema: schema,
+            settings: settings,
+            settings_form: settings_form(entry["id"], schema, settings),
+            style: style,
+            style_form: style_form(entry["id"], style)
           })
 
         :error ->
@@ -482,7 +547,9 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
             custom?: false,
             schema: [],
             settings: %{},
-            style: %{}
+            settings_form: settings_form(entry["id"], [], %{}),
+            style: %{},
+            style_form: style_form(entry["id"], %{})
           })
       end
     end
@@ -527,6 +594,27 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   end
 
   defp humanize(key), do: key |> String.replace("_", " ") |> String.capitalize()
+
+  defp settings_form(id, schema, settings) do
+    params =
+      Map.new(schema, fn field ->
+        {field.key, Map.get(settings, field.key, field.default)}
+      end)
+
+    to_form(params, as: :settings, id: "section_settings_#{id}")
+  end
+
+  defp style_form(id, style) do
+    to_form(
+      %{
+        "bg" => Map.get(style, "bg") || "#ffffff",
+        "text" => Map.get(style, "text") || "#0f172a",
+        "padding" => Map.get(style, "padding") || "none"
+      },
+      as: :style,
+      id: "section_style_#{id}"
+    )
+  end
 
   # ── Live preview ────────────────────────────────────────────────
   # The preview is a PICTURE of the storefront, not a working one. It
@@ -617,15 +705,19 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # ── Settings + style forms ──────────────────────────────────────
   # Both forms push the ENTIRE form's current field values on every change
   # (standard phx-change behavior), so the "id" comes from phx-value-id on
-  # the <form> itself, matching the update_settings/update_style event
+  # the form itself, matching the update_settings/update_style event
   # contract exactly: %{"id" => id, "settings"/"style" => params}.
 
   attr :row, :map, required: true
   attr :categories, :list, required: true
+  attr :uploads, :any, default: nil
+  attr :image_target, :any, default: nil
 
   defp section_settings_form(assigns) do
     ~H"""
-    <form
+    <.form
+      for={@row.settings_form}
+      id={"section-settings-form-#{@row.id}"}
       phx-change="update_settings"
       phx-value-id={@row.id}
       class="grid grid-cols-1 gap-4 sm:grid-cols-2"
@@ -637,79 +729,136 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         :for={field <- @row.schema}
         field={field}
         value={Map.get(@row.settings, field.key)}
+        form={@row.settings_form}
         categories={@categories}
+        section_id={@row.id}
+        uploads={@uploads}
+        image_target={@image_target}
       />
-    </form>
+    </.form>
     """
   end
 
   attr :field, :map, required: true
   attr :value, :any, default: nil
+  attr :form, Phoenix.HTML.Form, required: true
   attr :categories, :list, default: []
+  attr :section_id, :string, default: nil
+  attr :uploads, :any, default: nil
+  attr :image_target, :any, default: nil
 
   defp setting_field(assigns) do
     assigns = assign(assigns, :current, assigns.value || assigns.field.default)
 
     ~H"""
-    <label class={["block", @field.type == :text && "sm:col-span-2"]}>
+    <div class={["block", @field.type == :text && "sm:col-span-2"]}>
       <span class="mb-1 block text-xs font-medium text-text-muted">{@field.label}</span>
       <%= case @field.type do %>
         <% :text -> %>
-          <textarea
-            name={"settings[#{@field.key}]"}
+          <.input
+            type="textarea"
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
+            value={@current}
             rows="3"
             phx-debounce="300"
             class={setting_input_classes()}
-          >{@current}</textarea>
+          />
         <% :boolean -> %>
           <span class="flex items-center pt-1.5">
-            <input type="hidden" name={"settings[#{@field.key}]"} value="false" />
-            <input
+            <.input
               type="checkbox"
-              name={"settings[#{@field.key}]"}
-              value="true"
+              id={"#{@form.id}_#{@field.key}"}
+              name={"#{@form.name}[#{@field.key}]"}
               checked={@current == true}
               class="size-4 rounded border-border text-primary focus:ring-2 focus:ring-primary/30"
             />
           </span>
         <% :integer -> %>
-          <input
+          <.input
             type="number"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             phx-debounce="300"
             class={setting_input_classes()}
           />
-        <% type when type in [:image_url, :link] -> %>
-          <input
+        <% :image_url -> %>
+          <div class="space-y-2">
+            <img
+              :if={is_binary(@current) and @current != ""}
+              src={@current}
+              alt=""
+              class="h-16 w-24 rounded-lg border border-slate-200 object-cover"
+            />
+            <div
+              :if={@uploads && @image_target == {@section_id, @field.key}}
+              class="relative flex h-20 items-center justify-center rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-700"
+            >
+              📷 Choose the photo
+              <.live_file_input
+                upload={@uploads.section_image}
+                class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </div>
+            <div
+              :for={entry <- (@uploads && @uploads.section_image.entries) || []}
+              :if={@image_target == {@section_id, @field.key}}
+              class="text-xs text-slate-500"
+            >
+              Uploading… {entry.progress}%
+            </div>
+            <button
+              :if={@uploads && @image_target != {@section_id, @field.key}}
+              type="button"
+              phx-click="pick_photo"
+              phx-value-id={@section_id}
+              phx-value-field={@field.key}
+              class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              📷 Use a photo
+            </button>
+            <.input
+              type="url"
+              id={"#{@form.id}_#{@field.key}"}
+              name={"#{@form.name}[#{@field.key}]"}
+              value={@current}
+              placeholder="https://"
+              phx-debounce="300"
+              class={setting_input_classes()}
+            />
+          </div>
+        <% :link -> %>
+          <.input
             type="url"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             placeholder="https://"
             phx-debounce="300"
             class={setting_input_classes()}
           />
         <% :category -> %>
-          <select name={"settings[#{@field.key}]"} class={setting_input_classes()}>
-            <option value="">Select a category</option>
-            <option
-              :for={category <- @categories}
-              value={category.id}
-              selected={@current == category.id}
-            >
-              {category.name}
-            </option>
-          </select>
+          <.input
+            type="select"
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
+            value={@current}
+            prompt="Select a category"
+            options={Enum.map(@categories, &{&1.name, &1.id})}
+            class={setting_input_classes()}
+          />
         <% _string_or_unknown -> %>
-          <input
+          <.input
             type="text"
-            name={"settings[#{@field.key}]"}
+            id={"#{@form.id}_#{@field.key}"}
+            name={"#{@form.name}[#{@field.key}]"}
             value={@current}
             phx-debounce="300"
             class={setting_input_classes()}
           />
       <% end %>
-    </label>
+    </div>
     """
   end
 
@@ -717,42 +866,39 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
   defp section_style_form(assigns) do
     ~H"""
-    <form
+    <.form
+      for={@row.style_form}
+      id={"section-style-form-#{@row.id}"}
       phx-change="update_style"
       phx-value-id={@row.id}
       class="grid grid-cols-1 gap-4 sm:grid-cols-3"
     >
-      <label class="block">
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Background color</span>
-        <input
+        <.input
+          field={@row.style_form[:bg]}
           type="color"
-          name="style[bg]"
-          value={@row.style["bg"] || "#ffffff"}
           class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
         />
-      </label>
-      <label class="block">
+      </div>
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Text color</span>
-        <input
+        <.input
+          field={@row.style_form[:text]}
           type="color"
-          name="style[text]"
-          value={@row.style["text"] || "#0f172a"}
           class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
         />
-      </label>
-      <label class="block">
+      </div>
+      <div class="block">
         <span class="mb-1 block text-xs font-medium text-text-muted">Padding</span>
-        <select name="style[padding]" class={setting_input_classes()}>
-          <option
-            :for={{padding, text} <- padding_options()}
-            value={padding}
-            selected={@row.style["padding"] == padding}
-          >
-            {text}
-          </option>
-        </select>
-      </label>
-    </form>
+        <.input
+          field={@row.style_form[:padding]}
+          type="select"
+          options={Enum.map(padding_options(), fn {value, label} -> {label, value} end)}
+          class={setting_input_classes()}
+        />
+      </div>
+    </.form>
     """
   end
 
@@ -778,6 +924,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
       class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16"
     >
       <.admin_page_header
+        icon="hero-squares-2x2"
         title="Sections"
         subtitle="Reorder, show, or hide sections on your store's home page"
       >
@@ -932,7 +1079,12 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
                 <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Settings
                 </p>
-                <.section_settings_form row={row} categories={@categories} />
+                <.section_settings_form
+                  row={row}
+                  categories={@categories}
+                  uploads={@uploads}
+                  image_target={@image_target}
+                />
 
                 <p class="mb-3 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Style

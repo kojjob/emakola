@@ -35,13 +35,16 @@ defmodule Emakola.Inventory.StockMovement do
       constraints(
         one_of: [
           :sale,
+          :refund,
           :restock,
           :adjustment,
           :reservation_hold,
           :reservation_release,
+          :reservation_refund,
           :transfer_in,
           :transfer_out,
-          :import
+          :import,
+          :network_sale
         ]
       )
     end

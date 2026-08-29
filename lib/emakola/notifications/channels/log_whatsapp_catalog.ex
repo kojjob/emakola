@@ -1,8 +1,8 @@
 defmodule Emakola.Notifications.Channels.LogWhatsappCatalog do
   @moduledoc """
-  Stub provider for the WhatsApp Business Catalog mirror. Logs the
-  payload and returns success. Used in dev/test where we don't want to
-  hit the Meta Commerce API.
+  Stub provider for the WhatsApp Business Catalog mirror. Logs only
+  non-content identifiers and returns success. Used in dev/test where we
+  don't want to hit the Meta Commerce API.
 
   Configure via:
 
@@ -19,7 +19,7 @@ defmodule Emakola.Notifications.Channels.LogWhatsappCatalog do
     Logger.info(
       "[whatsapp_catalog:LOG] upsert_product catalog=#{catalog_id} retailer_id=#{payload.retailer_id}",
       catalog_id: catalog_id,
-      payload: inspect(payload)
+      retailer_id: payload.retailer_id
     )
 
     {:ok, %{logged: true, retailer_id: payload.retailer_id}}

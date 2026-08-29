@@ -40,6 +40,12 @@ defmodule Emakola.Themes.ThemeBehaviour do
   @callback storefront_nav(map()) :: Phoenix.LiveView.Rendered.t()
   @callback storefront_footer(map()) :: Phoenix.LiveView.Rendered.t()
 
+  # Optional — the theme's mobile bottom tab bar on fallback pages. Themes
+  # that implement it keep their own bar on cart/account/category instead of
+  # the generic Home/Search/Saved/Cart one. Assigns contract: store
+  # (required), cart_count, active_tab (:cart | :search | :account).
+  @callback storefront_bottom_nav(map()) :: Phoenix.LiveView.Rendered.t()
+
   @optional_callbacks render_about: 1,
                       render_cart: 1,
                       render_checkout: 1,
@@ -57,5 +63,6 @@ defmodule Emakola.Themes.ThemeBehaviour do
                       render_faq: 1,
                       render_policies: 1,
                       storefront_nav: 1,
-                      storefront_footer: 1
+                      storefront_footer: 1,
+                      storefront_bottom_nav: 1
 end

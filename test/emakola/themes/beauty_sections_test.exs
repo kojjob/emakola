@@ -74,7 +74,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
   # no block, so the tests that expect one have to write something.
   @merchant_why_us %{
     "why_us" => %{
-      "title" => "Why your skin deserves the best",
+      "title" => "Why buy from us",
       "items" => [
         %{
           icon: "spa",
@@ -115,7 +115,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "GH₵ 123.45"
       assert html =~ "See all products"
       # Why us — the merchant's cards, never the theme's
-      assert html =~ "Why your skin deserves the best"
+      assert html =~ "Why buy from us"
       assert html =~ "Small-batch shea"
       refute html =~ "Proven Effectiveness"
       refute html =~ "Eco-friendly Packaging"
@@ -128,10 +128,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Frequently Asked Questions"
       assert html =~ "Do you ship across Ghana?"
       # Closing CTA
-      assert html =~ "Ready for flawless skin and luscious hair?"
+      assert html =~ "Ready when you are."
       assert html =~ "Shop Now"
       # Newsletter
-      assert html =~ "Join the beauty list"
+      assert html =~ "Join the list"
       assert html =~ "Subscribe"
       # Footer (chrome)
       # "Crafted with care" sat in the footer of every Beauty store — who made
@@ -152,7 +152,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       assert String.match?(
                html,
-               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list/s
+               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why buy from us.*Frequently Asked Questions.*Ready when you are.*Join the list/s
              )
     end
 
@@ -177,7 +177,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
       refute html =~ "Frequently Asked Questions"
       # The rest of the page is untouched
       assert html =~ "Elevate Your Essence"
-      assert html =~ "Join the beauty list"
+      assert html =~ "Join the list"
     end
 
     # Switching the strip on used to be enough to put five italic "As featured
@@ -220,10 +220,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       refute html =~ "Curated for your routine"
       assert html =~ "Elevate Your Essence"
-      assert html =~ "Join the beauty list"
+      assert html =~ "Join the list"
       # The why-us block is gone with the products: its three cards were claims
       # about formulation, packaging and sourcing that no merchant had written.
-      refute html =~ "Why your skin deserves the best"
+      refute html =~ "Why buy from us"
     end
 
     test "merchant hero and closing copy override the theme defaults" do
@@ -241,7 +241,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ ~r/<h1[^>]*>\s*Glow, softly\s*<\/h1>/
       assert html =~ "Ready when you are"
       refute html =~ "Elevate Your Essence"
-      refute html =~ "Ready for flawless skin and luscious hair?"
+      refute html =~ "Ready when you are."
     end
   end
 
@@ -305,7 +305,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ ~r/<h1[^>]*>\s*Softness, bottled\s*<\/h1>/
       assert html =~ "The ritual letter"
       refute html =~ "Elevate Your Essence"
-      refute html =~ "Join the beauty list"
+      refute html =~ "Join the list"
     end
 
     test "a disabled entry drops its block, and reordering moves one" do
@@ -329,7 +329,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       refute html =~ "What buyers say"
       # why_us now stands before the hero
-      assert String.match?(html, ~r/Why your skin deserves the best.*Elevate Your Essence/s)
+      assert String.match?(html, ~r/Why buy from us.*Elevate Your Essence/s)
     end
   end
 end

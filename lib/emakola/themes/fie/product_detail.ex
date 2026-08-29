@@ -120,6 +120,8 @@ defmodule Emakola.Themes.Fie.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-[#EBDAD3] pb-5">
               <p class="text-2xl font-medium tabular-nums tracking-tight text-stone-900 [font-family:'Space_Grotesk','Inter',sans-serif]">
                 <%= if @selected_variant do %>
@@ -399,6 +401,7 @@ defmodule Emakola.Themes.Fie.ProductDetail do
           reviews={assigns[:reviews] || []}
           can_review={assigns[:can_review] || false}
           already_reviewed={assigns[:already_reviewed] || false}
+          review_form={assigns[:review_form]}
           review_form_rating={assigns[:review_form_rating] || 0}
           review_form_title={assigns[:review_form_title] || ""}
           review_form_body={assigns[:review_form_body] || ""}

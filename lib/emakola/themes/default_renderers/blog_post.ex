@@ -18,6 +18,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -265,6 +266,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
 
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
@@ -272,6 +274,6 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
   end
 
   defp current_url(assigns) do
-    "#{EmakolaWeb.Endpoint.url()}/s/#{assigns.store.slug}/blog/#{assigns.post.slug}"
+    EmakolaWeb.SEO.Canonical.blog_url(assigns.store, assigns.post)
   end
 end

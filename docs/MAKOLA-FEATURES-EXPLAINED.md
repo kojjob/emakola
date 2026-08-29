@@ -218,8 +218,9 @@ professional.
 - **A mobile app foundation.** There's a secure connection (API) ready for native phone apps, plus
   push notifications, so sellers can run their shop from a dedicated app on the go.
 - **Built to be found on Google (SEO).** A whole suite of behind-the-scenes optimisation —
-  sitemaps, structured data, even an Instagram product feed and an "llms.txt" so AI assistants can
-  recommend shops — all to bring in free traffic.
+  sitemaps, structured data, and a merchant-compatible product feed — helps search engines
+  discover and understand shops. There is also an experimental `llms.txt` summary for AI tools;
+  it is not a Google ranking signal and does not guarantee recommendations.
 - **Background workers.** Slow jobs (sending messages, processing images, handling payment
   confirmations) happen quietly in the background, so the seller's screen never freezes waiting.
 - **Security throughout.** Two-step login for staff, strict permission levels, rate-limiting to

@@ -252,18 +252,97 @@ defmodule EmakolaWeb.AdminComponentsTest do
       assert html =~ "tabular-nums"
     end
 
-    test "renders icon slot inside a coloured chip" do
+    test "a tile with no delta drops its value to the floor instead of leaving a void" do
+      # min-h-48 keeps tiles equal height. On pages whose tiles carry no delta
+      # (platform Refunds, Protection) that floor became ~100px of dead space
+      # under the number — seen on production 2026-08-23. With no delta the
+      # value takes the slack itself: label and icon top, number bottom.
+      assigns = %{}
+
+      without_delta =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Sent back" value="GHS 0.00" />
+        """)
+
+      with_delta =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Sent back" value="GHS 0.00">
+          <:delta>up 4%</:delta>
+        </AdminComponents.stat_card>
+        """)
+
+      assert without_delta =~ "mt-auto",
+             "a tile with no delta must push its value down, or the min-height floor is a void"
+
+      # With a delta the delta owns the floor; the value must stay put under
+      # the label, otherwise the two would fight for the same slack.
+      assert with_delta =~ "up 4%"
+
+      refute Regex.match?(~r/tabular-nums[^"]*mt-auto/, with_delta),
+             "the value must not claim mt-auto when a delta is already floored there"
+    end
+
+    test "one tone drives the card wash, the icon tile and the icon colour" do
       assigns = %{}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.stat_card label="Low Stock" value="3" icon_bg="bg-amber-50">
+        <AdminComponents.stat_card label="Low Stock" value="3" tone={:warning}>
           <:icon><span data-test="icon">!</span></:icon>
         </AdminComponents.stat_card>
         """)
 
       assert html =~ ~s|data-test="icon"|
-      assert html =~ "bg-amber-50"
+      # Call sites pass a tone, never three separate classes — that is what
+      # keeps tiles identical from page to page.
+      assert html =~ "from-warning-soft"
+      assert html =~ "bg-warning"
+      assert html =~ "text-white"
+    end
+
+    test "a tile fills its grid row so a row of tiles is one height" do
+      # In the reference dashboard every tile in the row is the same box, whether
+      # or not it carries a footnote. A grid stretches its items, but only if the
+      # card itself is told to fill — otherwise the one with a delta is taller.
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Money in" value="GHS 2,450.00" />
+        """)
+
+      assert html =~ "h-full"
+      assert html =~ "flex-col"
+    end
+
+    test "the footnote sits at the bottom, level across tiles" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Went through" value="57%">
+          <:delta><span data-test="delta">4 paid</span></:delta>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ ~s|data-test="delta"|
+      # mt-auto pushes the footnote to the card's floor, so the footnotes line up
+      # even when one tile's value wraps to two lines and its neighbour's doesn't.
+      assert html =~ "mt-auto"
+    end
+
+    test "tiles default to the neutral tone rather than an untinted card" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Total" value="7">
+          <:icon><span data-test="icon">#</span></:icon>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ "from-slate-100"
+      assert html =~ "bg-slate-500"
     end
 
     test "omits the icon chip when no icon slot is given" do
@@ -294,13 +373,19 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
   describe "table_toolbar/1" do
     test "renders debounced search form with default event" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => "ada"})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="ada" placeholder="Search products..." />
+        <AdminComponents.table_toolbar
+          id="test-product-search-form"
+          form={@form}
+          search_query="ada"
+          placeholder="Search products..."
+        />
         """)
 
+      assert html =~ ~s|id="test-product-search-form"|
       assert html =~ ~s|phx-change="search"|
       assert html =~ ~s|phx-debounce="300"|
       assert html =~ ~s|name="search"|
@@ -309,22 +394,27 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
 
     test "accepts a custom search event" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => ""})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="" search_event="search_inventory" />
+        <AdminComponents.table_toolbar
+          id="test-inventory-search-form"
+          form={@form}
+          search_query=""
+          search_event="search_inventory"
+        />
         """)
 
       assert html =~ ~s|phx-change="search_inventory"|
     end
 
     test "renders filters and actions slots" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => ""})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="">
+        <AdminComponents.table_toolbar id="test-toolbar-form" form={@form} search_query="">
           <:filters><span data-test="filters">tabs</span></:filters>
           <:actions><span data-test="actions">export</span></:actions>
         </AdminComponents.table_toolbar>
@@ -371,6 +461,276 @@ defmodule EmakolaWeb.AdminComponentsTest do
         render_component(&AdminComponents.empty_state/1, %{title: "No products"})
 
       refute html =~ ~s|href=|
+    end
+  end
+
+  describe "filter_tabs/1" do
+    defp tabs_fixture do
+      [
+        %{key: :all, label: "All", count: 8},
+        %{key: :active, label: "Active", count: 5},
+        %{key: :draft, label: "Draft", count: nil}
+      ]
+    end
+
+    test "renders a button per tab with label, count, and filter event" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :all
+        })
+
+      assert html =~ "All"
+      assert html =~ "Active"
+      assert html =~ ~s|phx-click="filter_status"|
+      assert html =~ ~s|phx-value-status="active"|
+      assert html =~ ~r|>\s*8\s*<|
+      assert html =~ ~r|>\s*5\s*<|
+    end
+
+    test "marks only the current tab as active" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :active
+        })
+
+      [_, all_button, active_button | _] = String.split(html, "<button")
+      refute all_button =~ "bg-white"
+      assert active_button =~ "bg-white"
+    end
+
+    test "omits the count chip when count is nil" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: [%{key: :draft, label: "Draft", count: nil}],
+          current: :all
+        })
+
+      assert html =~ "Draft"
+      refute html =~ "tab-count"
+    end
+
+    test "omits the count chip at zero" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: [%{key: :archived, label: "Archived", count: 0}],
+          current: :all
+        })
+
+      assert html =~ "Archived"
+      refute html =~ "tab-count"
+    end
+
+    test "accepts a custom event name" do
+      html =
+        render_component(&AdminComponents.filter_tabs/1, %{
+          tabs: tabs_fixture(),
+          current: :all,
+          event: "filter_stock"
+        })
+
+      assert html =~ ~s|phx-click="filter_stock"|
+    end
+  end
+
+  describe "status_badge/1 icons" do
+    test "order statuses carry a status icon in the pill" do
+      pending = render_component(&AdminComponents.status_badge/1, %{status: :pending})
+      shipped = render_component(&AdminComponents.status_badge/1, %{status: :shipped})
+      cancelled = render_component(&AdminComponents.status_badge/1, %{status: :cancelled})
+
+      assert pending =~ "hero-clock"
+      assert shipped =~ "hero-truck"
+      assert cancelled =~ "hero-x-mark"
+    end
+
+    test "product statuses carry a status icon in the pill" do
+      active =
+        render_component(&AdminComponents.status_badge/1, %{status: :active, variant: :product})
+
+      draft =
+        render_component(&AdminComponents.status_badge/1, %{status: :draft, variant: :product})
+
+      assert active =~ "hero-check"
+      assert draft =~ "hero-pencil"
+    end
+
+    test "unknown statuses render without an icon" do
+      html = render_component(&AdminComponents.status_badge/1, %{status: :mystery})
+
+      refute html =~ "hero-"
+    end
+
+    test "supports a return variant with icons" do
+      requested =
+        render_component(&AdminComponents.status_badge/1, %{status: :requested, variant: :return})
+
+      approved =
+        render_component(&AdminComponents.status_badge/1, %{status: :approved, variant: :return})
+
+      denied =
+        render_component(&AdminComponents.status_badge/1, %{status: :denied, variant: :return})
+
+      refunded =
+        render_component(&AdminComponents.status_badge/1, %{status: :refunded, variant: :return})
+
+      assert requested =~ "warning"
+      assert requested =~ "hero-clock"
+      assert approved =~ "success-soft"
+      assert approved =~ "hero-check"
+      assert denied =~ "danger"
+      assert denied =~ "hero-x-mark"
+      assert refunded =~ "info"
+      assert refunded =~ "hero-arrow-uturn-left"
+    end
+  end
+
+  describe "empty_state/1 first-day visual language" do
+    # The FirstDay artboard's rule: a picture, a short line, and one big
+    # button. A grey icon on a grey square is not a picture, and a bare word
+    # is not a big button — both matter more than the copy for a merchant
+    # who reads slowly.
+    test "the icon sits in a tinted circle, coloured by tone" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "No customers yet",
+          icon: "hero-users",
+          tone: :info
+        })
+
+      assert html =~ "rounded-full"
+      assert html =~ "bg-info-soft"
+      assert html =~ "text-info"
+    end
+
+    test "the primary button carries its own icon" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Add your first product",
+          action_label: "Snap a photo",
+          action_path: "/admin/products/snap",
+          action_icon: "hero-camera"
+        })
+
+      assert html =~ "hero-camera"
+      assert html =~ "Snap a photo"
+    end
+
+    test "an informational action renders as an outline button, not a bare link" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "No returns — great job",
+          secondary_label: "Set your return rules",
+          secondary_path: "/admin/content/pages"
+        })
+
+      assert html =~ "Set your return rules"
+      assert html =~ "border"
+    end
+  end
+
+  describe "empty_state/1 first-day guidance" do
+    test "offers a second way in when one is given" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Add your first product",
+          action_label: "Snap a photo",
+          action_path: "/admin/products/snap",
+          secondary_label: "Add photos",
+          secondary_path: "/admin/products/new"
+        })
+
+      assert html =~ "Snap a photo"
+      assert html =~ "Add photos"
+      assert html =~ "/admin/products/new"
+    end
+
+    test "points a stuck merchant at the visual tour" do
+      html =
+        render_component(&AdminComponents.empty_state/1, %{
+          title: "Your orders will show here",
+          show_tour: true
+        })
+
+      assert html =~ "See how selling works"
+      assert html =~ "/how-it-works/tour"
+    end
+
+    test "stays quiet when no extras are asked for" do
+      html = render_component(&AdminComponents.empty_state/1, %{title: "No orders found"})
+
+      refute html =~ "See how selling works"
+    end
+  end
+
+  describe "payment_rail_chip/1" do
+    test "MTN MoMo wears the brand yellow" do
+      html = render_component(&AdminComponents.payment_rail_chip/1, %{rail: :mtn_momo})
+
+      assert html =~ "MTN MoMo"
+      assert html =~ "FFCC08"
+    end
+
+    test "Telecel Cash wears the brand red" do
+      html = render_component(&AdminComponents.payment_rail_chip/1, %{rail: :telecel_cash})
+
+      assert html =~ "Telecel Cash"
+      assert html =~ "E60000"
+    end
+
+    test "AT Money, card, Hubtel and Paystack each get their own chip" do
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :airteltigo}) =~
+               "AT Money"
+
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :card}) =~ "Card"
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :hubtel}) =~ "Hubtel"
+
+      assert render_component(&AdminComponents.payment_rail_chip/1, %{rail: :paystack}) =~
+               "Paystack"
+    end
+  end
+
+  describe "stock_meter/1" do
+    test "renders Out in danger colors at zero stock" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 0})
+
+      assert html =~ "Out"
+      assert html =~ "bg-red-500"
+    end
+
+    test "renders amber when stock is low" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 4})
+
+      assert html =~ ~r|>\s*4\s*<|
+      assert html =~ "bg-amber-500"
+    end
+
+    test "renders emerald when stock is healthy" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 15})
+
+      assert html =~ ~r|>\s*15\s*<|
+      assert html =~ "bg-emerald-500"
+    end
+  end
+
+  describe "product_thumb/1" do
+    test "renders the image when a url is given" do
+      html =
+        render_component(&AdminComponents.product_thumb/1, %{
+          url: "https://cdn.example.com/kente.jpg",
+          alt: "Kente Scarf"
+        })
+
+      assert html =~ ~s|src="https://cdn.example.com/kente.jpg"|
+      assert html =~ ~s|alt="Kente Scarf"|
+    end
+
+    test "falls back to a photo icon without a url" do
+      html = render_component(&AdminComponents.product_thumb/1, %{url: nil, alt: "Kente"})
+
+      refute html =~ "<img"
+      assert html =~ "hero-photo"
     end
   end
 end

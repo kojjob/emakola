@@ -19,6 +19,7 @@ defmodule Emakola.Payments.RefundFlowTest do
   require Ash.Query
 
   alias Emakola.Payments.Payment
+  alias Emakola.Payments.RefundReconciliation
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 
   setup :verify_on_exit!
@@ -321,45 +322,189 @@ defmodule Emakola.Payments.RefundFlowTest do
   # ── Refund + Order Status Integration ──────────────────────────────
 
   describe "refund and order status" do
-    # TODO(audit): enforce order cancellation on full refund — requires
-    # PaystackWebhookHandler to call Orders.cancel/1 after mark_refunded.
-    # Deferred: cross-domain webhook change with its own migration risk.
-    @tag :pending
-    test "full refund cancels the associated order", %{store: store} do
+    test "full refund cancels an unfulfilled order and its pending fulfillments", %{
+      store: store
+    } do
       order = create_order!(store)
+      fulfillment = create_fulfillment!(order, store)
 
-      payment =
-        create_payment!(store, %{
-          amount: 500_000,
-          order_id: order.id
-        })
+      payment = successful_payment!(store, order.id)
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, payment.amount))
 
-      {:ok, payment} =
-        payment
-        |> Ash.Changeset.for_update(:mark_success, %{
-          gateway_response: %{"status" => "success"}
-        })
-        |> Ash.update(authorize?: false)
+      assert reload_order(order).status == :cancelled
+      assert reload_fulfillment(fulfillment).status == :cancelled
+    end
 
-      # Process refund webhook
-      event = %{
-        "event" => "refund.processed",
-        "data" => %{
-          "transaction" => %{"reference" => payment.gateway_reference},
-          "amount" => 500_000
-        }
-      }
+    # A declined group is still work the merchant owes the buyer, so a full
+    # refund must cancel it. This is also the tripwire for the coupling between
+    # RefundReconciliation's @active_fulfillment_statuses and Fulfillment's
+    # :cancel `from:` list — if they drift, the Ash.update! raises INSIDE the
+    # transaction and reconciliation fails for the entire order, not just this
+    # group.
+    test "full refund cancels a declined fulfillment without raising", %{store: store} do
+      order = create_order!(store)
+      supplier = create_supplier!(store)
+      declined = create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      {:ok, declined} =
+        Emakola.Orders.supplier_decline_fulfillment(
+          declined,
+          %{decline_reason: :out_of_stock},
+          authorize?: false
+        )
+
+      assert declined.status == :declined
+
+      payment = successful_payment!(store, order.id)
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, payment.amount))
+
+      assert reload_order(order).status == :cancelled
+      assert reload_fulfillment(declined).status == :cancelled
+    end
+
+    test "a partial refund leaves order and fulfillment state unchanged", %{store: store} do
+      order = create_order!(store, status: :confirmed)
+      fulfillment = create_fulfillment!(order, store)
+      payment = successful_payment!(store, order.id)
+
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, 200_000))
+
+      assert reload_payment(payment).status == :success
+      assert reload_payment(payment).refunded_amount == 200_000
+      assert reload_order(order).status == :confirmed
+      assert reload_fulfillment(fulfillment).status == :pending
+    end
+
+    for status <- [:shipped, :delivered] do
+      test "a full refund preserves #{status} order and fulfillment history", %{store: store} do
+        status = unquote(status)
+        order = create_order!(store, status: status)
+        fulfillment = create_fulfillment!(order, store, status: status)
+        payment = successful_payment!(store, order.id)
+
+        assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, payment.amount))
+
+        assert reload_payment(payment).status == :refunded
+        assert reload_order(order).status == status
+        assert reload_fulfillment(fulfillment).status == status
+      end
+    end
+
+    test "one shipped fulfillment preserves the whole operational history", %{store: store} do
+      order = create_order!(store, status: :processing)
+      shipped = create_fulfillment!(order, store, status: :shipped)
+      pending = create_fulfillment!(order, store, status: :pending)
+      payment = successful_payment!(store, order.id)
+
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, payment.amount))
+
+      assert reload_order(order).status == :processing
+      assert reload_fulfillment(shipped).status == :shipped
+      assert reload_fulfillment(pending).status == :pending
+    end
+
+    test "stable refund identifiers make partial webhook replays idempotent", %{store: store} do
+      order = create_order!(store, status: :confirmed)
+      payment = successful_payment!(store, order.id)
+
+      event = refund_event(payment, 200_000, "refund-partial-001")
 
       assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert :ok = perform_job(PaystackWebhookHandler, event)
 
-      # Order should be cancelled after full refund
-      # NOTE: This integration is not yet implemented in the webhook handler.
-      updated_order =
-        Emakola.Orders.Order
-        |> Ash.Query.filter(id == ^order.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert updated_order.status == :cancelled
+      assert reload_payment(payment).status == :success
+      assert reload_payment(payment).refunded_amount == 200_000
+      assert reload_order(order).status == :confirmed
     end
+
+    test "full-refund replay restores stock exactly once", %{store: store} do
+      product = create_product!(store)
+
+      variant =
+        create_variant!(product, store, %{price: 5_000, stock_quantity: 10, track_inventory: true})
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          store.id,
+          [%{variant_id: variant.id, quantity: 2}],
+          []
+        )
+
+      {:ok, _confirmed} = Emakola.Orders.confirm_order(order, authorize?: false)
+      assert reload_variant(variant).stock_quantity == 8
+
+      payment = successful_payment!(store, order.id, order.total)
+      event = refund_event(payment, payment.amount, "refund-full-stock-001")
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert reload_order(order).status == :cancelled
+      assert reload_variant(variant).stock_quantity == 10
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert reload_variant(variant).stock_quantity == 10
+
+      refund_movements =
+        Emakola.Inventory.StockMovement
+        |> Ash.Query.filter(order_id == ^order.id and reason == :refund)
+        |> Ash.read!(authorize?: false)
+
+      assert Enum.sum(Enum.map(refund_movements, & &1.delta)) == 2
+    end
+
+    test "refund reconciliation serializes payment and order decisions with row locks", %{
+      store: store
+    } do
+      payment_sql =
+        RefundReconciliation.locked_payment_query("PAY-lock-test")
+        |> then(&Ecto.Adapters.SQL.to_sql(:all, Emakola.Repo, &1))
+        |> elem(0)
+
+      order_sql =
+        Emakola.Orders.RefundReconciliation.locked_order_query(Ash.UUID.generate(), store.id)
+        |> then(&Ecto.Adapters.SQL.to_sql(:all, Emakola.Repo, &1))
+        |> elem(0)
+
+      assert payment_sql =~ "FOR UPDATE"
+      assert order_sql =~ "FOR UPDATE"
+    end
+  end
+
+  defp successful_payment!(store, order_id, amount \\ 500_000) do
+    store
+    |> create_payment!(%{amount: amount, order_id: order_id})
+    |> Ash.Changeset.for_update(:mark_success, %{
+      gateway_response: %{"status" => "success"}
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp refund_event(payment, amount, refund_reference \\ nil) do
+    data = %{
+      "transaction" => %{"reference" => payment.gateway_reference},
+      "amount" => amount
+    }
+
+    data =
+      if refund_reference do
+        Map.put(data, "refund_reference", refund_reference)
+      else
+        data
+      end
+
+    %{"event" => "refund.processed", "data" => data}
+  end
+
+  defp reload_payment(payment), do: Ash.get!(Payment, payment.id, authorize?: false)
+
+  defp reload_order(order) do
+    Ash.get!(Emakola.Orders.Order, order.id, authorize?: false)
+  end
+
+  defp reload_fulfillment(fulfillment) do
+    Ash.get!(Emakola.Orders.Fulfillment, fulfillment.id, authorize?: false)
+  end
+
+  defp reload_variant(variant) do
+    Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
   end
 end

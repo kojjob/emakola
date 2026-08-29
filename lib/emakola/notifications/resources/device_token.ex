@@ -22,6 +22,12 @@ defmodule Emakola.Notifications.DeviceToken do
 
     custom_indexes do
       index([:merchant_id])
+
+      index([:token_blind_index],
+        name: "device_tokens_token_blind_index_index",
+        all_tenants?: true,
+        concurrently: true
+      )
     end
   end
 
@@ -57,8 +63,18 @@ defmodule Emakola.Notifications.DeviceToken do
 
     attribute :token, :string do
       allow_nil?(false)
-      public?(true)
+      sensitive?(true)
       constraints(max_length: 4096)
+    end
+
+    attribute :token_encrypted, :string do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
+    attribute :token_blind_index, :string do
+      allow_nil?(true)
+      sensitive?(true)
     end
 
     attribute(:last_seen_at, :utc_datetime_usec, public?: true)
@@ -92,14 +108,39 @@ defmodule Emakola.Notifications.DeviceToken do
     defaults([:read])
 
     create :register do
-      accept([:platform, :token])
+      accept([:platform])
+
+      # The token remains a public action input for the mobile JSON:API, but is
+      # private on the resource so create responses and generic projections do
+      # not echo a durable push credential back to clients.
+      argument :token, :string do
+        allow_nil?(false)
+        sensitive?(true)
+        constraints(max_length: 4096)
+      end
 
       upsert?(true)
       upsert_identity(:unique_token)
+
+      # The protected values are bound to the persisted row UUID. On an upsert
+      # conflict, the attempted insert carries a fresh UUID while PostgreSQL
+      # keeps the existing row UUID, so copying the attempted ciphertext would
+      # make it undecryptable. The token itself is the conflict identity and is
+      # unchanged; keep the existing protected values and let reconciliation
+      # fill any shadow missing because an old node created the row.
       upsert_fields([:merchant_id, :platform, :last_seen_at, :store_id])
 
+      change(set_attribute(:token, arg(:token)))
       change(relate_actor(:merchant))
       change(set_attribute(:last_seen_at, &DateTime.utc_now/0))
+
+      change({
+        Emakola.Security.Changes.EncryptAttribute,
+        source: :token,
+        encrypted: :token_encrypted,
+        blind_index: :token_blind_index,
+        context: "device_tokens.token"
+      })
     end
 
     destroy :destroy do

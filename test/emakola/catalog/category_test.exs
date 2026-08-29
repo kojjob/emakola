@@ -106,6 +106,36 @@ defmodule Emakola.Catalog.CategoryTest do
       assert length(my_cats) == 1
       assert hd(my_cats).name == "My Category"
     end
+
+    test "rejects a parent from another store on create", %{store: store} do
+      other_store = create_store!(name: "Other Parent Store", slug: "other-parent-store")
+      foreign_parent = create_category!(other_store, name: "Foreign Parent")
+
+      assert {:error, error} =
+               Emakola.Catalog.Category
+               |> Ash.Changeset.for_create(:create, %{
+                 name: "Cross-store Child",
+                 store_id: store.id,
+                 parent_id: foreign_parent.id
+               })
+               |> Ash.create(authorize?: false)
+
+      assert Exception.message(error) =~ "must belong to the same store"
+    end
+
+    test "rejects a parent from another store on update", %{store: store} do
+      category = create_category!(store, name: "Local Category")
+      other_store = create_store!(name: "Other Update Store", slug: "other-update-store")
+      foreign_parent = create_category!(other_store, name: "Foreign Parent")
+
+      assert {:error, error} =
+               category
+               |> Ash.Changeset.for_update(:update, %{parent_id: foreign_parent.id})
+               |> Ash.update(authorize?: false)
+
+      assert Exception.message(error) =~ "must belong to the same store"
+      assert Ash.reload!(category, authorize?: false).parent_id == nil
+    end
   end
 
   # ── Hierarchy ─────────────────────────────────────────────────

@@ -129,6 +129,8 @@ defmodule Emakola.Catalog.Image do
       require_atomic?(false)
       # Enqueue object-storage cleanup so the deleted row's files aren't orphaned.
       change(Emakola.Catalog.Changes.DeleteImageFiles)
+      # A removed image can uncover a different one at position 0 — revoke.
+      change(Emakola.Catalog.Changes.RevokeSnapVerified)
     end
 
     create :create do
@@ -150,17 +152,46 @@ defmodule Emakola.Catalog.Image do
       validate(
         {Emakola.Catalog.Validations.MaxValue, attribute: :file_size_bytes, max: 10_000_000}
       )
+
+      # A new image can take position 0 — revoke.
+      change(Emakola.Catalog.Changes.RevokeSnapVerified)
+
+      # Kick off webp variant generation. after_transaction, not
+      # after_action: the job row must not sit inside the image's own
+      # transaction, and a queue failure must not roll back the upload.
+      change(
+        after_transaction(fn
+          _changeset, {:ok, image}, _context ->
+            Emakola.Workers.ImageProcessorWorker.enqueue(image.id)
+            {:ok, image}
+
+          _changeset, error, _context ->
+            error
+        end)
+      )
     end
 
     update :update do
       require_atomic?(false)
       accept([:alt_text, :position])
+      # Reordering (a :position change) revokes; alt_text-only edits — e.g.
+      # the AI alt-text backfill worker — must not.
+      change({Emakola.Catalog.Changes.RevokeSnapVerified, only_if_changing: :position})
     end
 
     update :mark_processed do
       require_atomic?(false)
       accept([:thumbnail_url, :medium_url])
 
+      # Badge-safety invariant (snap-verified "Real photo" badge): the
+      # thumbnail/medium URLs written here must stay derived from this same
+      # image's own immutable :url (currently enforced by worker discipline —
+      # ImageProcessorWorker computes them deterministically from image.url,
+      # nothing external is ever accepted). If this action is ever changed to
+      # accept externally-supplied URLs, it must also fire
+      # Emakola.Catalog.Changes.RevokeSnapVerified — otherwise a merchant
+      # could swap a verified product's rendered photo without losing the
+      # badge.
       change(set_attribute(:processing_status, :completed))
     end
 

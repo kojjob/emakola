@@ -112,75 +112,79 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-4">
-      <div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 class="text-xl font-semibold text-[#0c1526] mb-6">Continue with WhatsApp</h1>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-4">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <h1 class="text-xl font-semibold text-[#0c1526] mb-6">Continue with WhatsApp</h1>
 
-        <div
-          :if={@error}
-          class="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
-        >
-          {@error}
+          <div
+            :if={@error}
+            class="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          >
+            {@error}
+          </div>
+
+          <.form
+            :if={@step == :phone}
+            for={%{}}
+            id="phone-form"
+            phx-submit="send_code"
+            class="space-y-4"
+          >
+            <label class="block text-sm font-medium text-[#0c1526]">Your WhatsApp number</label>
+            <.phone_input id="wa-phone" />
+            <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
+              Send code
+            </button>
+          </.form>
+
+          <.form
+            :if={@step == :code}
+            for={%{}}
+            id="code-form"
+            phx-submit="verify_code"
+            class="space-y-4"
+          >
+            <label class="block text-sm font-medium text-[#0c1526]">Enter the 6-digit code</label>
+            <.otp_code_input id="wa-code" />
+            <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
+              Verify
+            </button>
+            <button type="button" phx-click="resend" class="w-full text-[#2563eb] text-sm font-medium">
+              Resend code
+            </button>
+          </.form>
+
+          <.form
+            :if={@step == :email}
+            for={%{}}
+            id="email-form"
+            phx-submit="create_account"
+            class="space-y-4"
+          >
+            <p class="text-sm text-[#5f6b7a]">
+              Last step — your email (for receipts &amp; recovery).
+            </p>
+            <input
+              type="email"
+              name="merchant[email]"
+              required
+              placeholder="you@business.com"
+              class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526]"
+            />
+            <input
+              type="text"
+              name="merchant[name]"
+              placeholder="Your name (optional)"
+              class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526]"
+            />
+            <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
+              Create account
+            </button>
+          </.form>
         </div>
-
-        <.form
-          :if={@step == :phone}
-          for={%{}}
-          id="phone-form"
-          phx-submit="send_code"
-          class="space-y-4"
-        >
-          <label class="block text-sm font-medium text-[#0c1526]">Your WhatsApp number</label>
-          <.phone_input id="wa-phone" />
-          <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
-            Send code
-          </button>
-        </.form>
-
-        <.form
-          :if={@step == :code}
-          for={%{}}
-          id="code-form"
-          phx-submit="verify_code"
-          class="space-y-4"
-        >
-          <label class="block text-sm font-medium text-[#0c1526]">Enter the 6-digit code</label>
-          <.otp_code_input id="wa-code" />
-          <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
-            Verify
-          </button>
-          <button type="button" phx-click="resend" class="w-full text-[#2563eb] text-sm font-medium">
-            Resend code
-          </button>
-        </.form>
-
-        <.form
-          :if={@step == :email}
-          for={%{}}
-          id="email-form"
-          phx-submit="create_account"
-          class="space-y-4"
-        >
-          <p class="text-sm text-[#5f6b7a]">Last step — your email (for receipts &amp; recovery).</p>
-          <input
-            type="email"
-            name="merchant[email]"
-            required
-            placeholder="you@business.com"
-            class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526]"
-          />
-          <input
-            type="text"
-            name="merchant[name]"
-            placeholder="Your name (optional)"
-            class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526]"
-          />
-          <button class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-white font-semibold py-3 rounded-xl text-sm">
-            Create account
-          </button>
-        </.form>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 end

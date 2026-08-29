@@ -9,7 +9,7 @@ defmodule EmakolaWeb.Storefront.PoliciesLiveTest do
 
   alias Emakola.Factory
 
-  describe "GET /s/:slug/policies" do
+  describe "GET /:slug/policies" do
     test "renders three anchored sections with templated defaults when blank", %{conn: conn} do
       store = Factory.create_store!(%{name: "Policy Store", slug: "policy-store"})
 
@@ -20,6 +20,13 @@ defmodule EmakolaWeb.Storefront.PoliciesLiveTest do
       assert html =~ ~s(id="terms")
       assert html =~ "Policy Store"
       assert html =~ "only collects the information"
+
+      assert html
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query(
+               ~s(link[rel="canonical"][href="http://localhost:4000/#{store.slug}/policies"])
+             )
+             |> Enum.any?()
     end
 
     test "renders the store's custom policy text", %{conn: conn} do

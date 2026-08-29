@@ -68,6 +68,231 @@ defmodule Emakola.Orders.CheckoutService do
   end
 
   @doc """
+  Checkout for a single custom (variant-less) pay-link line. Creates a real
+  pending order — fees, settlement, refunds, notifications all see an
+  ordinary order. No stock, coupons, or supplier dispatch apply.
+
+  `opts`: :customer_name, :customer_phone (required), :customer_email
+  (optional — a deterministic phone placeholder is derived when absent),
+  :shipping_address, :notes, :pay_link_id.
+  """
+  def checkout_custom!(store_id, %{title: title, unit_price: unit_price}, opts) do
+    phone = Keyword.get(opts, :customer_phone)
+
+    cond do
+      not is_binary(phone) or String.trim(phone) == "" ->
+        {:error, :phone_required}
+
+      not is_binary(title) or title == "" ->
+        {:error, :invalid_title}
+
+      not is_integer(unit_price) or unit_price < 1 ->
+        {:error, :invalid_unit_price}
+
+      true ->
+        opts = Keyword.put_new(opts, :customer_email, phone_placeholder_email(phone))
+        run_checkout_custom(store_id, title, unit_price, opts)
+    end
+  end
+
+  @doc """
+  Deterministic placeholder email for phone-first buyers: the phone is
+  normalized (`PhoneAuth.normalize/1`) before deriving digits, so local and
+  E.164 forms of the same number ("0201234567" vs "+233201234567") map to
+  the same address — keeping the email-keyed Customer :find_or_create
+  idempotent per real phone, not per input format. The domain is ours;
+  nothing routes to a stranger's inbox, and buyer receipts go out via
+  SMS/WhatsApp anyway.
+  """
+  def phone_placeholder_email(phone) when is_binary(phone) do
+    digits =
+      phone
+      |> Emakola.Accounts.PhoneAuth.normalize()
+      |> String.replace(~r/\D/, "")
+
+    "p#{digits}@phone.customers.makola.io"
+  end
+
+  defp run_checkout_custom(store_id, title, unit_price, opts) do
+    result =
+      Emakola.Repo.transaction(fn ->
+        {customer_id, resolved_address} = resolve_customer(store_id, opts)
+        shipping_address = Keyword.get(opts, :shipping_address) || resolved_address
+
+        order =
+          Emakola.Orders.Order
+          |> Ash.Changeset.for_create(:create, %{
+            store_id: store_id,
+            customer_id: customer_id,
+            notes: Keyword.get(opts, :notes),
+            shipping_address: shipping_address,
+            # Custom (pay-link) orders used to drop attribution entirely, so a
+            # sale that a shared link produced credited nobody.
+            attribution: Keyword.get(opts, :attribution, %{}),
+            pay_link_id: Keyword.get(opts, :pay_link_id)
+          })
+          |> Ash.create!(authorize?: false)
+
+        # One merchant-owned fulfillment group (supplier_id nil).
+        # create_fulfillments/5 derives its groups by mapping over `items`, so
+        # calling it with an empty item list returns an empty map — no
+        # nil-keyed group at all. Build the single fulfillment directly.
+        fulfillment =
+          Emakola.Orders.Fulfillment
+          |> Ash.Changeset.for_create(:create, %{order_id: order.id, store_id: store_id})
+          |> Ash.create!(authorize?: false)
+
+        line =
+          Emakola.Orders.LineItem
+          |> Ash.Changeset.for_create(:create_custom, %{
+            order_id: order.id,
+            store_id: store_id,
+            product_title: title,
+            unit_price: unit_price,
+            quantity: 1,
+            fulfillment_id: fulfillment.id
+          })
+          |> Ash.create!(authorize?: false)
+
+        # Same :update action + arg names run_checkout's tail uses to set
+        # totals (there is no separate :update_totals action).
+        order
+        |> Ash.Changeset.for_update(:update, %{
+          subtotal: line.line_total,
+          delivery_fee: 0,
+          discount_amount: 0,
+          total: line.line_total
+        })
+        |> Ash.update!(authorize?: false)
+      end)
+
+    case result do
+      {:ok, order} ->
+        # Outside the transaction, exactly like checkout!/3: receipts to both
+        # sides; a notification-subsystem error never fails the checkout.
+        case Emakola.Notifications.Dispatcher.dispatch(order, :order_placed) do
+          {:ok, _job} ->
+            :ok
+
+          {:error, reason} ->
+            Logger.error(
+              "[checkout_custom] order_placed dispatch failed: #{inspect(reason)}",
+              order_id: order.id,
+              store_id: store_id
+            )
+        end
+
+        {:ok, order}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  rescue
+    # Mirrors run_checkout/4's rescue: without this, an in-transaction Ash
+    # failure (bang calls throughout) raises straight out of
+    # checkout_custom!/3, breaking its documented {:ok, order} | {:error,
+    # reason} contract. Ecto has already rolled the transaction back by the
+    # time either clause runs.
+    e in Ash.Error.Invalid ->
+      Logger.error(
+        "[checkout_custom] validation error during transaction: #{Exception.message(e)}"
+      )
+
+      {:error, :checkout_failed}
+
+    _e in Ecto.StaleEntryError ->
+      {:error, :checkout_failed}
+  end
+
+  @doc false
+  # Internal creation helper for TC-3 susu completion (Emakola.Orders.SusuCompletion) —
+  # NOT a public checkout entry point: no cart validation, no coupon/dispatch-fee
+  # handling, no stock decrement, no notification dispatch. All of a susu order's
+  # money already moved as chunk contributions before this ever runs; the caller
+  # owns attaching those payments, apportioning fees, and confirming the order.
+  #
+  # Pricing honors the plan's snapshotted `total_amount`, not the catalog's
+  # current price — the spec's promise is "total_amount snapshotted at
+  # creation; price changes never drift the deal". For a catalog plan, the
+  # `:create` line action's `DenormalizeVariant` change always snapshots the
+  # variant's CURRENT price first; `create_susu_line!/3` then force-overrides
+  # `unit_price`/`line_total` with the plan-derived figures (Ash runs a create
+  # action's changes while building the changeset, so a `force_change_attribute/3`
+  # chained afterward — the same technique `SusuChunksTest.force_deadline!/2`
+  # already uses — wins and is never re-clobbered before `Ash.create!/2` submits
+  # it). `line_total` is forced to `plan.total_amount` exactly (not
+  # `unit_price * quantity`) so the order total matches the plan total even
+  # when `total_amount` doesn't divide evenly by `quantity` — `unit_price` is
+  # then a display figure only, not load-bearing for the total.
+  def create_susu_order!(%Emakola.Orders.SusuPlan{} = plan) do
+    order =
+      Emakola.Orders.Order
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: plan.store_id,
+        customer_id: plan.customer_id,
+        susu_plan_id: plan.id,
+        shipping_address: plan.delivery_address
+      })
+      |> Ash.create!(authorize?: false)
+
+    # One merchant-owned fulfillment group, same as checkout_custom!/3 —
+    # susu has no dropship split.
+    fulfillment =
+      Emakola.Orders.Fulfillment
+      |> Ash.Changeset.for_create(:create, %{order_id: order.id, store_id: plan.store_id})
+      |> Ash.create!(authorize?: false)
+
+    line = create_susu_line!(plan, order, fulfillment)
+
+    order
+    |> Ash.Changeset.for_update(:update, %{
+      subtotal: line.line_total,
+      total: line.line_total,
+      delivery_fee: 0,
+      discount_amount: 0
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp create_susu_line!(%{type: :catalog} = plan, order, fulfillment) do
+    unit_price = div(plan.total_amount, plan.quantity)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: plan.store_id,
+      variant_id: plan.variant_id,
+      quantity: plan.quantity,
+      fulfillment_id: fulfillment.id
+    })
+    |> Ash.Changeset.force_change_attribute(:unit_price, unit_price)
+    |> Ash.Changeset.force_change_attribute(:line_total, plan.total_amount)
+    |> Ash.create!(authorize?: false)
+  end
+
+  defp create_susu_line!(%{type: :custom} = plan, order, fulfillment) do
+    # `:create_custom` validates `unit_price > 0` — guard the (currently
+    # unreachable via any UI, but not resource-validated away) edge case of a
+    # custom plan's `quantity` exceeding its `total_amount`, which would
+    # otherwise floor `unit_price` to 0 and fail that validation. `unit_price`
+    # is a display figure only; `line_total` (forced below) is what actually
+    # has to match the plan total.
+    unit_price = max(div(plan.total_amount, plan.quantity), 1)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create_custom, %{
+      order_id: order.id,
+      store_id: plan.store_id,
+      product_title: plan.title,
+      unit_price: unit_price,
+      quantity: plan.quantity,
+      fulfillment_id: fulfillment.id
+    })
+    |> Ash.Changeset.force_change_attribute(:line_total, plan.total_amount)
+    |> Ash.create!(authorize?: false)
+  end
+
+  @doc """
   Validates a coupon code for a given store and subtotal.
 
   Returns `{:ok, coupon}` if the coupon is valid, or `{:error, reason}` with
@@ -95,12 +320,14 @@ defmodule Emakola.Orders.CheckoutService do
     raw = div(subtotal * coupon.discount_value, 10_000)
     capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
     # Never discount more than the subtotal, or the order total would go
-    # negative (defence in depth if a coupon slips past the 100% cap).
-    min(capped, subtotal)
+    # negative (defence in depth if a coupon slips past the 100% cap) — and
+    # never less than zero, or `total - discount` would CHARGE the customer
+    # extra (defence in depth behind the resource's min: 0 constraint).
+    capped |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
-    min(coupon.discount_value, subtotal)
+    coupon.discount_value |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :free_shipping}, _subtotal, delivery_fee) do
@@ -192,10 +419,14 @@ defmodule Emakola.Orders.CheckoutService do
   defp product_available?(_), do: true
 
   defp validate_stock(variants, items) do
+    source_by_variant_id = load_source_variants(variants)
+
     insufficient =
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
-        not available_for_order?(variant, qty)
+
+        not available_for_order?(variant, qty) or
+          not source_in_stock?(source_by_variant_id, vid, qty)
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
@@ -210,6 +441,34 @@ defmodule Emakola.Orders.CheckoutService do
        do: false
 
   defp available_for_order?(variant, qty), do: Emakola.Catalog.Variant.in_stock?(variant, qty)
+
+  # Live supplier check for network-imported variants: the availability flag
+  # is synced asynchronously and is boolean — only the live source quantity
+  # can answer "customer wants 5, supplier has 2". Unmapped supplier-linked
+  # variants (off-platform suppliers) have no source to consult.
+  defp source_in_stock?(source_by_variant_id, variant_id, qty) do
+    case Map.get(source_by_variant_id, variant_id) do
+      nil -> true
+      source -> Emakola.Catalog.Variant.in_stock?(source, qty)
+    end
+  end
+
+  defp load_source_variants(variants) do
+    supplier_linked_ids =
+      for {id, v} <- variants, not is_nil(v.supplier_id), do: id
+
+    if supplier_linked_ids == [] do
+      %{}
+    else
+      mappings =
+        Emakola.Suppliers.ResellerListingVariant
+        |> Ash.Query.filter(reseller_variant_id in ^supplier_linked_ids)
+        |> Ash.Query.load(offer_variant: :source_variant)
+        |> Ash.read!(authorize?: false)
+
+      Map.new(mappings, fn m -> {m.reseller_variant_id, m.offer_variant.source_variant} end)
+    end
+  end
 
   defp check_coupon_validity(coupon, subtotal) do
     now = DateTime.utc_now()
@@ -237,7 +496,55 @@ defmodule Emakola.Orders.CheckoutService do
 
   # -- Transaction -----------------------------------------------------
 
+  @doc """
+  Whether this cart needs a delivery address and a shipping fee.
+
+  Takes the `%{variant_id => variant}` map `load_and_validate_variants/2`
+  returns, whose variants already carry `:product`. Delegates the per-product
+  rule to `Emakola.Catalog.Product.requires_shipping?/1` so there is exactly one
+  definition of "does this ship".
+
+  An empty map returns `true`: an empty or fully-stale cart falls back to the
+  physical behaviour, which keeps a disconnected mount rendering the address
+  form rather than briefly hiding it.
+  """
+  @spec requires_shipping?(map()) :: boolean()
+  def requires_shipping?(variants) when map_size(variants) == 0, do: true
+
+  def requires_shipping?(variants) do
+    Enum.any?(variants, fn {_id, variant} ->
+      case variant.product do
+        %Ash.NotLoaded{} -> true
+        nil -> true
+        product -> Emakola.Catalog.Product.requires_shipping?(product)
+      end
+    end)
+  end
+
+  @doc """
+  True when any item in the cart is a digital download.
+
+  Distinct from `not requires_shipping?/1` on purpose: a mixed cart both
+  requires shipping AND contains a download, and the download half needs a
+  signed-in customer or its grant is minted with `customer_id: nil` and can
+  never be redeemed. An unknown or unloaded product counts as physical — the
+  failure mode of guessing "digital" is refusing a legitimate guest sale.
+  """
+  def has_digital?(variants) when map_size(variants) == 0, do: false
+
+  def has_digital?(variants) do
+    Enum.any?(variants, fn {_id, variant} ->
+      case variant.product do
+        %Ash.NotLoaded{} -> false
+        nil -> false
+        product -> product.product_type == :digital_download
+      end
+    end)
+  end
+
   defp run_checkout(store_id, items, variants, opts) do
+    ships? = requires_shipping?(variants)
+
     Emakola.Repo.transaction(fn ->
       # 1. Resolve customer INSIDE the transaction
       {customer_id, resolved_address} = resolve_customer(store_id, opts)
@@ -257,13 +564,15 @@ defmodule Emakola.Orders.CheckoutService do
           notes: Keyword.get(opts, :notes),
           shipping_address: shipping_address,
           billing_address: Keyword.get(opts, :billing_address),
-          attribution: Keyword.get(opts, :attribution, %{})
+          attribution: Keyword.get(opts, :attribution, %{}),
+          pay_link_id: Keyword.get(opts, :pay_link_id)
         })
         |> Ash.create!(authorize?: false)
 
       # Per-supplier dispatch fees for the customer's region, resolved once
       # inside the transaction — never accepted as a client-supplied amount.
-      dispatch_fees = dispatch_fees_for(items, variants, Keyword.get(opts, :region))
+      dispatch_fees =
+        if ships?, do: dispatch_fees_for(items, variants, Keyword.get(opts, :region)), else: %{}
 
       # Split the order into one fulfillment per distinct supplier_id
       # (including the nil key for merchant-owned/own-stock items).
@@ -297,7 +606,9 @@ defmodule Emakola.Orders.CheckoutService do
 
       # 5. Calculate totals (include delivery fee and coupon discount)
       subtotal = Enum.reduce(line_items, 0, fn li, acc -> acc + li.line_total end)
-      delivery_fee = Keyword.get(opts, :delivery_fee, 0)
+      # Server authority: the fee is a caller-supplied option, so a crafted
+      # socket message could otherwise attach delivery to a cart of files.
+      delivery_fee = if ships?, do: Keyword.get(opts, :delivery_fee, 0), else: 0
 
       # 6. Re-validate and apply coupon inside the transaction
       {coupon_id, discount_amount} =
@@ -438,7 +749,16 @@ defmodule Emakola.Orders.CheckoutService do
       "postal_code" => address.postal_code,
       "phone" => address.phone
     }
+    |> maybe_put_blank_omitted("digital_address", address.digital_address)
+    |> maybe_put_blank_omitted("landmark", address.landmark)
   end
+
+  # Blank-omitted (nil/"" -> key absent) for symmetry with the buyer-entered
+  # checkout/pay-link flows (CheckoutLive/PayLinkLive's put_digital_address
+  # and put_landmark) — an address saved before these fields existed keeps
+  # the byte-identical legacy shipping_address shape.
+  defp maybe_put_blank_omitted(map, _key, blank) when blank in [nil, ""], do: map
+  defp maybe_put_blank_omitted(map, key, value), do: Map.put(map, key, value)
 
   # -- Fulfillment split --------------------------------------------------
 

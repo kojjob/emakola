@@ -145,6 +145,12 @@ defmodule Emakola.Catalog.Product do
       constraints(min: 0)
     end
 
+    attribute :snap_verified, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -159,12 +165,21 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    # Both carry the order the merchant arranged, and both are read
+    # positionally: the product page takes its default variant with
+    # `List.first/1` and opens its gallery on `Enum.at(images, 0)`. Without a
+    # sort that was whatever order Postgres returned, so the price, stock badge
+    # and SKU a shopper met on first load could change between requests.
+    # `inserted_at` breaks ties, because position defaults to the same value
+    # for every row until a merchant reorders them.
     has_many :variants, Emakola.Catalog.Variant do
       public?(true)
+      sort(position: :asc, inserted_at: :asc)
     end
 
     has_many :images, Emakola.Catalog.Image do
       public?(true)
+      sort(position: :asc, inserted_at: :asc)
     end
 
     has_many :reviews, Emakola.Catalog.Review
@@ -173,6 +188,10 @@ defmodule Emakola.Catalog.Product do
 
   aggregates do
     count(:variant_count, :variants)
+
+    sum :total_stock, :variants, :stock_quantity do
+      public?(true)
+    end
 
     min :min_price, :variants, :price do
       public?(true)
@@ -205,7 +224,8 @@ defmodule Emakola.Catalog.Product do
     # `authorize?: false` from the moderation queue. Forbidding every actor
     # means a merchant can't reverse a takedown, even though the merchant
     # write policy below would otherwise admit the update.
-    policy action([:take_down, :reinstate]) do
+    # Same applies to :set_snap_verified — badge integrity requires system-only writes.
+    policy action([:take_down, :reinstate, :set_snap_verified]) do
       forbid_if(always())
     end
 
@@ -280,6 +300,7 @@ defmodule Emakola.Catalog.Product do
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change(Emakola.Catalog.Changes.UntrackVariantsOnTypeChange)
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
@@ -333,6 +354,11 @@ defmodule Emakola.Catalog.Product do
       change(atomic_update(:share_count, expr(share_count + 1)))
     end
 
+    update :set_snap_verified do
+      require_atomic?(false)
+      accept([:snap_verified])
+    end
+
     read :search do
       argument(:query, :string, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
@@ -364,6 +390,14 @@ defmodule Emakola.Catalog.Product do
         |> Ash.Query.sort(inserted_at: :desc)
         |> Ash.Query.load([:min_price, :max_price, :images, :variant_count])
       end)
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
     end
 
     read :list_by_store_and_status do
@@ -475,7 +509,10 @@ defmodule Emakola.Catalog.Product do
       )
 
       prepare(
-        build(sort: [inserted_at: :desc], load: [:variant_count, :min_price, :max_price, :images])
+        build(
+          sort: [inserted_at: :desc],
+          load: [:variant_count, :min_price, :max_price, :total_stock, :images]
+        )
       )
     end
 
@@ -498,4 +535,40 @@ defmodule Emakola.Catalog.Product do
       prepare(build(sort: [inserted_at: :desc], load: [:store, :images, :min_price]))
     end
   end
+
+  @doc """
+  Whether a line of this product needs a delivery address and a shipping fee.
+
+  `product_type` is the single source of truth — there is deliberately no
+  `requires_shipping` boolean, which would be duplicate state able to drift
+  from it.
+
+  The polarity is a blacklist on purpose: a product type added later without
+  touching this function is treated as shipping. That over-collects an
+  address, which is recoverable, rather than silently shipping a physical
+  good with no delivery fee, which is not.
+  """
+  @spec requires_shipping?(t() | atom()) :: boolean()
+  # Plain-map pattern, NOT %__MODULE__{}. The Dockerfile pins Elixir 1.18.3
+  # while CI and local run 1.20.x, and on 1.18.3 a %__MODULE__{} pattern inside
+  # an Ash resource expands before Spark has defined the struct — so it
+  # compiles everywhere except the release image. Matching the shape avoids the
+  # struct expansion entirely and behaves identically.
+  def requires_shipping?(%{product_type: type}), do: requires_shipping?(type)
+  def requires_shipping?(:digital_download), do: false
+  def requires_shipping?(type) when is_atom(type), do: true
+
+  @doc """
+  The product types a merchant may actually choose in the admin.
+
+  Deliberately narrower than the `:product_type` attribute's `one_of`
+  constraint. The other five types exist and route through
+  `Emakola.Fulfillment.Dispatcher`, but none has a working delivery path, so
+  offering them would sell a promise the platform cannot keep. Do not collapse
+  the two lists — `Emakola.Fulfillment.Dispatcher.supported_types/0` is
+  asserted to equal `one_of` exactly, so trimming the constraint breaks
+  routing.
+  """
+  @spec sellable_types() :: [atom()]
+  def sellable_types, do: [:physical, :digital_download]
 end

@@ -7,7 +7,12 @@ defmodule EmakolaWeb.Router do
   # `host: @apex_hosts` matches these hosts only; store subdomains
   # (`kente-kingdom.makola.io`) fall through to the no-host storefront catch-all.
   # fly.dev is listed so the platform host never reaches the catch-all.
-  @apex_hosts ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+  #
+  # Sourced from config so `Emakola.Stores.Validations.ValidStoreHost` rejects
+  # these same hosts as custom domains. Must stay compile_env: `scope host:`
+  # needs a literal, and a nil here fails the build rather than silently
+  # matching nothing.
+  @apex_hosts Application.compile_env!(:emakola, :apex_hosts)
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -19,8 +24,14 @@ defmodule EmakolaWeb.Router do
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
 
+    # referrer-policy matters more here than on a typical app because several
+    # pages carry a credential IN THE PATH — /pair/:token, /susu/:code and
+    # /supply/:token. Without this header any outbound link on one of those
+    # pages hands the whole URL, token included, to the destination in Referer.
+    # Phoenix sets no referrer policy by default.
     plug :put_secure_browser_headers, %{
-      "cross-origin-opener-policy" => "same-origin"
+      "cross-origin-opener-policy" => "same-origin",
+      "referrer-policy" => "strict-origin-when-cross-origin"
     }
 
     plug EmakolaWeb.Plugs.ContentSecurityPolicy
@@ -55,6 +66,14 @@ defmodule EmakolaWeb.Router do
   # mint a fresh bucket per request and bypass the limit.
   pipeline :auth_rate_limit do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
+  end
+
+  # The supplier action link is unauthenticated by design — the supplier has no
+  # account. key: :ip for the same reason as :auth_rate_limit: attacker-controlled
+  # headers must not be able to mint a fresh bucket. Per-fulfilment write limits
+  # live in Emakola.Suppliers.SupplierAction; this one only caps request noise.
+  pipeline :supplier_action_rate_limit do
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 30, window_ms: 60_000, key: :ip
   end
 
   # Resolves + sets the store tenant for storefront (customer) OAuth. No-op for
@@ -114,6 +133,8 @@ defmodule EmakolaWeb.Router do
   scope "/webhooks", EmakolaWeb do
     pipe_through :api
     post "/paystack", WebhookController, :paystack
+    # SplitPay events — HMAC-signed (t=..,v1=..) over the raw body.
+    post "/splitpay", SplitPayWebhookController, :handle
   end
 
   # Mobile/JSON API auth — bearer token pair lifecycle. Strict per-IP rate limit:
@@ -160,6 +181,21 @@ defmodule EmakolaWeb.Router do
     forward "/", EmakolaWeb.Plugs.ShopApiForward
   end
 
+  # Merchant product writes for the mobile app. Explicit controllers, not
+  # ash_json_api: a resource's `json_api` routes are mounted by every router
+  # including that domain, and ShopApiRouter mounts Catalog on the PUBLIC
+  # storefront surface — product creation must not be routable there.
+  #
+  # MUST stay above the /api/v1 forward below for the usual reason: that
+  # forward matches every path under /api/v1 and would swallow these.
+  scope "/api/v1", EmakolaWeb.Api do
+    pipe_through [:api, :api_bearer, :api_tenant]
+
+    post "/products", ProductController, :create
+    post "/products/:id/variants", ProductController, :create_variant
+    post "/products/:id/images", ProductController, :create_image
+  end
+
   # Tenant-scoped JSON:API resources (orders; device tokens in a later task).
   # Declared below /api/v1/stores deliberately — forward matches everything
   # under /api/v1, so the stores route above must be declared first.
@@ -185,9 +221,16 @@ defmodule EmakolaWeb.Router do
   # Auth routes (no layout — full-page auth screens)
   scope "/auth", EmakolaWeb.Auth do
     pipe_through [:browser, :auth_rate_limit]
-    live "/login", LoginLive
-    live "/register", RegisterLive
-    live "/whatsapp", WhatsAppLive
+
+    live_session :merchant_auth,
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
+      live "/login", LoginLive
+      live "/register", RegisterLive
+      live "/whatsapp", WhatsAppLive
+      live "/forgot-password", ForgotPasswordLive
+      live "/recover-phone", PhoneRecoveryLive
+      live "/reset-password", ResetPasswordLive
+    end
   end
 
   # Social-login (OAuth) request + callback routes for merchants AND customers,
@@ -266,6 +309,7 @@ defmodule EmakolaWeb.Router do
     live_session :storefront_auth,
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
         {EmakolaWeb.Hooks.ResolveStore, :default},
         {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],
@@ -304,6 +348,7 @@ defmodule EmakolaWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/robots.txt", SitemapController, :robots
     get "/llms.txt", SitemapController, :llms
+    get "/feed/products.xml", InstagramFeedController, :show
     get "/feed/instagram.xml", InstagramFeedController, :show
   end
 
@@ -337,6 +382,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
@@ -348,12 +394,38 @@ defmodule EmakolaWeb.Router do
   # so "/", "/about", "/pricing", etc. match ONLY on the apex — never on a store
   # subdomain, where root is the storefront. Declared BEFORE the storefront
   # catch-all (first-match-wins) so apex hosts resolve here, not the catch-all.
+  # Supplier action link — how a dropship supplier accepts, declines or ships a
+  # fulfilment. Its own scope purely so it can carry the rate-limit pipeline:
+  # folding it into the apex browser scope below would throttle every marketing
+  # page at 30 requests a minute.
+  #
+  # Public because the supplier is a local wholesaler on WhatsApp with no Makola
+  # account. The signed token in the URL is the only credential, it is bound to
+  # one fulfilment, and the merchant revokes it by rotating
+  # Fulfillment.supplier_link_version. Declared before the storefront catch-all,
+  # and apex-host scoped like /pay, /susu and /pair, so no store subdomain can
+  # shadow it.
+  #
+  # No layout, like /pair: the storefront layout wraps a shop header, a
+  # payment-logo row and a search overlay around a page whose only job is three
+  # buttons, and needs assigns this page has no store to provide. NoIndex
+  # because the URL carries a credential.
+  scope "/", EmakolaWeb, host: @apex_hosts do
+    pipe_through [:browser, :supplier_action_rate_limit]
+
+    live_session :supplier_action,
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
+      live "/supply/:token", Supplier.ActionLive
+    end
+  end
+
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :browser
 
     # Dead render — no LiveView process per anonymous visitor.
     get "/", LandingController, :home
     get "/how-it-works", HowItWorksController, :show
+    get "/how-it-works/tour", HowItWorksController, :tour
     live "/pricing", PricingLive
     live "/stores", StoresLive
     # Shown when a storefront is requested for a suspended/blocked/closed store.
@@ -362,6 +434,10 @@ defmodule EmakolaWeb.Router do
     live "/shops/:region", ShopsLive
     live "/sell-online/:region", SellOnlineLive
     live "/docs", Docs.DocsLive
+    # Platform marketing blog — merchant-acquisition SEO content (nil store_id
+    # posts). Store subdomain /blog stays the storefront blog via the catch-all.
+    live "/blog", PlatformBlogLive
+    live "/blog/:post_slug", PlatformPostLive
     live "/about", Company.AboutLive
     live "/careers", Company.CareersLive
     live "/press", Company.PressLive
@@ -371,10 +447,47 @@ defmodule EmakolaWeb.Router do
     live "/cookies", Company.CookiesLive
     live "/contact", Company.ContactLive
 
+    # Pay links — express checkout shared into DMs. This scope is
+    # host: @apex_hosts, so no store subdomain can shadow this path.
+    live_session :pay_link,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/pay/:code", Storefront.PayLinkLive
+    end
+
+    # Device pairing — the phone half of scan-to-sign-in. Public because the
+    # phone is by definition not signed in yet; the token in the URL is the only
+    # credential, it is single-use, and it is worthless until the merchant
+    # confirms on their already-authenticated desktop. Apex-host scoped like the
+    # other code-bearing pages, so no store subdomain can shadow it.
+    # No layout, matching the auth routes above: this is a full-page sign-in
+    # screen, not a shop page. It previously borrowed the storefront layout from
+    # the pay-link block next door, which put a "Shop" header and a row of
+    # payment logos around a page whose only job is to sign a phone in.
+    # NoIndex because the URL carries a credential.
+    live_session :device_pairing,
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
+      live "/pair/:token", PairLive
+    end
+
+    # The exchange itself. A controller, not a LiveView, because signing in
+    # means writing the session cookie.
+    get "/pair/:token/complete", PairController, :complete
+
+    # Susu (lay-away) buyer pages — public bare-code face + signed "My susu"
+    # progress face, both served by ONE LiveView. Same apex-host posture as
+    # pay links above (this scope is host: @apex_hosts).
+    live_session :susu_link,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/susu/:code", Storefront.SusuLinkLive
+    end
+
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
     #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log,
-    #   billing → :manage_billing, payments → :manage_billing
+    #   billing → :manage_billing, payments → :manage_billing,
+    #   protection → :manage_billing
     # Future pages: merchants → :manage_merchants, settings → :manage_settings.
     live_session :platform,
       layout: {EmakolaWeb.Layouts, :platform},
@@ -384,6 +497,7 @@ defmodule EmakolaWeb.Router do
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
+      live "/platform/domains", Platform.DomainLive.Index
       live "/platform/stores/:id", Platform.StoreLive.Show
       live "/platform/merchants", Platform.MerchantLive.Index
       live "/platform/verifications", Platform.VerificationLive.Index
@@ -399,6 +513,9 @@ defmodule EmakolaWeb.Router do
       live "/platform/finance", Platform.FinanceLive
       live "/platform/payments", Platform.PaymentLive.Index
       live "/platform/refunds", Platform.RefundsLive
+      live "/platform/messages", Platform.MessageLive
+      live "/platform/messages/:id", Platform.MessageLive
+      live "/platform/protection", Platform.ProtectionLive
       live "/platform/settings", Platform.SettingsLive
     end
 
@@ -406,10 +523,9 @@ defmodule EmakolaWeb.Router do
     live_session :app,
       layout: {EmakolaWeb.Layouts, :app},
       on_mount: [
-        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.AssignDefaults, :merchant},
         {EmakolaWeb.Hooks.RequireAuth, :default},
         {EmakolaWeb.Hooks.RequireActiveStore, :default},
-        {EmakolaWeb.Hooks.NotificationHandler, :default},
         {EmakolaWeb.Hooks.MerchantAnnouncements, :default}
       ] do
       live "/dashboard", DashboardLive
@@ -418,6 +534,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/products", Admin.ProductLive.Index
       live "/admin/products/bulk", Admin.ProductLive.BulkPhoto
       live "/admin/products/new", Admin.ProductLive.Form, :new
+      live "/admin/products/snap", Admin.ProductLive.Snap
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
       live "/admin/products/:id/files", Admin.ProductLive.DigitalFiles
       live "/admin/categories", Admin.CategoryLive.Index
@@ -447,10 +564,14 @@ defmodule EmakolaWeb.Router do
 
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
+      live "/admin/pair-phone", Admin.PairPhoneLive
       live "/admin/verification", Admin.VerificationLive
       live "/admin/payouts", Admin.PayoutLive
+      live "/admin/earnings", Admin.EarningsLive
+      live "/admin/settings/notifications", Admin.NotificationSettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
       live "/admin/settings/address", Admin.StoreAddressLive
+      live "/admin/settings/domain", Admin.StoreDomainLive
 
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
@@ -468,9 +589,14 @@ defmodule EmakolaWeb.Router do
       live "/admin/design/sections", Admin.DesignSectionsLive
 
       # Marketing
+      live "/admin/messages", Admin.MessageLive
+      live "/admin/messages/:id", Admin.MessageLive
       live "/admin/campaigns", Admin.CampaignLive.Index
-      live "/admin/discounts", Admin.DiscountLive.Index
+      # The placeholder discounts page is gone; Marketing.Coupon is the real
+      # feature and /admin/coupons its page. Kept so bookmarks do not 404.
+      live "/admin/discounts", Admin.DiscountRedirectLive
       live "/admin/coupons", Admin.CouponLive
+      live "/admin/pay-links", Admin.PayLinkLive.Index
 
       # Content management
       live "/admin/content/posts", Admin.Content.PostLive.Index
@@ -494,7 +620,7 @@ defmodule EmakolaWeb.Router do
     # can see why without a redirect loop.
     live_session :app_store_locked,
       on_mount: [
-        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.AssignDefaults, :merchant},
         {EmakolaWeb.Hooks.RequireAuth, :default}
       ] do
       live "/store-locked", MerchantStoreLockedLive
@@ -538,6 +664,7 @@ defmodule EmakolaWeb.Router do
     live_session :storefront_auth_root,
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
         {EmakolaWeb.Hooks.ResolveStoreFromHost, :default},
         {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],
@@ -578,11 +705,93 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/account/messages", CustomerMessagesLive
       live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
       live "/p/:page_slug", PageLive
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Short store URLs: makola.io/yourshop
+  #
+  # Declared LAST, on purpose. Phoenix takes the first matching route, so every
+  # apex page above wins — makola.io/pricing is the pricing page, and no store
+  # slug can ever shadow it. The hazard runs the other way (a store slugged
+  # `pricing` being unreachable here), and `EmakolaWeb.ReservedStoreSlugs`
+  # closes that at slug-generation time, deriving the reserved list from THIS
+  # router so it cannot rot.
+  #
+  # Host-locked to the apex: branded hosts (store subdomains and merchant custom
+  # domains) already serve the storefront at root via :storefront_root, where the
+  # slug is not in the path at all.
+  #
+  # The older /s/:store_slug routes above still serve, so links shared before
+  # this existed keep working.
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through :browser
+
+    live_session :storefront_short,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :short},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/:store_slug", StoreLive
+      live "/:store_slug/products", ProductListLive
+      live "/:store_slug/products/:product_slug", ProductDetailLive
+      live "/:store_slug/cart", CartLive
+      live "/:store_slug/checkout", CheckoutLive
+      live "/:store_slug/orders/:order_number/confirmation", OrderConfirmationLive
+      live "/:store_slug/category/:category_slug", CategoryLive
+      live "/:store_slug/about", AboutLive
+      live "/:store_slug/contact", ContactLive
+      live "/:store_slug/faq", FaqLive
+      live "/:store_slug/policies", PoliciesLive
+      live "/:store_slug/blog", BlogListLive
+      live "/:store_slug/blog/:post_slug", BlogPostLive
+      live "/:store_slug/recipes", RecipeListLive
+      live "/:store_slug/recipes/:recipe_slug", RecipeLive
+      live "/:store_slug/account", AccountLive
+      live "/:store_slug/account/downloads", AccountDownloadsLive
+      live "/:store_slug/account/messages", CustomerMessagesLive
+      live "/:store_slug/saved-stores", SavedStoresLive
+      live "/:store_slug/wishlist", WishlistLive
+      live "/:store_slug/track/:order_number", TrackingLive
+      live "/:store_slug/p/:page_slug", PageLive
+    end
+  end
+
+  # Customer auth + session for the short store URLs. Same surface as the
+  # /s/:store_slug scopes above — found missing by a production smoke test:
+  # checkout redirects a guest to store_path(slug, "/login"), which on the
+  # short dialect is /:slug/login, and that 404ed with a paid cart behind it.
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/:store_slug/auth/customer-session", CustomerSessionController, :create
+
+    live_session :storefront_auth_short,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
+        {EmakolaWeb.Hooks.ResolveStore, :short},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/:store_slug/login", CustomerLoginLive
+      live "/:store_slug/register", CustomerRegisterLive
+      live "/:store_slug/whatsapp", CustomerWhatsAppLive
+    end
+  end
+
+  scope "/", EmakolaWeb.Storefront, host: @apex_hosts do
+    pipe_through :browser
+    delete "/:store_slug/auth/customer-session", CustomerSessionController, :delete
+    get "/:store_slug/auth/customer-logout", CustomerSessionController, :logout
+    get "/:store_slug/downloads/:id", DownloadController, :show
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

@@ -104,7 +104,9 @@ defmodule Emakola.Themes.Spotlight.Shared do
               <a href={store_path(@store.slug, "/about")} class="hover:text-[#16130F]">About</a>
             </li>
             <li>
-              <a href={store_path(@store.slug, "/track")} class="hover:text-[#16130F]">Track order</a>
+              <a href={store_path(@store.slug, "/account")} class="hover:text-[#16130F]">
+                Track order
+              </a>
             </li>
           </ul>
         </div>

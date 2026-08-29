@@ -508,19 +508,18 @@ defmodule Emakola.Themes.SikaTest do
   # ── product list page ───────────────────────────────────────────
 
   defp list_assigns(store, products, overrides \\ %{}) do
-    Map.merge(
-      %{
-        __changed__: nil,
-        store: store,
-        products: products,
-        categories: [],
-        cart_count: 0,
-        selected_category: nil,
-        search_query: "",
-        has_more: false
-      },
-      overrides
-    )
+    %{
+      __changed__: nil,
+      store: store,
+      products: products,
+      categories: [],
+      cart_count: 0,
+      selected_category: nil,
+      search_query: "",
+      has_more: false
+    }
+    |> Map.merge(overrides)
+    |> Emakola.LiveViewHelpers.with_product_stream()
   end
 
   describe "product list page" do

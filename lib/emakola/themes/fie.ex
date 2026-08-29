@@ -130,9 +130,6 @@ defmodule Emakola.Themes.Fie do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Fie.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
-  @impl true
   def storefront_nav(assigns) do
     Emakola.Themes.Fie.Shared.fie_nav(%{
       __changed__: nil,
@@ -151,4 +148,19 @@ defmodule Emakola.Themes.Fie do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Fie.Shared.fie_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Fie's bar speaks
+  # :home | :search | :none.
+  defp bottom_nav_active(:search), do: :search
+  defp bottom_nav_active(_), do: :none
 end

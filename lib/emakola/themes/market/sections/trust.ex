@@ -40,19 +40,19 @@ defmodule Emakola.Themes.Market.Sections.Trust do
 
     ~H"""
     <section class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8" aria-labelledby="market-trust-heading">
-      <div class="mx-auto max-w-[1280px] rounded-[20px] border border-stone-200 bg-white p-6 sm:p-8">
+      <div class="mx-auto max-w-[1280px] rounded-[20px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
         <h2
           id="market-trust-heading"
-          class="mb-6 text-center text-lg font-bold tracking-tight text-stone-900"
+          class="mb-5 text-[0.9375rem] font-bold tracking-tight text-stone-900"
         >
           {if @settings["heading"] not in [nil, ""],
             do: @settings["heading"],
             else: "Shop with confidence"}
         </h2>
 
-        <div class="mb-7 grid grid-cols-1 gap-5 text-center sm:grid-cols-3 sm:gap-6">
-          <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-900">
+        <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
+          <div class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-900">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -68,12 +68,14 @@ defmodule Emakola.Themes.Market.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-semibold text-stone-900">Secure checkout</span>
-            <span class="mt-0.5 text-xs text-stone-600">Payments processed securely</span>
+            <span class="flex min-w-0 flex-col">
+              <span class="text-sm font-semibold text-stone-900">Secure checkout</span>
+              <span class="text-xs text-stone-600">Payments processed securely</span>
+            </span>
           </div>
 
-          <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-900">
+          <div class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-900">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -89,17 +91,19 @@ defmodule Emakola.Themes.Market.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-semibold text-stone-900">Delivery &amp; returns</span>
-            <a
-              href={store_path(@store.slug, "/policies#shipping")}
-              class="mt-0.5 rounded text-xs font-medium text-stone-600 underline decoration-stone-300 underline-offset-2 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
-            >
-              See this store's policies
-            </a>
+            <span class="flex min-w-0 flex-col">
+              <span class="text-sm font-semibold text-stone-900">Delivery &amp; returns</span>
+              <a
+                href={store_path(@store.slug, "/policies#shipping")}
+                class="rounded text-xs font-medium text-stone-600 underline decoration-stone-300 underline-offset-2 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
+              >
+                See this store's policies
+              </a>
+            </span>
           </div>
 
-          <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-stone-900">
+          <div class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-900">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -115,27 +119,29 @@ defmodule Emakola.Themes.Market.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-semibold text-stone-900">Questions?</span>
-            <a
-              href={@support_href}
-              {if String.starts_with?(@support_href, "https://"), do: [target: "_blank", rel: "noopener noreferrer"], else: []}
-              class="mt-0.5 rounded text-xs font-medium text-stone-600 underline decoration-stone-300 underline-offset-2 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
-            >
-              {if String.starts_with?(@support_href, "https://"),
-                do: "Chat with the seller on WhatsApp",
-                else: "Contact the shop"}
-            </a>
+            <span class="flex min-w-0 flex-col">
+              <span class="text-sm font-semibold text-stone-900">Questions?</span>
+              <a
+                href={@support_href}
+                {if String.starts_with?(@support_href, "https://"), do: [target: "_blank", rel: "noopener noreferrer"], else: []}
+                class="rounded text-xs font-medium text-stone-600 underline decoration-stone-300 underline-offset-2 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
+              >
+                {if String.starts_with?(@support_href, "https://"),
+                  do: "Chat with the seller on WhatsApp",
+                  else: "Contact the shop"}
+              </a>
+            </span>
           </div>
         </div>
 
-        <div class="border-t border-stone-200 pt-6">
-          <p class="mb-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
             We Accept
           </p>
-          <ul class="flex flex-wrap items-center justify-center gap-2" aria-label="Payment methods">
+          <ul class="flex flex-wrap items-center gap-2" aria-label="Payment methods">
             <li
               :for={rail <- ["MTN MoMo", "Telecel Cash", "AirtelTigo Money", "Visa", "Mastercard"]}
-              class="inline-flex items-center rounded border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-bold tracking-wide text-stone-800"
+              class="inline-flex items-center rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-bold tracking-wide text-stone-800"
             >
               {rail}
             </li>

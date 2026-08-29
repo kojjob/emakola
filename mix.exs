@@ -33,7 +33,7 @@ defmodule Emakola.MixProject do
   def application do
     [
       mod: {Emakola.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:crypto, :logger, :runtime_tools]
     ]
   end
 
@@ -86,7 +86,7 @@ defmodule Emakola.MixProject do
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
-      {:ash_authentication, "~> 4.0"},
+      {:ash_authentication, "~> 4.14"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_json_api, "~> 1.4"},
       {:open_api_spex, "~> 3.16"},
@@ -111,6 +111,7 @@ defmodule Emakola.MixProject do
 
       # S3-compatible file storage
       {:ex_aws, "~> 2.5"},
+      {:vix, "~> 0.41"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
 
@@ -159,9 +160,11 @@ defmodule Emakola.MixProject do
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
-        "format",
+        "format --check-formatted",
+        "credo --strict",
         "deps.audit",
-        "test"
+        "sobelow --config",
+        "test --warnings-as-errors --cover"
       ]
     ]
   end

@@ -109,8 +109,6 @@ defmodule Emakola.Themes.Bold do
     to: Emakola.Themes.Bold.ProductDetail,
     as: :render
 
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   def storefront_nav(assigns) do
     Emakola.Themes.Bold.Shared.bold_nav(%{
       __changed__: nil,

@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { waitForLiveView } from "../support/live-view";
 
 const STORE = "/s/kente-kingdom";
 
 test.describe("Cart & Checkout Flow", () => {
   test("add product to cart and see flash confirmation", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
 
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
@@ -15,7 +16,7 @@ test.describe("Cart & Checkout Flow", () => {
 
   test("cart page shows added product with order summary", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
       timeout: 10_000,
@@ -32,7 +33,7 @@ test.describe("Cart & Checkout Flow", () => {
 
   test("checkout page loads with form and payment options", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
       timeout: 10_000,
@@ -41,11 +42,23 @@ test.describe("Cart & Checkout Flow", () => {
     await page.goto(`${STORE}/checkout`);
     await page.waitForLoadState("networkidle");
 
+    // One step at a time: contact first, and the later steps only once their
+    // predecessor is answered.
     await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("heading", { name: "Shipping Address" })).toBeVisible();
     await expect(page.locator("#phone")).toBeVisible();
     await expect(page.locator("#fullname")).toBeVisible();
+    await expect(page.locator("#address")).toHaveCount(0);
+
+    await page.locator("#phone").fill("0244123456");
+    await page.locator("#fullname").fill("QA Shopper");
+    await page.getByRole("button", { name: /Continue to delivery/i }).click();
+
+    await expect(page.getByRole("heading", { name: "Shipping Address" })).toBeVisible();
     await expect(page.locator("#address")).toBeVisible();
+
+    await page.locator("#address").fill("12 Step Street, Osu");
+    await page.getByRole("button", { name: /Continue to payment/i }).click();
+
     await expect(page.getByRole("button", { name: /Place Order/i })).toBeVisible();
   });
 

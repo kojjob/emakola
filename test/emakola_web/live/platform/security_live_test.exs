@@ -31,6 +31,16 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
 
       assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform/security")
     end
+
+    # The count existed only as a data-count attribute for tests to read; the
+    # person looking at their own sessions never saw it.
+    test "how many devices are signed in is shown, not just stamped for tests", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, "/platform/security")
+
+      assert has_element?(view, "#platform-security-session-count", "1 device")
+    end
   end
 
   describe "disconnected mount" do
@@ -64,10 +74,10 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       {:ok, view, _html} = live(conn, "/platform/security")
       view |> element("#rotate-totp") |> render_click()
 
-      html = submit_verify(view, "000000")
+      submit_verify(view, "000000")
 
-      assert html =~ "Invalid code"
-      refute html =~ "totp-rotate-confirm-form"
+      assert has_element?(view, "[role='alert']", "Invalid code")
+      refute has_element?(view, "#totp-rotate-confirm-form")
       assert reload_user!(user).totp_secret == secret
     end
 
@@ -78,11 +88,11 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       {:ok, view, _html} = live(conn, "/platform/security")
       view |> element("#rotate-totp") |> render_click()
 
-      html = submit_verify(view, NimbleTOTP.verification_code(secret))
+      submit_verify(view, NimbleTOTP.verification_code(secret))
 
-      assert html =~ "totp-rotate-confirm-form"
-      assert html =~ "<svg"
-      assert [base32] = extract_manual_secret(html)
+      assert has_element?(view, "#totp-rotate-confirm-form")
+      assert has_element?(view, "svg")
+      assert [base32] = extract_manual_secret(view)
       new_secret = Base.decode32!(base32, padding: false)
       assert new_secret != secret
       # Nothing persisted yet — confirmation pending
@@ -97,14 +107,14 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       {:ok, view, _html} = live(conn, "/platform/security")
       view |> element("#rotate-totp") |> render_click()
 
-      html = submit_verify(view, NimbleTOTP.verification_code(secret))
-      [base32] = extract_manual_secret(html)
+      submit_verify(view, NimbleTOTP.verification_code(secret))
+      [base32] = extract_manual_secret(view)
       new_secret = Base.decode32!(base32, padding: false)
 
-      html = submit_confirm(view, NimbleTOTP.verification_code(new_secret))
+      submit_confirm(view, NimbleTOTP.verification_code(new_secret))
 
-      assert html =~ "Two-factor authentication is enabled"
-      refute html =~ "totp-rotate-confirm-form"
+      assert has_element?(view, "span", "Two-factor authentication is enabled")
+      refute has_element?(view, "#totp-rotate-confirm-form")
 
       reloaded = reload_user!(user)
       assert reloaded.totp_secret == new_secret
@@ -122,10 +132,10 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       view |> element("#rotate-totp") |> render_click()
       submit_verify(view, NimbleTOTP.verification_code(secret))
 
-      html = submit_confirm(view, "000000")
+      submit_confirm(view, "000000")
 
-      assert html =~ "Invalid code"
-      assert html =~ "totp-rotate-confirm-form"
+      assert has_element?(view, "[role='alert']", "Invalid code")
+      assert has_element?(view, "#totp-rotate-confirm-form")
       assert reload_user!(user).totp_secret == secret
     end
 
@@ -140,12 +150,13 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       ensure_rate_window_headroom()
 
       for _ <- 1..5 do
-        assert submit_verify(view, "000000") =~ "Invalid code"
+        submit_verify(view, "000000")
+        assert has_element?(view, "[role='alert']", "Invalid code")
       end
 
-      html = submit_verify(view, "000000")
-      refute html =~ "Invalid code"
-      assert html =~ "Too many attempts"
+      submit_verify(view, "000000")
+      refute has_element?(view, "[role='alert']", "Invalid code")
+      assert has_element?(view, "[role='alert']", "Too many attempts")
     end
 
     test "a verified current code cannot start a second rotation (replay)",
@@ -157,16 +168,17 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       {:ok, view, _html} = live(conn, "/platform/security")
       view |> element("#rotate-totp") |> render_click()
 
-      assert submit_verify(view, code) =~ "totp-rotate-confirm-form"
+      submit_verify(view, code)
+      assert has_element?(view, "#totp-rotate-confirm-form")
 
       # Abandon and retry with the SAME code — it was consumed on verify
       view |> element("#cancel-rotation") |> render_click()
       view |> element("#rotate-totp") |> render_click()
 
-      html = submit_verify(view, code)
+      submit_verify(view, code)
 
-      assert html =~ "Invalid code"
-      refute html =~ "totp-rotate-confirm-form"
+      assert has_element?(view, "[role='alert']", "Invalid code")
+      refute has_element?(view, "#totp-rotate-confirm-form")
     end
   end
 
@@ -183,11 +195,16 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       intruder = Factory.create_platform_owner!()
       Factory.create_user_session!(intruder, %{ip: "203.0.113.9"})
 
-      {:ok, _view, html} = live(conn, "/platform/security")
+      {:ok, view, html} = live(conn, "/platform/security")
 
       assert html =~ "10.0.0.5"
       assert html =~ "Mac"
       refute html =~ "203.0.113.9"
+
+      assert has_element?(
+               view,
+               "#platform-security-sessions[phx-update='stream'][data-count='2']"
+             )
     end
 
     test "the current session is badged", %{conn: conn} do
@@ -212,6 +229,7 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       html = view |> element("#revoke-session-#{other.id}") |> render_click()
 
       refute html =~ "session-#{other.id}"
+      assert has_element?(view, "#platform-security-sessions[data-count='1']")
       assert %DateTime{} = reload_session!(other).revoked_at
       assert_receive %Phoenix.Socket.Broadcast{event: "disconnect"}
 
@@ -268,8 +286,11 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
     view |> form("#totp-rotate-confirm-form", totp: %{code: code}) |> render_submit()
   end
 
-  defp extract_manual_secret(html) do
-    Regex.run(~r/id="totp-manual-secret"[^>]*>\s*([A-Z2-7]+)\s*</, html, capture: :all_but_first)
+  defp extract_manual_secret(view) do
+    view
+    |> element("#totp-manual-secret")
+    |> render()
+    |> then(&Regex.run(~r/>\s*([A-Z2-7]+)\s*</, &1, capture: :all_but_first))
   end
 
   # Enrol TOTP, then backdate totp_last_used_at: setup_totp marks the

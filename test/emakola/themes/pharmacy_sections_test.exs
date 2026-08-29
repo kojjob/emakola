@@ -114,8 +114,8 @@ defmodule Emakola.Themes.PharmacySectionsTest do
         render_home(store, %{"stats" => %{"items" => @stat_items}, "trust" => @merchant_trust})
 
       # Hero — the page's single h1
-      assert html =~ "Pharmacy you can trust"
-      assert html =~ "Professional Pharmacy Services You Can Trust"
+      assert html =~ "Here to help"
+      assert html =~ "Everything you need, in one place"
       assert length(String.split(html, "<h1")) == 2
 
       # Stats strip (renders only because the fixture supplies real numbers)
@@ -151,7 +151,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # -> grid -> trust -> newsletter
       assert String.match?(
                html,
-               ~r/Pharmacy you can trust.*Your Trusted Healthcare Service.*From our shelves.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
+               ~r/Here to help.*Your Trusted Healthcare Service.*From our shelves.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
              )
     end
 
@@ -207,7 +207,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       refute html =~ "From our shelves"
       refute html =~ "Shop now"
       # Hero, trust, newsletter and the chrome still stand
-      assert html =~ "Professional Pharmacy Services You Can Trust"
+      assert html =~ "Everything you need, in one place"
       assert html =~ "Registered with the Pharmacy Council"
       assert html =~ "Stay healthy, stay informed"
     end
@@ -280,7 +280,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
         )
 
       assert html =~ "Your neighbourhood chemist"
-      refute html =~ "Professional Pharmacy Services You Can Trust"
+      refute html =~ "Everything you need, in one place"
       assert html =~ "By the numbers"
       assert html =~ "In demand this week"
       assert html =~ "Regulated and registered"
@@ -298,7 +298,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       assert String.match?(
                html,
-               ~r/Registered with the Pharmacy Council.*Pharmacy you can trust.*From our shelves/s
+               ~r/Registered with the Pharmacy Council.*Here to help.*From our shelves/s
              )
 
       refute html =~ "Stay healthy, stay informed"

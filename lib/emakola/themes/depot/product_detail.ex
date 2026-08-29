@@ -57,7 +57,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-10">
           <%!-- Image column — placeholder-first, finished without a photo --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="relative aspect-square overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
+            <div class="relative aspect-[4/5] overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
               <div
                 class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200"
                 aria-hidden="true"
@@ -111,6 +111,8 @@ defmodule Emakola.Themes.Depot.ProductDetail do
             <h1 class="mt-1.5 text-2xl font-bold leading-tight tracking-tight text-zinc-900 [font-family:var(--dt-heading-font,inherit)] sm:text-3xl">
               {@product.title}
             </h1>
+
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
 
             <div class="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
               <p class="text-2xl font-bold tabular-nums text-zinc-900 sm:text-[1.75rem]">
@@ -376,6 +378,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
       reviews={assigns[:reviews] || []}
       can_review={assigns[:can_review] || false}
       already_reviewed={assigns[:already_reviewed] || false}
+      review_form={assigns[:review_form]}
       review_form_rating={assigns[:review_form_rating] || 0}
       review_form_title={assigns[:review_form_title] || ""}
       review_form_body={assigns[:review_form_body] || ""}

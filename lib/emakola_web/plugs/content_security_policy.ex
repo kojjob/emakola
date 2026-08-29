@@ -79,6 +79,10 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
       "style-src-attr 'unsafe-inline'",
       "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
+      # blob: is required by the /how-it-works/tour scrub engine, which fetches
+      # each clip and plays it from an in-memory object URL (always-seekable).
+      # Only same-origin scripts (nonce-locked above) can mint blob URLs.
+      "media-src 'self' blob:",
       "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
       "connect-src 'self' wss: ws:",
       "frame-ancestors 'none'",

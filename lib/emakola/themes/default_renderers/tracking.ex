@@ -19,6 +19,7 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -64,6 +65,14 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
           <% else %>
             <.status_hero status={@order.status} />
           <% end %>
+
+          <%!-- BUYER PROTECTION STRIP (any viewer, when a hold exists) --%>
+          <.protection_strip
+            :if={@protection_hold}
+            hold={@protection_hold}
+            buyer_authorized?={@buyer_authorized?}
+            complaint_form_open={@complaint_form_open}
+          />
 
           <%!-- STATUS TIMELINE --%>
           <div class="bg-white rounded-2xl border border-stone-200 p-5">
@@ -151,102 +160,64 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
             </div>
           </div>
 
-          <%!-- MAP PLACEHOLDER (only when shipped) --%>
+          <%!-- What we actually know once an order ships: that it shipped,
+                and the courier reference the merchant recorded — if they
+                recorded one.
+
+                This replaced an SVG that drew a dashed route, a destination
+                pin and a labelled "Rider" marker at a fixed position, under
+                aria-label="Map showing delivery route". No location data
+                exists anywhere in this system, so every part of that picture
+                was invented — and the aria-label asserted it to exactly the
+                users least able to check. Live rider location would need a
+                rider identity, a reporting channel, a map provider and a
+                privacy decision about tracking a person. --%>
           <div
             :if={@order.status == :shipped}
-            class="bg-white rounded-2xl border border-stone-200 overflow-hidden"
+            class="bg-white rounded-2xl border border-stone-200 p-5"
           >
-            <div class="relative bg-stone-100 h-48">
-              <svg
-                class="w-full h-full"
-                viewBox="0 0 400 200"
-                aria-label="Map showing delivery route"
-              >
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path
-                      d="M 40 0 L 0 0 0 40"
-                      fill="none"
-                      stroke="#E7E5E4"
-                      stroke-width="0.5"
-                    />
-                  </pattern>
-                </defs>
-                <rect width="400" height="200" fill="#F5F5F4" />
-                <rect width="400" height="200" fill="url(#grid)" />
-                <line
-                  x1="0"
-                  y1="100"
-                  x2="400"
-                  y2="100"
-                  stroke="#D6D3D1"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                />
-                <line
-                  x1="200"
-                  y1="0"
-                  x2="200"
-                  y2="200"
-                  stroke="#D6D3D1"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M140 120 C180 110 220 90 300 80"
-                  fill="none"
-                  stroke="var(--theme-primary, #B45309)"
-                  stroke-width="3"
-                  stroke-dasharray="6 4"
-                  stroke-linecap="round"
-                />
-                <g transform="translate(300, 80)">
-                  <circle cx="0" cy="0" r="10" fill="var(--theme-primary, #B45309)" opacity="0.15" />
-                  <circle cx="0" cy="0" r="5" fill="var(--theme-primary, #B45309)" opacity="0.3" />
-                  <circle cx="0" cy="-12" r="8" fill="#F43F5E" />
-                  <circle cx="0" cy="-12" r="3" fill="white" />
-                  <path d="M0 -4 L0 0" stroke="#F43F5E" stroke-width="2" />
-                </g>
-                <g transform="translate(140, 120)">
-                  <circle cx="0" cy="0" r="12" fill="var(--theme-primary, #B45309)" opacity="0.15" />
-                  <circle cx="0" cy="0" r="6" fill="var(--theme-primary, #B45309)" />
-                  <circle cx="0" cy="0" r="2.5" fill="white" />
-                </g>
-                <text
-                  x="140"
-                  y="145"
-                  fill="var(--theme-primary, #B45309)"
-                  font-size="9"
-                  font-family="Inter, sans-serif"
-                  font-weight="600"
-                  text-anchor="middle"
-                >
-                  Rider
-                </text>
-                <text
-                  x="300"
-                  y="60"
-                  fill="#F43F5E"
-                  font-size="9"
-                  font-family="Inter, sans-serif"
-                  font-weight="600"
-                  text-anchor="middle"
-                >
-                  Drop-off
-                </text>
-              </svg>
-
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 to-transparent px-4 py-3">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 bg-store-accent rounded-full animate-pulse"></span>
-                    <p class="text-sm font-semibold text-cta-dark">
-                      Your order is on the way
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 bg-store-accent rounded-full animate-pulse"></span>
+              <p class="text-sm font-semibold text-cta-dark">Your order is on the way</p>
             </div>
+
+            <div :if={@order.tracking_number} class="mt-4 border-t border-stone-100 pt-4">
+              <p class="text-xs text-stone-500">
+                {Emakola.Shipping.Couriers.label(@order.courier)} tracking number
+              </p>
+
+              <%!-- Linked only when the courier has a VERIFIED public tracking
+                    URL. A guessed link lands the buyer on someone else's 404
+                    and reads as the shop's mistake, so an unknown courier
+                    renders the reference as plain text instead. --%>
+              <a
+                :if={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                href={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-1 inline-block font-mono text-base font-semibold text-cta-dark underline break-all"
+              >
+                {@order.tracking_number}
+              </a>
+              <p
+                :if={
+                  is_nil(
+                    Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)
+                  )
+                }
+                class="mt-1 font-mono text-base font-semibold text-cta-dark break-all"
+              >
+                {@order.tracking_number}
+              </p>
+
+              <p class="mt-1 text-xs text-stone-500">
+                Quote this to the courier if you need to ask about your delivery.
+              </p>
+            </div>
+
+            <p :if={is_nil(@order.tracking_number)} class="mt-3 text-sm text-stone-500">
+              The seller has not added a courier tracking number for this order.
+            </p>
           </div>
 
           <%!-- ORDER SUMMARY (Collapsible) --%>
@@ -327,6 +298,7 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
         <%!-- FOOTER --%>
         <Emakola.Themes.DefaultRenderers.Chrome.footer
           theme_module={assigns[:theme_module]}
+          theme={assigns[:theme] || %{}}
           store={@store}
           categories={@categories}
         />
@@ -488,6 +460,118 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
     </div>
     """
   end
+
+  # Renders for ANY viewer once a hold exists (held/frozen/released/refunded)
+  # — the buyer/report controls render ONLY when `buyer_authorized?` (TC-2:
+  # a bare tracking URL must never move money; only the signed link does).
+  attr :hold, :map, required: true
+  attr :buyer_authorized?, :boolean, required: true
+  attr :complaint_form_open, :boolean, required: true
+
+  defp protection_strip(assigns) do
+    ~H"""
+    <div class="bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="flex items-start gap-3">
+        <span class="text-xl" aria-hidden="true">🛡️</span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold text-cta-dark">Makola Buyer Protection</h2>
+          <p class="text-sm text-stone-600 mt-1">{protection_status_copy(@hold)}</p>
+        </div>
+      </div>
+
+      <div
+        :if={@buyer_authorized? and @hold.status == :held and is_nil(@hold.frozen_at)}
+        class="mt-4 flex flex-col gap-2"
+      >
+        <button
+          phx-click="confirm_received"
+          class="w-full px-4 py-2.5 bg-store-accent hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity"
+        >
+          I received my order
+        </button>
+        <button
+          phx-click="open_complaint"
+          class="w-full px-4 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-700 rounded-xl text-sm font-semibold transition-colors"
+        >
+          Report a problem
+        </button>
+      </div>
+
+      <form
+        :if={@buyer_authorized? and @complaint_form_open}
+        phx-submit="file_complaint"
+        class="mt-4 space-y-3 border-t border-stone-100 pt-4"
+      >
+        <div>
+          <label
+            class="text-xs font-semibold text-stone-500 uppercase tracking-wide"
+            for="complaint_reason"
+          >
+            What went wrong?
+          </label>
+          <select
+            id="complaint_reason"
+            name="reason"
+            class="mt-1 w-full rounded-lg border border-stone-300 text-sm px-3 py-2"
+          >
+            <option value="not_received">I never received it</option>
+            <option value="not_as_described">Not as described</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div>
+          <label
+            class="text-xs font-semibold text-stone-500 uppercase tracking-wide"
+            for="complaint_text"
+          >
+            Details
+          </label>
+          <textarea
+            id="complaint_text"
+            name="text"
+            rows="3"
+            class="mt-1 w-full rounded-lg border border-stone-300 text-sm px-3 py-2"
+            placeholder="Tell us what happened"
+          ></textarea>
+        </div>
+        <button
+          type="submit"
+          class="w-full px-4 py-2.5 bg-cta-dark hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity"
+        >
+          Submit complaint
+        </button>
+      </form>
+    </div>
+    """
+  end
+
+  defp protection_status_copy(%{status: :held, frozen_at: frozen_at})
+       when not is_nil(frozen_at) do
+    "Complaint under review — the payment stays held while we look into it."
+  end
+
+  defp protection_status_copy(%{status: :held, release_after: release_after})
+       when not is_nil(release_after) do
+    "Payment held until #{format_date(release_after)}, or as soon as you confirm delivery."
+  end
+
+  defp protection_status_copy(%{status: :held}) do
+    "Payment held until you confirm delivery."
+  end
+
+  defp protection_status_copy(%{status: :released, release_reason: :buyer_confirmed}) do
+    "Payment released to the seller — thanks for confirming."
+  end
+
+  defp protection_status_copy(%{status: :released}) do
+    "Payment released to the seller."
+  end
+
+  defp protection_status_copy(%{status: :refunded}) do
+    "This order was refunded and the protection hold closed."
+  end
+
+  defp format_date(datetime), do: Calendar.strftime(datetime, "%b %d, %Y")
 
   # -- Helpers --
 

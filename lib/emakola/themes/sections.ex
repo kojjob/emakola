@@ -38,7 +38,10 @@ defmodule Emakola.Themes.Sections do
     # Born sectionized (2026-07-25). Heirloom's nav is chrome rather than part
     # of its hero, so a missed registration here costs it its sections but not
     # its navigation — still a blank page, just a navigable one.
-    Emakola.Themes.Heirloom
+    Emakola.Themes.Heirloom,
+    # Digital goods (2026-08-04) — registered in the SAME commit as
+    # ThemeResolver, so the blank-storefront window never opens.
+    Emakola.Themes.Adwuma
   ]
 
   @doc """

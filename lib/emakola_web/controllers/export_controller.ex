@@ -8,6 +8,8 @@ defmodule EmakolaWeb.ExportController do
   """
   use EmakolaWeb, :controller
 
+  require Logger
+
   @doc """
   Generates and sends a PDF analytics report for the authenticated
   merchant's store.
@@ -33,8 +35,10 @@ defmodule EmakolaWeb.ExportController do
           |> send_resp(200, pdf_binary)
 
         {:error, reason} ->
+          Logger.error("[Export] PDF report generation failed: #{inspect(reason)}")
+
           conn
-          |> put_flash(:error, "Failed to generate PDF report: #{inspect(reason)}")
+          |> put_flash(:error, "We couldn't generate that PDF report. Please try again.")
           |> redirect(to: "/admin/reports")
       end
     else

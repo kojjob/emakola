@@ -29,11 +29,13 @@ import ScrollReveal, {bindScrollReveal} from "./hooks/scroll_reveal"
 import AutoDismiss from "./hooks/auto_dismiss"
 import ThemeSettings from "./hooks/theme_settings"
 import ScrollGlass, {bindScrollGlass} from "./hooks/scroll_glass"
+import QueueKeys from "./hooks/queue_keys"
 import AddToBag from "./hooks/add_to_bag"
 import AtelierNavScroll from "./hooks/atelier_nav_scroll"
 import ChartHook from "./hooks/chart_hook"
 import UnsavedChanges from "./hooks/unsaved_changes"
 import SectionSortable from "./hooks/section_sortable"
+import QRScanner from "./hooks/qr_scanner"
 
 // Scroll effects on dead pages (e.g. the landing page) and on the shared
 // marketing nav: bind by data attribute since phx-hook needs a LiveView.
@@ -55,28 +57,13 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable},
+  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable, QueueKeys, QRScanner},
 })
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
-
-// Sidebar collapse toggle with localStorage persistence
-window.addEventListener("toggle-sidebar", () => {
-  const shell = document.getElementById("admin-shell")
-  if (shell) {
-    shell.classList.toggle("collapsed")
-    localStorage.setItem("sidebar-collapsed", shell.classList.contains("collapsed"))
-  }
-})
-
-// Restore sidebar state on page load
-if (localStorage.getItem("sidebar-collapsed") === "true") {
-  const shell = document.getElementById("admin-shell")
-  if (shell) shell.classList.add("collapsed")
-}
 
 // Password visibility toggle (used by auth forms via JS.dispatch)
 window.addEventListener("toggle-password", (e) => {
@@ -90,6 +77,24 @@ window.addEventListener("toggle-password", (e) => {
     if (icon) icon.textContent = "visibility"
   }
 })
+
+// Copy-to-clipboard: buttons dispatch this event with `detail: {text}` instead
+// of a server round-trip (JS.dispatch("copy-to-clipboard", detail: %{text: ...})),
+// used by the storefront share strip and the admin pay-links page. The event
+// bubbles from whichever button dispatched it, so one window listener covers
+// every caller.
+window.addEventListener("copy-to-clipboard", (e) => {
+  const text = e.detail && e.detail.text
+  if (text && navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+  }
+})
+
+// Printing a QR sign. Inline onclick handlers are blocked by our CSP
+// (script-src has no 'unsafe-inline'), so the button dispatches and this
+// listener prints — same shape as copy-to-clipboard above. What lands on the
+// paper is decided by the page's print: utilities, not by this handler.
+window.addEventListener("makola:print", () => window.print())
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
@@ -106,8 +111,9 @@ window.addEventListener("phx:close-modal", (e) => {
   if (el) liveSocket.execJS(el, el.getAttribute("phx-remove"))
 })
 
-// Register service worker for PWA
-if ("serviceWorker" in navigator) {
+// Register service worker for PWA. Never in dev: its cache-first asset
+// strategy serves stale CSS/JS over every live change.
+if ("serviceWorker" in navigator && process.env.NODE_ENV !== "development") {
   navigator.serviceWorker.register("/sw.js").catch(() => {})
 }
 
@@ -146,3 +152,98 @@ if (process.env.NODE_ENV === "development") {
   })
 }
 
+
+// Merchant and platform sidebars, persisted in localStorage.
+//
+// This lives here rather than in an inline <script> in app.html.heex because
+// the CSP sets `script-src 'self' 'nonce-…'` with no 'unsafe-inline': an
+// un-nonced inline block is blocked outright, and an `onclick="…"` attribute
+// is blocked even *with* a nonce (nonces don't cover event-handler
+// attributes). Bundled assets are served from 'self', so they just work.
+const sidebarConfigs = [
+  {
+    shellId: "admin-shell",
+    storageKey: "sidebar-collapsed",
+    toggleSelector: "[data-toggle-sidebar]",
+  },
+  {
+    shellId: "platform-shell",
+    storageKey: "platform-sidebar-collapsed",
+    toggleSelector: "[data-toggle-platform-sidebar]",
+  },
+]
+
+function storedSidebarValue(key) {
+  try {
+    return localStorage.getItem(key)
+  } catch (_error) {
+    return null
+  }
+}
+
+function persistSidebarValue(key, collapsed) {
+  try {
+    localStorage.setItem(key, String(collapsed))
+  } catch (_error) {
+    // Storage may be unavailable in a hardened/private browser context. The
+    // control should still work for the current page without a console error.
+  }
+}
+
+function applySidebarState(config, collapsed) {
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  shell.classList.toggle("collapsed", collapsed)
+  document.querySelectorAll(config.toggleSelector).forEach(toggle => {
+    toggle.setAttribute("aria-expanded", String(!collapsed))
+  })
+}
+
+function applyStoredSidebarStates() {
+  sidebarConfigs.forEach(config => {
+    applySidebarState(config, storedSidebarValue(config.storageKey) === "true")
+  })
+}
+
+document.addEventListener("click", e => {
+  if (!(e.target instanceof Element)) return
+
+  const config = sidebarConfigs.find(item => e.target.closest(item.toggleSelector))
+  if (!config) return
+
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  const collapsed = !shell.classList.contains("collapsed")
+  applySidebarState(config, collapsed)
+  persistSidebarValue(config.storageKey, collapsed)
+})
+
+// Backwards compatibility for any server-rendered JS.dispatch("toggle-sidebar")
+// caller while click delegation remains the primary path.
+window.addEventListener("toggle-sidebar", () => {
+  const config = sidebarConfigs[0]
+  const shell = document.getElementById(config.shellId)
+  if (!shell) return
+
+  const collapsed = !shell.classList.contains("collapsed")
+  applySidebarState(config, collapsed)
+  persistSidebarValue(config.storageKey, collapsed)
+})
+
+applyStoredSidebarStates()
+// Re-apply after LiveView navigations, which can re-render either shell.
+window.addEventListener("phx:page-loading-stop", applyStoredSidebarStates)
+
+// ⌘K / Ctrl+K focuses the admin topbar search (marked data-global-search).
+window.addEventListener("keydown", e => {
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"){
+    const search = document.querySelector("[data-global-search]")
+    if(search){
+      e.preventDefault()
+      search.focus()
+      search.select()
+    }
+  }
+})

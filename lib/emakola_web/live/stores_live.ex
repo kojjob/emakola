@@ -10,6 +10,7 @@ defmodule EmakolaWeb.StoresLive do
 
   require Logger
 
+  alias Emakola.Stores.Directory
   alias Emakola.Stores.Store
   alias EmakolaWeb.Plugs.RecentlyViewedStores
   alias EmakolaWeb.SEO.Canonical
@@ -24,6 +25,18 @@ defmodule EmakolaWeb.StoresLive do
     favorite_slugs = load_favorite_slugs(customer)
     recently_viewed_slugs = load_recently_viewed_slugs(session)
 
+    # The worker-ranked spotlight is the preferred source; until the nightly
+    # run has ever executed it is empty, and the staff-featured list carries
+    # the page exactly as before. Both rotate daily on the date seed.
+    spotlight_pool =
+      case load_slot(:list_spotlight) do
+        [] -> load_featured()
+        ranked -> ranked
+      end
+
+    featured_stores = Directory.spotlight(spotlight_pool, Date.utc_today())
+    {hero, tiles} = split_spotlight(featured_stores)
+
     socket =
       socket
       |> assign(
@@ -33,7 +46,6 @@ defmodule EmakolaWeb.StoresLive do
         canonical_url: Canonical.url("/stores"),
         og_image: url(~p"/images/og-image.png"),
         json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
-        preload_image: "/images/landing/store-fruit.jpg",
         active_theme: "all",
         active_region: "",
         active_sort: "featured",
@@ -45,9 +57,12 @@ defmodule EmakolaWeb.StoresLive do
         has_more: true,
         stores_empty?: true,
         map_stores: [],
-        total_active: count_active_stores(),
-        featured_stores: load_featured(),
-        recent_stores: load_recent(),
+        featured_stores: featured_stores,
+        spotlight_hero: hero,
+        spotlight_tiles: tiles,
+        # The hero photo is the page's LCP — preload it, not a static asset.
+        preload_image: hero && card_image_url(hero),
+        rails: Directory.rails(),
         current_customer: customer,
         favorite_slugs: favorite_slugs,
         favorite_stores: load_stores_by_slug(favorite_slugs),
@@ -174,37 +189,34 @@ defmodule EmakolaWeb.StoresLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="stores-page" class="min-h-screen overflow-x-clip bg-[#f7f6f1] text-[#132219]">
-      <LandingComponents.landing_nav />
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div id="stores-page" class="min-h-screen overflow-x-clip bg-[#f7f6f1] text-[#132219]">
+        <LandingComponents.landing_nav />
 
-      <main class="pt-16">
-        <section id="stores-hero" class="stores-hero relative overflow-hidden bg-[#0c1f17]">
-          <div class="absolute inset-0 stores-market-grid opacity-25"></div>
-          <div class="absolute -left-32 top-10 size-80 rounded-full bg-emerald-400/10 blur-3xl"></div>
-          <div class="absolute -right-24 bottom-0 size-72 rounded-full bg-[#d4a843]/15 blur-3xl">
-          </div>
+        <main class="pt-16">
+          <section id="stores-hero" class="stores-hero relative overflow-hidden bg-[#0c1f17]">
+            <div class="absolute -right-36 -top-40 size-[28rem] rounded-full bg-[#d4a843]/15 blur-3xl">
+            </div>
+            <div class="absolute -left-32 -bottom-44 size-[30rem] rounded-full bg-emerald-400/10 blur-3xl">
+            </div>
 
-          <div class="relative mx-auto grid min-w-0 max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:gap-16 lg:px-8 lg:py-24">
-            <div class="stores-rise min-w-0 max-w-2xl">
-              <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e4bd63]">
-                <.icon name="hero-building-storefront" class="size-4" /> Ghana's online market
-              </p>
-
-              <h1 class="font-headline text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl lg:text-7xl">
-                Find a shop worth <span class="text-[#e4bd63]">coming back to.</span>
-              </h1>
-
-              <p class="mt-6 max-w-xl text-base leading-7 text-[#b9c8bf] sm:text-lg">
-                Browse independent shops across Ghana, discover what they sell, and pay
-                with the methods you already use.
-              </p>
+            <div class="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+              <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+                <h1 class="stores-rise font-headline text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+                  Find a shop worth<br />
+                  <span class="text-[#e4bd63]">coming back to.</span>
+                </h1>
+                <p class="max-w-sm text-base leading-7 text-[#b9c8bf] sm:text-lg">
+                  Independent shops across Ghana. Pay with the methods you already use.
+                </p>
+              </div>
 
               <.form
                 for={@search_form}
                 id="stores-search-form"
                 phx-change="update_search"
                 phx-submit="update_search"
-                class="mt-8 max-w-xl"
+                class="mt-8 max-w-2xl"
               >
                 <div class="relative [&_.fieldset]:mb-0">
                   <.icon
@@ -229,292 +241,241 @@ defmodule EmakolaWeb.StoresLive do
                   </button>
                 </div>
               </.form>
-
-              <div class="mt-6 flex max-w-xl flex-wrap gap-x-6 gap-y-3 text-sm text-[#d7e0da]">
-                <span class="flex items-center gap-2 whitespace-nowrap">
-                  <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">
-                    <.icon name="hero-device-phone-mobile" class="size-4" />
-                  </span>
-                  Any phone
-                </span>
-                <span class="flex items-center gap-2 whitespace-nowrap">
-                  <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#d4a843]/10 text-[#e4bd63]">
-                    <.icon name="hero-credit-card" class="size-4" />
-                  </span>
-                  MoMo + card
-                </span>
-                <span class="flex items-center gap-2 whitespace-nowrap">
-                  <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-400/10 text-sky-300">
-                    <.icon name="hero-map-pin" class="size-4" />
-                  </span>
-                  Across Ghana
-                </span>
-              </div>
             </div>
+          </section>
 
-            <div class="stores-rise stores-rise-delay relative mx-auto min-w-0 w-full max-w-xl">
-              <div class="grid h-[330px] min-w-0 grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] grid-rows-2 gap-3 sm:h-[430px] sm:gap-4">
-                <figure class="group row-span-2 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl">
-                  <img
-                    src="/images/landing/store-fruit.jpg"
-                    alt="Fresh produce displayed at a Ghanaian market"
-                    class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    fetchpriority="high"
-                  />
-                </figure>
-                <figure class="group min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 shadow-xl">
-                  <img
-                    src="/images/landing/store-tailor.jpg"
-                    alt="Ghanaian tailor working with patterned fabric"
-                    class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </figure>
-                <figure class="group min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 shadow-xl">
-                  <img
-                    src="/images/landing/store-beauty.jpg"
-                    alt="Beauty merchant arranging products in her shop"
-                    class="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </figure>
-              </div>
+          <StoresComponents.featured_spotlight
+            :if={@spotlight_hero && !filters_active?(assigns)}
+            hero={@spotlight_hero}
+            tiles={@spotlight_tiles}
+          />
 
-              <div class="stores-float absolute -bottom-5 left-4 right-4 flex items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/95 p-4 shadow-2xl backdrop-blur sm:-left-7 sm:right-auto sm:min-w-72">
-                <div class="flex items-center gap-3">
-                  <span class="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                    <.icon name="hero-squares-2x2" class="size-5" />
-                  </span>
-                  <div>
-                    <p class="text-xl font-black leading-none text-[#132219]">{@total_active}</p>
-                    <p class="mt-1 text-xs font-semibold text-slate-500">
-                      active {if @total_active == 1, do: "shop", else: "shops"} to explore
-                    </p>
-                  </div>
+          <section id="main-grid" class="scroll-mt-20 bg-[#f7f6f1]">
+            <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
+                    Explore the market
+                  </p>
+                  <h2 class="mt-2 font-headline text-3xl font-black tracking-tight text-[#132219] sm:text-4xl">
+                    <%= if filters_active?(assigns) do %>
+                      Shops matching your search
+                    <% else %>
+                      Every shop, one place
+                    <% end %>
+                  </h2>
+                  <p class="mt-2 text-sm text-slate-600 sm:text-base">
+                    <span class="font-bold text-[#132219]">{@total_filtered}</span>
+                    {if @total_filtered == 1, do: "shop is", else: "shops are"} ready to browse.
+                  </p>
                 </div>
-                <.icon name="hero-arrow-trending-up" class="size-5 text-[#d4a843]" />
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <StoresComponents.featured_carousel
-          :if={!filters_active?(assigns)}
-          stores={@featured_stores}
-        />
-
-        <section id="main-grid" class="scroll-mt-20 bg-[#f7f6f1]">
-          <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-                  Explore the market
-                </p>
-                <h2 class="mt-2 font-headline text-3xl font-black tracking-tight text-[#132219] sm:text-4xl">
-                  <%= if filters_active?(assigns) do %>
-                    Shops matching your search
-                  <% else %>
-                    Every shop, one place
-                  <% end %>
-                </h2>
-                <p class="mt-2 text-sm text-slate-600 sm:text-base">
-                  <span class="font-bold text-[#132219]">{@total_filtered}</span>
-                  {if @total_filtered == 1, do: "shop is", else: "shops are"} ready to browse.
-                </p>
+                <button
+                  :if={filters_active?(assigns)}
+                  id="stores-clear-filters-top"
+                  type="button"
+                  phx-click="clear_filters"
+                  class="inline-flex w-fit items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-emerald-600 hover:text-emerald-700"
+                >
+                  <.icon name="hero-x-mark" class="size-4" /> Clear filters
+                </button>
               </div>
 
-              <button
-                :if={filters_active?(assigns)}
-                id="stores-clear-filters-top"
-                type="button"
-                phx-click="clear_filters"
-                class="inline-flex w-fit items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-emerald-600 hover:text-emerald-700"
+              <div
+                id="stores-discovery-controls"
+                class="mt-8 rounded-[1.75rem] border border-[#dfe3dc] bg-white p-3 shadow-sm sm:p-5"
               >
-                <.icon name="hero-x-mark" class="size-4" /> Clear filters
-              </button>
-            </div>
+                <div class="-mx-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0">
+                  <StoresComponents.filter_chips
+                    active_theme={@active_theme}
+                    counts={@theme_counts}
+                  />
+                </div>
 
-            <div
-              id="stores-discovery-controls"
-              class="mt-8 rounded-[1.75rem] border border-[#dfe3dc] bg-white p-3 shadow-sm sm:p-5"
-            >
-              <div class="-mx-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0">
-                <StoresComponents.filter_chips
-                  active_theme={@active_theme}
-                  counts={@theme_counts}
+                <div class="mt-3 border-t border-slate-100 pt-4">
+                  <.form
+                    for={@filter_form}
+                    id="stores-filter-form"
+                    phx-change="update_filters"
+                    class="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                  >
+                    <div class="relative [&_.fieldset]:mb-0">
+                      <.icon
+                        name="hero-map-pin"
+                        class="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-500"
+                      />
+                      <.input
+                        field={@filter_form[:region]}
+                        id="stores-region-filter"
+                        type="select"
+                        aria-label="Filter by region"
+                        options={StoresComponents.regions()}
+                        class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+                      />
+                    </div>
+
+                    <div class="relative [&_.fieldset]:mb-0">
+                      <.icon
+                        name="hero-arrows-up-down"
+                        class="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-500"
+                      />
+                      <.input
+                        field={@filter_form[:sort]}
+                        id="stores-sort-filter"
+                        type="select"
+                        aria-label="Sort stores"
+                        options={StoresComponents.sorts()}
+                        class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
+                      />
+                    </div>
+
+                    <button
+                      id="stores-map-button"
+                      type="button"
+                      phx-click="open_map"
+                      class="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#132219] px-5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 md:col-span-1"
+                    >
+                      <.icon name="hero-map" class="size-4" /> Browse map
+                    </button>
+                  </.form>
+                </div>
+              </div>
+
+              <div
+                :if={@stores_empty?}
+                id="stores-empty-state"
+                class="mt-8 flex flex-col items-center rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center"
+              >
+                <span class="flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-[#b67c17]">
+                  <.icon name="hero-magnifying-glass" class="size-8" />
+                </span>
+                <h3 class="mt-5 text-xl font-black text-[#132219]">No shops found yet</h3>
+                <p class="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                  Try a broader search, another category, or clear everything and start again.
+                </p>
+                <button
+                  id="stores-clear-filters-empty"
+                  type="button"
+                  phx-click="clear_filters"
+                  class="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#132219] px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800"
+                >
+                  <.icon name="hero-arrow-path" class="size-4" /> Reset discovery
+                </button>
+              </div>
+
+              <div
+                id="stores-grid"
+                phx-update="stream"
+                class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                <StoresComponents.store_card
+                  :for={{id, store} <- @streams.stores}
+                  id={id}
+                  store={store}
+                  is_favorite={store.slug in @favorite_slugs}
                 />
               </div>
 
-              <div class="mt-3 border-t border-slate-100 pt-4">
-                <.form
-                  for={@filter_form}
-                  id="stores-filter-form"
-                  phx-change="update_filters"
-                  class="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+              <div :if={@has_more} class="mt-12 text-center">
+                <button
+                  id="stores-load-more"
+                  type="button"
+                  phx-click="load_more"
+                  phx-disable-with="Loading shops…"
+                  class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-[#132219] shadow-sm transition hover:-translate-y-0.5 hover:border-[#d4a843] hover:shadow-md"
                 >
-                  <div class="relative [&_.fieldset]:mb-0">
-                    <.icon
-                      name="hero-map-pin"
-                      class="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-500"
-                    />
-                    <.input
-                      field={@filter_form[:region]}
-                      id="stores-region-filter"
-                      type="select"
-                      options={StoresComponents.regions()}
-                      class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-                    />
-                  </div>
-
-                  <div class="relative [&_.fieldset]:mb-0">
-                    <.icon
-                      name="hero-arrows-up-down"
-                      class="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-500"
-                    />
-                    <.input
-                      field={@filter_form[:sort]}
-                      id="stores-sort-filter"
-                      type="select"
-                      options={StoresComponents.sorts()}
-                      class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"
-                    />
-                  </div>
-
-                  <button
-                    id="stores-map-button"
-                    type="button"
-                    phx-click="open_map"
-                    class="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#132219] px-5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 md:col-span-1"
-                  >
-                    <.icon name="hero-map" class="size-4" /> Browse map
-                  </button>
-                </.form>
+                  Show more shops <.icon name="hero-chevron-down" class="size-4" />
+                </button>
               </div>
             </div>
+          </section>
 
-            <div
-              :if={@stores_empty?}
-              id="stores-empty-state"
-              class="mt-8 flex flex-col items-center rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center"
-            >
-              <span class="flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-[#b67c17]">
-                <.icon name="hero-magnifying-glass" class="size-8" />
-              </span>
-              <h3 class="mt-5 text-xl font-black text-[#132219]">No shops found yet</h3>
-              <p class="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Try a broader search, another category, or clear everything and start again.
-              </p>
-              <button
-                id="stores-clear-filters-empty"
-                type="button"
-                phx-click="clear_filters"
-                class="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#132219] px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800"
-              >
-                <.icon name="hero-arrow-path" class="size-4" /> Reset discovery
-              </button>
-            </div>
-
-            <div
-              id="stores-grid"
-              phx-update="stream"
-              class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              <StoresComponents.store_card
-                :for={{id, store} <- @streams.stores}
-                id={id}
-                store={store}
-                is_favorite={store.slug in @favorite_slugs}
-              />
-            </div>
-
-            <div :if={@has_more} class="mt-12 text-center">
-              <button
-                id="stores-load-more"
-                type="button"
-                phx-click="load_more"
-                phx-disable-with="Loading shops…"
-                class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-[#132219] shadow-sm transition hover:-translate-y-0.5 hover:border-[#d4a843] hover:shadow-md"
-              >
-                Show more shops <.icon name="hero-chevron-down" class="size-4" />
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div
-          :if={!filters_active?(assigns) && @current_customer && @favorite_stores != []}
-          class="border-t border-slate-200 bg-rose-50/40"
-        >
-          <StoresComponents.recent_strip
-            stores={@favorite_stores}
-            title="Your saved shops"
-            subtitle="The places you want to visit again"
-          />
-        </div>
-
-        <div
-          :if={!filters_active?(assigns) && @recently_viewed_stores != []}
-          class="border-t border-slate-200 bg-white"
-        >
-          <StoresComponents.recent_strip
-            stores={@recently_viewed_stores}
-            title="Recently viewed"
-            subtitle="Pick up where you left off"
-          />
-        </div>
-
-        <div :if={!filters_active?(assigns)} class="border-t border-slate-200 bg-white">
-          <StoresComponents.recent_strip stores={@recent_stores} />
-        </div>
-
-        <section id="stores-sell-cta" class="bg-[#f7f6f1] px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
-          <div class="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#0c1f17] shadow-2xl sm:rounded-[2.5rem]">
-            <img
-              src="/images/landing/cta-market.jpg"
-              alt="Ghanaian merchant standing proudly in her market"
-              class="absolute inset-0 h-full w-full object-cover object-center opacity-35"
-              loading="lazy"
+          <div
+            :if={!filters_active?(assigns) && @current_customer && @favorite_stores != []}
+            class="border-t border-slate-200 bg-rose-50/40"
+          >
+            <StoresComponents.recent_strip
+              stores={@favorite_stores}
+              id_prefix="saved"
+              title="Your saved shops"
+              subtitle="The places you want to visit again"
             />
-            <div class="absolute inset-0 bg-gradient-to-r from-[#0c1f17] via-[#0c1f17]/90 to-[#0c1f17]/35">
-            </div>
-            <div class="relative max-w-2xl px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-20">
-              <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#e4bd63]">
-                Your shop belongs here
-              </p>
-              <h2 class="mt-3 font-headline text-3xl font-black leading-tight text-white sm:text-5xl">
-                Have something Ghana should be able to find?
-              </h2>
-              <p class="mt-4 max-w-xl text-base leading-7 text-[#c4d0c8]">
-                Open a professional shop, accept mobile money, and join the market without
-                paying before your first sale.
-              </p>
-              <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="/auth/register"
-                  class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#d4a843] px-5 py-3 text-sm font-bold text-[#0c1f17] transition hover:bg-[#e4bd63]"
-                >
-                  Start selling — free <.icon name="hero-arrow-right" class="size-4" />
-                </a>
-                <a
-                  href="/how-it-works"
-                  class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
-                >
-                  See how Makola works
-                </a>
+          </div>
+
+          <div
+            :if={!filters_active?(assigns) && @recently_viewed_stores != []}
+            class="border-t border-slate-200 bg-white"
+          >
+            <StoresComponents.recent_strip
+              stores={@recently_viewed_stores}
+              id_prefix="viewed"
+              title="Recently viewed"
+              subtitle="Pick up where you left off"
+            />
+          </div>
+
+          <div
+            :for={rail <- @rails}
+            :if={!filters_active?(assigns)}
+            class="border-t border-slate-200 bg-white"
+          >
+            <StoresComponents.recent_strip
+              stores={rail.stores}
+              title={rail.title}
+              subtitle={rail.subtitle}
+              id_prefix={to_string(rail.id)}
+            />
+          </div>
+
+          <section id="stores-sell-cta" class="bg-[#f7f6f1] px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
+            <div class="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#0c1f17] shadow-2xl sm:rounded-[2.5rem]">
+              <img
+                src="/images/landing/cta-market.jpg"
+                alt="Ghanaian merchant standing proudly in her market"
+                class="absolute inset-0 h-full w-full object-cover object-center opacity-35"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-r from-[#0c1f17] via-[#0c1f17]/90 to-[#0c1f17]/35">
+              </div>
+              <div class="relative max-w-2xl px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-20">
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#e4bd63]">
+                  Your shop belongs here
+                </p>
+                <h2 class="mt-3 font-headline text-3xl font-black leading-tight text-white sm:text-5xl">
+                  Have something Ghana should be able to find?
+                </h2>
+                <p class="mt-4 max-w-xl text-base leading-7 text-[#c4d0c8]">
+                  Open a professional shop, accept mobile money, and join the market without
+                  paying before your first sale.
+                </p>
+                <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <a
+                    href="/auth/register"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#d4a843] px-5 py-3 text-sm font-bold text-[#0c1f17] transition hover:bg-[#e4bd63]"
+                  >
+                    Start selling — free <.icon name="hero-arrow-right" class="size-4" />
+                  </a>
+                  <a
+                    href="/how-it-works"
+                    class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                  >
+                    See how Makola works
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <StoresComponents.map_view
-          stores={@map_stores}
-          active_region={@active_region}
-          open={@map_open}
-        />
-      </main>
+          <StoresComponents.map_view
+            stores={@map_stores}
+            active_region={@active_region}
+            open={@map_open}
+          />
+        </main>
 
-      <LandingComponents.landing_footer />
-    </div>
+        <LandingComponents.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 
@@ -565,7 +526,7 @@ defmodule EmakolaWeb.StoresLive do
     new_page =
       Store
       |> Ash.Query.for_read(:list_with_filters, args)
-      |> Ash.Query.load([:product_count])
+      |> Ash.Query.load([:product_count, :card_image_url, :card_image_medium_url])
       |> Ash.Query.limit(per_page)
       |> Ash.Query.offset(offset)
       |> Ash.read!(authorize?: false)
@@ -605,19 +566,42 @@ defmodule EmakolaWeb.StoresLive do
       0
   end
 
-  defp count_active_stores do
+  # The hero is the day's top-ranked featured shop WITH a photo; the next
+  # four with photos become the side tiles. A shop without a real image is
+  # skipped rather than rendered as a giant gradient placeholder — it stays
+  # featured in the grid, it just does not hold the big slot.
+  defp split_spotlight(featured) do
+    case Enum.filter(featured, &card_image_url/1) do
+      [] -> {nil, []}
+      [hero | rest] -> {hero, Enum.take(rest, 4)}
+    end
+  end
+
+  defp card_image_url(store) do
+    medium = Map.get(store, :card_image_medium_url)
+
+    case {medium, Map.get(store, :card_image_url)} do
+      {m, _} when is_binary(m) and m != "" -> m
+      {_, url} when is_binary(url) and url != "" -> url
+      _missing -> Map.get(store, :cover_image_url) || Map.get(store, :logo_url)
+    end
+  end
+
+  defp load_slot(action) do
     Store
-    |> Ash.Query.for_read(:list_active)
-    |> Ash.count!(authorize?: false)
+    |> Ash.Query.for_read(action)
+    |> Ash.Query.load([:card_image_url, :card_image_medium_url, :product_count])
+    |> Ash.read!(authorize?: false)
   rescue
     exception ->
-      Logger.error("[stores_live] count_active_stores raised: #{Exception.message(exception)}")
-      0
+      Logger.error("[stores_live] #{action} raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_featured do
     Store
     |> Ash.Query.for_read(:list_featured, %{limit: 8})
+    |> Ash.Query.load([:card_image_url, :card_image_medium_url, :product_count])
     |> Ash.Query.limit(8)
     |> Ash.read!(authorize?: false)
   rescue
@@ -626,15 +610,14 @@ defmodule EmakolaWeb.StoresLive do
       []
   end
 
-  defp load_recent do
+  defp count_active_stores do
     Store
-    |> Ash.Query.for_read(:list_recent, %{limit: 6})
-    |> Ash.Query.limit(6)
-    |> Ash.read!(authorize?: false)
+    |> Ash.Query.for_read(:list_active)
+    |> Ash.count!(authorize?: false)
   rescue
     exception ->
-      Logger.error("[stores_live] load_recent stores raised: #{Exception.message(exception)}")
-      []
+      Logger.error("[stores_live] count_active_stores raised: #{Exception.message(exception)}")
+      0
   end
 
   defp load_theme_counts(socket) do
@@ -694,7 +677,7 @@ defmodule EmakolaWeb.StoresLive do
     stores =
       Store
       |> Ash.Query.for_read(:list_by_slugs, %{slugs: slugs})
-      |> Ash.Query.load([:product_count])
+      |> Ash.Query.load([:product_count, :card_image_url, :card_image_medium_url])
       |> Ash.read!(authorize?: false)
 
     # Preserve cookie order (most-recent first); the DB query won't

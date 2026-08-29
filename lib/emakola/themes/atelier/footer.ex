@@ -528,7 +528,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <ul class="space-y-3">
               <li>
                 <a
-                  href={store_path(@store.slug, "/collections")}
+                  href={store_path(@store.slug, "/products")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   View All

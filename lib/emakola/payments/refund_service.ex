@@ -32,12 +32,38 @@ defmodule Emakola.Payments.RefundService do
   Cash-on-delivery orders never created a Payment, so there is no charge to
   reverse: the return is approved with no gateway call and the merchant hands
   the cash back out of band.
+
+  ## Buyer-protection hold
+
+  The gateway accepting a refund request is NOT proof the refund succeeded:
+  Paystack refund-create normally returns immediately with the refund still
+  `pending`, resolving asynchronously — and can still fail. This service
+  therefore never closes a `ProtectionHold` itself (mirrors the "don't
+  double-write the ledger" discipline above). When this request would fully
+  refund a payment carrying a `:held` hold (exhausts the remaining
+  refundable balance), it stashes `resolution` onto
+  `payment.metadata["protection_resolution"]` — intent, not the close. Only
+  `PaystackWebhookHandler.handle_refund_processed/1`, once `refund.processed`
+  confirms the cumulative refund reached the full amount, actually closes
+  the hold, reading the stashed resolution back out. `resolution` (opt,
+  default `:merchant_refunded`) is Task 12's seam: pass
+  `resolution: :refunded_by_staff` for a staff-initiated refund through this
+  same service.
+
+  Task 12's other seam: `Return`/`Payment` policies only grant a `Merchant`
+  actor with store access (or a `Customer` on their own row) — the platform
+  staff actor (`Emakola.Accounts.User`) matches neither, so it hits the same
+  default-deny an unrelated merchant would. Pass `authorize?: false` (opt,
+  default `true` — the merchant flow is unaffected) for a staff-initiated
+  refund, matching the `authorize?: false` convention every other
+  platform-staff action in this codebase uses at its call site.
   """
 
   require Ash.Query
 
   alias Emakola.Orders.Return
   alias Emakola.Payments.Gateways
+  alias Emakola.Payments.ProtectionHolds
 
   @approve_fields [:admin_notes, :refund_amount, :refund_dispatch_fee?]
 
@@ -48,20 +74,42 @@ defmodule Emakola.Payments.RefundService do
   Returns `{:ok, return}`, or `{:error, reason}` where reason is
   `:no_return_selected`, `:return_not_found`, `:already_processed`,
   `:payment_not_found`, `:invalid_amount`, `:amount_exceeds_refundable`,
-  `:gateway_unsupported`, or whatever the gateway refused with. Nothing is
-  approved and no ledger state moves unless the gateway accepts.
+  `:partial_refund_on_protected`, `:gateway_unsupported`, or whatever the
+  gateway refused with. Nothing is approved and no ledger state moves unless
+  the gateway accepts.
+
+  A payment carrying a `:held` buyer-protection hold accepts only a FULL
+  refund (an amount equal to `refundable_balance/1`): the hold's `net` was
+  snapshotted whole against the payment's original amount, and a partial
+  refund would leave that snapshot stale — a later release would still pay
+  the merchant the full net while the platform actually holds less, an
+  underfunded payout. See `validate_amount/2`.
+
+  `opts[:resolution]` (default `:merchant_refunded`) is the resolution
+  later stamped on a buyer-protection hold this refund fully covers, once
+  the webhook confirms it — see the moduledoc's "Buyer-protection hold"
+  section.
+
+  `opts[:authorize?]` (default `true`) is forwarded to the internal
+  `Payment`/`Return` reads and writes — pass `false` for a platform-staff
+  actor, which has no Ash policy grant on either resource (see the
+  moduledoc's "Task 12's other seam").
   """
-  def issue(actor, return, params, gateway \\ nil)
+  def issue(actor, return, params, gateway \\ nil, opts \\ [])
 
-  def issue(_actor, nil, _params, _gateway), do: {:error, :no_return_selected}
+  def issue(_actor, nil, _params, _gateway, _opts), do: {:error, :no_return_selected}
 
-  def issue(actor, return, params, gateway) do
+  def issue(actor, return, params, gateway, opts) do
+    resolution = Keyword.get(opts, :resolution, :merchant_refunded)
+    authorize? = Keyword.get(opts, :authorize?, true)
+
     Emakola.Repo.transaction(fn ->
       with {:ok, claimed} <- claim(return.id),
-           {:ok, payment} <- payment_for(actor, claimed),
+           {:ok, payment} <- payment_for(actor, claimed, authorize?),
            :ok <- validate_amount(payment, params[:refund_amount]),
-           {:ok, approved} <- approve(actor, claimed, params),
+           {:ok, approved} <- approve(actor, claimed, params, authorize?),
            :ok <- request_refund(payment, params[:refund_amount], gateway) do
+        stash_protection_resolution(payment, params[:refund_amount], resolution)
         approved
       else
         {:error, reason} -> Emakola.Repo.rollback(reason)
@@ -109,8 +157,12 @@ defmodule Emakola.Payments.RefundService do
   # the merchant against the return's store, so a merchant without a membership
   # there never learns whether the charge exists. `{:ok, nil}` is the ordinary
   # cash-on-delivery case; only a failed read is `:payment_not_found`.
-  defp payment_for(actor, return) do
-    case captured_payment(return.order_id, actor: actor, tenant: return.store_id) do
+  defp payment_for(actor, return, authorize?) do
+    case captured_payment(return.order_id,
+           actor: actor,
+           tenant: return.store_id,
+           authorize?: authorize?
+         ) do
       {:ok, payment} -> {:ok, payment}
       _ -> {:error, :payment_not_found}
     end
@@ -123,9 +175,49 @@ defmodule Emakola.Payments.RefundService do
   defp validate_amount(nil, _amount), do: :ok
 
   defp validate_amount(payment, amount) do
-    refundable = payment.amount - (payment.refunded_amount || 0)
+    balance = refundable_balance(payment)
 
-    if amount <= refundable, do: :ok, else: {:error, :amount_exceeds_refundable}
+    cond do
+      amount > balance ->
+        {:error, :amount_exceeds_refundable}
+
+      # Full-refund-only on a protected payment — see moduledoc and issue/5's
+      # doc for why a partial here would leave the hold's snapshotted net
+      # stale. Equality (a full refund) is allowed through.
+      amount < balance and protected_hold_held?(payment) ->
+        {:error, :partial_refund_on_protected}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp refundable_balance(payment), do: payment.amount - (payment.refunded_amount || 0)
+
+  defp protected_hold_held?(payment) do
+    case Emakola.Payments.get_protection_hold_by_payment(payment.id,
+           tenant: payment.store_id,
+           authorize?: false
+         ) do
+      {:ok, %{status: :held}} -> true
+      _ -> false
+    end
+  end
+
+  # A cash-on-delivery order has no Payment, hence no hold to stash intent on.
+  defp stash_protection_resolution(nil, _amount, _resolution), do: :ok
+
+  # "Full" means this request exhausts the remaining refundable balance —
+  # already validated as `amount <= refundable_balance(payment)` above, so
+  # equality here means nothing is left to refund after this request. Only
+  # worth stashing when there's a `:held` hold to eventually close —
+  # `ProtectionHolds.stash_refund_resolution/2` checks that.
+  defp stash_protection_resolution(payment, amount, resolution) do
+    if amount == refundable_balance(payment) do
+      ProtectionHolds.stash_refund_resolution(payment, resolution)
+    else
+      :ok
+    end
   end
 
   defp request_refund(nil, _amount, _gateway), do: :ok
@@ -142,10 +234,11 @@ defmodule Emakola.Payments.RefundService do
     end
   end
 
-  defp approve(actor, return, params) do
+  defp approve(actor, return, params, authorize?) do
     Emakola.Orders.approve_return(return, Map.take(params, @approve_fields),
       actor: actor,
-      tenant: return.store_id
+      tenant: return.store_id,
+      authorize?: authorize?
     )
   end
 

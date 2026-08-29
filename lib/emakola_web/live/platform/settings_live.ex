@@ -17,6 +17,13 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   alias Emakola.FeatureFlags
 
   @plans ~w(free starter pro enterprise)
+  @flag_form_fields [
+    key: "key",
+    name: "name",
+    description: "description",
+    enabled: "enabled",
+    required_plan: "required_plan"
+  ]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,10 +32,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       |> assign(:page_title, "Settings")
       |> assign(:active_nav, :settings)
       |> assign(:search, "")
+      |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
       |> assign(:plans, @plans)
       |> assign(:edit_flag_id, nil)
       |> assign(:delete_flag, nil)
+      |> assign(:confirming_id, nil)
       |> reset_form()
 
     socket =
@@ -63,8 +72,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   # ── Events ─────────────────────────────────────────────
 
   @impl true
-  def handle_event("search", %{"search" => q}, socket) do
-    {:noreply, socket |> assign(:search, q) |> put_flags()}
+  def handle_event("search", %{"search" => q} = params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search, q)
+     |> assign(:search_form, to_form(params))
+     |> put_flags()}
   end
 
   def handle_event("filter", %{"filter" => f}, socket) do
@@ -84,11 +97,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         {:noreply,
          socket
          |> assign(:edit_flag_id, id)
-         |> assign(:form_key, flag.key)
-         |> assign(:form_name, flag.name)
-         |> assign(:form_description, flag.description || "")
-         |> assign(:form_enabled, flag.enabled)
-         |> assign(:form_plan, flag.required_plan)
+         |> assign(:flag_form, edit_flag_form(flag))
          |> assign(:form_errors, %{})}
     end
   end
@@ -98,10 +107,15 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   end
 
   def handle_event("validate", params, socket) do
-    {:noreply, assign(socket, :form_errors, validate_params(params))}
+    {:noreply,
+     socket
+     |> put_flag_form(params)
+     |> assign(:form_errors, validate_params(params))}
   end
 
   def handle_event("save", params, socket) do
+    socket = put_flag_form(socket, params)
+
     authorized(socket, fn socket ->
       errors = validate_params(params)
 
@@ -116,8 +130,22 @@ defmodule EmakolaWeb.Platform.SettingsLive do
     end)
   end
 
+  # The switch asks first, in the card, so the flag being changed stays on
+  # screen while the decision is made. One click here changes what every
+  # merchant sees; Delete — far less reachable — already had a modal.
   def handle_event("toggle", %{"id" => id}, socket) do
+    {:noreply, socket |> assign(:confirming_id, id) |> restream_flag(id)}
+  end
+
+  def handle_event("cancel_toggle", _params, socket) do
+    id = socket.assigns.confirming_id
+    {:noreply, socket |> assign(:confirming_id, nil) |> restream_flag(id)}
+  end
+
+  def handle_event("confirm_toggle", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
+      socket = assign(socket, :confirming_id, nil)
+
       with flag when not is_nil(flag) <- Enum.find(socket.assigns.all_flags, &(&1.id == id)),
            {:ok, updated} <- FeatureFlags.toggle_flag(flag, authorize?: false) do
         {:noreply, sync_flag(socket, updated)}
@@ -278,6 +306,36 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   defp matches_filter?(flag, :enabled), do: flag.enabled
   defp matches_filter?(flag, :disabled), do: not flag.enabled
 
+  # A glyph per flag so the grid reads by shape. Unknown keys fall back to a
+  # flag rather than rendering nothing.
+  @flag_icons %{
+    "ai_agents" => "hero-cpu-chip",
+    "api_access" => "hero-code-bracket",
+    "audit_log" => "hero-clipboard-document-list",
+    "custom_branding" => "hero-paint-brush",
+    "digital_downloads" => "hero-arrow-down-tray",
+    "dropship_network" => "hero-truck",
+    "priority_support" => "hero-lifebuoy",
+    "snap_to_shop" => "hero-camera",
+    "sso" => "hero-key",
+    "susu_plans" => "hero-banknotes",
+    "webhooks" => "hero-bolt"
+  }
+
+  # A stream only re-renders an item when that item is re-inserted, so a card
+  # whose markup depends on @confirming_id has to be pushed back through the
+  # stream — changing the assign alone leaves the rendered card untouched.
+  defp restream_flag(socket, nil), do: socket
+
+  defp restream_flag(socket, id) do
+    case Enum.find(socket.assigns.all_flags, &(&1.id == id)) do
+      nil -> socket
+      flag -> stream_insert(socket, :flags, flag)
+    end
+  end
+
+  defp flag_icon(key), do: Map.get(@flag_icons, key, "hero-flag")
+
   defp compute_stats(flags) do
     %{
       total: length(flags),
@@ -291,12 +349,38 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
   defp reset_form(socket) do
     socket
-    |> assign(:form_key, "")
-    |> assign(:form_name, "")
-    |> assign(:form_description, "")
-    |> assign(:form_enabled, true)
-    |> assign(:form_plan, nil)
+    |> assign(:flag_form, new_flag_form())
     |> assign(:form_errors, %{})
+  end
+
+  defp new_flag_form do
+    to_form(%{
+      "key" => "",
+      "name" => "",
+      "description" => "",
+      "enabled" => true,
+      "required_plan" => ""
+    })
+  end
+
+  defp edit_flag_form(flag) do
+    to_form(%{
+      "key" => flag.key,
+      "name" => flag.name,
+      "description" => flag.description || "",
+      "enabled" => flag.enabled,
+      "required_plan" => flag.required_plan || ""
+    })
+  end
+
+  defp put_flag_form(socket, params) do
+    current_values =
+      Map.new(@flag_form_fields, fn {field, key} ->
+        {key, socket.assigns.flag_form[field].value}
+      end)
+
+    values = Map.merge(current_values, Map.take(params, Keyword.values(@flag_form_fields)))
+    assign(socket, :flag_form, to_form(values))
   end
 
   defp validate_params(params) do
@@ -339,23 +423,29 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   def render(assigns) do
     ~H"""
     <div class="p-6 lg:p-8 max-w-7xl mx-auto">
-      <%!-- Header --%>
+      <%!-- Header. "Settings" is only feature flags today, so the page says
+            so rather than promising a settings surface that does not exist. --%>
       <div class="mb-6 flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
-          <p class="text-sm text-gray-500 mt-1">
-            {if @stats,
-              do: "Platform feature flags (#{@stats.total} total)",
-              else: "Loading feature flags…"}
-          </p>
+        <div class="flex items-center gap-4">
+          <div class="w-13 h-13 rounded-card bg-primary flex items-center justify-center shrink-0 shadow-sm">
+            <.icon name="hero-flag" class="size-7 text-white" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+            <p class="text-sm text-gray-500 mt-1">
+              {if @stats,
+                do: "Platform feature flags — what's switched on, and for which plans",
+                else: "Loading feature flags…"}
+            </p>
+          </div>
         </div>
         <button
           :if={@all_flags}
           type="button"
           phx-click={JS.push("open_add_modal") |> show_modal("flag-modal")}
-          class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
         >
-          <span class="material-symbols-outlined text-base">add</span> New flag
+          <.icon name="hero-plus" class="size-5" /> New flag
         </button>
       </div>
 
@@ -370,31 +460,38 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       <div :if={@all_flags}>
         <%!-- Stat strip --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <.stat label="Total" value={@stats.total} icon="flag" color="blue" />
-          <.stat label="Enabled" value={@stats.enabled} icon="check_circle" color="emerald" />
-          <.stat label="Plan-gated" value={@stats.gated} icon="workspace_premium" color="amber" />
-          <.stat label="Disabled" value={@stats.disabled} icon="cancel" color="slate" />
+          <.stat_tile label="Total" value={@stats.total} icon="flag" color="blue" />
+          <.stat_tile label="Enabled" value={@stats.enabled} icon="check_circle" color="emerald" />
+          <.stat_tile
+            label="Plan-gated"
+            value={@stats.gated}
+            icon="workspace_premium"
+            color="amber"
+          />
+          <.stat_tile label="Disabled" value={@stats.disabled} icon="cancel" color="slate" />
         </div>
 
         <%!-- Toolbar --%>
         <div class="mb-5 flex items-center gap-3 flex-wrap">
-          <form
+          <.form
+            for={@search_form}
             id="flag-search-form"
             phx-change="search"
             class="relative flex-1 min-w-[200px] max-w-sm"
           >
-            <span class="material-symbols-outlined text-base text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              search
-            </span>
-            <input
+            <.icon
+              name="hero-magnifying-glass"
+              class="size-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            />
+            <.input
+              field={@search_form[:search]}
               type="search"
-              name="search"
-              value={@search}
+              id="flag-search"
               placeholder="Search by name or key..."
               phx-debounce="300"
-              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+              class="w-full pl-11 pr-4 py-2.5 bg-surface border border-border rounded-control text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
-          </form>
+          </.form>
           <div class="flex items-center gap-1.5">
             <.chip filter="all" active={@filter} label="All" />
             <.chip filter="enabled" active={@filter} label="Enabled" />
@@ -407,15 +504,17 @@ defmodule EmakolaWeb.Platform.SettingsLive do
           :if={@stats.total == 0}
           class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center"
         >
-          <span class="material-symbols-outlined text-4xl text-gray-300">flag</span>
+          <div class="w-16 h-16 rounded-card bg-primary-soft flex items-center justify-center mx-auto mb-3">
+            <.icon name="hero-flag" class="size-8 text-primary" />
+          </div>
           <p class="mt-2 text-sm font-medium text-gray-900">No feature flags yet</p>
           <p class="text-sm text-gray-400 mb-4">Create your first flag to start gating features.</p>
           <button
             type="button"
             phx-click={JS.push("open_add_modal") |> show_modal("flag-modal")}
-            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
           >
-            <span class="material-symbols-outlined text-base">add</span> New flag
+            <.icon name="hero-plus" class="size-5" /> New flag
           </button>
         </div>
 
@@ -436,76 +535,173 @@ defmodule EmakolaWeb.Platform.SettingsLive do
             :for={{dom_id, flag} <- @streams.flags}
             id={dom_id}
             class={[
-              "bg-white rounded-2xl border border-gray-200 shadow-sm border-l-4 p-5 flex flex-col",
-              if(flag.enabled, do: "border-l-blue-500", else: "border-l-slate-300 opacity-75")
+              "bg-surface rounded-card border shadow-sm overflow-hidden flex flex-col",
+              if(@confirming_id == flag.id,
+                do: "border-warning shadow-lg",
+                else: "border-border"
+              )
             ]}
           >
-            <div class="flex items-start justify-between gap-3">
-              <h3 class="font-semibold text-gray-900 leading-tight">{flag.name}</h3>
-              <button
-                type="button"
-                phx-click="toggle"
-                phx-value-id={flag.id}
-                role="switch"
-                aria-checked={to_string(flag.enabled)}
-                aria-label="Toggle flag"
-                class={[
-                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-                  if(flag.enabled, do: "bg-blue-600", else: "bg-slate-300")
-                ]}
-              >
+            <%!-- Status reads as a rail across the top rather than a left
+                  border — the tired accent-stripe card. --%>
+            <div class={[
+              "h-1",
+              cond do
+                @confirming_id == flag.id -> "bg-warning"
+                flag.enabled -> "bg-primary"
+                true -> "bg-slate-300"
+              end
+            ]}>
+            </div>
+
+            <div class="p-5 flex flex-col gap-4 flex-1">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex gap-3 min-w-0">
+                  <%!-- An icon per flag, so eight of these are scannable by
+                        shape instead of by reading eight names. --%>
+                  <div class={[
+                    "w-11 h-11 rounded-control flex items-center justify-center shrink-0",
+                    if(flag.enabled, do: "bg-primary-soft", else: "bg-slate-100")
+                  ]}>
+                    <.icon
+                      name={flag_icon(flag.key)}
+                      class={["size-6", if(flag.enabled, do: "text-primary", else: "text-slate-400")]}
+                    />
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class={[
+                      "font-bold leading-tight",
+                      if(flag.enabled, do: "text-gray-900", else: "text-slate-600")
+                    ]}>
+                      {flag.name}
+                    </h3>
+                    <span class="inline-block mt-1.5 font-mono text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                      {flag.key}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  phx-click="toggle"
+                  phx-value-id={flag.id}
+                  role="switch"
+                  aria-checked={to_string(flag.enabled)}
+                  aria-label="Toggle flag"
+                  class={[
+                    "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer",
+                    cond do
+                      @confirming_id == flag.id -> "bg-warning"
+                      flag.enabled -> "bg-primary"
+                      true -> "bg-slate-300"
+                    end
+                  ]}
+                >
+                  <span class={[
+                    "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+                    cond do
+                      @confirming_id == flag.id -> "translate-x-3.5"
+                      flag.enabled -> "translate-x-6"
+                      true -> "translate-x-1"
+                    end
+                  ]}>
+                  </span>
+                </button>
+              </div>
+
+              <p :if={@confirming_id != flag.id} class="text-sm text-slate-500 line-clamp-2">
+                {if flag.description in [nil, ""], do: "No description", else: flag.description}
+              </p>
+
+              <div :if={@confirming_id != flag.id} class="flex items-center gap-2 flex-wrap">
+                <span
+                  :if={flag.required_plan}
+                  class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-warning-soft text-warning font-semibold"
+                >
+                  <.icon name="hero-trophy" class="size-3.5" />
+                  {String.capitalize(flag.required_plan)} and up
+                </span>
+                <span
+                  :if={is_nil(flag.required_plan)}
+                  class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold"
+                >
+                  All plans
+                </span>
                 <span class={[
-                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                  if(flag.enabled, do: "translate-x-6", else: "translate-x-1")
+                  "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold",
+                  if(flag.enabled,
+                    do: "bg-success-soft text-success",
+                    else: "bg-slate-100 text-slate-600"
+                  )
                 ]}>
+                  <span class={[
+                    "w-1.5 h-1.5 rounded-full",
+                    if(flag.enabled, do: "bg-success", else: "bg-slate-400")
+                  ]}>
+                  </span>
+                  {if flag.enabled, do: "Live", else: "Off"}
                 </span>
-              </button>
-            </div>
+              </div>
 
-            <div class="flex items-center gap-2 mt-2 flex-wrap">
-              <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                {flag.key}
-              </span>
-              <span
-                :if={flag.required_plan}
-                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium"
+              <%!-- The confirm happens IN the card, so the flag being changed
+                    stays on screen while the decision is made. --%>
+              <div
+                :if={@confirming_id == flag.id}
+                class="rounded-control bg-warning-soft p-4 flex flex-col gap-3"
               >
-                <span class="material-symbols-outlined" style="font-size: 12px;">
-                  workspace_premium
+                <div class="flex gap-2.5">
+                  <.icon name="hero-exclamation-triangle" class="size-5 text-warning shrink-0" />
+                  <p class="text-sm text-amber-800 text-pretty">
+                    {if flag.enabled,
+                      do: "Turn this off for every store now?",
+                      else: "Turn this on for every store now?"}
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    phx-click="confirm_toggle"
+                    phx-value-id={flag.id}
+                    class="flex-1 h-9 rounded-lg bg-warning text-white text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    {if flag.enabled, do: "Turn it off", else: "Turn it on"}
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="cancel_toggle"
+                    class="flex-1 h-9 rounded-lg border border-border bg-surface text-slate-700 text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    Keep it
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-auto pt-3.5 border-t border-gray-100 flex items-center justify-between gap-3">
+                <span class="text-xs text-slate-400">
+                  Changed {Calendar.strftime(flag.updated_at, "%b %d")}
                 </span>
-                {String.capitalize(flag.required_plan)}
-              </span>
-              <span :if={is_nil(flag.required_plan)} class="text-xs text-slate-400">All plans</span>
-            </div>
-
-            <p class="text-sm text-slate-500 mt-2 line-clamp-2">
-              {if flag.description in [nil, ""], do: "No description", else: flag.description}
-            </p>
-
-            <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-              <span class="text-xs text-slate-400">
-                Updated {Calendar.strftime(flag.updated_at, "%b %d, %Y")}
-              </span>
-              <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  phx-click={
-                    JS.push("open_edit_modal", value: %{id: flag.id}) |> show_modal("flag-modal")
-                  }
-                  class="text-xs font-medium text-blue-600 hover:text-blue-700"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  phx-click={
-                    JS.push("open_delete_modal", value: %{id: flag.id})
-                    |> show_modal("delete-flag-modal")
-                  }
-                  class="text-xs font-medium text-rose-600 hover:text-rose-700"
-                >
-                  Delete
-                </button>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    phx-click={
+                      JS.push("open_edit_modal", value: %{id: flag.id}) |> show_modal("flag-modal")
+                    }
+                    class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-surface text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <.icon name="hero-pencil" class="size-3.5" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Delete flag"
+                    phx-click={
+                      JS.push("open_delete_modal", value: %{id: flag.id})
+                      |> show_modal("delete-flag-modal")
+                    }
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-rose-200 bg-surface text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <.icon name="hero-trash" class="size-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -518,88 +714,125 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         title={if @edit_flag_id, do: "Edit feature flag", else: "New feature flag"}
         size={:md}
       >
-        <form id="flag-form" phx-submit="save" phx-change="validate" class="space-y-4">
-          <div>
-            <label for="flag-key" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Key <span class="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="flag-key"
-              name="key"
-              value={@form_key}
-              disabled={@edit_flag_id != nil}
-              placeholder="new_checkout"
-              autocomplete="off"
-              class={[
-                "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400 font-mono",
-                if(@form_errors[:key], do: "border-red-300 bg-red-50", else: "border-slate-300")
-              ]}
-            />
-            <p :if={@edit_flag_id} class="mt-1 text-xs text-slate-400">
-              Key can't be changed after creation.
-            </p>
-            <p :if={@form_errors[:key]} class="mt-1 text-xs text-red-600">{@form_errors[:key]}</p>
+        <.form
+          for={@flag_form}
+          id="flag-form"
+          phx-submit="save"
+          phx-change="validate"
+          class="space-y-4"
+        >
+          <%!-- Name and Key side by side: they are one identity, and the
+                key is immutable after creation, so it reads as a fact. --%>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="flag-name" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Name <span class="text-red-500">*</span>
+              </label>
+              <.input
+                field={@flag_form[:name]}
+                type="text"
+                id="flag-name"
+                placeholder="New checkout"
+                autocomplete="off"
+                class={[
+                  "w-full px-3.5 py-2.5 text-sm rounded-control border focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all",
+                  if(@form_errors[:name], do: "border-red-300 bg-red-50", else: "border-border")
+                ]}
+              />
+              <p :if={@form_errors[:name]} class="mt-1.5 text-xs text-red-600">
+                {@form_errors[:name]}
+              </p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="flag-key" class="block text-sm font-semibold text-slate-700">
+                  Key <span class="text-red-500">*</span>
+                </label>
+                <span :if={@edit_flag_id} class="text-xs text-slate-400">can't change</span>
+              </div>
+              <.input
+                field={@flag_form[:key]}
+                type="text"
+                id="flag-key"
+                disabled={@edit_flag_id != nil}
+                placeholder="new_checkout"
+                autocomplete="off"
+                class={[
+                  "w-full px-3.5 py-2.5 text-sm rounded-control border font-mono focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:bg-surface-subtle disabled:text-slate-500",
+                  if(@form_errors[:key], do: "border-red-300 bg-red-50", else: "border-border")
+                ]}
+              />
+              <p :if={@form_errors[:key]} class="mt-1.5 text-xs text-red-600">
+                {@form_errors[:key]}
+              </p>
+            </div>
           </div>
 
           <div>
-            <label for="flag-name" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Name <span class="text-red-500">*</span>
+            <label for="flag-description" class="block text-sm font-semibold text-slate-700 mb-1.5">
+              What it does
             </label>
-            <input
-              type="text"
-              id="flag-name"
-              name="name"
-              value={@form_name}
-              placeholder="New checkout"
-              autocomplete="off"
-              class={[
-                "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-                if(@form_errors[:name], do: "border-red-300 bg-red-50", else: "border-slate-300")
-              ]}
-            />
-            <p :if={@form_errors[:name]} class="mt-1 text-xs text-red-600">{@form_errors[:name]}</p>
-          </div>
-
-          <div>
-            <label for="flag-description" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Description
-            </label>
-            <textarea
+            <.input
+              field={@flag_form[:description]}
+              type="textarea"
               id="flag-description"
-              name="description"
               rows="3"
-              placeholder="Optional description"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            >{@form_description}</textarea>
+              placeholder="One line a colleague would understand"
+              class="w-full px-3.5 py-2.5 text-sm rounded-control border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all"
+            />
           </div>
 
+          <%!-- The plan gate as pickable tiers: the current choice is visible
+                without opening anything, which a <select> never is. --%>
           <div>
-            <label for="flag-plan" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Required plan
-            </label>
-            <select
-              id="flag-plan"
-              name="required_plan"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="" selected={is_nil(@form_plan)}>All plans (no gate)</option>
-              <option :for={p <- @plans} value={p} selected={@form_plan == p}>
-                {String.capitalize(p)}
-              </option>
-            </select>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Who gets it</label>
+            <div id="flag-plan" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <label
+                :for={
+                  {value, label} <- [
+                    {"", "Everyone"} | Enum.map(@plans, &{&1, String.capitalize(&1)})
+                  ]
+                }
+                for={"flag-plan-#{if value == "", do: "none", else: value}"}
+                class="relative flex items-center justify-center gap-1.5 h-11 rounded-control border border-border text-sm font-semibold text-slate-600 cursor-pointer transition-colors has-[:checked]:border-2 has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:text-primary"
+              >
+                <input
+                  type="radio"
+                  id={"flag-plan-#{if value == "", do: "none", else: value}"}
+                  name="required_plan"
+                  value={value}
+                  checked={to_string(@flag_form[:required_plan].value || "") == value}
+                  class="peer sr-only"
+                />
+                <.icon name="hero-check-circle" class="size-4 hidden peer-checked:block" />
+                {label}
+              </label>
+            </div>
           </div>
 
-          <label class="flex items-center gap-2">
+          <%!-- On/off is the whole point of a flag; a tick-box hid it. --%>
+          <label
+            for="flag-enabled"
+            class="flex items-center justify-between gap-5 p-4 rounded-control bg-surface-subtle cursor-pointer"
+          >
+            <div class="min-w-0">
+              <span class="block text-sm font-bold text-slate-900">Switched on</span>
+              <span class="block text-xs text-slate-500 mt-0.5">
+                Stores on the chosen plan can see it straight away.
+              </span>
+            </div>
             <input type="hidden" name="enabled" value="false" />
             <input
               type="checkbox"
+              id="flag-enabled"
               name="enabled"
               value="true"
-              checked={@form_enabled}
-              class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              checked={@flag_form[:enabled].value in [true, "true"]}
+              class="peer sr-only"
             />
-            <span class="text-sm text-slate-700">Enabled</span>
+            <span class="relative shrink-0 w-13 h-7 rounded-full bg-slate-300 peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:w-5 after:h-5 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-6">
+            </span>
           </label>
 
           <div class="flex items-center justify-end gap-3 pt-2">
@@ -617,7 +850,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
               {if @edit_flag_id, do: "Update", else: "Create"}
             </button>
           </div>
-        </form>
+        </.form>
       </.modal>
 
       <%!-- Delete confirmation --%>
@@ -641,37 +874,6 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   end
 
   # ── Function components ─────────────────────────────────
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :color, :string, required: true
-
-  defp stat(assigns) do
-    color_classes = %{
-      "blue" => "bg-blue-50 text-blue-600",
-      "emerald" => "bg-emerald-50 text-emerald-600",
-      "amber" => "bg-amber-50 text-amber-600",
-      "slate" => "bg-slate-100 text-slate-600"
-    }
-
-    assigns =
-      assign(
-        assigns,
-        :color_class,
-        Map.get(color_classes, assigns.color, "bg-gray-50 text-gray-600")
-      )
-
-    ~H"""
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
-        {@icon}
-      </span>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums mt-3">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
-    </div>
-    """
-  end
 
   attr :filter, :string, required: true
   attr :active, :atom, required: true

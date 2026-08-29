@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         form_name: "",
         form_description: "",
         form_parent_id: nil,
+        category_form: category_form("", "", nil),
         form_errors: %{},
         all_categories: [],
         delete_category: nil
@@ -40,6 +41,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
        form_name: "",
        form_description: "",
        form_parent_id: nil,
+       category_form: category_form("", "", nil),
        form_errors: %{}
      )
      |> push_event("js-exec", %{to: "#category-modal", attr: "phx-mounted"})}
@@ -50,12 +52,15 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     category = Enum.find(socket.assigns.all_categories, &(&1.id == id))
 
     if category do
+      description = Map.get(category, :description, "") || ""
+
       {:noreply,
        assign(socket,
          edit_category_id: id,
          form_name: category.name,
-         form_description: Map.get(category, :description, "") || "",
+         form_description: description,
          form_parent_id: category.parent_id,
+         category_form: category_form(category.name, description, category.parent_id),
          form_errors: %{}
        )}
     else
@@ -70,13 +75,23 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   @impl true
-  def handle_event("validate_category", %{"name" => name}, socket) do
+  def handle_event("validate_category", %{"name" => name} = params, socket) do
     errors =
       if String.trim(name) == "",
         do: %{name: "Name is required"},
         else: %{}
 
-    {:noreply, assign(socket, form_name: name, form_errors: errors)}
+    description = Map.get(params, "description", socket.assigns.form_description)
+    parent_id = Map.get(params, "parent_id", socket.assigns.form_parent_id)
+
+    {:noreply,
+     assign(socket,
+       form_name: name,
+       form_description: description,
+       form_parent_id: parent_id,
+       category_form: category_form(name, description, parent_id),
+       form_errors: errors
+     )}
   end
 
   @impl true
@@ -84,7 +99,12 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     name = String.trim(params["name"] || "")
 
     if name == "" do
-      {:noreply, assign(socket, form_errors: %{name: "Name is required"})}
+      {:noreply,
+       assign(socket,
+         category_form:
+           category_form(params["name"] || "", params["description"] || "", params["parent_id"]),
+         form_errors: %{name: "Name is required"}
+       )}
     else
       attrs = build_category_attrs(params, name, socket)
 
@@ -97,11 +117,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
   @impl true
   def handle_event("delete_category", %{"id" => id}, socket) do
-    case Emakola.Catalog.get_category(id) do
+    store_id = socket.assigns.store_id
+    opts = category_opts(socket)
+
+    case Emakola.Catalog.get_category_for_store(id, store_id, opts) do
       {:ok, category} ->
-        case Emakola.Catalog.destroy_category(category, authorize?: false) do
+        case Emakola.Catalog.destroy_category(category, opts) do
           :ok ->
-            Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+            Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
 
             {:noreply,
              socket
@@ -131,13 +154,19 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_create_category(socket, attrs) do
-    case Emakola.Catalog.create_category(attrs, authorize?: false) do
+    case Emakola.Catalog.create_category(attrs, category_opts(socket)) do
       {:ok, _category} ->
         Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
         {:noreply,
          socket
-         |> assign(form_name: "", form_description: "", form_parent_id: nil, form_errors: %{})
+         |> assign(
+           form_name: "",
+           form_description: "",
+           form_parent_id: nil,
+           category_form: category_form("", "", nil),
+           form_errors: %{}
+         )
          |> load_category_tree()
          |> put_flash(:info, "Category created")}
 
@@ -147,11 +176,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_update_category(socket, id, attrs) do
-    case Emakola.Catalog.get_category(id) do
+    store_id = socket.assigns.store_id
+    opts = category_opts(socket)
+
+    case Emakola.Catalog.get_category_for_store(id, store_id, opts) do
       {:ok, category} ->
         update_attrs = Map.take(attrs, [:name, :description, :parent_id])
 
-        case Emakola.Catalog.update_category(category, update_attrs, authorize?: false) do
+        case Emakola.Catalog.update_category(category, update_attrs, opts) do
           {:ok, _updated} ->
             Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -162,6 +194,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
                form_name: "",
                form_description: "",
                form_parent_id: nil,
+               category_form: category_form("", "", nil),
                form_errors: %{}
              )
              |> load_category_tree()
@@ -219,45 +252,65 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
+    <div id="categories-page" class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Categories</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Organize your products into groups
-          </p>
-        </div>
-        <button
+      <.admin_page_header
+        title="Categories"
+        subtitle="Organize your products into groups"
+        icon="hero-folder"
+      >
+        <.admin_button
           phx-click={show_modal("category-modal")}
           phx-value-action="add"
-          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold
-                 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
-                 shadow-sm w-full sm:w-auto justify-center"
+          class="w-full sm:w-auto"
         >
-          <span class="material-symbols-outlined text-lg">add</span> Add Category
-        </button>
-      </div>
+          <.icon name="hero-plus" class="size-5" /> Add Category
+        </.admin_button>
+      </.admin_page_header>
 
-      <%!-- Stats Bar --%>
-      <div class="flex items-center gap-6 px-1">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-emerald-600">folder</span>
-          </div>
-          <div>
-            <p class="text-lg font-bold text-slate-900">{length(@all_categories)}</p>
-            <p class="text-[11px] text-slate-400 -mt-0.5">Total</p>
-          </div>
+      <%!-- KPI tiles (store-wide) --%>
+      <div id="category-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="stat-categories-total">
+          <.stat_card
+            label="Total categories"
+            value={to_string(length(@all_categories))}
+            tone={:accent}
+          >
+            <:icon><.icon name="hero-folder" class="size-7" /></:icon>
+          </.stat_card>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-blue-600">account_tree</span>
-          </div>
-          <div>
-            <p class="text-lg font-bold text-slate-900">{length(@category_tree)}</p>
-            <p class="text-[11px] text-slate-400 -mt-0.5">Main</p>
-          </div>
+        <div id="stat-categories-main">
+          <.stat_card
+            label="Main groups"
+            value={to_string(length(@category_tree))}
+            tone={:success}
+          >
+            <:icon><.icon name="hero-squares-2x2" class="size-7" /></:icon>
+          </.stat_card>
+        </div>
+        <div id="stat-categories-products">
+          <.stat_card
+            label="Products organized"
+            value={to_string(@category_stats.organized)}
+            tone={:cyan}
+          >
+            <:icon><.icon name="hero-cube" class="size-7" /></:icon>
+            <:delta>
+              <p :if={@category_stats.uncategorized > 0} class="text-sm text-slate-500">
+                {@category_stats.uncategorized} uncategorized
+              </p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-categories-top">
+          <.stat_card label="Most stocked" value={@category_stats.top_name} tone={:warning}>
+            <:icon><.icon name="hero-star" class="size-7" /></:icon>
+            <:delta>
+              <p :if={@category_stats.top_count > 0} class="text-xs text-slate-400 mt-1">
+                {@category_stats.top_count} products
+              </p>
+            </:delta>
+          </.stat_card>
         </div>
       </div>
 
@@ -295,16 +348,20 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         title={if @edit_category_id, do: "Edit Category", else: "Add Category"}
         size={:md}
       >
-        <form phx-submit="save_category" phx-change="validate_category" class="space-y-4">
+        <.form
+          for={@category_form}
+          id="category-form"
+          phx-submit="save_category"
+          phx-change="validate_category"
+          class="space-y-4"
+        >
           <div>
-            <label for="category-name" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Name <span class="text-red-500">*</span>
-            </label>
-            <input
+            <.input
+              field={@category_form[:name]}
               type="text"
               id="category-name"
-              name="name"
               value={@form_name}
+              label="Name *"
               placeholder="Category name"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -316,40 +373,32 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             <p :if={@form_errors[:name]} class="mt-1 text-xs text-red-600">{@form_errors[:name]}</p>
           </div>
 
-          <div>
-            <label for="category-description" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Description
-            </label>
-            <textarea
-              id="category-description"
-              name="description"
-              rows="3"
-              placeholder="Optional description"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
-            >{@form_description}</textarea>
-          </div>
+          <.input
+            field={@category_form[:description]}
+            type="textarea"
+            id="category-description"
+            value={@form_description}
+            label="Description"
+            rows="3"
+            placeholder="Optional description"
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+          />
 
-          <div>
-            <label for="category-parent" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Parent Category
-            </label>
-            <select
-              id="category-parent"
-              name="parent_id"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="">No parent (root)</option>
-              <option
-                :for={cat <- Enum.reject(@all_categories, &(&1.id == @edit_category_id))}
-                value={cat.id}
-                selected={to_string(@form_parent_id) == to_string(cat.id)}
-              >
-                {cat.name}
-              </option>
-            </select>
-          </div>
+          <.input
+            field={@category_form[:parent_id]}
+            type="select"
+            id="category-parent"
+            value={to_string(@form_parent_id || "")}
+            label="Parent Category"
+            options={
+              [{"No parent (root)", ""}] ++
+                Enum.map(
+                  Enum.reject(@all_categories, &(&1.id == @edit_category_id)),
+                  &{&1.name, &1.id}
+                )
+            }
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
 
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
@@ -368,7 +417,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
               {if @edit_category_id, do: "Update", else: "Create"}
             </button>
           </div>
-        </form>
+        </.form>
       </.modal>
 
       <%!-- Delete Confirmation Modal --%>
@@ -388,6 +437,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     """
   end
 
+  defp category_form(name, description, parent_id) do
+    to_form(%{
+      "name" => name,
+      "description" => description,
+      "parent_id" => parent_id || ""
+    })
+  end
+
   # ── Components ──
 
   attr :node, :map, required: true
@@ -405,9 +462,13 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       |> assign(:text_color, text_color)
       |> assign(:icon, icon)
       |> assign(:child_count, child_count)
+      |> assign(:product_count, assigns.node.category.product_count || 0)
 
     ~H"""
-    <div class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5">
+    <div
+      id={"category-#{@node.category.id}"}
+      class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5"
+    >
       <%!-- Top: Icon + Actions --%>
       <div class="flex items-start justify-between mb-4">
         <div class={"w-12 h-12 rounded-xl #{@icon_bg} flex items-center justify-center"}>
@@ -415,6 +476,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         </div>
         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
+            id={"edit-category-#{@node.category.id}"}
             phx-click={
               JS.push("open_edit_modal", value: %{id: @node.category.id})
               |> show_modal("category-modal")
@@ -425,6 +487,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             <span class="material-symbols-outlined text-base text-slate-400">edit</span>
           </button>
           <button
+            id={"delete-category-#{@node.category.id}"}
             phx-click={
               JS.push("open_delete_modal", value: %{id: @node.category.id})
               |> show_modal("delete-category-modal")
@@ -439,8 +502,13 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         </div>
       </div>
 
-      <%!-- Name --%>
-      <h3 class="text-base font-bold text-slate-900 mb-1">{@node.category.name}</h3>
+      <%!-- Name + product count --%>
+      <div class="flex items-center gap-2 mb-1">
+        <h3 class="text-base font-bold text-slate-900">{@node.category.name}</h3>
+        <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">
+          {@product_count} products
+        </span>
+      </div>
       <p
         :if={@node.category.description && @node.category.description != ""}
         class="text-xs text-slate-400 line-clamp-2 mb-3"
@@ -482,7 +550,10 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
     all_categories =
       try do
-        Emakola.Catalog.list_categories_by_store!(store_id)
+        Emakola.Catalog.list_categories_by_store!(
+          store_id,
+          Keyword.put(category_opts(socket), :load, [:product_count])
+        )
       rescue
         exception ->
           Logger.error(
@@ -494,7 +565,50 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
     tree = build_tree(all_categories, nil)
 
-    assign(socket, category_tree: tree, all_categories: all_categories)
+    assign(socket,
+      category_tree: tree,
+      all_categories: all_categories,
+      category_stats: build_category_stats(all_categories, socket)
+    )
+  end
+
+  # Store-wide numbers for the KPI tiles — organized products come from the
+  # per-category aggregate; the uncategorized remainder needs the store's
+  # total product count.
+  defp build_category_stats(all_categories, socket) do
+    organized = all_categories |> Enum.map(&(&1.product_count || 0)) |> Enum.sum()
+
+    top =
+      all_categories
+      |> Enum.max_by(&(&1.product_count || 0), fn -> nil end)
+
+    top_count = (top && top.product_count) || 0
+
+    %{
+      organized: organized,
+      uncategorized: max(count_store_products(socket) - organized, 0),
+      top_name: if(top_count > 0, do: top.name, else: "—"),
+      top_count: top_count
+    }
+  end
+
+  defp count_store_products(%{assigns: %{store_id: nil}}), do: 0
+
+  defp count_store_products(socket) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store, %{store_id: socket.assigns.store_id})
+    |> Ash.count(category_opts(socket))
+    |> case do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[category_live.index] count_store_products raised: #{Exception.message(exception)}"
+      )
+
+      0
   end
 
   defp build_tree(categories, parent_id) do
@@ -524,6 +638,10 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       %{id: id} -> id
       _ -> nil
     end
+  end
+
+  defp category_opts(socket) do
+    [actor: socket.assigns[:current_merchant], tenant: socket.assigns.store_id]
   end
 
   defp format_error(%Ash.Error.Invalid{errors: errors}) do

@@ -66,7 +66,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       <div class="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:px-8">
         <%!-- Gallery: square, hard-framed, finished before the photo lands --%>
         <div class="lg:sticky lg:top-24 lg:self-start">
-          <div class="relative aspect-square overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
+          <div class="relative aspect-[4/5] overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
             <div
               class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
               aria-hidden="true"
@@ -138,6 +138,8 @@ defmodule Emakola.Themes.Chale.ProductDetail do
           <h1 class="text-3xl font-bold uppercase leading-[0.95] tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-4xl lg:text-5xl">
             {@product.title}
           </h1>
+
+          <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
 
           <div class="mt-4 flex flex-wrap items-baseline gap-3">
             <p class="text-3xl font-bold tabular-nums tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-4xl">
@@ -360,6 +362,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
         reviews={@reviews}
         can_review={@can_review}
         already_reviewed={@already_reviewed}
+        review_form={assigns[:review_form]}
         review_form_rating={@review_form_rating}
         review_form_title={@review_form_title}
         review_form_body={@review_form_body}

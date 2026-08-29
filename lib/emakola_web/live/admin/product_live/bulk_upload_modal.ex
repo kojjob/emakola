@@ -18,6 +18,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
   alias Phoenix.LiveView.JS
 
   attr :uploads, :map, required: true, doc: "the live uploads struct (must contain :csv_file)"
+  attr :form, :any, required: true, doc: "the LiveView-assigned upload form"
   attr :csv_preview, :list, default: [], doc: "rows parsed and ready to import"
   attr :csv_errors, :list, default: [], doc: "user-readable error strings"
   attr :bulk_importing, :boolean, default: false, doc: "true while import is running"
@@ -51,7 +52,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
         </div>
 
         <%!-- File Upload Area --%>
-        <form phx-change="validate_csv" phx-submit="parse_csv" id="csv-upload-form">
+        <.form for={@form} phx-change="validate_csv" phx-submit="parse_csv" id="csv-upload-form">
           <div class="space-y-3">
             <label class="block text-sm font-medium text-slate-700">Upload CSV File</label>
             <div
@@ -131,7 +132,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
               {upload_error_to_string(err)}
             </div>
           </div>
-        </form>
+        </.form>
 
         <%!-- CSV Errors --%>
         <div :if={@csv_errors != []} class="bg-red-50 border border-red-200 rounded-lg p-3">

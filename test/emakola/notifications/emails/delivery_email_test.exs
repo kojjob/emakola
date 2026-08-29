@@ -103,7 +103,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmailTest do
     test "falls back to noreply when store has no contact_email" do
       store = build_store(contact_email: nil)
       email = DeliveryEmail.order_delivered(build_order(), build_customer(), store)
-      assert {"Accra Fashion Hub", "noreply@emakola.com"} = email.from
+      assert {"Accra Fashion Hub", "noreply@makola.io"} = email.from
     end
 
     # ── HTML body content ──────────────────────────────────────────
@@ -139,7 +139,7 @@ defmodule Emakola.Notifications.Emails.DeliveryEmailTest do
       store = build_store(slug: "accra-fashion-hub")
       order = build_order(order_number: "ORD-20260325-DEL01")
       email = DeliveryEmail.order_delivered(order, build_customer(), store)
-      assert email.html_body =~ "/s/accra-fashion-hub/orders/ORD-20260325-DEL01/review"
+      assert email.html_body =~ "/accra-fashion-hub/orders/ORD-20260325-DEL01/review"
     end
 
     test "HTML body contains line item product titles" do

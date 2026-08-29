@@ -53,6 +53,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             <h1 class="spot-display text-5xl sm:text-6xl lg:text-7xl text-[#16130F] mt-4 uppercase">
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <p class="text-[#6B675F] text-base mt-5 max-w-md leading-relaxed">
               {@product.description || get_in(@theme, [:hero, :tagline])}
             </p>
@@ -341,6 +342,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
           reviews={assigns[:reviews] || []}
           can_review={assigns[:can_review] || false}
           already_reviewed={assigns[:already_reviewed] || false}
+          review_form={assigns[:review_form]}
           review_form_rating={assigns[:review_form_rating] || 0}
           review_form_title={assigns[:review_form_title] || ""}
           review_form_body={assigns[:review_form_body] || ""}

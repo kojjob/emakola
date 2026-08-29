@@ -106,7 +106,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           class="bg-white lg:rounded-3xl lg:overflow-hidden lg:shadow-md lg:shadow-emerald-50"
           aria-label="Product images"
         >
-          <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-[#ECFDF5]/30">
+          <div class="w-full aspect-[4/5] overflow-hidden bg-[#ECFDF5]/30">
             <%= if current_image(@product, @current_image_index) do %>
               <.optimized_image
                 src={current_image(@product, @current_image_index)}
@@ -182,6 +182,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             >
               {@product.title}
             </h1>
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
             <p class="text-2xl font-bold text-[var(--theme-primary,#047857)] mb-3">
               <%= if @selected_variant do %>
                 {Currency.format_price(@selected_variant.price, @store.currency)}
@@ -242,7 +243,10 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           <%!-- Quantity + Add to Cart --%>
           <section class="px-4 lg:px-0 py-5 space-y-4" aria-label="Add to cart">
             <%!-- Quantity stepper --%>
-            <div class="flex items-center border-2 border-[#D9F99D] rounded-full w-fit overflow-hidden bg-white">
+            <div
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+              class="flex items-center border-2 border-[#D9F99D] rounded-full w-fit overflow-hidden bg-white"
+            >
               <button
                 phx-click="decrement_quantity"
                 disabled={@quantity <= 1}
@@ -298,16 +302,13 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
               {Emakola.Themes.Delivery.callout(assigns)}
             </p>
             <button
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               phx-click="add_to_cart"
-              disabled={
-                is_nil(@selected_variant) ||
-                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
-              }
+              disabled={is_nil(@selected_variant)}
               class={[
                 "w-full h-14 rounded-2xl text-base font-bold flex items-center justify-center gap-2.5 transition-all",
                 if(
-                  is_nil(@selected_variant) ||
-                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
+                  is_nil(@selected_variant),
                   do: "bg-[#D9F99D]/50 text-[#059669]/40 cursor-not-allowed",
                   else:
                     "bg-[var(--theme-primary,#047857)] text-white hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-lg shadow-emerald-200"
@@ -328,15 +329,22 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                   d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.002-.881 2.002-2.003V6.75m-14.22 0h14.22m-14.22 0L5.106 5.272M7.5 14.25L5.106 5.272m0 0a1.125 1.125 0 00-1.091-.852H2.25"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) || not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
+              <%= if is_nil(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
               <% end %>
             </button>
 
+            <.back_in_stock
+              :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+              store={@store}
+              product={@product}
+            />
+
             <%!-- WhatsApp Order --%>
             <a
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'd%20like%20to%20order%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
@@ -569,6 +577,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
         reviews={@reviews}
         can_review={@can_review}
         already_reviewed={@already_reviewed}
+        review_form={assigns[:review_form]}
         review_form_rating={@review_form_rating}
         review_form_title={@review_form_title}
         review_form_body={@review_form_body}
@@ -638,5 +647,60 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
       [] -> []
       found -> found
     end
+  end
+
+  # ── Back in Stock ──
+  #
+  # Fresh sells produce: a dashed note pinned to the stall, and a speech-tailed
+  # button. Nothing here promises when stock returns, because nobody knows.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div
+      :if={@url}
+      id="back-in-stock"
+      class="rounded-[22px] border-2 border-dashed border-[#047857] bg-white px-5 py-[18px]"
+    >
+      <div class="mb-1.5 flex items-center gap-2.5">
+        <span class="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-emerald-50">
+          <svg
+            class="h-[15px] w-[15px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#047857"
+            stroke-width="1.8"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3v3m0 0c-3 0-6 2-6 6 0 4 3 9 6 9s6-5 6-9c0-4-3-6-6-6z"
+            />
+          </svg>
+        </span>
+        <p class="text-[15px] font-bold text-[#047857]">All gone for now</p>
+      </div>
+      <p class="mb-4 text-[13px] leading-relaxed text-[#78350F]">
+        Ask {@store.name} about this one.
+      </p>
+      <a
+        href={@url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex h-[46px] items-center gap-2.5 rounded-[999px_999px_999px_6px] bg-[#047857] px-[22px] text-[13.5px] font-bold text-white transition-colors hover:bg-[#065F46]"
+      >
+        <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-[17px] w-[17px] text-white" />
+        Ask the stall
+      </a>
+    </div>
+    """
   end
 end

@@ -44,7 +44,9 @@ defmodule EmakolaWeb.SidebarComponents do
     "photo" =>
       "M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z",
     "shield" =>
-      "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z",
+    "chat" =>
+      "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
   }
 
   @sidebar_icons_secondary %{
@@ -100,6 +102,7 @@ defmodule EmakolaWeb.SidebarComponents do
   attr :current_merchant, :any, default: nil
   attr :current_store, :any, default: nil
   attr :pending_order_count, :any, default: nil
+  attr :unread_message_count, :integer, default: 0
 
   def admin_sidebar(assigns) do
     ~H"""
@@ -139,7 +142,7 @@ defmodule EmakolaWeb.SidebarComponents do
           </div>
           <div class="nav-label min-w-0">
             <span class="text-[15px] font-bold text-white tracking-tight leading-tight block">
-              emakola
+              Makola
             </span>
             <span class="text-[10px] text-emerald-400/60 font-medium leading-tight block">
               Merchant Portal
@@ -150,7 +153,7 @@ defmodule EmakolaWeb.SidebarComponents do
         <button
           id="collapse-btn"
           class="collapse-btn hidden lg:flex ml-auto w-7 h-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
-          onclick="toggleSidebar()"
+          data-toggle-sidebar
           aria-label="Toggle sidebar"
         >
           <svg
@@ -300,6 +303,15 @@ defmodule EmakolaWeb.SidebarComponents do
           Customers & Marketing
         </p>
 
+        <%!-- First in the group: a buyer waiting on a reply is the most
+              time-sensitive thing on this list. --%>
+        <.sidebar_link
+          href="/admin/messages"
+          title="Messages"
+          icon="chat"
+          active={@active_nav == :messages}
+          badge={if @unread_message_count > 0, do: to_string(@unread_message_count)}
+        />
         <.sidebar_link
           href="/admin/customers"
           title="Customers"
@@ -313,16 +325,22 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :payments}
         />
         <.sidebar_link
-          href="/admin/discounts"
+          href="/admin/coupons"
           title="Discounts"
           icon="tag"
-          active={@active_nav == :discounts}
+          active={@active_nav in [:coupons, :discounts]}
         />
         <.sidebar_link
           href="/admin/campaigns"
           title="Campaigns"
           icon="megaphone"
           active={@active_nav == :campaigns}
+        />
+        <.sidebar_link
+          href="/admin/pay-links"
+          title="Pay Links"
+          icon="payments"
+          active={@active_nav == :pay_links}
         />
 
         <%!-- Content & Design --%>
@@ -395,6 +413,12 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :verification}
         />
         <.sidebar_link
+          href="/admin/earnings"
+          title="Earnings"
+          icon="currency"
+          active={@active_nav == :earnings}
+        />
+        <.sidebar_link
           href="/admin/payouts"
           title="Payouts"
           icon="payments"
@@ -427,7 +451,7 @@ defmodule EmakolaWeb.SidebarComponents do
                   else: "Merchant"}
               </p>
               <p class="text-[10px] text-white/30 truncate leading-tight">
-                {if sidebar_user, do: sidebar_user.email, else: "merchant@emakola.com"}
+                {if sidebar_user, do: sidebar_user.email, else: "merchant@makola.io"}
               </p>
             </div>
             <svg
@@ -671,7 +695,13 @@ defmodule EmakolaWeb.SidebarComponents do
             <div class="overflow-y-auto max-h-[360px] divide-y divide-slate-50">
               <%= if length(notifs) > 0 do %>
                 <%= for notif <- notifs do %>
-                  <div class={"flex gap-3 px-5 py-3.5 hover:bg-slate-50/80 transition-colors #{if is_nil(notif.read_at), do: "bg-emerald-50/30", else: ""}"}>
+                  <button
+                    type="button"
+                    id={"notification-#{notif.id}"}
+                    phx-click="open_notification"
+                    phx-value-id={notif.id}
+                    class={"w-full text-left flex gap-3 px-5 py-3.5 hover:bg-slate-50/80 transition-colors cursor-pointer #{if is_nil(notif.read_at), do: "bg-emerald-50/30", else: ""}"}
+                  >
                     <div class={"shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center #{EmakolaWeb.LayoutHelpers.notification_icon_bg_class(notif.type)}"}>
                       <span class={"material-symbols-outlined text-lg #{EmakolaWeb.LayoutHelpers.notification_icon_color_class(notif.type)}"}>
                         {EmakolaWeb.LayoutHelpers.notification_icon(notif.type)}
@@ -695,7 +725,7 @@ defmodule EmakolaWeb.SidebarComponents do
                         {EmakolaWeb.LayoutHelpers.relative_time(notif.inserted_at)}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 <% end %>
               <% else %>
                 <div class="px-5 py-10 text-center">
@@ -706,12 +736,18 @@ defmodule EmakolaWeb.SidebarComponents do
                 </div>
               <% end %>
             </div>
-            <div class="border-t border-slate-100 px-5 py-3">
+            <div class="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+              <a
+                href="/admin/messages"
+                class="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                View all messages
+              </a>
               <a
                 href="/admin/settings"
                 class="text-xs font-medium text-slate-500 hover:text-emerald-600 transition-colors"
               >
-                Notification settings
+                Settings
               </a>
             </div>
           </div>
@@ -753,7 +789,16 @@ defmodule EmakolaWeb.SidebarComponents do
 
           <div
             id="user-panel"
-            class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50"
+            class={
+              [
+                "hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl",
+                "shadow-2xl shadow-slate-200/80 border border-slate-200/80 z-50",
+                # The admin shell is `h-screen` so the page itself never scrolls.
+                # Without a viewport cap this panel runs past the fold and its
+                # last item ("Sign out") becomes unclickable at 1280x800.
+                "max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain"
+              ]
+            }
           >
             <%!-- Profile header --%>
             <div class="px-5 pt-5 pb-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">

@@ -30,12 +30,28 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.path_info == []
   end
 
-  test "passes through (ship-dark) when no subdomain base is configured", %{store: store} do
+  # Previously this asserted a blanket pass-through whenever no subdomain base
+  # was set. That gate also silenced explicit StoreDomain rows, which is why
+  # custom domains could not resolve — or be tested — in dev or test. An
+  # explicit row is now honoured on its own terms; only the IMPLICIT
+  # `<slug>.<base>` match still depends on the base.
+  test "honours an explicit domain row even with no subdomain base configured", %{store: store} do
     claim!(store, "sub-shop.makola.io")
 
     conn =
       ResolveStoreByHost.call(
         conn_for("sub-shop.makola.io", "/products"),
+        ResolveStoreByHost.init([])
+      )
+
+    assert conn.halted
+    assert conn.status == 301
+  end
+
+  test "passes an unknown host through with no subdomain base configured" do
+    conn =
+      ResolveStoreByHost.call(
+        conn_for("nobody.example", "/products"),
         ResolveStoreByHost.init([])
       )
 
@@ -52,7 +68,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.status == 301
 
     assert Plug.Conn.get_resp_header(conn, "location") ==
-             ["http://localhost:4000/s/sub-shop/products?color=red"]
+             ["http://localhost:4000/sub-shop/products?color=red"]
   end
 
   test "redirects the root path to the bare store URL (no trailing slash)", %{store: store} do
@@ -60,7 +76,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
 
     conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/"), @opts)
 
-    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/s/sub-shop"]
+    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/sub-shop"]
   end
 
   # serve_in_place? domains are no longer rewritten here — the router host-routes

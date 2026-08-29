@@ -22,7 +22,7 @@ defmodule EmakolaWeb do
   # legacy priv/static/robots.txt is now unused (kept, not deleted).
   def static_paths,
     do:
-      ~w(assets css fonts images uploads favicon.ico favicon.svg manifest.json sw.js offline.html)
+      ~w(assets css fonts images tour uploads videos favicon.ico favicon.svg manifest.json sw.js offline.html)
 
   def router do
     quote do

@@ -13,33 +13,35 @@ defmodule EmakolaWeb.Company.PressLive do
          "Press resources, brand assets, and media contact for Makola — the commerce platform for West African merchants.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/press"),
-       press_email: Application.get_env(:emakola, :press_email, "press@emakola.com")
+       press_email: Application.get_env(:emakola, :press_email, "press@makola.io")
      ), layout: false}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="press-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="Press & media"
-          title="Press"
-          highlight="resources"
-          subtitle="Everything you need to write about Makola. For interviews or anything else, reach out below."
-        />
-        <.about />
-        <.facts />
-        <.assets />
-        <.media_enquiries press_email={@press_email} />
-      </main>
-      <.landing_footer />
-    </div>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="press-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="Press & media"
+            title="Press"
+            highlight="resources"
+            subtitle="Everything you need to write about Makola. For interviews or anything else, reach out below."
+          />
+          <.about />
+          <.facts />
+          <.assets />
+          <.media_enquiries press_email={@press_email} />
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 

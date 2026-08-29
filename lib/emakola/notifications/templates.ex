@@ -47,6 +47,99 @@ defmodule Emakola.Notifications.Templates do
       "If you have questions, please contact the store."
   end
 
+  # ── TC-2 buyer protection lifecycle templates ───────────────────
+  # Both buyer-facing messages embed a SIGNED tracking link
+  # (`EmakolaWeb.TrackingTokens.sign_order_tracking/1`) so the buyer can act
+  # on `TrackingLive` (confirm receipt / file a complaint) from the link
+  # alone, without signing in.
+
+  def protection_held_sms(order, store) do
+    "Your payment for order #{order.order_number} from #{store.name} is safely held " <>
+      "until you confirm delivery. Track & confirm here: #{protection_tracking_url(store, order)}"
+  end
+
+  def protection_delivery_nudge_sms(order, store) do
+    release_days = Emakola.Payments.Workers.ProtectionSweepWorker.release_days()
+
+    "Your order #{order.order_number} from #{store.name} has been delivered! " <>
+      "Please confirm receipt — the payment releases automatically in #{release_days} days if we " <>
+      "don't hear from you. Confirm here: #{protection_tracking_url(store, order)}"
+  end
+
+  # ── TC-3 susu lay-away lifecycle templates (Task 8) ─────────────
+  # Pre-completion buyer/merchant messages are PLAN-based (no order exists
+  # yet — see `Emakola.Notifications.Dispatcher.dispatch_susu/2`'s
+  # moduledoc). Buyer-facing ones embed the SIGNED susu-plan link
+  # (`EmakolaWeb.SusuTokens.sign_susu_plan/1`), the exact URL shape
+  # `EmakolaWeb.Storefront.SusuLinkLive.send_resend_sms/2` already builds,
+  # so the buyer can pay a chunk / edit delivery / cancel from the link
+  # alone. `:susu_completed` / `:susu_merchant_completed` are order-based
+  # (the plan's order exists by the time they fire) and live with the
+  # other order templates below.
+
+  def susu_activated_sms(plan, store) do
+    "Your susu plan at #{store.name} is now active! First payment received — " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)} of " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount)} paid. " <>
+      "Track your progress and pay your next chunk here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_chunk_received_sms(plan, store) do
+    "Chunk received for your susu plan at #{store.name}! " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)} of " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount)} paid so far. " <>
+      "Track your progress here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_nudge_sms(plan, store) do
+    "It's been a week since your last susu payment at #{store.name}. You still owe " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount - plan.contributed_amount)}. " <>
+      "Pay your next chunk here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_deadline_warning_sms(plan, store) do
+    days = deadline_days_left(plan)
+
+    "Reminder: your susu plan at #{store.name} deadline is in #{pluralize_days(days)}! You still owe " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount - plan.contributed_amount)}. " <>
+      "Pay now: #{susu_plan_url(plan)}"
+  end
+
+  # `refunded_amount` is the sum of the plan's actual `:success` payments —
+  # NOT `plan.contributed_amount`, which is 0 on the insufficient-stock
+  # path (the activating chunk's payment succeeded at the gateway but was
+  # flagged for refund instead of counted — see `SusuChunks.confirm_chunk/1`
+  # — so it never incremented `contributed_amount`) even though real money
+  # is being refunded. The caller (`SusuNotificationWorker`) computes this
+  # from the payments table so the SMS never claims GH₵0.00 was refunded
+  # when it wasn't.
+  def susu_refunded_sms(_plan, store, refunded_amount) do
+    "Your susu plan at #{store.name} has ended. Your contributions " <>
+      "(#{currency_symbol(store.currency || "GHS")}#{format_amount(refunded_amount)}) are being refunded " <>
+      "to your mobile money account."
+  end
+
+  def susu_merchant_activated_sms(plan, store) do
+    "A susu plan (#{plan.code}) at #{store.name} is now active — the buyer made their first " <>
+      "payment of #{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)}. " <>
+      "Check your dashboard for details."
+  end
+
+  def susu_merchant_expired_sms(plan, store) do
+    "A susu plan (#{plan.code}) at #{store.name} ended without completing — any contributions are " <>
+      "being refunded to the buyer. Check your dashboard for details."
+  end
+
+  def susu_completed_sms(order, store) do
+    "Your susu plan is complete! Order #{order.order_number} from #{store.name} has been created. " <>
+      "Track & confirm delivery here: #{protection_tracking_url(store, order)}"
+  end
+
+  def susu_merchant_completed_sms(order, store) do
+    "A susu plan completed! Order #{order.order_number} at #{store.name} has been created — " <>
+      "check your dashboard for payout details."
+  end
+
   # ── Merchant-facing templates ──────────────────────────────────
 
   def new_order_merchant_sms(order, store) do
@@ -63,6 +156,34 @@ defmodule Emakola.Notifications.Templates do
 
   def payout_paid_merchant_sms(payout, store) do
     "#{store.name}: you've received #{currency_symbol(payout.currency)}#{format_amount(payout.amount)} from Makola. Payout complete."
+  end
+
+  # ── Earnings-accrued template (money-surfaces PR-2 Task 3) ─────
+  # `source_description` and `momo_ready?` are precomputed by
+  # `EarningsNotificationWorker` (source store name vs. "your sale"; whether
+  # `PayoutService.momo_destination?/1` is true) — this template just
+  # composes strings, no cross-context calls.
+
+  def earnings_accrued_sms(store, net_amount, source_description, momo_ready?) do
+    base =
+      "#{store.name}: you earned #{currency_symbol(store.currency || "GHS")}#{format_amount(net_amount)} " <>
+        "from #{source_description}. Check your dashboard for details."
+
+    if momo_ready? do
+      base
+    else
+      base <> " Add your mobile money number to get paid out: #{admin_url("/admin/payouts")}"
+    end
+  end
+
+  def protection_released_merchant_sms(order, store) do
+    "Payment for order #{order.order_number} has been released to you. " <>
+      "Check your #{store.name} dashboard for payout details."
+  end
+
+  def protection_complaint_merchant_sms(order, store) do
+    "A buyer filed a complaint on order #{order.order_number}. The payment stays " <>
+      "held while it's reviewed — check your #{store.name} dashboard for details."
   end
 
   # ── WhatsApp template names ────────────────────────────────────
@@ -85,11 +206,22 @@ defmodule Emakola.Notifications.Templates do
 
   # ── Supplier-facing templates ──────────────────────────────────
 
-  def supplier_fulfillment_sms(order, supplier, line_items) do
-    "Makola order #{order.order_number} for #{supplier.name}: " <>
-      "Please ship #{items_summary(line_items)} " <>
-      "to #{format_address(Map.get(order, :shipping_address))}. " <>
-      "Reply to confirm and share a tracking number."
+  # The old copy ended "Reply to confirm and share a tracking number." Nothing
+  # reads replies — there is no inbound WhatsApp or SMS webhook anywhere in the
+  # app, only Paystack, Hubtel and SplitPay — so a supplier who followed that
+  # instruction was talking into a void. The link is the thing that actually
+  # works.
+  def supplier_fulfillment_sms(order, supplier, line_items, action_url \\ nil) do
+    base =
+      "Makola.io order #{order.order_number} for #{supplier.name}: " <>
+        "Please ship #{items_summary(line_items)} " <>
+        "to #{format_address(Map.get(order, :shipping_address))}."
+
+    if is_binary(action_url) and action_url != "" do
+      base <> " Confirm or say no stock here: " <> action_url
+    else
+      base
+    end
   end
 
   def supplier_fulfillment_whatsapp_template, do: "supplier_fulfillment"
@@ -214,9 +346,38 @@ defmodule Emakola.Notifications.Templates do
   defp item_count_segment(_), do: ""
 
   defp storefront_tracking_url(store, order) do
-    host = storefront_host()
-    "https://#{host}/s/#{store.slug}/track/#{order.order_number}"
+    EmakolaWeb.SEO.Canonical.path(store, "/track/#{order.order_number}")
   end
+
+  # Buyer-authorization token bound to this order (TC-2), appended so the
+  # tracking link itself lets an anonymous buyer confirm receipt / file a
+  # complaint on `TrackingLive` — see `EmakolaWeb.TrackingTokens`.
+  defp protection_tracking_url(store, order) do
+    token = EmakolaWeb.TrackingTokens.sign_order_tracking(order.id)
+    "#{storefront_tracking_url(store, order)}?t=#{token}"
+  end
+
+  # Buyer-authorization token bound to this susu plan, appended so the
+  # signed link lets an anonymous buyer pay a chunk / edit delivery / cancel
+  # from the link alone (`EmakolaWeb.Storefront.SusuLinkLive`). Mirrors
+  # `EmakolaWeb.Storefront.SusuLinkLive.send_resend_sms/2`'s exact URL shape
+  # (apex `/susu/:code` route, not the store-slug-scoped tracking path).
+  defp susu_plan_url(plan) do
+    token = EmakolaWeb.SusuTokens.sign_susu_plan(plan.id)
+    "#{EmakolaWeb.Endpoint.url()}/susu/#{plan.code}?t=#{token}"
+  end
+
+  # Recomputed from the plan's own `deadline` at render time (not stashed at
+  # enqueue time) so a delayed Oban run still reports an accurate count.
+  # Floored at 0 — `susu_deadline_warning_sms/2` is only ever called for a
+  # deadline still in the future (see `SusuNudgeWorker`'s guard), but this
+  # keeps the copy sane even if that guard is ever loosened.
+  defp deadline_days_left(plan) do
+    max(DateTime.diff(plan.deadline, DateTime.utc_now(), :day), 0)
+  end
+
+  defp pluralize_days(1), do: "1 day"
+  defp pluralize_days(days), do: "#{days} days"
 
   defp storefront_host do
     case Application.get_env(:emakola, EmakolaWeb.Endpoint)[:url][:host] do

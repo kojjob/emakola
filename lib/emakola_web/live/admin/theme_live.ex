@@ -74,7 +74,13 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     %{id: "dede", name: "Dede", description: "Food & catering", icon: "restaurant"},
     %{id: "pace", name: "Pace", description: "Activewear & techwear", icon: "sprint"},
     %{id: "depot", name: "Depot", description: "Wholesale quick-order", icon: "inventory_2"},
-    %{id: "akwaaba", name: "Akwaaba", description: "Photo-led storefront", icon: "photo_camera"}
+    %{id: "akwaaba", name: "Akwaaba", description: "Photo-led storefront", icon: "photo_camera"},
+    %{
+      id: "adwuma",
+      name: "Adwuma",
+      description: "Digital downloads, courses and files",
+      icon: "cloud_download"
+    }
   ]
 
   @color_presets [
@@ -136,6 +142,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             trust_config: resolved.trust,
             newsletter_config: resolved.newsletter,
             design_tokens: resolved.design_tokens,
+            hero_upload_form: to_form(%{}),
             saving: false,
             saved: false
           )
@@ -154,19 +161,19 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Choose Your Look</h1>
-          <p class="text-sm text-slate-500 mt-1">Pick a theme, customize colors, and preview live</p>
-        </div>
+      <.admin_page_header
+        icon="hero-swatch"
+        title="Choose Your Look"
+        subtitle="Pick a theme, customize colors, and preview live"
+      >
         <a
-          href={"/s/#{@store.slug}/"}
+          href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/")}
           target="_blank"
-          class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-hover font-medium self-start sm:self-auto"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control border border-border bg-surface text-sm font-semibold text-text hover:bg-surface-subtle transition-colors"
         >
-          <span class="material-symbols-outlined text-base">open_in_new</span> View live store
+          <.icon name="hero-arrow-top-right-on-square" class="size-5" /> View live store
         </a>
-      </div>
+      </.admin_page_header>
 
       <%!-- 3-COLUMN LAYOUT — themes | preview | customize --%>
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-32">
@@ -368,7 +375,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                     Featured Products
                   </p>
                   <a
-                    href={"/s/#{@store.slug}/products"}
+                    href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/products")}
                     target="_blank"
                     rel="noopener"
                     class="text-xs font-medium hover:underline"
@@ -650,7 +657,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
             <%!-- File upload --%>
             <div :if={length(@hero_images) < 5} id="hero-upload-section" class="mb-3">
-              <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
+              <.form
+                for={@hero_upload_form}
+                id="hero-upload-form"
+                phx-change="validate_upload"
+                phx-submit="save_hero_image"
+              >
                 <div
                   class="relative border-2 border-dashed border-slate-300 rounded-lg p-3 text-center hover:border-emerald-400 transition-colors cursor-pointer"
                   phx-drop-target={@uploads.hero_images.ref}
@@ -711,7 +723,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 >
                   Upload
                 </.admin_button>
-              </form>
+              </.form>
             </div>
 
             <%!-- URL fallback --%>

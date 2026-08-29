@@ -110,7 +110,7 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
     end
   end
 
-  test "emits LocalBusiness JSON-LD derived from the store profile", %{conn: conn} do
+  test "emits physical LocalBusiness JSON-LD without guessing a country", %{conn: conn} do
     store =
       Factory.create_store!(%{
         name: "Ama's Kitchen",
@@ -123,12 +123,18 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
       })
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+    document = LazyHTML.from_fragment(html)
 
-    assert html =~ ~s("@type":"LocalBusiness")
-    assert html =~ ~s("addressLocality":"Accra")
-    assert html =~ ~s("addressCountry":"GH")
-    assert html =~ ~s("telephone":"+233200000000")
-    # JSON-LD is rendered with Jason escape: :html_safe, so "/" becomes "\/".
-    assert html =~ ~s("sameAs":["https:\\/\\/instagram.com\\/amakitchen"])
+    schema =
+      document
+      |> LazyHTML.query(~s(script[type="application/ld+json"]))
+      |> LazyHTML.text()
+      |> Jason.decode!()
+
+    assert schema["@type"] == "LocalBusiness"
+    assert schema["address"]["addressLocality"] == "Accra"
+    refute Map.has_key?(schema["address"], "addressCountry")
+    assert schema["telephone"] == "+233200000000"
+    assert schema["sameAs"] == ["https://instagram.com/amakitchen"]
   end
 end

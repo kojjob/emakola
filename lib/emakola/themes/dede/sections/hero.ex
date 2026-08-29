@@ -32,7 +32,7 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
     [
       %{key: "headline", type: :string, label: "Headline", default: ""},
       %{key: "subheadline", type: :text, label: "Subheadline", default: ""},
-      %{key: "cta_label", type: :string, label: "Button label", default: "See the menu"},
+      %{key: "cta_label", type: :string, label: "Button label", default: "Shop now"},
       %{key: "image_url", type: :image_url, label: "Image", default: ""}
     ]
   end
@@ -55,7 +55,7 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
         :subheadline,
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
-      |> assign(:cta_label, present(assigns.settings["cta_label"]) || "See the menu")
+      |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop now")
       |> assign(:hero_product, hero_product)
       |> assign(
         :image,

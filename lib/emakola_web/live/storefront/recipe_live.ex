@@ -49,7 +49,10 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
              |> assign(:cart_session_id, cart_session_id)
              |> assign(:cart_count, cart_count)
              |> assign(:categories, [])
-             |> assign(:page_title, "#{post.title} - #{store.name}")
+             |> assign(
+               :page_title,
+               SEO.meta_title([post.seo_title], "#{post.title} - #{store.name}")
+             )
              |> assign_recipe_seo(store, post, recipe_meta)}
 
           _ ->
@@ -85,7 +88,13 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
     ]
 
     socket
-    |> assign(:meta_description, post.seo_description || post.excerpt)
+    |> assign(
+      :meta_description,
+      SEO.meta_description(
+        [post.seo_description, post.excerpt],
+        "View the #{post.title} recipe from #{store.name}."
+      )
+    )
     |> assign(:og_image, post.featured_image_url)
     |> assign(:og_type, "article")
     |> assign(:og_site_name, store.name)

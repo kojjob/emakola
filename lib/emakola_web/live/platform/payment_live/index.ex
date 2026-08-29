@@ -14,6 +14,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
       socket
       |> assign(:page_title, "Payments")
       |> assign(:active_nav, :payments)
+      |> stream(:failed, [])
+      |> stream(:refunds, [])
 
     socket =
       if connected?(socket) do
@@ -23,9 +25,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
           loaded: false,
           stats: nil,
           success_rate: nil,
-          gateways: [],
-          failed: nil,
-          refunds: nil
+          gateways: []
         )
       end
 
@@ -38,6 +38,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
     total = Stats.total_payments()
     gmv = Stats.total_gmv()
     refunded_total = Stats.total_refunded()
+    failed = Stats.recent_failed_payments(20)
+    refunds = Stats.recent_refunded_payments(10)
 
     success_rate =
       if success + failed_count > 0 do
@@ -48,6 +50,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
 
     socket
     |> assign(:loaded, true)
+    |> assign(:gmv_trend, Stats.gmv_by_day(30))
     |> assign(:stats, %{
       total: total,
       success: success,
@@ -57,8 +60,8 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
     })
     |> assign(:success_rate, success_rate)
     |> assign(:gateways, Stats.payment_gateway_breakdown())
-    |> assign(:failed, Stats.recent_failed_payments(20))
-    |> assign(:refunds, Stats.recent_refunded_payments(10))
+    |> stream(:failed, failed, reset: true)
+    |> stream(:refunds, refunds, reset: true)
   end
 
   @impl true
@@ -78,32 +81,59 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
           <p class="text-sm">Loading payment data…</p>
         </div>
       <% else %>
-        <%!-- ── Stat strip ──────────────────────────────────────────────── --%>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <.stat_tile
-            label="Total payments"
-            value={to_string(@stats.total)}
-            icon="payments"
-            color="blue"
-          />
-          <.stat_tile
-            label="Success rate"
-            value={format_rate(@success_rate)}
-            icon="percent"
-            color="emerald"
-          />
-          <.stat_tile
-            label="GMV"
-            value={format_amount(@stats.gmv)}
-            icon="trending_up"
-            color="amber"
-          />
-          <.stat_tile
-            label="Refunds"
-            value={format_amount(@stats.refunded_total)}
-            icon="currency_exchange"
-            color="rose"
-          />
+        <%!-- ── Hero: GMV trend + stat tiles ───────────────────────────── --%>
+        <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 mb-8 items-stretch">
+          <div class="rounded-card border border-border bg-surface p-5 shadow-sm flex flex-col">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h2 class="text-[13px] font-bold text-gray-900">GMV · last 30 days</h2>
+                <p class="mt-1 text-2xl font-bold text-gray-900 tabular-nums">
+                  {format_amount(@stats.gmv)}
+                </p>
+              </div>
+              <.severity_pill
+                label={"Success rate #{format_rate(@success_rate)}"}
+                tone="emerald"
+              />
+            </div>
+            <div class="flex-1 min-h-36 mt-3">
+              <canvas
+                id="payments-gmv-chart"
+                phx-hook="ChartHook"
+                phx-update="ignore"
+                data-chart-type="gmv-line"
+                data-chart-data={Jason.encode!(@gmv_trend)}
+              >
+              </canvas>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <.stat_tile
+              label="Total payments"
+              value={to_string(@stats.total)}
+              icon="payments"
+              color="blue"
+            />
+            <.stat_tile
+              label="Success rate"
+              value={format_rate(@success_rate)}
+              icon="percent"
+              color="emerald"
+            />
+            <.stat_tile
+              id="payments-failed-count"
+              label="Failed"
+              value={@stats.failed}
+              icon="error"
+              color="red"
+            />
+            <.stat_tile
+              label="Refunds"
+              value={format_amount(@stats.refunded_total)}
+              icon="currency_exchange"
+              color="rose"
+            />
+          </div>
         </div>
 
         <%!-- ── Gateway breakdown ──────────────────────────────────────── --%>
@@ -152,15 +182,26 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
                   <th class="px-6 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@failed == []}>
+              <tbody id="failed-payments" phx-update="stream" class="divide-y divide-gray-100">
+                <tr id="failed-payments-empty" class="hidden only:table-row">
                   <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                     No failed payments — nothing to reconcile.
                   </td>
                 </tr>
-                <tr :for={pay <- @failed} class="hover:bg-gray-50 transition-colors">
+                <tr
+                  :for={{id, pay} <- @streams.failed}
+                  id={id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
                   <td class="px-6 py-4 text-sm text-gray-700">
-                    {(pay.store && pay.store.name) || "—"}
+                    <span class="flex items-center gap-2.5">
+                      <.store_avatar
+                        :if={pay.store}
+                        store={pay.store}
+                        class="w-8 h-8 rounded-[9px] text-[13px]"
+                      />
+                      {(pay.store && pay.store.name) || "—"}
+                    </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-700">{pay.customer_email || "—"}</td>
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
@@ -191,15 +232,26 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
                   <th class="px-6 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@refunds == []}>
+              <tbody id="recent-refunds" phx-update="stream" class="divide-y divide-gray-100">
+                <tr id="recent-refunds-empty" class="hidden only:table-row">
                   <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                     No refunds recorded.
                   </td>
                 </tr>
-                <tr :for={pay <- @refunds} class="hover:bg-gray-50 transition-colors">
+                <tr
+                  :for={{id, pay} <- @streams.refunds}
+                  id={id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
                   <td class="px-6 py-4 text-sm text-gray-700">
-                    {(pay.store && pay.store.name) || "—"}
+                    <span class="flex items-center gap-2.5">
+                      <.store_avatar
+                        :if={pay.store}
+                        store={pay.store}
+                        class="w-8 h-8 rounded-[9px] text-[13px]"
+                      />
+                      {(pay.store && pay.store.name) || "—"}
+                    </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-700">{pay.customer_email || "—"}</td>
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">

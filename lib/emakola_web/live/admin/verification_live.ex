@@ -27,7 +27,7 @@ defmodule EmakolaWeb.Admin.VerificationLive do
          socket
          |> assign(:page_title, "Verification")
          |> assign(:active_nav, :verification)
-         |> assign(:verification, load_verification(store))
+         |> assign_verification(load_verification(store))
          |> allow_upload(:id_document,
            accept: ~w(.jpg .jpeg .png .pdf),
            max_entries: 1,
@@ -45,6 +45,10 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   end
 
   @impl true
+  def handle_event("validate", %{"verification" => params}, socket) do
+    {:noreply, assign(socket, :verification_form, to_form(params, as: :verification))}
+  end
+
   def handle_event("validate", _params, socket), do: {:noreply, socket}
 
   def handle_event("cancel_upload", %{"ref" => ref, "slot" => slot}, socket) do
@@ -57,7 +61,10 @@ defmodule EmakolaWeb.Admin.VerificationLive do
 
     cond do
       blank?(params["business_name"]) or blank?(params["id_number"]) or blank?(params["id_type"]) ->
-        {:noreply, put_flash(socket, :error, "Please fill in every field.")}
+        {:noreply,
+         socket
+         |> assign(:verification_form, to_form(params, as: :verification))
+         |> put_flash(:error, "Please fill in every field.")}
 
       socket.assigns.uploads.id_document.entries == [] ->
         {:noreply, put_flash(socket, :error, "Please attach a photo or PDF of your ID.")}
@@ -150,13 +157,35 @@ defmodule EmakolaWeb.Admin.VerificationLive do
     assigns = assign(assigns, :status, assigns.verification && assigns.verification.status)
 
     ~H"""
-    <section class="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <header class="mb-6">
-        <h1 class="text-2xl font-semibold text-slate-900">Store verification</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          Verify your business to earn the verified badge on your storefront.
-        </p>
-      </header>
+    <section class="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <.admin_page_header
+        icon="hero-shield-check"
+        title="Store verification"
+        subtitle="Show buyers your shop is checked."
+      />
+
+      <%!-- The three beats, so a merchant can see where they are without
+            reading the form first. --%>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <.verify_step
+          icon="hero-identification"
+          title="Your details"
+          hint="Name and ID number"
+          state={if @status in [nil, :rejected], do: :current, else: :done}
+        />
+        <.verify_step
+          icon="hero-document-arrow-up"
+          title="Your papers"
+          hint="A photo of your ID"
+          state={if @status in [nil, :rejected], do: :todo, else: :done}
+        />
+        <.verify_step
+          icon="hero-check-circle"
+          title="We check it"
+          hint="We reply by SMS"
+          state={if @status == :approved, do: :done, else: :todo}
+        />
+      </div>
 
       <div
         :if={@status == :approved}
@@ -183,54 +212,44 @@ defmodule EmakolaWeb.Admin.VerificationLive do
         <p class="mt-1 text-sm">Please correct the details below and resubmit.</p>
       </div>
 
-      <form
+      <.form
         :if={@status in [nil, :rejected]}
+        for={@verification_form}
         id="verification-form"
         phx-submit="submit"
         phx-change="validate"
         class="space-y-5 rounded-lg border border-slate-200 bg-white p-6"
       >
         <div>
-          <label class="block text-sm font-medium text-slate-700">Registered business name</label>
-          <input
+          <.input
+            field={@verification_form[:business_name]}
             type="text"
-            name="verification[business_name]"
-            value={@verification && @verification.business_name}
+            label="Registered business name"
             class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="block text-sm font-medium text-slate-700">ID type</label>
-            <select
-              name="verification[id_type]"
+            <.input
+              field={@verification_form[:id_type]}
+              type="select"
+              label="ID type"
+              options={[
+                {"Ghana Card", "ghana_card"},
+                {"Passport", "passport"},
+                {"Driver's License", "drivers_license"},
+                {"Voter ID", "voter_id"}
+              ]}
               class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="ghana_card" selected={id_type_value(@verification) == :ghana_card}>
-                Ghana Card
-              </option>
-              <option value="passport" selected={id_type_value(@verification) == :passport}>
-                Passport
-              </option>
-              <option
-                value="drivers_license"
-                selected={id_type_value(@verification) == :drivers_license}
-              >
-                Driver's License
-              </option>
-              <option value="voter_id" selected={id_type_value(@verification) == :voter_id}>
-                Voter ID
-              </option>
-            </select>
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700">ID number</label>
-            <input
+            <.input
+              field={@verification_form[:id_number]}
               type="text"
-              name="verification[id_number]"
-              value={@verification && @verification.id_number}
+              label="ID number"
               class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
@@ -255,9 +274,22 @@ defmodule EmakolaWeb.Admin.VerificationLive do
         >
           {if @status == :rejected, do: "Resubmit for review", else: "Submit for review"}
         </button>
-      </form>
+      </.form>
     </section>
     """
+  end
+
+  defp assign_verification(socket, verification) do
+    params = %{
+      "business_name" => verification && verification.business_name,
+      "id_type" => verification |> id_type_value() |> to_string(),
+      "id_number" => verification && verification.id_number
+    }
+
+    assign(socket,
+      verification: verification,
+      verification_form: to_form(params, as: :verification)
+    )
   end
 
   attr :label, :string, required: true
@@ -268,30 +300,96 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   defp doc_upload(assigns) do
     ~H"""
     <div>
-      <label class="block text-sm font-medium text-slate-700">{@label}</label>
-      <p class="text-xs text-slate-500">{@hint}</p>
-      <.live_file_input
-        upload={@upload}
-        class="mt-1 block w-full text-sm text-slate-700 file:mr-4 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
-      />
-      <div :for={entry <- @upload.entries} class="mt-2 flex items-center gap-3 text-sm">
-        <span class="truncate text-slate-700">{entry.client_name}</span>
-        <button
-          type="button"
-          phx-click="cancel_upload"
-          phx-value-ref={entry.ref}
-          phx-value-slot={@slot}
-          class="text-xs text-rose-600 underline"
+      <label class="block text-sm font-semibold text-slate-700 mb-2">{@label}</label>
+
+      <%!-- A picture-first dropzone rather than a bare file input: these
+            merchants are on phones, and `capture` opens the camera straight
+            at the document. The input is a full-size opacity-0 overlay —
+            an sr-only one will not open the picker on iOS Safari. --%>
+      <div
+        class="relative rounded-control border-2 border-dashed border-slate-300 bg-surface-subtle hover:border-primary transition-colors"
+        phx-drop-target={@upload.ref}
+      >
+        <div
+          :if={@upload.entries == []}
+          class="flex flex-col items-center gap-2 px-4 py-8 text-center"
         >
-          remove
-        </button>
+          <div class="w-14 h-14 rounded-control bg-info-soft flex items-center justify-center">
+            <.icon name="hero-camera" class="size-7 text-info" />
+          </div>
+          <p class="text-sm font-semibold text-slate-700">Take a photo or choose a file</p>
+          <p class="text-xs text-slate-500">{@hint}</p>
+        </div>
+
+        <div :for={entry <- @upload.entries} class="flex items-center gap-4 p-4">
+          <div class="w-16 h-16 rounded-control bg-primary-soft flex items-center justify-center shrink-0">
+            <.icon name="hero-document-check" class="size-7 text-primary" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-slate-900">{entry.client_name}</p>
+            <p class="text-xs text-slate-500 mt-0.5">Only we can see it</p>
+          </div>
+          <button
+            type="button"
+            phx-click="cancel_upload"
+            phx-value-ref={entry.ref}
+            phx-value-slot={@slot}
+            class="relative z-10 inline-flex items-center gap-1 rounded-control border border-border px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+          >
+            <.icon name="hero-x-mark" class="size-4" /> Remove
+          </button>
+        </div>
+
+        <%!-- Always rendered: removing the input once an entry exists tears it
+              out of the DOM mid-upload and the transfer dies. It just stops
+              taking clicks while a file is attached. --%>
+        <.live_file_input
+          upload={@upload}
+          capture="environment"
+          class={[
+            "absolute inset-0 h-full w-full opacity-0",
+            if(@upload.entries == [], do: "cursor-pointer", else: "pointer-events-none")
+          ]}
+        />
       </div>
-      <p :for={err <- upload_errors(@upload)} class="mt-1 text-sm text-rose-600">
+
+      <p :for={err <- upload_errors(@upload)} class="mt-1.5 text-sm text-rose-600">
         {upload_error_message(err)}
       </p>
     </div>
     """
   end
+
+  attr :icon, :string, required: true
+  attr :title, :string, required: true
+  attr :hint, :string, required: true
+  attr :state, :atom, required: true, values: [:done, :current, :todo]
+
+  defp verify_step(assigns) do
+    ~H"""
+    <div class="flex items-center gap-4 rounded-card border border-border bg-surface p-4 shadow-sm">
+      <div class={[
+        "w-12 h-12 rounded-control flex items-center justify-center shrink-0 text-white",
+        step_tile(@state)
+      ]}>
+        <.icon name={if @state == :done, do: "hero-check", else: @icon} class="size-6" />
+      </div>
+      <div class="min-w-0">
+        <p class={[
+          "text-sm font-bold",
+          if(@state == :todo, do: "text-slate-500", else: "text-slate-900")
+        ]}>
+          {@title}
+        </p>
+        <p class="text-xs text-slate-500 mt-0.5">{@hint}</p>
+      </div>
+    </div>
+    """
+  end
+
+  defp step_tile(:done), do: "bg-success"
+  defp step_tile(:current), do: "bg-primary"
+  defp step_tile(:todo), do: "bg-slate-300"
 
   defp id_type_value(nil), do: :ghana_card
   defp id_type_value(%{id_type: type}), do: type

@@ -769,20 +769,19 @@ defmodule Emakola.Themes.PaceTest do
 
   describe "product list page" do
     defp list_assigns(overrides) do
-      Map.merge(
-        %{
-          store: @component_store,
-          products: [component_product()],
-          categories: [%{id: "cat-1", name: "Running", slug: "running"}],
-          selected_category: nil,
-          search_query: "",
-          has_more: false,
-          cart_count: 0,
-          theme: %{},
-          __changed__: nil
-        },
-        overrides
-      )
+      %{
+        store: @component_store,
+        products: [component_product()],
+        categories: [%{id: "cat-1", name: "Running", slug: "running"}],
+        selected_category: nil,
+        search_query: "",
+        has_more: false,
+        cart_count: 0,
+        theme: %{},
+        __changed__: nil
+      }
+      |> Map.merge(overrides)
+      |> Emakola.LiveViewHelpers.with_product_stream()
     end
 
     defp render_list(overrides \\ %{}) do

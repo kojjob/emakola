@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             </span>
             <input
               type="text"
-              placeholder="Search electronics..."
+              placeholder="Search the shop..."
               class={"flex-1 bg-transparent text-sm focus:outline-none " <> if(@on_dark, do: "text-white placeholder:text-white/50", else: "text-[#1F2937] placeholder:text-[#6B7280]")}
             />
           </div>
@@ -131,12 +131,20 @@ defmodule Emakola.Themes.Electronics.Shared do
               Shop
             </h4>
             <ul class="space-y-3 text-sm text-white/65">
-              <li :for={cat <- ["Phones", "Audio", "Computers", "Wearables", "Accessories"]}>
+              <li :for={category <- Enum.take(assigns[:categories] || [], 5)}>
+                <a
+                  href={store_path(@store.slug, "/category/#{category.slug}")}
+                  class="hover:text-white transition-colors"
+                >
+                  {category.name}
+                </a>
+              </li>
+              <li :if={(assigns[:categories] || []) == []}>
                 <a
                   href={store_path(@store.slug, "/products")}
                   class="hover:text-white transition-colors"
                 >
-                  {cat}
+                  All products
                 </a>
               </li>
             </ul>

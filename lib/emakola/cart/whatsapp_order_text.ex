@@ -45,7 +45,9 @@ defmodule Emakola.Cart.WhatsappOrderText do
     * `currency` — defaults to "GHS"
     * `customer_name`, `customer_phone` — included when provided
     * `total` — includes a Total line when provided
-    * `storefront_host` — defaults to the configured Endpoint URL
+    * `storefront_host` — overrides the host; the store is then linked in the
+      short form under it. Omitted, the link is the store's canonical origin
+      (its own domain if it has one), which is what a customer should see.
   """
   @spec build(map(), [map()], keyword()) :: String.t()
   def build(store, cart, opts \\ []) do
@@ -54,8 +56,7 @@ defmodule Emakola.Cart.WhatsappOrderText do
     customer_phone = Keyword.get(opts, :customer_phone)
     total = Keyword.get(opts, :total)
 
-    storefront_host =
-      Keyword.get_lazy(opts, :storefront_host, fn -> EmakolaWeb.Endpoint.url() end)
+    shop_url = shop_url(store, Keyword.get(opts, :storefront_host))
 
     [
       greeting(store, customer_name),
@@ -67,7 +68,7 @@ defmodule Emakola.Cart.WhatsappOrderText do
       contact_line(customer_phone),
       "",
       "Sent from #{store.name}'s online shop:",
-      "#{storefront_host}/s/#{store.slug}?ref=whatsapp"
+      "#{shop_url}?ref=whatsapp"
     ]
     |> Enum.reject(&(&1 == nil))
     |> Enum.join("\n")
@@ -93,6 +94,13 @@ defmodule Emakola.Cart.WhatsappOrderText do
         "https://wa.me/#{digits}?text=#{text}"
     end
   end
+
+  # A merchant paying for their own domain must not see makola.io in the link
+  # their customer receives, so the canonical origin wins. With an explicit host
+  # the store is linked short — makola.io/yourshop, the form someone can read
+  # back over the phone.
+  defp shop_url(store, nil), do: EmakolaWeb.SEO.Canonical.store_url(store)
+  defp shop_url(store, host), do: String.trim_trailing(host, "/") <> "/" <> store.slug
 
   defp greeting(%{name: name}, nil), do: "Hello #{name},"
   defp greeting(%{name: name}, ""), do: "Hello #{name},"

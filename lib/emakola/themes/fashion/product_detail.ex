@@ -97,6 +97,8 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                 {@product.title}
               </h1>
 
+              <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
               <%!-- Price --%>
               <p class="fashion-heading text-2xl sm:text-3xl font-semibold text-[var(--theme-primary,#5B21B6)] mb-6">
                 {EmakolaWeb.Helpers.Currency.format_price(
@@ -262,6 +264,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
         reviews={assigns[:reviews] || []}
         can_review={assigns[:can_review] || false}
         already_reviewed={assigns[:already_reviewed] || false}
+        review_form={assigns[:review_form]}
         review_form_rating={assigns[:review_form_rating] || 0}
         review_form_title={assigns[:review_form_title] || ""}
         review_form_body={assigns[:review_form_body] || ""}

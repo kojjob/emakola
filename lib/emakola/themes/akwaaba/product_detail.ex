@@ -77,6 +77,8 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
               {@product.title}
             </h1>
 
+            <Emakola.Themes.Shared.RealPhotoBadge.badge product={@product} />
+
             <p class="mt-4 flex flex-wrap items-baseline gap-3">
               <span
                 :if={@selected_variant}
@@ -214,6 +216,7 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
           reviews={@reviews}
           can_review={@can_review}
           already_reviewed={@already_reviewed}
+          review_form={assigns[:review_form]}
           review_form_rating={@review_form_rating}
           review_form_title={@review_form_title}
           review_form_body={@review_form_body}

@@ -19,7 +19,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
     {:ok, store: store}
   end
 
-  describe "GET /s/:slug/feed/instagram.xml" do
+  describe "GET /:slug/feed/instagram.xml" do
     test "returns 404 for unknown store", %{conn: conn} do
       conn = get(conn, "/s/no-such-store/feed/instagram.xml")
       assert conn.status == 404
@@ -72,7 +72,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
       assert body =~ "<g:title>Kente Tee</g:title>"
       assert body =~ "<g:description>Cotton</g:description>"
       assert body =~ "<g:link>"
-      assert body =~ "/s/#{store.slug}/products/"
+      assert body =~ "/#{store.slug}/products/"
       assert body =~ "<g:availability>in stock</g:availability>"
       assert body =~ "<g:price>125.00 GHS</g:price>"
       assert body =~ "<g:brand>Feed Shop</g:brand>"
@@ -92,6 +92,35 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
       assert body =~ "<g:availability>out of stock</g:availability>"
     end
 
+    test "untracked zero-stock variants remain in stock", %{conn: conn, store: store} do
+      _product =
+        create_active_product!(
+          store,
+          %{title: "Made to Order"},
+          %{price: 1_000, stock_quantity: 0, track_inventory: false}
+        )
+
+      body = conn |> get("/s/#{store.slug}/feed/products.xml") |> response(200)
+
+      assert body =~ "<g:title>Made to Order</g:title>"
+      assert body =~ "<g:availability>in stock</g:availability>"
+    end
+
+    test "uses canonical product URLs regardless of request host", %{conn: conn, store: store} do
+      product =
+        create_active_product!(store, %{title: "Canonical Product"}, %{stock_quantity: 3})
+
+      canonical = EmakolaWeb.SEO.Canonical.product_url(store, product)
+
+      body =
+        %{conn | host: "untrusted.example"}
+        |> get("/s/#{store.slug}/feed/products.xml")
+        |> response(200)
+
+      assert body =~ "<g:link>#{canonical}</g:link>"
+      refute body =~ "untrusted.example"
+    end
+
     test "draft (non-active) products are excluded", %{conn: conn, store: store} do
       _draft = Factory.create_product!(store, %{title: "Draft Only"})
 
@@ -107,6 +136,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
     product = Factory.create_product!(store, product_attrs)
     variant_defaults = %{price: 5_000, stock_quantity: 10}
     _v = Factory.create_variant!(product, store, Map.merge(variant_defaults, variant_attrs))
+    _image = Factory.create_image!(product, store)
 
     {:ok, activated} =
       product

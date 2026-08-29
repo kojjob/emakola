@@ -50,7 +50,8 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   end
 
   defp base_assigns(socket, action) do
-    assign(socket,
+    socket
+    |> assign(
       loading: false,
       action: action,
       offer: nil,
@@ -63,6 +64,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
       errors: %{},
       locked?: false
     )
+    |> sync_forms()
   end
 
   defp hydrate(socket, offer) do
@@ -78,7 +80,8 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
          }}
       end)
 
-    assign(socket,
+    socket
+    |> assign(
       offer: offer,
       model: to_string(offer.earning_model),
       rows: rows,
@@ -92,6 +95,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
       },
       locked?: offer.status == :published
     )
+    |> sync_forms()
   end
 
   defp pesewas_to_input(nil), do: ""
@@ -124,7 +128,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   def handle_event("select_product", %{"product_id" => id}, socket) when is_binary(id) do
     case Enum.find(socket.assigns.products, &(&1.id == id)) do
       nil -> {:noreply, socket}
-      product -> {:noreply, assign(socket, product: product, rows: %{})}
+      product -> {:noreply, socket |> assign(product: product, rows: %{}) |> sync_forms()}
     end
   end
 
@@ -152,7 +156,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
         &Map.put(&1, f, v)
       )
 
-    {:noreply, assign(socket, rows: rows)}
+    {:noreply, socket |> assign(rows: rows) |> sync_forms()}
   end
 
   def handle_event("toggle_region", %{"region" => region}, socket) when is_binary(region) do
@@ -164,7 +168,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
           {MapSet.put(socket.assigns.areas, region), socket.assigns.fees}
         end
 
-      {:noreply, assign(socket, areas: areas, fees: fees)}
+      {:noreply, socket |> assign(areas: areas, fees: fees) |> sync_forms()}
     else
       {:noreply, socket}
     end
@@ -173,7 +177,10 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   def handle_event("set_region_fee", %{"region" => region, "value" => v}, socket)
       when is_binary(region) and is_binary(v) do
     if MapSet.member?(socket.assigns.areas, region) do
-      {:noreply, assign(socket, fees: Map.put(socket.assigns.fees, region, v))}
+      {:noreply,
+       socket
+       |> assign(fees: Map.put(socket.assigns.fees, region, v))
+       |> sync_forms()}
     else
       {:noreply, socket}
     end
@@ -181,7 +188,10 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
 
   def handle_event("set_term", %{"field" => f, "value" => v}, socket)
       when f in @term_fields and is_binary(v) do
-    {:noreply, assign(socket, terms: Map.put(socket.assigns.terms, f, v))}
+    {:noreply,
+     socket
+     |> assign(terms: Map.put(socket.assigns.terms, f, v))
+     |> sync_forms()}
   end
 
   def handle_event("save_draft", _params, socket) do
@@ -218,10 +228,12 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
     case variant && Offers.remove_variant(socket.assigns.current_merchant, offer, variant) do
       :ok ->
         {:noreply,
-         assign(socket,
+         socket
+         |> assign(
            offer: with_variants(offer),
            rows: Map.delete(socket.assigns.rows, variant.source_variant_id)
-         )}
+         )
+         |> sync_forms()}
 
       _ ->
         {:noreply, put_flash(socket, :error, "That row could not be removed right now.")}
@@ -524,6 +536,63 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   defp row_value(rows, vid, field), do: get_in(rows, [vid, field]) || ""
   defp row_terms_id(rows, vid), do: get_in(rows, [vid, :terms_id])
 
+  defp sync_forms(socket) do
+    assigns = socket.assigns
+
+    product_id =
+      case assigns.product do
+        %{id: id} -> id
+        _ -> ""
+      end
+
+    fee_forms =
+      Map.new(GhanaRegions.all(), fn region ->
+        {region,
+         to_form(
+           %{"region" => region, "value" => Map.get(assigns.fees, region, "")},
+           id: "region_fee_#{dom_token(region)}"
+         )}
+      end)
+
+    term_forms =
+      Map.new(@term_fields, fn field ->
+        {field,
+         to_form(
+           %{"field" => field, "value" => Map.get(assigns.terms, field, "")},
+           id: "offer_term_#{field}"
+         )}
+      end)
+
+    price_forms =
+      for variant <- source_variants(assigns), field <- @price_fields, into: %{} do
+        key = {variant.id, field}
+
+        {key,
+         to_form(
+           %{
+             "variant-id" => variant.id,
+             "field" => field,
+             "value" => row_value(assigns.rows, variant.id, field)
+           },
+           id: "variant_price_#{variant.id}_#{field}"
+         )}
+      end
+
+    assign(socket,
+      product_form: to_form(%{"product_id" => product_id}, id: "offer_product"),
+      fee_forms: fee_forms,
+      term_forms: term_forms,
+      price_forms: price_forms
+    )
+  end
+
+  defp dom_token(value) do
+    value
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/u, "-")
+    |> String.trim("-")
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -578,17 +647,19 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
           <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Product
           </label>
-          <form phx-change="select_product">
-            <select
-              name="product_id"
+          <.form
+            for={@product_form}
+            id="supply-offer-product-form"
+            phx-change="select_product"
+          >
+            <.input
+              field={@product_form[:product_id]}
+              type="select"
+              prompt="Pick a product to offer…"
+              options={Enum.map(@products, &{&1.title, &1.id})}
               class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="">Pick a product to offer…</option>
-              <option :for={p <- @products} value={p.id} selected={@product && @product.id == p.id}>
-                {p.title}
-              </option>
-            </select>
-          </form>
+            />
+          </.form>
           <p :if={@products == []} class="text-xs text-slate-500 mt-2">
             You need an active product with at least one variant before creating an offer.
           </p>
@@ -615,21 +686,22 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                 >
                   {region}
                 </button>
-                <form
+                <.form
                   :if={MapSet.member?(@areas, region)}
+                  for={Map.fetch!(@fee_forms, region)}
+                  id={"region-fee-form-#{dom_token(region)}"}
                   phx-change="set_region_fee"
                   class="w-28 shrink-0"
                 >
-                  <input type="hidden" name="region" value={region} />
-                  <input
+                  <.input field={Map.fetch!(@fee_forms, region)[:region]} type="hidden" />
+                  <.input
+                    field={Map.fetch!(@fee_forms, region)[:value]}
                     type="text"
-                    name="value"
-                    value={@fees[region] || ""}
                     placeholder="Fee GH₵"
                     phx-debounce="300"
                     class="w-full rounded-xl border border-slate-300 px-2 py-1.5 text-sm text-right"
                   />
-                </form>
+                </.form>
               </div>
               <p :if={@errors[{:fee, region}]} class="text-xs text-red-600 text-right">
                 {@errors[{:fee, region}]}
@@ -697,7 +769,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                     <.price_input
                       variant_id={variant.id}
                       field="supplier"
-                      value={row_value(@rows, variant.id, "supplier")}
+                      form={Map.fetch!(@price_forms, {variant.id, "supplier"})}
                       error={@errors[{variant.id, "supplier"}]}
                       disabled={@locked?}
                     />
@@ -707,7 +779,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                       <.price_input
                         variant_id={variant.id}
                         field="suggested"
-                        value={row_value(@rows, variant.id, "suggested")}
+                        form={Map.fetch!(@price_forms, {variant.id, "suggested"})}
                         error={@errors[{variant.id, "suggested"}]}
                         disabled={@locked?}
                       />
@@ -716,7 +788,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                       <.price_input
                         variant_id={variant.id}
                         field="max"
-                        value={row_value(@rows, variant.id, "max")}
+                        form={Map.fetch!(@price_forms, {variant.id, "max"})}
                         error={@errors[{variant.id, "max"}]}
                         disabled={@locked?}
                       />
@@ -726,7 +798,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                       <.price_input
                         variant_id={variant.id}
                         field="suggested"
-                        value={row_value(@rows, variant.id, "suggested")}
+                        form={Map.fetch!(@price_forms, {variant.id, "suggested"})}
                         error={@errors[{variant.id, "suggested"}]}
                         disabled={@locked?}
                       />
@@ -735,7 +807,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                       <.price_input
                         variant_id={variant.id}
                         field="commission"
-                        value={row_value(@rows, variant.id, "commission")}
+                        form={Map.fetch!(@price_forms, {variant.id, "commission"})}
                         error={@errors[{variant.id, "commission"}]}
                         disabled={@locked?}
                       />
@@ -762,50 +834,72 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Supplier terms
             </p>
-            <form phx-change="set_term">
-              <input type="hidden" name="field" value="return_terms" />
-              <textarea
-                name="value"
+            <.form
+              for={Map.fetch!(@term_forms, "return_terms")}
+              id="offer-return-terms-form"
+              phx-change="set_term"
+            >
+              <.input field={Map.fetch!(@term_forms, "return_terms")[:field]} type="hidden" />
+              <.input
+                field={Map.fetch!(@term_forms, "return_terms")[:value]}
+                type="textarea"
                 rows="2"
                 placeholder="Return terms you honour back to resellers…"
                 phx-debounce="300"
                 class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              >{@terms["return_terms"]}</textarea>
-            </form>
+              />
+            </.form>
             <div class="grid grid-cols-2 gap-3">
-              <form phx-change="set_term">
-                <input type="hidden" name="field" value="returns_window_days" />
-                <input
+              <.form
+                for={Map.fetch!(@term_forms, "returns_window_days")}
+                id="offer-returns-window-form"
+                phx-change="set_term"
+              >
+                <.input
+                  field={Map.fetch!(@term_forms, "returns_window_days")[:field]}
+                  type="hidden"
+                />
+                <.input
+                  field={Map.fetch!(@term_forms, "returns_window_days")[:value]}
                   type="text"
-                  name="value"
-                  value={@terms["returns_window_days"]}
                   placeholder="Returns window (days)"
                   phx-debounce="300"
                   class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
                 />
-              </form>
-              <form phx-change="set_term">
-                <input type="hidden" name="field" value="warranty_months" />
-                <input
+              </.form>
+              <.form
+                for={Map.fetch!(@term_forms, "warranty_months")}
+                id="offer-warranty-months-form"
+                phx-change="set_term"
+              >
+                <.input
+                  field={Map.fetch!(@term_forms, "warranty_months")[:field]}
+                  type="hidden"
+                />
+                <.input
+                  field={Map.fetch!(@term_forms, "warranty_months")[:value]}
                   type="text"
-                  name="value"
-                  value={@terms["warranty_months"]}
                   placeholder="Warranty (months)"
                   phx-debounce="300"
                   class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
                 />
-              </form>
+              </.form>
             </div>
-            <form phx-change="set_term">
-              <input type="hidden" name="field" value="warranty_terms" />
-              <textarea
-                name="value"
+            <.form
+              for={Map.fetch!(@term_forms, "warranty_terms")}
+              id="offer-warranty-terms-form"
+              phx-change="set_term"
+            >
+              <.input field={Map.fetch!(@term_forms, "warranty_terms")[:field]} type="hidden" />
+              <.input
+                field={Map.fetch!(@term_forms, "warranty_terms")[:value]}
+                type="textarea"
                 rows="2"
                 placeholder="Warranty terms…"
                 phx-debounce="300"
                 class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              >{@terms["warranty_terms"]}</textarea>
-            </form>
+              />
+            </.form>
           </div>
 
           <%!-- Actions --%>
@@ -837,19 +931,22 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
 
   attr :variant_id, :string, required: true
   attr :field, :string, required: true
-  attr :value, :string, required: true
+  attr :form, Phoenix.HTML.Form, required: true
   attr :error, :string, default: nil
   attr :disabled, :boolean, default: false
 
   defp price_input(assigns) do
     ~H"""
-    <form id={"variant-price-#{@variant_id}-#{@field}"} phx-change="set_variant_price">
-      <input type="hidden" name="variant-id" value={@variant_id} />
-      <input type="hidden" name="field" value={@field} />
-      <input
+    <.form
+      for={@form}
+      id={"variant-price-#{@variant_id}-#{@field}"}
+      phx-change="set_variant_price"
+    >
+      <.input field={@form[:"variant-id"]} type="hidden" />
+      <.input field={@form[:field]} type="hidden" />
+      <.input
+        field={@form[:value]}
         type="text"
-        name="value"
-        value={@value}
         disabled={@disabled}
         placeholder="0.00"
         phx-debounce="300"
@@ -860,7 +957,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
         ]}
       />
       <p :if={@error} class="text-xs text-red-600 mt-1">{@error}</p>
-    </form>
+    </.form>
     """
   end
 end

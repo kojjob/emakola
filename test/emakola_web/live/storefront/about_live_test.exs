@@ -9,7 +9,7 @@ defmodule EmakolaWeb.Storefront.AboutLiveTest do
 
   alias Emakola.Factory
 
-  describe "GET /s/:slug/about with no content row" do
+  describe "GET /:slug/about with no content row" do
     test "renders neutral, store-name-driven copy", %{conn: conn} do
       store = Factory.create_store!(%{name: "Adwoa Threads", slug: "adwoa-threads"})
 
@@ -17,6 +17,18 @@ defmodule EmakolaWeb.Storefront.AboutLiveTest do
 
       assert html =~ "Adwoa Threads"
       assert html =~ "Welcome to Adwoa Threads"
+
+      document = LazyHTML.from_fragment(html)
+
+      assert document
+             |> LazyHTML.query(
+               ~s(link[rel="canonical"][href="http://localhost:4000/#{store.slug}/about"])
+             )
+             |> Enum.any?()
+
+      assert document
+             |> LazyHTML.query(~s(script[type="application/ld+json"]))
+             |> LazyHTML.text() =~ ~s("OnlineStore")
     end
 
     test "does not leak the old hardcoded artisan/heritage prose", %{conn: conn} do
@@ -30,7 +42,7 @@ defmodule EmakolaWeb.Storefront.AboutLiveTest do
     end
   end
 
-  describe "GET /s/:slug/about with custom content" do
+  describe "GET /:slug/about with custom content" do
     test "renders the store's own headline, story, steps and values", %{conn: conn} do
       store = Factory.create_store!(%{name: "Kofi Beans", slug: "kofi-beans"})
 

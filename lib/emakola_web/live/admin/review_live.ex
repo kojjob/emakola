@@ -10,6 +10,13 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   @statuses [:all, :published, :hidden]
 
   @impl true
+  # A merchant with no store has nothing to configure here yet. RequireActiveStore
+  # lets them through on purpose (they are mid-onboarding), so send them where
+  # the work actually is instead of rendering a page with no store behind it.
+  def mount(_params, _session, %{assigns: %{current_store: nil}} = socket) do
+    {:ok, Phoenix.LiveView.push_navigate(socket, to: "/onboarding")}
+  end
+
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
 
@@ -91,6 +98,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header
+        icon="hero-star"
         title="Reviews"
         subtitle="Manage customer reviews for your products"
       />
