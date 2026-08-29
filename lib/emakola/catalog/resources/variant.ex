@@ -382,4 +382,14 @@ defmodule Emakola.Catalog.Variant do
   def in_stock?(variant, qty \\ 1) do
     not variant.track_inventory or variant.stock_quantity >= qty
   end
+
+  @doc """
+  A variant the shopper has actually landed on which has run out.
+
+  `nil` means the options are not chosen yet, which is not the same thing as
+  sold out — themes offer a back-in-stock nudge for one and a "select options"
+  button for the other.
+  """
+  def sold_out?(nil), do: false
+  def sold_out?(variant), do: not in_stock?(variant)
 end

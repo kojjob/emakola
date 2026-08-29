@@ -14,6 +14,11 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
+  # How many rows reach the DOM at once. The queue used to stream every
+  # merchant on the platform on mount, which is fine at two dozen and expensive
+  # at a few thousand.
+  @page_size 25
+
   alias Emakola.Accounts
   alias Emakola.Conversations
 
@@ -26,6 +31,10 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       |> assign(:search, "")
       |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
+      |> assign(:sort, :recent)
+      |> assign(:sort_form, to_form(%{"sort" => "recent"}))
+      |> assign(:window, @page_size)
+      |> assign(:merchants_total, 0)
       |> assign(:selected_merchant, nil)
       |> assign(:merchant_ids, MapSet.new())
       |> assign(:merchants_by_id, %{})
@@ -52,11 +61,50 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
      socket
      |> assign(:search, q)
      |> assign(:search_form, to_form(params))
+     |> assign(:window, @page_size)
      |> load_merchants()}
   end
 
   def handle_event("filter", %{"filter" => f}, socket) do
-    {:noreply, socket |> assign(:filter, parse_filter(f)) |> load_merchants()}
+    {:noreply,
+     socket
+     |> assign(:filter, parse_filter(f))
+     |> assign(:window, @page_size)
+     |> load_merchants()}
+  end
+
+  def handle_event("sort", %{"sort" => sort} = params, socket) do
+    {:noreply,
+     socket
+     |> assign(:sort, parse_sort(sort))
+     |> assign(:sort_form, to_form(params))
+     |> assign(:window, @page_size)
+     |> load_merchants()}
+  end
+
+  # Appends the next page rather than re-streaming the queue: keeping rows out
+  # of the DOM is the whole point, so a reset here would undo it.
+  def handle_event("load_more", _params, socket) do
+    next =
+      case fetch_page(socket, socket.assigns.window) do
+        {:ok, page} -> page.results
+        _ -> []
+      end
+
+    appended = Enum.reduce(next, socket, &stream_insert(&2, :merchants, &1))
+
+    {:noreply,
+     appended
+     |> assign(:window, socket.assigns.window + length(next))
+     |> assign(:merchants_count, socket.assigns.merchants_count + length(next))
+     |> assign(
+       :merchant_ids,
+       MapSet.union(socket.assigns.merchant_ids, MapSet.new(next, & &1.id))
+     )
+     |> assign(
+       :merchants_by_id,
+       Map.merge(socket.assigns.merchants_by_id, Map.new(next, &{&1.id, &1}))
+     )}
   end
 
   def handle_event("select_merchant", %{"id" => id}, socket) do
@@ -111,13 +159,11 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   # ── Data ───────────────────────────────────────────────
 
   defp load_merchants(socket) do
-    all =
-      case Accounts.list_merchants_for_admin("", authorize?: false) do
-        {:ok, list} -> list
-        _ -> []
+    {merchants, total} =
+      case fetch_page(socket, 0) do
+        {:ok, page} -> {page.results, page.count || length(page.results)}
+        _ -> {[], 0}
       end
-
-    merchants = filtered(all, socket.assigns.search, socket.assigns.filter)
 
     # Keep the current selection when it survives the filter; otherwise the
     # first visible merchant, so the panel is never empty while rows exist.
@@ -140,8 +186,9 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
     |> assign(:merchant_ids, MapSet.new(merchants, & &1.id))
     |> assign(:merchants_by_id, Map.new(merchants, &{&1.id, &1}))
     |> assign(:merchants_count, length(merchants))
+    |> assign(:merchants_total, total)
     |> assign(:merchants_loaded?, true)
-    |> assign(:stats, compute_stats(all))
+    |> assign(:stats, Accounts.merchant_admin_stats())
     |> assign(:selected_merchant, selected_merchant)
     |> stream(:merchants, merchants, reset: true)
   rescue
@@ -154,8 +201,9 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       |> assign(:merchant_ids, MapSet.new())
       |> assign(:merchants_by_id, %{})
       |> assign(:merchants_count, 0)
+      |> assign(:merchants_total, 0)
       |> assign(:merchants_loaded?, true)
-      |> assign(:stats, compute_stats([]))
+      |> assign(:stats, %{total: 0, confirmed: 0, with_store: 0, new_30d: 0})
       |> assign(:selected_merchant, nil)
       |> stream(:merchants, [], reset: true)
   end
@@ -174,42 +222,42 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       nil
   end
 
-  defp filtered(all, search, filter) do
-    q = normalize(search)
-    Enum.filter(all, &(matches_search?(&1, q) and matches_filter?(&1, filter)))
+  # One page of the queue, filtered and sorted by the database. The page also
+  # carries the total, which is what the footer counts against.
+  defp fetch_page(socket, offset) do
+    Accounts.page_merchants_for_admin(
+      search_pattern(socket.assigns.search),
+      socket.assigns.filter,
+      query: [sort: sort_for(socket.assigns.sort)],
+      page: [limit: @page_size, offset: offset, count: true],
+      authorize?: false
+    )
   end
 
-  defp matches_search?(_m, ""), do: true
-
-  defp matches_search?(m, q) do
-    [m.name, to_string(m.email), m.business_name, m.phone]
-    |> Enum.any?(fn v -> v && String.contains?(String.downcase(to_string(v)), q) end)
+  # The action takes a LIKE pattern, so the wildcards belong to the caller.
+  defp search_pattern(search) do
+    case String.trim(to_string(search)) do
+      "" -> ""
+      q -> "%" <> q <> "%"
+    end
   end
 
-  defp matches_filter?(_m, :all), do: true
-  defp matches_filter?(m, :confirmed), do: confirmed?(m)
-  defp matches_filter?(m, :unconfirmed), do: not confirmed?(m)
+  defp sort_for(:name), do: [name: :asc]
+  defp sort_for(:stores), do: [stores_count: :desc]
+  defp sort_for(_recent), do: [inserted_at: :desc]
 
   defp confirmed?(m), do: not is_nil(m.confirmed_at)
 
-  defp compute_stats(all) do
-    cutoff = DateTime.add(DateTime.utc_now(), -30 * 24 * 3600, :second)
-
-    %{
-      total: length(all),
-      confirmed: Enum.count(all, &confirmed?/1),
-      with_store: Enum.count(all, fn m -> (m.stores || []) != [] end),
-      new_30d: Enum.count(all, fn m -> DateTime.compare(m.inserted_at, cutoff) == :gt end)
-    }
-  end
-
   # ── Helpers ────────────────────────────────────────────
-
-  defp normalize(s), do: s |> to_string() |> String.trim() |> String.downcase()
 
   defp parse_filter("confirmed"), do: :confirmed
   defp parse_filter("unconfirmed"), do: :unconfirmed
   defp parse_filter(_), do: :all
+
+  # String matching, not String.to_atom/1: the value arrives from the client.
+  defp parse_sort("name"), do: :name
+  defp parse_sort("stores"), do: :stores
+  defp parse_sort(_), do: :recent
 
   defp initials(m) do
     source = m.name || to_string(m.email) || "?"
@@ -289,6 +337,18 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
             <.chip filter="confirmed" active={@filter} label="Confirmed" />
             <.chip filter="unconfirmed" active={@filter} label="Unconfirmed" />
           </div>
+          <.form for={@sort_form} id="merchant-sort-form" phx-change="sort" class="ml-auto">
+            <select
+              id="merchant-sort"
+              name="sort"
+              aria-label="Sort merchants"
+              class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+            >
+              <option value="recent" selected={@sort == :recent}>Recently joined</option>
+              <option value="name" selected={@sort == :name}>Name A–Z</option>
+              <option value="stores" selected={@sort == :stores}>Most stores</option>
+            </select>
+          </.form>
         </div>
 
         <%!-- Empty states --%>
@@ -365,6 +425,20 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                   </span>
                 </button>
               </div>
+            </div>
+            <div class="flex items-center justify-between gap-3 px-3 pt-3 pb-1">
+              <span class="text-[11px] font-medium tabular-nums text-slate-500">
+                Showing {@merchants_count} of {@merchants_total}
+              </span>
+              <button
+                :if={@merchants_count < @merchants_total}
+                id="merchants-load-more"
+                type="button"
+                phx-click="load_more"
+                class="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                Load more
+              </button>
             </div>
           </div>
 
