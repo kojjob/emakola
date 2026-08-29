@@ -371,6 +371,11 @@ defmodule Emakola.Orders.Fulfillment do
 
       change(set_attribute(:status, :declined))
       change(set_attribute(:declined_at, &DateTime.utc_now/0))
+
+      # A decline IS an answer. Jump the ladder to its terminal rung so the
+      # merchant gets the decision now instead of waiting out cooldowns for a
+      # supplier who has already said no.
+      change(set_attribute(:escalation_level, 3))
     end
 
     # No from: guard — a leaked link must be revocable in any state.

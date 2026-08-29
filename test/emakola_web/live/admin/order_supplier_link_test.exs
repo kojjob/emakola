@@ -266,4 +266,72 @@ defmodule EmakolaWeb.Admin.OrderSupplierLinkTest do
 
     init_test_session(conn, %{"user_token" => subject})
   end
+
+  describe "when the supplier has failed the order" do
+    test "an escalated fulfillment says so on the order page", %{
+      conn: conn,
+      order: order,
+      fulfillment: f
+    } do
+      {:ok, _} = Emakola.Orders.escalate_fulfillment(f, %{to_level: 1}, authorize?: false)
+      f = Ash.get!(Emakola.Orders.Fulfillment, f.id, authorize?: false)
+      {:ok, _} = Emakola.Orders.escalate_fulfillment(f, %{to_level: 2}, authorize?: false)
+
+      {:ok, _view, html} = live(conn, show_path(order))
+
+      assert html =~ "Supplier has not replied"
+    end
+
+    test "the terminal rung tells the merchant to act", %{
+      conn: conn,
+      order: order,
+      fulfillment: f
+    } do
+      f =
+        Enum.reduce(1..3, f, fn level, acc ->
+          {:ok, _} =
+            Emakola.Orders.escalate_fulfillment(acc, %{to_level: level}, authorize?: false)
+
+          Ash.get!(Emakola.Orders.Fulfillment, acc.id, authorize?: false)
+        end)
+
+      assert f.escalation_level == 3
+
+      {:ok, _view, html} = live(conn, show_path(order))
+
+      assert html =~ "Supplier not responding"
+    end
+
+    # Cancelling a group the supplier never shipped must not leave the merchant
+    # owing money for goods that never moved.
+    test "cancelling also closes out what the merchant owed for it", %{
+      conn: conn,
+      store: store,
+      order: order,
+      supplier: supplier,
+      fulfillment: f
+    } do
+      entry =
+        Emakola.Suppliers.SupplierLedgerEntry
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          supplier_id: supplier.id,
+          fulfillment_id: f.id,
+          amount_owed: 25_000
+        })
+        |> Ash.create!(authorize?: false)
+
+      assert entry.status == :owed
+
+      {:ok, view, _html} = live(conn, show_path(order))
+
+      view
+      |> element("[phx-click='cancel_fulfillment'][phx-value-id='#{f.id}']")
+      |> render_click()
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+
+      assert reloaded.status == :voided
+    end
+  end
 end

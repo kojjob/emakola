@@ -199,4 +199,109 @@ defmodule Emakola.Orders.Workers.SupplierSlaWorkerTest do
       assert reload(theirs).escalation_level == 1
     end
   end
+
+  describe "the ladder" do
+    # Rung 2 tells the MERCHANT, and it tells them in the bell rather than by
+    # SMS. That one choice removes the quiet-hours problem — a 6h clock stamped
+    # at 23:00 comes due at 05:00, and Ghana is UTC+0 with no tzdata here — and
+    # the cost problem, together.
+    test "a supplier who ignored the chase escalates to the merchant", ctx do
+      f = overdue(ctx, %{escalation_level: 1, escalated_at: hours_ago(7)})
+
+      assert :ok == run()
+
+      assert reload(f).escalation_level == 2
+      refute_enqueued(worker: SupplierNotificationWorker)
+    end
+
+    test "rung 2 writes a bell notification for the store's merchants", ctx do
+      merchant = create_merchant!()
+
+      Emakola.Accounts.StoreMembership
+      |> Ash.Changeset.for_create(:create, %{
+        merchant_id: merchant.id,
+        store_id: ctx.store.id,
+        role: :owner
+      })
+      |> Ash.create!(authorize?: false)
+
+      overdue(ctx, %{escalation_level: 1, escalated_at: hours_ago(7)})
+
+      assert :ok == run()
+
+      notifications =
+        Emakola.Notifications.Notification
+        |> Ash.read!(authorize?: false)
+        |> Enum.filter(&(&1.recipient_id == merchant.id))
+
+      assert [notification] = notifications
+      assert notification.type == :supplier_overdue
+      assert notification.recipient_kind == :merchant
+    end
+
+    test "rung 2 broadcasts so an open order page updates itself", ctx do
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{ctx.store.id}:orders")
+
+      overdue(ctx, %{escalation_level: 1, escalated_at: hours_ago(7)})
+
+      assert :ok == run()
+
+      assert_receive {:order_event, :supplier_overdue, _order}, 1000
+    end
+
+    test "the cooldown holds — 30 minutes after rung 1 is too soon for rung 2", ctx do
+      f = overdue(ctx, %{escalation_level: 1, escalated_at: minutes_ago(30)})
+
+      assert :ok == run()
+
+      assert reload(f).escalation_level == 1
+    end
+
+    test "rung 3 is the terminal state the merchant must act on", ctx do
+      f = overdue(ctx, %{escalation_level: 2, escalated_at: hours_ago(13)})
+
+      assert :ok == run()
+
+      assert reload(f).escalation_level == 3
+    end
+
+    test "the cooldown holds for rung 3 too", ctx do
+      f = overdue(ctx, %{escalation_level: 2, escalated_at: hours_ago(6)})
+
+      assert :ok == run()
+
+      assert reload(f).escalation_level == 2
+    end
+
+    # The ladder tops out. A level-3 row matches none of the three candidate
+    # queries, so it leaves the set permanently.
+    test "level 3 never escalates again, however many times the sweeper runs", ctx do
+      f = overdue(ctx, %{escalation_level: 3, escalated_at: hours_ago(48)})
+
+      for _ <- 1..3, do: run()
+
+      assert reload(f).escalation_level == 3
+    end
+
+    test "a supplier declining jumps straight to the merchant's decision", ctx do
+      f =
+        clocked!(ctx, %{
+          supplier_id: ctx.supplier.id,
+          respond_by: DateTime.add(DateTime.utc_now(), 1, :hour)
+        })
+
+      {:ok, declined} =
+        Emakola.Orders.supplier_decline_fulfillment(
+          f,
+          %{decline_reason: :out_of_stock},
+          authorize?: false
+        )
+
+      assert declined.escalation_level == 3,
+             "a decline is an answer — the merchant should not wait out the ladder"
+    end
+  end
+
+  defp hours_ago(n), do: DateTime.add(DateTime.utc_now(), -n, :hour)
+  defp minutes_ago(n), do: DateTime.add(DateTime.utc_now(), -n, :minute)
 end

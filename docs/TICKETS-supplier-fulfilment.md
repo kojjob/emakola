@@ -209,13 +209,13 @@ silently, and no `perform/1`-level test would catch it.
 Candidate filter: `status in [:pending, :notified] and is_nil(accepted_at)` —
 the `accepted_at` clause is the SAF-1 integration point.
 
-### SAF-11 — escalation rungs 2–3 + merchant surface · `TODO` (next)
+### SAF-11 — escalation rungs 2–3 + merchant surface · `DONE`
 
 `:supplier_overdue` notification type, bell + PubSub only (no merchant SMS —
 kills the quiet-hours and cost problems together). Order LiveView subscribes to
 `store:*:orders`. Decline sets `escalation_level: 3`.
 
-### SAF-12 — `:void_unfulfilled` + "Cancel this part" · `TODO`
+### SAF-12 — `:void_unfulfilled` + "Cancel this part" · `DONE`
 
 New action, not a relaxed `:void` — the existing one's `:platform_payout`
 predicate is half the double-pay guard. Merchant tap, never automatic.

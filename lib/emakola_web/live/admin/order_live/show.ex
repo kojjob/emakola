@@ -45,8 +45,26 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       |> load_protection_hold()
       |> load_fulfillments()
 
+    # The SLA sweeper escalates in the background, so this page can go stale
+    # while a merchant is looking straight at it. Only dashboard_live subscribed
+    # to this topic before.
+    if connected?(socket) and store_id do
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
+    end
+
     {:ok, socket}
   end
+
+  @impl true
+  def handle_info({:order_event, _event, %{id: order_id}}, socket) do
+    if order_id == socket.assigns.order_id do
+      {:noreply, socket |> load_order() |> load_fulfillments()}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("confirm_order", _params, socket) do
@@ -241,8 +259,13 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
+  # Cancelling a supplier group the supplier never shipped must also close out
+  # what the merchant nominally owes for it, or they are left with a debt for
+  # goods that never moved.
   def handle_event("cancel_fulfillment", %{"id" => id}, socket) do
-    transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
+    result = transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
+    void_unfulfilled_debt(socket, id)
+    result
   end
 
   @impl true
@@ -558,6 +581,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     </p>
                     <p :if={f.tracking_number}>
                       Tracking: <span class="font-mono">{f.tracking_number}</span>
+                    </p>
+                    <p
+                      :if={f.escalation_level >= 3 and f.status in [:pending, :notified]}
+                      class="font-semibold text-danger"
+                    >
+                      Supplier not responding — cancel this part or chase them
+                    </p>
+                    <p
+                      :if={f.escalation_level == 2 and f.status in [:pending, :notified]}
+                      class="font-semibold text-warning"
+                    >
+                      Supplier has not replied
                     </p>
                     <p
                       :if={f.status == :delivered and not f.delivery_verified}
@@ -1378,6 +1413,33 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     fulfillments
     |> Enum.filter(& &1.supplier_id)
     |> Map.new(&{&1.id, Emakola.Suppliers.SupplierAction.action_url(&1)})
+  end
+
+  # Best-effort and deliberately after the cancel: the cancellation is the thing
+  # the merchant asked for, and a ledger hiccup must not undo it. An entry the
+  # platform already claimed is left alone — that debt is settled by a rail this
+  # button has no business touching.
+  defp void_unfulfilled_debt(socket, fulfillment_id) do
+    case Emakola.Suppliers.list_supplier_ledger_entries_by_fulfillment(fulfillment_id,
+           authorize?: false
+         ) do
+      {:ok, entries} ->
+        Enum.each(entries, fn entry ->
+          Emakola.Suppliers.void_unfulfilled_supplier_ledger_entry(entry, authorize?: false)
+        end)
+
+      {:error, reason} ->
+        Logger.error(
+          "[order_live.show] could not load ledger entries for #{fulfillment_id}: #{inspect(reason)}"
+        )
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[order_live.show] void_unfulfilled_debt raised for #{fulfillment_id}: #{Exception.message(exception)}"
+      )
+
+      :ok
   end
 
   defp attesting_merchant_id(socket) do

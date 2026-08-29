@@ -18,7 +18,10 @@ defmodule Emakola.Orders.Workers.SupplierSlaWorker do
     # test would catch it because tests call perform/1 directly. 1800 sits
     # exactly on the boundary, which is the epoch-bucket flake this codebase has
     # already been bitten by; 1500 leaves five minutes either side.
-    unique: [period: 1500, fields: [:args], states: [:available, :scheduled, :executing]]
+    # states: :incomplete rather than an explicit list — spelling it out omits
+    # :retryable and :suspended, so a job mid-backoff would not block a
+    # duplicate insert.
+    unique: [period: 1500, fields: [:args], states: :incomplete]
 
   require Ash.Query
   require Logger
@@ -43,24 +46,55 @@ defmodule Emakola.Orders.Workers.SupplierSlaWorker do
   """
   def respond_hours, do: @respond_hours
 
+  # Cooldowns between rungs. Short enough that a merchant hears about a stuck
+  # order the same day, long enough that a supplier who is simply asleep is not
+  # escalated past.
+  @merchant_alert_after_hours 6
+  @terminal_after_hours 12
+
   @impl Oban.Worker
   def perform(%Oban.Job{}) do
     escalate_all(rung_one_due(), 1, &chase_supplier/1)
+    escalate_all(rung_two_due(), 2, &alert_merchant/1)
+    escalate_all(rung_three_due(), 3, &alert_merchant/1)
     :ok
   end
 
   # ── Candidates ──────────────────────────────────────────────────
+  #
+  # Three queries rather than one: the cooldown differs per rung, so a single
+  # expression cannot say it cleanly and filtering in Elixir would pull the
+  # whole table. All three share the awaiting/accepted/supplier guards.
 
   defp rung_one_due do
     now = DateTime.utc_now()
 
-    Fulfillment
-    |> Ash.Query.filter(
-      status in ^@awaiting and is_nil(accepted_at) and not is_nil(supplier_id) and
-        escalation_level == 0 and not is_nil(respond_by) and respond_by < ^now
-    )
-    |> Ash.Query.limit(200)
+    awaiting()
+    |> Ash.Query.filter(escalation_level == 0 and not is_nil(respond_by) and respond_by < ^now)
     |> Ash.read!(authorize?: false)
+  end
+
+  defp rung_two_due do
+    cutoff = DateTime.add(DateTime.utc_now(), -@merchant_alert_after_hours, :hour)
+
+    awaiting()
+    |> Ash.Query.filter(escalation_level == 1 and escalated_at < ^cutoff)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp rung_three_due do
+    cutoff = DateTime.add(DateTime.utc_now(), -@terminal_after_hours, :hour)
+
+    awaiting()
+    |> Ash.Query.filter(escalation_level == 2 and escalated_at < ^cutoff)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp awaiting do
+    Fulfillment
+    |> Ash.Query.filter(status in ^@awaiting and is_nil(accepted_at) and not is_nil(supplier_id))
+    |> Ash.Query.load([:supplier, :order])
+    |> Ash.Query.limit(200)
   end
 
   # ── Escalation ──────────────────────────────────────────────────
@@ -80,6 +114,17 @@ defmodule Emakola.Orders.Workers.SupplierSlaWorker do
       end
     end)
   end
+
+  # Bell and PubSub only — see Dispatcher.dispatch_supplier_overdue/2 for why
+  # there is no SMS rung.
+  defp alert_merchant(%{order: order} = fulfillment) when not is_nil(order) do
+    Emakola.Notifications.Dispatcher.dispatch_supplier_overdue(order, supplier_name(fulfillment))
+  end
+
+  defp alert_merchant(_fulfillment), do: :ok
+
+  defp supplier_name(%{supplier: %{name: name}}) when is_binary(name), do: name
+  defp supplier_name(_fulfillment), do: "Your supplier"
 
   # The "escalation" arg is a real value rather than the nonce the merchant's
   # manual resend uses to DEFEAT uniqueness: here we want

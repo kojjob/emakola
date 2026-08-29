@@ -332,6 +332,37 @@ defmodule Emakola.Notifications.Dispatcher do
     |> Oban.insert()
   end
 
+  @doc """
+  Tells a store's merchants that a supplier has gone quiet on a paid order.
+
+  Deliberately NOT routed through `dispatch/2` and `@valid_events`: that path
+  ends at `OrderNotificationWorker`, which messages the BUYER. This one is for
+  the merchant only.
+
+  Bell plus PubSub, never SMS. A 6-hour clock stamped at 23:00 comes due at
+  05:00, Ghana is UTC+0 and this project carries no tzdata, so an SMS rung would
+  need quiet-hours work before it could ship — and it would cost money per
+  escalation. `notify_store/3` is free, silent, and already wired to the bell.
+  """
+  def dispatch_supplier_overdue(order, supplier_name) do
+    Emakola.Notifications.notify_store(order.store_id, :supplier_overdue,
+      title: "#{supplier_name} has not replied",
+      body: "Order #{order.order_number}. Chase them, or cancel this part.",
+      action_url: "/admin/orders/#{order.id}",
+      metadata: %{"order_id" => order.id}
+    )
+
+    maybe_broadcast(order, :supplier_overdue)
+    :ok
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch_supplier_overdue raised: #{Exception.message(exception)}"
+      )
+
+      :ok
+  end
+
   defp maybe_broadcast(%{store_id: store_id} = order, event) when not is_nil(store_id) do
     Phoenix.PubSub.broadcast(
       Emakola.PubSub,

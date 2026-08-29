@@ -236,6 +236,39 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       end)
     end
 
+    # The counterpart to :void above, for the OTHER settlement source.
+    #
+    # A separate action rather than a relaxed :void, because :void's
+    # `settlement_source == :platform_payout` predicate is load-bearing — it is
+    # one half of the double-pay guard, with :mark_paid refusing claimed entries
+    # and :void refusing unclaimed ones. Two different preconditions and two
+    # different business meanings get two different names here, the same way
+    # :mark_paid and :mark_platform_paid already do.
+    #
+    # Reached when a merchant cancels a fulfilment their supplier never shipped:
+    # without it they are left nominally owing money for goods that never moved.
+    # A merchant tap, never automatic — a sweeper cannot know whether the
+    # supplier already sent something informally over WhatsApp.
+    update :void_unfulfilled do
+      require_atomic?(false)
+      accept([])
+
+      validate(attribute_in(:status, [:owed]), message: "only an owed entry can be voided")
+
+      validate(attribute_equals(:settlement_source, :manual),
+        message: "claimed by platform settlement — cannot be voided here"
+      )
+
+      change(set_attribute(:status, :voided))
+
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(
+          changeset,
+          expr(status == :owed and settlement_source == :manual)
+        )
+      end)
+    end
+
     # Reversal<->supplier coupling: a `transfer.reversed` arriving AFTER an
     # allocation payout was already `:paid` means the gateway clawed the
     # money back — every SupplierLedgerEntry that payout's transfer.success
