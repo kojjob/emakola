@@ -2,6 +2,8 @@ defmodule Emakola.Accounts do
   @moduledoc "Accounts domain — users, merchants, organisations, and authentication."
   use Ash.Domain
 
+  require Ash.Query
+
   resources do
     resource Emakola.Accounts.User do
       define(:register_with_password, args: [:email, :password, :password_confirmation])
@@ -22,6 +24,11 @@ defmodule Emakola.Accounts do
     resource Emakola.Accounts.Merchant do
       define(:update_merchant_profile, action: :update_profile)
       define(:list_merchants_for_admin, action: :list_for_admin, args: [:search])
+
+      # Same action, paginated: the platform queue passes a confirmation
+      # filter and a page, the plain interface above stays 1-arity for the
+      # callers that want a whole small set.
+      define(:page_merchants_for_admin, action: :list_for_admin, args: [:search, :confirmation])
       define(:get_merchant, action: :read, get_by: [:id])
       define(:register_merchant_with_phone, action: :register_with_phone)
     end
@@ -93,6 +100,28 @@ defmodule Emakola.Accounts do
 
     :ok
   end
+
+  @doc """
+  Counts behind the platform merchant queue's stat tiles.
+
+  Four counts rather than one full-table read. The queue reads a page at a
+  time now, so the tiles must not be the thing that drags every merchant on the
+  platform into memory.
+  """
+  def merchant_admin_stats do
+    cutoff = DateTime.add(DateTime.utc_now(), -30 * 24 * 3600, :second)
+
+    %{
+      total: count_merchants(Emakola.Accounts.Merchant),
+      confirmed:
+        count_merchants(Ash.Query.filter(Emakola.Accounts.Merchant, not is_nil(confirmed_at))),
+      with_store:
+        count_merchants(Ash.Query.filter(Emakola.Accounts.Merchant, exists(stores, true))),
+      new_30d: count_merchants(Ash.Query.filter(Emakola.Accounts.Merchant, inserted_at > ^cutoff))
+    }
+  end
+
+  defp count_merchants(query), do: Ash.count!(query, authorize?: false)
 
   @doc """
   Whether a browser session token minted at `issued_at` (unix seconds) is
