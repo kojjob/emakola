@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 980px; padding: 32px 40px; background: #f8fafc; box-sizing: border-box;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px;">
+    <div>
+      <div style="font-size: 26px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;">Billing</div>
+      <div style="font-size: 13.5px; color: #64748b; margin-top: 3px;">Plans, subscriptions and what the platform earns</div>
+    </div>
+    <div style="background: #fef3c7; color: #b45309; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px;">2 need attention</div>
+  </div>
+
+  <!-- Stat tiles stay (shared products-page cards) -->
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px;">
+    <div style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 20px;">
+      <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(236,253,245,0.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between;">
+        <div style="font-size: 13px; font-weight: 600; color: #475569;">MRR</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 5px 12px rgba(5,150,105,0.3);">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5 1-2.5 2 0 2.8 5 1.2 5 4 0 1-1 2-2.5 2-1 0-2-.5-2.5-1.5M12 6.5v11"/></svg>
+        </div>
+      </div>
+      <div style="position: relative; font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 14px;">GH₵ 1,240</div>
+    </div>
+    <div style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 20px;">
+      <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(239,246,255,0.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between;">
+        <div style="font-size: 13px; font-weight: 600; color: #475569;">Active subscriptions</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #60a5fa, #2563eb); box-shadow: 0 5px 12px rgba(37,99,235,0.3);">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0113.7-5.7M20 12a8 8 0 01-13.7 5.7M17 3v4h-4M7 21v-4h4"/></svg>
+        </div>
+      </div>
+      <div style="position: relative; font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 14px;">16</div>
+    </div>
+    <div style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 20px;">
+      <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(245,243,255,0.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between;">
+        <div style="font-size: 13px; font-weight: 600; color: #475569;">Active plans</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #a78bfa, #7c3aed); box-shadow: 0 5px 12px rgba(124,58,237,0.3);">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z"/></svg>
+        </div>
+      </div>
+      <div style="position: relative; font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 14px;">3</div>
+    </div>
+    <div style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 20px;">
+      <div style="position: absolute; inset: 0; background: linear-gradient(120deg, rgba(254,243,199,0.7), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between;">
+        <div style="font-size: 13px; font-weight: 600; color: #475569;">Needs attention</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 5px 12px rgba(217,119,6,0.3);">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+        </div>
+      </div>
+      <div style="position: relative; font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 14px;">2</div>
+    </div>
+  </div>
+
+  <!-- Plans as cards, not a table -->
+  <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin: 6px 0 12px;">Plans</div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 26px;">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 22px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a;">Starter</div>
+        <div style="background: #ECFDF5; color: #047857; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px;">ACTIVE</div>
+      </div>
+      <div style="font-family: ui-monospace, monospace; font-size: 11px; color: #94a3b8; margin-top: 1px;">starter</div>
+      <div style="font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 12px;">GH₵ 0<span style="font-size: 13px; font-weight: 600; color: #94a3b8;"> /mo</span></div>
+      <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
+        <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;">1 seat</span>
+        <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;">20 products</span>
+      </div>
+    </div>
+    <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 20px 22px; box-shadow: 0 8px 20px rgba(5,150,105,0.08);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a;">Growth</div>
+        <div style="background: #ECFDF5; color: #047857; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px;">ACTIVE</div>
+      </div>
+      <div style="font-family: ui-monospace, monospace; font-size: 11px; color: #94a3b8; margin-top: 1px;">growth</div>
+      <div style="font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 12px;">GH₵ 79<span style="font-size: 13px; font-weight: 600; color: #94a3b8;"> /mo</span></div>
+      <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
+        <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;">5 seats</span>
+        <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;">Unlimited products</span>
+      </div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; opacity: 0.7;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a;">Scale</div>
+        <div style="background: #f1f5f9; color: #64748b; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px;">DRAFT</div>
+      </div>
+      <div style="font-family: ui-monospace, monospace; font-size: 11px; color: #94a3b8; margin-top: 1px;">scale</div>
+      <div style="font-size: 24px; font-weight: 900; color: #0f172a; margin-top: 12px;">GH₵ 199<span style="font-size: 13px; font-weight: 600; color: #94a3b8;"> /mo</span></div>
+      <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
+        <span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;">Unlimited</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscriptions as studio rows -->
+  <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin: 0 0 12px;">Subscriptions</div>
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-bottom: 1px solid #f1f5f9;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 11px; background: #ECFDF5; color: #047857; font-size: 13px; font-weight: 800;">K</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Kente Kingdom</div>
+        <div style="font-size: 11.5px; color: #94a3b8;">Growth · renews Sep 27, 2026</div>
+      </div>
+      <div style="background: #ECFDF5; color: #047857; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 999px;">Active</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; padding: 14px 22px;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 11px; background: #fef3c7; color: #b45309; font-size: 13px; font-weight: 800;">D</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Darko Beads</div>
+        <div style="font-size: 11.5px; color: #94a3b8;">Growth · payment failed Aug 25</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 999px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/></svg>
+        Past due
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

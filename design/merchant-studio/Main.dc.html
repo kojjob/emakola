@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 1440px; min-height: 900px; padding: 32px 40px; background: #f8fafc; box-sizing: border-box;">
+
+  <!-- Page header -->
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px;">
+    <div>
+      <div style="font-size: 26px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;">Merchants</div>
+      <div style="font-size: 13.5px; color: #64748b; margin-top: 3px;">Everyone building on Makola</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <div style="background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px;">13 merchants</div>
+      <div style="background: #ECFDF5; color: #047857; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px;">2 confirmed</div>
+      <div style="background: #fef3c7; color: #b45309; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px;">11 pending</div>
+    </div>
+  </div>
+
+  <!-- Studio card -->
+  <div style="display: grid; grid-template-columns: 360px minmax(0, 1fr); background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; min-height: 720px;">
+
+    <!-- Queue -->
+    <div style="border-right: 1px solid #f1f5f9; display: flex; flex-direction: column;">
+      <div style="padding: 16px 18px 12px; border-bottom: 1px solid #f1f5f9;">
+        <div style="position: relative;">
+          <svg style="position: absolute; left: 12px; top: 11px;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <div style="width: 100%; padding: 9px 14px 9px 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; color: #94a3b8; box-sizing: border-box;">Search by name or email…</div>
+        </div>
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
+          <div style="background: #0f172a; color: #ffffff; font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 999px;">All <span style="opacity: 0.6;">13</span></div>
+          <div style="background: #f1f5f9; color: #475569; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px;">Confirmed <span style="opacity: 0.6;">2</span></div>
+          <div style="background: #f1f5f9; color: #475569; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px;">Pending <span style="opacity: 0.6;">11</span></div>
+        </div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto;">
+        <!-- rows -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #d1fae5; color: #047857; font-size: 13px; font-weight: 700; flex-shrink: 0;">AS</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Abena Serwaa</div>
+            <div style="font-size: 11.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">abena@serwaatextiles.com</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: #10B981;" title="Confirmed"></div>
+            <div style="font-size: 10.5px; color: #94a3b8;">2 stores</div>
+          </div>
+        </div>
+
+        <!-- active -->
+        <div style="position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: rgba(236,253,245,0.6);">
+          <div style="position: absolute; left: 0; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: #059669;"></div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 13px; font-weight: 700; flex-shrink: 0;">KB</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Kofi Boateng</div>
+            <div style="font-size: 11.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">kofi@boatengfootwear.com</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: #f59e0b;" title="Pending"></div>
+            <div style="font-size: 10.5px; color: #94a3b8;">1 store</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-size: 13px; font-weight: 700; flex-shrink: 0;">AD</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Ama Darko</div>
+            <div style="font-size: 11.5px; color: #94a3b8;">ama@darkobeads.com</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: #f59e0b;"></div>
+            <div style="font-size: 10.5px; color: #94a3b8;">1 store</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #fce7f3; color: #be185d; font-size: 13px; font-weight: 700; flex-shrink: 0;">EA</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Efua Ansah</div>
+            <div style="font-size: 11.5px; color: #94a3b8;">efua@ansahskitchen.com</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: #f59e0b;"></div>
+            <div style="font-size: 10.5px; color: #94a3b8;">1 store</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #cffafe; color: #0e7490; font-size: 13px; font-weight: 700; flex-shrink: 0;">YO</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Yaw Ofori</div>
+            <div style="font-size: 11.5px; color: #94a3b8;">yaw@oforigadgets.com</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <div style="width: 8px; height: 8px; border-radius: 999px; background: #10B981;"></div>
+            <div style="font-size: 10.5px; color: #94a3b8;">1 store</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail -->
+    <div style="padding: 26px 30px;">
+      <!-- header band -->
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 18px; font-weight: 800; flex-shrink: 0;">KB</div>
+        <div style="min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Kofi Boateng</div>
+            <div style="display: flex; align-items: center; gap: 5px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 800; padding: 4px 11px; border-radius: 999px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              Pending
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #64748b; margin-top: 2px;">kofi@boatengfootwear.com · joined Aug 24, 2026</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 7px; background: #059669; color: #ffffff; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 10px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+            Message
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; background: #ffffff; border: 1.5px solid #e2e8f0; color: #334155; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 10px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 8a3 3 0 11-6 0 3 3 0 016 0zM4 20c0-3.3 3.6-5 8-5s8 1.7 8 5"/></svg>
+            Log in as merchant
+          </div>
+        </div>
+      </div>
+
+      <!-- details grid -->
+      <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin: 28px 0 12px;">Details</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8;">Business</div>
+          <div style="font-size: 14px; font-weight: 600; color: #cbd5e1; font-style: italic; margin-top: 4px;">Not added yet</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8;">Phone</div>
+          <div style="font-size: 14px; font-weight: 600; color: #cbd5e1; font-style: italic; margin-top: 4px;">Not added yet</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8;">Joined</div>
+          <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 4px;">Aug 24, 2026</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8;">Stores</div>
+          <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 4px;">1</div>
+        </div>
+      </div>
+
+      <!-- stores -->
+      <div style="font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin: 28px 0 12px;">Stores</div>
+      <div style="border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 11px; background: #ECFDF5; color: #047857; font-size: 14px; font-weight: 800; flex-shrink: 0;">B</div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Boateng Footwear</div>
+            <div style="font-size: 11.5px; color: #94a3b8; font-family: ui-monospace, monospace;">boateng-footwear</div>
+          </div>
+          <div style="background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 6px;">OWNER</div>
+          <div style="display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: #059669;">
+            Storefront
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

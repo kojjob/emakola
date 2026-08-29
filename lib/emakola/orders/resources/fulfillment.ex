@@ -10,6 +10,14 @@ defmodule Emakola.Orders.Fulfillment do
 
   Statuses: pending -> notified -> shipped -> delivered, with cancel allowed
   from any non-terminal state.
+
+  A supplier acting on their own link adds two moves. Accepting is a
+  *timestamp* (`accepted_at`) and deliberately does not touch `status` —
+  nothing queries on it, and `is_nil(accepted_at)` survives a re-notify in a
+  way `status == :notified` does not. Declining IS a status (`:declined`),
+  because a blocked order is something the merchant must see and act on, and
+  reusing `:cancelled` would drop the group out of the merchant's action row
+  exactly when they need to re-source it.
   """
 
   use Ash.Resource,
@@ -47,7 +55,7 @@ defmodule Emakola.Orders.Fulfillment do
     end
 
     attribute :status, :atom do
-      constraints(one_of: [:pending, :notified, :shipped, :delivered, :cancelled])
+      constraints(one_of: [:pending, :notified, :shipped, :delivered, :cancelled, :declined])
       default(:pending)
       allow_nil?(false)
       public?(true)
@@ -65,6 +73,36 @@ defmodule Emakola.Orders.Fulfillment do
     attribute :notified_via, :atom do
       constraints(one_of: [:whatsapp, :sms, :manual])
       public?(true)
+    end
+
+    # Set when the supplier taps "I have it" on their action link.
+    #
+    # IMPORTANT: "accepted" is TWO states — `:pending` + accepted_at and
+    # `:notified` + accepted_at — because the merchant may send the link before
+    # SupplierNotificationWorker runs. Every UI and query site must key on
+    # `accepted_at` FIRST and `status` second, or it will nag a supplier who
+    # has already agreed.
+    attribute :accepted_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :declined_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :decline_reason, :atom do
+      constraints(one_of: [:out_of_stock, :price_too_low, :cannot_deliver])
+      public?(true)
+    end
+
+    # Bumping this invalidates every supplier action link ever minted for this
+    # fulfillment. It is the revocation mechanism for a capability URL the
+    # merchant pasted into WhatsApp and now wants dead, and it is why no
+    # separate token table is needed. Never leaves the boundary.
+    attribute :supplier_link_version, :integer do
+      allow_nil?(false)
+      default(1)
+      public?(false)
     end
 
     # Snapshot of the supplier dispatch fee charged at checkout, integer
@@ -155,18 +193,77 @@ defmodule Emakola.Orders.Fulfillment do
       change(set_attribute(:notified_at, &DateTime.utc_now/0))
     end
 
+    # :declined is included on purpose — a supplier saying "no stock" does not
+    # stop the merchant sourcing the item elsewhere and shipping it themselves.
+    # The supplier's own page still renders :declined as terminal.
     update :mark_shipped do
       require_atomic?(false)
       accept([:tracking_number])
 
       validate(
         {Emakola.Validations.StatusGuard,
-         from: [:pending, :notified], message: "can only ship a pending or notified fulfillment"}
+         from: [:pending, :notified, :declined],
+         message: "can only ship a pending, notified or declined fulfillment"}
+      )
+
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified, :declined]})
+
+      change(set_attribute(:status, :shipped))
+    end
+
+    # ── Supplier-driven transitions (the /supply/:token action link) ──
+
+    # Accept stamps a timestamp and leaves status alone — see the attribute
+    # comment on :accepted_at for why that asymmetry is load-bearing.
+    update :supplier_accept do
+      require_atomic?(false)
+      accept([])
+
+      validate(
+        {Emakola.Validations.StatusGuard,
+         from: [:pending, :notified], message: "can only accept a pending or notified fulfillment"}
       )
 
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified]})
 
-      change(set_attribute(:status, :shipped))
+      # Idempotent. The link is a capability, so replay is the design: a
+      # supplier tapping "I have it" twice must not slide the timestamp, which
+      # would reset any downstream clock hung off it.
+      change(fn changeset, _context ->
+        case Ash.Changeset.get_data(changeset, :accepted_at) do
+          nil ->
+            Ash.Changeset.force_change_attribute(changeset, :accepted_at, DateTime.utc_now())
+
+          _already_accepted ->
+            changeset
+        end
+      end)
+    end
+
+    # Allowed after an accept: a supplier who said yes at 9am and found the
+    # shelf empty at noon must be able to say so.
+    update :supplier_decline do
+      require_atomic?(false)
+      accept([:decline_reason])
+
+      validate(
+        {Emakola.Validations.StatusGuard,
+         from: [:pending, :notified],
+         message: "can only decline a pending or notified fulfillment"}
+      )
+
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified]})
+
+      change(set_attribute(:status, :declined))
+      change(set_attribute(:declined_at, &DateTime.utc_now/0))
+    end
+
+    # No from: guard — a leaked link must be revocable in any state.
+    update :rotate_supplier_link do
+      require_atomic?(true)
+      accept([])
+
+      change(atomic_update(:supplier_link_version, expr(supplier_link_version + 1)))
     end
 
     update :mark_delivered do
@@ -212,11 +309,13 @@ defmodule Emakola.Orders.Fulfillment do
 
       validate(
         {Emakola.Validations.StatusGuard,
-         from: [:pending, :notified, :shipped],
+         from: [:pending, :notified, :shipped, :declined],
          message: "can only cancel an active fulfillment (not delivered or already cancelled)"}
       )
 
-      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified, :shipped]})
+      change(
+        {Emakola.Orders.Changes.RequireStatusIn, from: [:pending, :notified, :shipped, :declined]}
+      )
 
       change(set_attribute(:status, :cancelled))
     end

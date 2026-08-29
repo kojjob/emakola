@@ -1,0 +1,9 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Platform messages — desktop" }
+  ],
+  "annotations": [
+    { "id": "chat-direction", "x": 1490, "y": 40, "w": 280, "text": "Your reference, in Makola emerald:\n· grouped bubbles with avatars on the outer side\n· one timestamp per group; green double-tick on staff messages\n· active chat = solid emerald row\n· merchant context in the header (store + email + View merchant)\n· labelled Send button" }
+  ],
+  "launch": { "view": "canvas" }
+}

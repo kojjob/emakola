@@ -1,0 +1,271 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #f7f6f1; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: #047857; } a:hover { color: #065f46; }
+  </style>
+</helmet>
+<div style="width: 1440px; background: #f7f6f1; color: #132219;">
+  <nav style="display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 32px; background: #0c1526;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
+        <path d="M32 8 L60 26 H4 Z" fill="#f1f5f9"/>
+        <path d="M4 26 H60 V33 A5.6 5.6 0 0 1 48.8 33 A5.6 5.6 0 0 1 37.6 33 A5.6 5.6 0 0 1 26.4 33 A5.6 5.6 0 0 1 15.2 33 A5.6 5.6 0 0 1 4 33 Z" fill="#d4a843"/>
+        <rect x="8" y="46" width="48" height="10" rx="5" fill="#d4a843"/>
+      </svg>
+      <span style="font-size: 20px; font-weight: 700; color: #f1f5f9;">Makola</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 24px;">
+      <span style="font-size: 14px; color: #8896ab;">How it works</span>
+      <span style="font-size: 14px; color: #8896ab;">Features</span>
+      <span style="font-size: 14px; color: #8896ab;">Pricing</span>
+      <span style="font-size: 14px; color: #f1f5f9;">Browse shops</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <span style="font-size: 14px; color: #8896ab;">Login</span>
+      <span style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #d4a843; font-size: 14px; font-weight: 600; color: #0c1526;">Get Started</span>
+    </div>
+  </nav>
+
+  <section style="background: #ffffff; border-bottom: 1px solid #e9e7e0; padding: 22px 32px;">
+    <div style="max-width: 1320px; margin: 0 auto; display: flex; align-items: center; gap: 20px;">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.03em; color: #132219; white-space: nowrap;">All shops</h1>
+      <span style="font-size: 14px; color: #64748b; white-space: nowrap;">[N] active</span>
+      <div style="position: relative; flex: 1 1 auto; max-width: 520px;">
+        <input type="search" placeholder="Search shops, products or places" style="box-sizing: border-box; width: 100%; height: 42px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; padding: 0 14px 0 40px; font-size: 14px; color: #0f172a;" />
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 13px; top: 13px;" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </div>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 14px; font-weight: 600; color: #132219; white-space: nowrap;">Sort: Featured
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5"/></svg>
+      </span>
+    </div>
+  </section>
+
+  <section style="padding: 28px 32px 56px;">
+    <div style="max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; align-items: start;">
+      <aside style="display: flex; flex-direction: column; gap: 26px; padding: 22px; border-radius: 18px; background: #ffffff; border: 1px solid #e9e7e0;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px;">Category</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; background: #132219;">
+            <span style="font-size: 14px; font-weight: 700; color: #ffffff;">All shops</span>
+            <span style="font-size: 12px; font-weight: 700; color: #e4bd63;">20</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Fresh</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">5</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Fashion</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">4</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Beauty</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">4</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Atelier</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">3</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Market</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">2</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Home Living</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">1</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Electronics</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">1</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border-radius: 8px; ">
+            <span style="font-size: 14px; font-weight: 500; color: #334155;">Pharmacy</span>
+            <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">0</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #94a3b8; margin-bottom: 8px;">Region</span>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #047857; background: #047857; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+            <span style="font-size: 14px; color: #334155;">Greater Accra</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Ashanti</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Central</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Western</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Eastern</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Northern</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; height: 34px;">
+            <span style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #cbd5e1; background: #ffffff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"></span>
+            <span style="font-size: 14px; color: #334155;">Volta</span>
+          </div>
+        </div>
+      </aside>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 18px; padding: 0 18px 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8;">
+          <span style="width: 72px; flex-shrink: 0;"></span>
+          <span style="flex: 1 1 auto;">Shop</span>
+          <span style="width: 120px; flex-shrink: 0;">Category</span>
+          <span style="width: 130px; flex-shrink: 0;">Region</span>
+          <span style="width: 90px; flex-shrink: 0;">Products</span>
+          <span style="width: 78px; flex-shrink: 0;"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-fruit.jpg" alt="Adom Fresh Produce" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Adom Fresh Produce</span>
+            <span style="font-size: 13px; color: #64748b;">Same-day delivery in Accra</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Fresh</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Greater Accra</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">48</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #fbfaf7; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-tailor.jpg" alt="Nana Yaa Couture" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Nana Yaa Couture</span>
+            <span style="font-size: 13px; color: #64748b;">Made-to-measure in 48 hours</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Atelier</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Ashanti</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">26</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-beauty.jpg" alt="Serwaa Skin Studio" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Serwaa Skin Studio</span>
+            <span style="font-size: 13px; color: #64748b;">Shea butter, mixed to order</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Beauty</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Greater Accra</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">61</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #fbfaf7; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-barber.jpg" alt="Kofi Cuts" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Kofi Cuts</span>
+            <span style="font-size: 13px; color: #64748b;">Grooming kits and clippers</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Market</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Western</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">19</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-hair.jpg" alt="Akosua Hair Bar" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Akosua Hair Bar</span>
+            <span style="font-size: 13px; color: #64748b;">Braiding hair and wigs</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Beauty</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Ashanti</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">74</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #fbfaf7; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-eggs.jpg" alt="Boakye Poultry Farm" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Boakye Poultry Farm</span>
+            <span style="font-size: 13px; color: #64748b;">Crates delivered weekly</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Fresh</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Eastern</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">12</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-fruit.jpg" alt="Adom Fresh Produce" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Adom Fresh Produce</span>
+            <span style="font-size: 13px; color: #64748b;">Same-day delivery in Accra</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Fresh</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Greater Accra</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">48</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #fbfaf7; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-tailor.jpg" alt="Nana Yaa Couture" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Nana Yaa Couture</span>
+            <span style="font-size: 13px; color: #64748b;">Made-to-measure in 48 hours</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Atelier</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Ashanti</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">26</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-beauty.jpg" alt="Serwaa Skin Studio" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Serwaa Skin Studio</span>
+            <span style="font-size: 13px; color: #64748b;">Shea butter, mixed to order</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Beauty</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Greater Accra</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">61</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #fbfaf7; border: 1px solid #e9e7e0;">
+          <div style="width: 72px; height: 72px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;">
+            <img src="shop-barber.jpg" alt="Kofi Cuts" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto;">
+            <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a;">Kofi Cuts</span>
+            <span style="font-size: 13px; color: #64748b;">Grooming kits and clippers</span>
+          </div>
+          <span style="width: 120px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Market</span>
+          <span style="width: 130px; font-size: 13px; font-weight: 600; color: #475569; flex-shrink: 0;">Western</span>
+          <span style="width: 90px; font-size: 13px; font-weight: 700; color: #0f172a; flex-shrink: 0;">19</span>
+          <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 13px; font-weight: 700; color: #132219; flex-shrink: 0;">Visit</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

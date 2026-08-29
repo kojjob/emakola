@@ -80,6 +80,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Presentation do
   def fulfillment_status_classes(:shipped), do: "bg-violet-50 text-violet-700"
   def fulfillment_status_classes(:delivered), do: "bg-emerald-50 text-emerald-700"
   def fulfillment_status_classes(:cancelled), do: "bg-slate-100 text-slate-500"
+  def fulfillment_status_classes(:declined), do: "bg-red-50 text-red-700"
 
   def content_status_classes(:draft), do: "bg-amber-50 text-amber-700"
   def content_status_classes(:approved), do: "bg-emerald-50 text-emerald-700"

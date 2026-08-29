@@ -1354,6 +1354,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp fulfillment_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
   defp fulfillment_badge_class(:delivered), do: "bg-success-soft text-success"
   defp fulfillment_badge_class(:cancelled), do: "bg-danger-soft text-danger"
+  defp fulfillment_badge_class(:declined), do: "bg-danger-soft text-danger"
   defp fulfillment_badge_class(_), do: "bg-slate-50 text-slate-700"
 
   # A complaint freezes the auto-release timer without changing the hold's

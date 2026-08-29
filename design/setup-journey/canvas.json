@@ -1,0 +1,155 @@
+{
+  "pages": [
+    {
+      "id": "page-dash",
+      "name": "Dashboard"
+    },
+    {
+      "id": "page-setup",
+      "name": "Setup card detail"
+    },
+    {
+      "id": "page-strip2",
+      "name": "Setup strip v2"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1420,
+      "title": "Desktop",
+      "page": "page-dash"
+    },
+    {
+      "file": "Phone.dc.html",
+      "x": 1540,
+      "y": 0,
+      "w": 390,
+      "h": 1360,
+      "title": "Phone",
+      "page": "page-dash"
+    },
+    {
+      "file": "SetupCard.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 560,
+      "title": "Setup card",
+      "page": "page-setup"
+    },
+    {
+      "file": "Mobile.dc.html",
+      "x": 1290,
+      "y": 0,
+      "w": 390,
+      "h": 800,
+      "title": "Setup phone",
+      "page": "page-setup"
+    },
+    {
+      "file": "States.dc.html",
+      "x": 0,
+      "y": 700,
+      "w": 900,
+      "h": 560,
+      "title": "Tile states",
+      "page": "page-setup"
+    },
+    {
+      "file": "StripV2.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 560,
+      "title": "Journey tracker (lead)",
+      "page": "page-strip2"
+    },
+    {
+      "file": "StripAlt.dc.html",
+      "x": 0,
+      "y": 700,
+      "w": 1200,
+      "h": 360,
+      "title": "Tinted wash (alternate)",
+      "page": "page-strip2"
+    },
+    {
+      "file": "StripPhone.dc.html",
+      "x": 1290,
+      "y": 0,
+      "w": 390,
+      "h": 520,
+      "title": "Tracker on phone",
+      "page": "page-strip2"
+    },
+    {
+      "file": "StripSpotlight.dc.html",
+      "x": 0,
+      "y": 1180,
+      "w": 1200,
+      "h": 260,
+      "title": "Spotlight \u2014 one thing only",
+      "page": "page-strip2"
+    },
+    {
+      "file": "StripRoad.dc.html",
+      "x": 0,
+      "y": 1560,
+      "w": 1200,
+      "h": 420,
+      "title": "Market road \u2014 playful",
+      "page": "page-strip2"
+    },
+    {
+      "file": "StripSlim.dc.html",
+      "x": 0,
+      "y": 2100,
+      "w": 1200,
+      "h": 180,
+      "title": "Slim bar \u2014 smallest",
+      "page": "page-strip2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "dash-notes",
+      "x": 2000,
+      "y": 40,
+      "w": 300,
+      "page": "page-dash",
+      "text": "The whole home, for merchants who don't read much:\n\u00b7 money first \u2014 one big number, arrow up or down instead of percentages\n\u00b7 'Do these now' tiles: a picture, a big count, one button\n\u00b7 one simple chart (Money each day) instead of four\n\u00b7 best sellers shown as photos\n\u00b7 order status = color chip with an icon (Send it / Paid / On the way)\n\u00b7 all numbers are sample values"
+    },
+    {
+      "id": "journey-notes",
+      "x": 970,
+      "y": 720,
+      "w": 300,
+      "page": "page-setup",
+      "text": "Built for merchants who don't read much:\n\u00b7 pictures first \u2014 every step is an icon tile\n\u00b7 labels stay under 8 words\n\u00b7 exactly ONE loud tile (Do this now); the rest wait quietly\n\u00b7 progress you can see: ring + 5 segments, no reading needed\n\u00b7 done = green tile with a tick, crossed out on phone\n\u00b7 when all 5 are done the card celebrates once, then leaves"
+    },
+    {
+      "id": "strip2-notes",
+      "x": 1290,
+      "y": 620,
+      "w": 300,
+      "page": "page-strip2",
+      "text": "The setup strip, rethought:\n\u00b7 LEAD: a journey tracker \u2014 the order-tracking picture merchants already know. Done = filled tick, next = ringed with the only button, later = grey. Progress is spatial, no dead space.\n\u00b7 ALTERNATE: today's layout kept, but the next step becomes a tinted stat-card-style panel (matches the new money cards).\n\u00b7 All-clear card picks up the gradient icon chip.\n\u00b7 Phone: the tracker turns vertical, like package tracking."
+    },
+    {
+      "id": "strip2-varieties",
+      "x": 1290,
+      "y": 1180,
+      "w": 300,
+      "page": "page-strip2",
+      "text": "Three more, each a different bet:\n\u00b7 SPOTLIGHT \u2014 only the next step exists, huge. Zero reading, zero clutter. Trade-off: the other steps are invisible.\n\u00b7 MARKET ROAD \u2014 a winding path to your shop, like a game map. Most memorable, most motivating. Trade-off: tallest, and playful may not fit every merchant.\n\u00b7 SLIM BAR \u2014 five dots and one button on a single line. Smallest possible footprint. Trade-off: least visual, small touch targets on phone."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-strip2"
+  }
+}
