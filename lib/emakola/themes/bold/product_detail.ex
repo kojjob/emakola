@@ -211,7 +211,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
           </section>
 
           <%!-- Quantity Stepper (Minimal, Inline) --%>
-          <div class="flex items-center gap-6 mb-6">
+          <div :if={not Variant.sold_out?(@selected_variant)} class="flex items-center gap-6 mb-6">
             <span
               class="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B]"
               style="font-family: 'Inter', sans-serif;"

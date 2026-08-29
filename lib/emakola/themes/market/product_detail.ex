@@ -257,7 +257,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
               aria-label="Add to bag"
             >
               <%!-- Quantity stepper --%>
-              <div class="flex items-center gap-3">
+              <div
+                :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                class="flex items-center gap-3"
+              >
                 <span class="text-sm font-semibold text-stone-900">Quantity</span>
                 <div class="flex items-center border-[1.5px] border-stone-200 rounded-full overflow-hidden bg-white">
                   <button
@@ -342,7 +345,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
               <%!-- WhatsApp button (only when the store has a WhatsApp number) --%>
               <a
-                :if={Shared.whatsapp_link(@store, @product.title)}
+                :if={
+                  Shared.whatsapp_link(@store, @product.title) &&
+                    not Emakola.Catalog.Variant.sold_out?(@selected_variant)
+                }
                 href={Shared.whatsapp_link(@store, @product.title)}
                 target="_blank"
                 rel="noopener noreferrer"

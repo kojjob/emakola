@@ -83,6 +83,19 @@ defmodule EmakolaWeb.Storefront.BackInStockTest do
         refute html =~ ~s(phx-click="add_to_cart")
         assert html =~ ~s(id="back-in-stock")
       end
+
+      # Found in a browser, not in a test: the button went but the quantity
+      # stepper stayed, and two themes kept their own WhatsApp button under the
+      # new one. A control that leads nowhere is still a dead end.
+      test "leaves no controls behind that lead nowhere", %{conn: conn} do
+        store =
+          store_on(unquote(theme), %{name: "Nova market", whatsapp_number: "+233 24 118 4402"})
+
+        html = visit(conn, store, product_with_stock!(store, 0))
+
+        refute html =~ "decrement_quantity"
+        refute html =~ "Ask on WhatsApp"
+      end
     end
   end
 

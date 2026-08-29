@@ -180,7 +180,10 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                 {Emakola.Themes.Delivery.callout(assigns)}
               </p>
               <div class="flex flex-col sm:flex-row items-stretch gap-3 mb-7">
-                <div class="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E5E7EB]">
+                <div
+                  :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                  class="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E5E7EB]"
+                >
                   <button
                     type="button"
                     phx-click="decrement_quantity"
@@ -214,13 +217,12 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   <span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
                   Add to Cart
                 </button>
-
-                <.back_in_stock
-                  :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
-                  store={@store}
-                  product={@product}
-                />
               </div>
+              <.back_in_stock
+                :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                store={@store}
+                product={@product}
+              />
             </div>
           </div>
         </div>

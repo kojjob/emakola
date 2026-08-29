@@ -234,7 +234,10 @@ defmodule Emakola.Themes.Starter.ProductDetail do
           <%!-- Quantity + Add to Cart --%>
           <section class="px-4 lg:px-0 py-5 space-y-4" aria-label="Add to cart">
             <%!-- Quantity stepper --%>
-            <div class="flex items-center border border-gray-200 rounded-full w-fit overflow-hidden bg-white">
+            <div
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+              class="flex items-center border border-gray-200 rounded-full w-fit overflow-hidden bg-white"
+            >
               <button
                 phx-click="decrement_quantity"
                 disabled={@quantity <= 1}
