@@ -290,7 +290,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
               {Emakola.Themes.Delivery.callout(assigns)}
             </p>
             <button
-              :if={not sold_out?(@selected_variant)}
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               phx-click="add_to_cart"
               disabled={is_nil(@selected_variant)}
               class={[
@@ -323,15 +323,15 @@ defmodule Emakola.Themes.Starter.ProductDetail do
               <% end %>
             </button>
 
-            <EmakolaWeb.StorefrontComponents.back_in_stock_cta
-              :if={sold_out?(@selected_variant)}
+            <.back_in_stock
+              :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               store={@store}
               product={@product}
             />
 
             <%!-- WhatsApp Button --%>
             <a
-              :if={not sold_out?(@selected_variant)}
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
@@ -578,16 +578,51 @@ defmodule Emakola.Themes.Starter.ProductDetail do
 
   # ── Helpers ──
 
-  # A variant the shopper has actually landed on, which has run out. A nil
-  # variant means the options are not chosen yet — that is not sold out.
-  defp sold_out?(nil), do: false
-  defp sold_out?(variant), do: not Emakola.Catalog.Variant.in_stock?(variant)
-
   defp current_image(product, index) do
     case Enum.at(product.images, index) do
       %{medium_url: url} when is_binary(url) -> url
       %{url: url} when is_binary(url) -> url
       _ -> Shared.first_image(product)
     end
+  end
+
+  # ── Back in Stock ──
+  #
+  # Starter's answer is restraint: a tinted inset that says the thing and stops.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div
+      :if={@url}
+      id="back-in-stock"
+      class="rounded-2xl p-[18px]"
+      style="background: color-mix(in srgb, var(--theme-primary, #6366F1) 8%, #FFFFFF);"
+    >
+      <p class="text-[13.5px] font-semibold text-[var(--theme-primary,#6366F1)]">
+        Out of stock right now
+      </p>
+      <p class="mt-1 mb-3.5 text-[12.5px] leading-relaxed text-[#64748B]">
+        Send {@store.name} a message about this one.
+      </p>
+      <a
+        href={@url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex h-[46px] items-center justify-center gap-2.5 rounded-full border-[1.5px] border-gray-200 bg-white text-[13.5px] font-semibold text-[#0F172A] transition-colors hover:border-gray-300"
+      >
+        <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-[17px] w-[17px] text-whatsapp" />
+        Ask about this one
+      </a>
+    </div>
+    """
   end
 end
