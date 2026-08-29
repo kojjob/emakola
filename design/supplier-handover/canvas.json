@@ -1,0 +1,41 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Supplier — the whole journey",
+      "is_interactive": true
+    },
+    {
+      "file": "Merchant.dc.html",
+      "x": 520,
+      "y": 0,
+      "w": 720,
+      "h": 900,
+      "title": "Merchant — fulfilment card",
+      "is_interactive": true
+    }
+  ],
+  "annotations": [
+    {
+      "id": "supplier-note",
+      "x": 0,
+      "y": -150,
+      "w": 390,
+      "text": "Tap through it. Offer → I have it → I sent it → Send code → Done.\n\nTHE DELIVERY CODE IS ENFORCED, like the real system. Pretend the customer read you 429117 — type that and it completes. Type anything else, or nothing, and it refuses and burns one of five tries.\n\nThe supplier never sees the code in the real page either: it goes to the customer's phone, and only a bcrypt hash is stored."
+    },
+    {
+      "id": "merchant-note",
+      "x": 520,
+      "y": -150,
+      "w": 720,
+      "text": "Tap the pills to switch state.\n\nOne status band replaces four stacked coloured sentences — colour, then icon, then a short line. The supplier link is promoted above the merchant's own manual actions, because sending it is the point."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
