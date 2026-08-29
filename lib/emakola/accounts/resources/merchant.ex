@@ -163,6 +163,12 @@ defmodule Emakola.Accounts.Merchant do
     end
   end
 
+  aggregates do
+    # Sorting the platform queue by "most stores" has to happen in the database
+    # now that the page reads a screen at a time rather than the whole table.
+    count(:stores_count, :stores)
+  end
+
   identities do
     identity(:unique_email, [:email])
     # Phone is a login method (WhatsApp/SMS OTP); nullable, so Postgres allows
@@ -244,15 +250,30 @@ defmodule Emakola.Accounts.Merchant do
     read :list_for_admin do
       argument(:search, :string, default: "")
 
+      argument(:confirmation, :atom,
+        default: :all,
+        constraints: [one_of: [:all, :confirmed, :unconfirmed]]
+      )
+
+      # The platform queue reads one screen at a time. `required?: false` keeps
+      # the unpaginated callers — which ask for a whole small set on purpose —
+      # returning a plain list.
+      pagination(offset?: true, countable: true, default_limit: 25, required?: false)
+
       filter(
         expr(
-          is_nil(^arg(:search)) or ^arg(:search) == "" or
-            ilike(name, ^arg(:search)) or ilike(email, ^arg(:search)) or
-            ilike(business_name, ^arg(:search)) or ilike(phone, ^arg(:search))
+          (is_nil(^arg(:search)) or ^arg(:search) == "" or
+             ilike(name, ^arg(:search)) or ilike(email, ^arg(:search)) or
+             ilike(business_name, ^arg(:search)) or ilike(phone, ^arg(:search))) and
+            (^arg(:confirmation) == :all or
+               (^arg(:confirmation) == :confirmed and not is_nil(confirmed_at)) or
+               (^arg(:confirmation) == :unconfirmed and is_nil(confirmed_at)))
         )
       )
 
-      prepare(build(sort: [inserted_at: :desc], load: [:stores]))
+      # No default sort: the caller picks one, and a default here would win
+      # ahead of it.
+      prepare(build(load: [:stores, :stores_count]))
     end
 
     update :update_profile do

@@ -47,6 +47,91 @@ defmodule Emakola.Accounts.MerchantAdminTest do
     end
   end
 
+  describe "page_merchants_for_admin/3" do
+    # Paging, filtering and sorting all happen in the database now — the
+    # platform queue used to pull every merchant on the platform into memory
+    # and slice it there.
+
+    test "returns one page at a time with the full count beside it" do
+      t = System.unique_integer([:positive])
+
+      for i <- 1..3 do
+        Factory.create_merchant!(%{
+          name: "Paged#{t} #{i}",
+          email: "paged-#{t}-#{i}@example.com"
+        })
+      end
+
+      assert {:ok, page} =
+               Accounts.page_merchants_for_admin("%Paged#{t}%", :all,
+                 page: [limit: 2, offset: 0, count: true],
+                 authorize?: false
+               )
+
+      assert length(page.results) == 2
+      assert page.count == 3
+
+      assert {:ok, second} =
+               Accounts.page_merchants_for_admin("%Paged#{t}%", :all,
+                 page: [limit: 2, offset: 2, count: true],
+                 authorize?: false
+               )
+
+      assert length(second.results) == 1
+    end
+
+    test "filters confirmed and unconfirmed in the query" do
+      t = System.unique_integer([:positive])
+
+      confirmed =
+        Factory.create_merchant!(%{
+          name: "Conf#{t}",
+          email: "conf-#{t}@example.com",
+          confirmed_at: DateTime.utc_now()
+        })
+
+      pending = Factory.create_merchant!(%{name: "Pend#{t}", email: "pend-#{t}@example.com"})
+
+      assert {:ok, %{results: [only]}} =
+               Accounts.page_merchants_for_admin("%#{t}%", :confirmed,
+                 page: [limit: 10, count: true],
+                 authorize?: false
+               )
+
+      assert only.id == confirmed.id
+
+      assert {:ok, %{results: [other]}} =
+               Accounts.page_merchants_for_admin("%#{t}%", :unconfirmed,
+                 page: [limit: 10, count: true],
+                 authorize?: false
+               )
+
+      assert other.id == pending.id
+    end
+
+    test "sorts by store count in the database" do
+      t = System.unique_integer([:positive])
+      {with_store, _store} = Factory.create_merchant_with_store!()
+
+      with_store =
+        Ash.update!(
+          Ash.Changeset.for_update(with_store, :update_profile, %{name: "Stocked#{t}"}),
+          authorize?: false
+        )
+
+      Factory.create_merchant!(%{name: "Barren#{t}", email: "barren-#{t}@example.com"})
+
+      assert {:ok, %{results: [first | _]}} =
+               Accounts.page_merchants_for_admin("%#{t}%", :all,
+                 query: [sort: [stores_count: :desc]],
+                 page: [limit: 10, count: true],
+                 authorize?: false
+               )
+
+      assert first.id == with_store.id
+    end
+  end
+
   describe "create_merchant! factory enhancement" do
     test "applies name/business/phone and confirmed_at when given" do
       ts = DateTime.utc_now()

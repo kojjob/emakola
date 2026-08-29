@@ -257,7 +257,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
               aria-label="Add to bag"
             >
               <%!-- Quantity stepper --%>
-              <div class="flex items-center gap-3">
+              <div
+                :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                class="flex items-center gap-3"
+              >
                 <span class="text-sm font-semibold text-stone-900">Quantity</span>
                 <div class="flex items-center border-[1.5px] border-stone-200 rounded-full overflow-hidden bg-white">
                   <button
@@ -300,17 +303,14 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
               <%!-- Add to Bag button --%>
               <button
+                :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
                 id="add-to-bag-btn"
                 phx-click="add_to_cart"
-                disabled={
-                  is_nil(@selected_variant) ||
-                    not Emakola.Catalog.Variant.in_stock?(@selected_variant)
-                }
+                disabled={is_nil(@selected_variant)}
                 class={[
                   "w-full h-[54px] rounded-xl text-base font-semibold flex items-center justify-center gap-2.5 transition-all duration-300 group",
                   if(
-                    is_nil(@selected_variant) ||
-                      not Emakola.Catalog.Variant.in_stock?(@selected_variant),
+                    is_nil(@selected_variant),
                     do: "bg-stone-200 text-stone-400 cursor-not-allowed",
                     else:
                       "bg-stone-900 text-white hover:bg-stone-700 hover:shadow-lg active:scale-[0.98] cursor-pointer"
@@ -330,16 +330,25 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                   />
                 </svg>
-                <%= if is_nil(@selected_variant) || not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
+                <%= if is_nil(@selected_variant) do %>
                   Out of Stock
                 <% else %>
                   Add to Bag
                 <% end %>
               </button>
 
+              <.back_in_stock
+                :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                store={@store}
+                product={@product}
+              />
+
               <%!-- WhatsApp button (only when the store has a WhatsApp number) --%>
               <a
-                :if={Shared.whatsapp_link(@store, @product.title)}
+                :if={
+                  Shared.whatsapp_link(@store, @product.title) &&
+                    not Emakola.Catalog.Variant.sold_out?(@selected_variant)
+                }
                 href={Shared.whatsapp_link(@store, @product.title)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -775,4 +784,56 @@ defmodule Emakola.Themes.Market.ProductDetail do
   end
 
   defp trust_icon(assigns), do: ~H""
+
+  defp shop_initial(store) do
+    case store |> Map.get(:name) |> to_string() |> String.first() do
+      nil -> "?"
+      letter -> String.upcase(letter)
+    end
+  end
+
+  # ── Back in Stock ──
+  #
+  # Market is a stall, so this is addressed to the seller rather than announced
+  # by the site. The bubble is a shape, not a quote: nothing here is put in the
+  # merchant's mouth, and no reply time is promised on their behalf.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div
+      :if={@url}
+      id="back-in-stock"
+      class="flex items-start gap-3.5 border-t-2 border-[var(--theme-accent,#B45309)] pt-[18px]"
+    >
+      <div class="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-[#1C1917] text-[15px] font-bold text-[#FAFAF9]">
+        {shop_initial(@store)}
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="mb-3 rounded-[4px_16px_16px_16px] border border-stone-200 bg-white px-4 py-3.5">
+          <p class="text-[13.5px] leading-relaxed text-stone-800">
+            This one has finished. Message {@store.name} about it.
+          </p>
+        </div>
+        <a
+          href={@url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex h-11 items-center gap-2.5 rounded-xl bg-[#1C1917] px-5 text-[13.5px] font-bold text-[#FAFAF9] transition-colors hover:bg-[#292524]"
+        >
+          <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-[17px] w-[17px] text-whatsapp" />
+          Message the seller
+        </a>
+      </div>
+    </div>
+    """
+  end
 end

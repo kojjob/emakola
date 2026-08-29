@@ -234,7 +234,10 @@ defmodule Emakola.Themes.Starter.ProductDetail do
           <%!-- Quantity + Add to Cart --%>
           <section class="px-4 lg:px-0 py-5 space-y-4" aria-label="Add to cart">
             <%!-- Quantity stepper --%>
-            <div class="flex items-center border border-gray-200 rounded-full w-fit overflow-hidden bg-white">
+            <div
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+              class="flex items-center border border-gray-200 rounded-full w-fit overflow-hidden bg-white"
+            >
               <button
                 phx-click="decrement_quantity"
                 disabled={@quantity <= 1}
@@ -290,16 +293,12 @@ defmodule Emakola.Themes.Starter.ProductDetail do
               {Emakola.Themes.Delivery.callout(assigns)}
             </p>
             <button
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               phx-click="add_to_cart"
-              disabled={
-                is_nil(@selected_variant) ||
-                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
-              }
+              disabled={is_nil(@selected_variant)}
               class={[
                 "w-full h-14 rounded-full text-base font-semibold flex items-center justify-center gap-2.5 transition-all",
-                if(
-                  is_nil(@selected_variant) ||
-                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
+                if(is_nil(@selected_variant),
                   do: "bg-gray-100 text-gray-400 cursor-not-allowed",
                   else:
                     "bg-[var(--theme-primary,#6366F1)] text-white hover:bg-[#4F46E5] active:scale-[0.97] cursor-pointer shadow-sm"
@@ -320,16 +319,22 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                   d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) ||
-                       not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
+              <%= if is_nil(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
               <% end %>
             </button>
 
+            <.back_in_stock
+              :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+              store={@store}
+              product={@product}
+            />
+
             <%!-- WhatsApp Button --%>
             <a
+              :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
               href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
@@ -582,5 +587,45 @@ defmodule Emakola.Themes.Starter.ProductDetail do
       %{url: url} when is_binary(url) -> url
       _ -> Shared.first_image(product)
     end
+  end
+
+  # ── Back in Stock ──
+  #
+  # Starter's answer is restraint: a tinted inset that says the thing and stops.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div
+      :if={@url}
+      id="back-in-stock"
+      class="rounded-2xl p-[18px]"
+      style="background: color-mix(in srgb, var(--theme-primary, #6366F1) 8%, #FFFFFF);"
+    >
+      <p class="text-[13.5px] font-semibold text-[var(--theme-primary,#6366F1)]">
+        Out of stock right now
+      </p>
+      <p class="mt-1 mb-3.5 text-[12.5px] leading-relaxed text-[#64748B]">
+        Send {@store.name} a message about this one.
+      </p>
+      <a
+        href={@url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex h-[46px] items-center justify-center gap-2.5 rounded-full border-[1.5px] border-gray-200 bg-white text-[13.5px] font-semibold text-[#0F172A] transition-colors hover:border-gray-300"
+      >
+        <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-[17px] w-[17px] text-whatsapp" />
+        Ask about this one
+      </a>
+    </div>
+    """
   end
 end
