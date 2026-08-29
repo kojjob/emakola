@@ -10,9 +10,12 @@ defmodule EmakolaWeb.Supplier.ActionLiveTest do
   use EmakolaWeb.ConnCase, async: false
 
   import Emakola.Factory
+  import Mox
   import Phoenix.LiveViewTest
 
   alias Emakola.Suppliers.SupplierAction
+
+  setup :verify_on_exit!
 
   @shipping_address %{
     "name" => "Ama Mensah",
@@ -163,14 +166,14 @@ defmodule EmakolaWeb.Supplier.ActionLiveTest do
       %{view: view}
     end
 
-    test "records the tracking number and shows the thank-you screen", %{
+    test "records the tracking number and moves on to the handover", %{
       view: view,
       fulfillment: f
     } do
       html = render_submit(view, "mark_sent", %{"shipment" => %{"tracking_number" => "GH-77"}})
 
-      assert html =~ "Thank you"
       assert html =~ "GH-77"
+      assert html =~ "At the customer"
       assert reload(f).status == :shipped
     end
 
@@ -236,5 +239,70 @@ defmodule EmakolaWeb.Supplier.ActionLiveTest do
     conn = get(conn, path)
 
     assert html_response(conn, 200) =~ "noindex"
+  end
+
+  describe "the handover — proving delivery at the door" do
+    setup %{conn: conn, path: path} do
+      stub(Emakola.SMSProviderMock, :send_sms, fn _phone, _message, _opts -> {:ok, %{}} end)
+
+      {:ok, view, _html} = live(conn, path)
+      view |> element("button", "I have it") |> render_click()
+      render_submit(view, "mark_sent", %{"shipment" => %{"tracking_number" => "GH-88"}})
+
+      %{view: view}
+    end
+
+    test "offers to send a code to the customer, not to show one", %{view: view} do
+      html = render(view)
+
+      assert html =~ "Send code to customer"
+      # The supplier types the code in; they are never shown it.
+      refute html =~ "Your code is"
+    end
+
+    test "asks for the customer's numbers once the code is sent", %{view: view} do
+      html = view |> element("button", "Send code to customer") |> render_click()
+
+      assert html =~ "Ask the customer for their 6 numbers"
+      assert html =~ "delivery[code]"
+    end
+
+    test "a wrong code says so and leaves the fulfillment shipped", %{
+      view: view,
+      fulfillment: f
+    } do
+      view |> element("button", "Send code to customer") |> render_click()
+
+      html = render_submit(view, "verify_delivery", %{"delivery" => %{"code" => "000000"}})
+
+      assert html =~ "not right"
+      assert reload(f).status == :shipped
+    end
+
+    test "the correct code closes the order", %{view: view, fulfillment: f} do
+      view |> element("button", "Send code to customer") |> render_click()
+
+      # return_code: true exists only for tests — it is the buyer's phone that
+      # receives the real one, and reissuing here is what the supplier tapping
+      # "Send again" would do anyway.
+      {:ok, code} =
+        Emakola.Orders.CustomerDelivery.request_delivery_code(f.store_id, f.id, return_code: true)
+
+      html = render_submit(view, "verify_delivery", %{"delivery" => %{"code" => code}})
+
+      assert html =~ "Thank you"
+      assert reload(f).status == :delivered
+    end
+
+    # There is no catch-all handle_event/3, so a form with its key stripped
+    # would take the page down.
+    test "a submit with no params does not crash the page", %{view: view} do
+      view |> element("button", "Send code to customer") |> render_click()
+
+      html = render_submit(view, "verify_delivery", %{})
+
+      assert html =~ "not right"
+      assert render(view) =~ "Ask the customer"
+    end
   end
 end

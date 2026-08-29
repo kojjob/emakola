@@ -12,14 +12,29 @@ defmodule Emakola.Suppliers.SupplierActionTest do
       own stock and must never be reachable from a public link.
   """
   use Emakola.DataCase, async: false
+
+  setup :verify_on_exit!
   import Emakola.Factory
+  import Mox
 
   alias Emakola.Suppliers.SupplierAction
   alias EmakolaWeb.SupplierLinkTokens
 
   setup do
     store = create_store!()
-    order = create_order!(store)
+
+    # A phone on the shipping address: the delivery OTP goes to the BUYER, so
+    # without one there is nobody to send the code to.
+    order =
+      create_order!(store, %{
+        shipping_address: %{
+          "name" => "Ama Mensah",
+          "line_1" => "14 Oxford Street",
+          "city" => "Osu",
+          "phone" => "+233244000111"
+        }
+      })
+
     supplier = create_supplier!(store)
     fulfillment = create_fulfillment!(order, store, supplier_id: supplier.id)
 
@@ -267,6 +282,87 @@ defmodule Emakola.Suppliers.SupplierActionTest do
     test "still succeeds when the store has no members to notify", ctx do
       assert {:ok, declined} = SupplierAction.decline(ctx.token, :out_of_stock)
       assert declined.status == :declined
+    end
+  end
+
+  # ── Delivery proof (the leg that decides whether the merchant is paid) ──
+
+  describe "closing the delivery loop" do
+    setup ctx do
+      stub(Emakola.SMSProviderMock, :send_sms, fn _phone, _message, _opts -> {:ok, %{}} end)
+
+      {:ok, _} = SupplierAction.accept(ctx.token)
+      {:ok, shipped} = SupplierAction.mark_sent(ctx.token, "GH-DELIVERY-1")
+
+      Map.put(ctx, :shipped, shipped)
+    end
+
+    test "a supplier can request a code and verify what the buyer reads out", ctx do
+      assert {:ok, code} = SupplierAction.request_delivery_code(ctx.token, return_code: true)
+
+      assert {:ok, delivered} = SupplierAction.verify_delivery(ctx.token, code)
+      assert delivered.status == :delivered
+    end
+
+    # The whole point of the OTP: the party who wants the delivery recorded must
+    # not be able to record it alone.
+    test "the supplier never learns the code", ctx do
+      assert {:ok, proof} = SupplierAction.request_delivery_code(ctx.token)
+
+      refute Map.has_key?(proof, :code)
+      assert proof.sent_to =~ "•"
+    end
+
+    test "a wrong code is refused and the fulfillment does not move", ctx do
+      {:ok, _} = SupplierAction.request_delivery_code(ctx.token)
+
+      assert {:error, :invalid_code} = SupplierAction.verify_delivery(ctx.token, "000000")
+      assert reload(ctx.shipped).status == :shipped
+    end
+
+    test "five wrong codes lock it", ctx do
+      {:ok, _} = SupplierAction.request_delivery_code(ctx.token)
+
+      for _ <- 1..5, do: SupplierAction.verify_delivery(ctx.token, "000000")
+
+      assert {:error, :too_many_attempts} = SupplierAction.verify_delivery(ctx.token, "000000")
+    end
+
+    test "a code cannot be requested before the goods are sent", ctx do
+      other = create_fulfillment!(ctx.order, ctx.store, supplier_id: ctx.supplier.id)
+      token = other |> SupplierAction.action_url() |> token_from_url()
+
+      assert {:error, :fulfillment_not_shipped} = SupplierAction.request_delivery_code(token)
+    end
+
+    test "a revoked token cannot request or verify", ctx do
+      {:ok, _} = SupplierAction.request_delivery_code(ctx.token)
+      {:ok, _} = Emakola.Orders.rotate_fulfillment_supplier_link(ctx.shipped, authorize?: false)
+
+      assert {:error, :revoked_token} = SupplierAction.request_delivery_code(ctx.token)
+      assert {:error, :revoked_token} = SupplierAction.verify_delivery(ctx.token, "123456")
+    end
+
+    # The send budget belongs to the RECIPIENT, not the requester. A merchant and
+    # a supplier acting on the same fulfilment must not be able to fire six codes
+    # at one buyer's phone in ten minutes between them.
+    test "shares its send budget with the merchant's own delivery-code path", ctx do
+      {:ok, _} = SupplierAction.request_delivery_code(ctx.token)
+      {:ok, _} = SupplierAction.request_delivery_code(ctx.token)
+
+      {:ok, _} =
+        Emakola.Orders.CustomerDelivery.request_delivery_code(ctx.store.id, ctx.shipped.id)
+
+      assert {:error, :rate_limited} = SupplierAction.request_delivery_code(ctx.token),
+             "the merchant's send must count against the supplier's budget"
+    end
+
+    test "a verified delivery cannot be replayed", ctx do
+      {:ok, code} = SupplierAction.request_delivery_code(ctx.token, return_code: true)
+      {:ok, _} = SupplierAction.verify_delivery(ctx.token, code)
+
+      assert {:error, reason} = SupplierAction.verify_delivery(ctx.token, code)
+      assert reason in [:already_verified, :fulfillment_not_shipped, :not_actionable]
     end
   end
 end

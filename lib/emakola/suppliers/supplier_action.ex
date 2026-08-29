@@ -36,6 +36,7 @@ defmodule Emakola.Suppliers.SupplierAction do
   require Ash.Query
   require Logger
 
+  alias Emakola.Orders.CustomerDelivery
   alias Emakola.Orders.Fulfillment
   alias EmakolaWeb.SupplierLinkTokens
 
@@ -49,6 +50,14 @@ defmodule Emakola.Suppliers.SupplierAction do
           | :tracking_too_long
           | :rate_limited
           | :stale
+          | :fulfillment_not_shipped
+          | :delivery_code_not_requested
+          | :already_verified
+          | :too_many_attempts
+          | :expired
+          | :invalid_code
+          | :customer_phone_missing
+          | :delivery_failed
 
   @decline_reasons [:out_of_stock, :price_too_low, :cannot_deliver]
 
@@ -132,6 +141,45 @@ defmodule Emakola.Suppliers.SupplierAction do
           authorize?: false
         )
       end)
+    end
+  end
+
+  @doc """
+  Sends the buyer a delivery code so the supplier standing at their door can
+  prove the handover.
+
+  Delegates the mechanics to `Emakola.Orders.CustomerDelivery` rather than
+  reimplementing them. That module is scoped by the fulfilment's own store; the
+  token has already established WHICH fulfilment this caller may act on, so the
+  store it belongs to is the correct scope to hand over. The result is one
+  implementation of the code the merchant's payout depends on — a third copy is
+  exactly where a future hardening fix gets applied to two of three.
+
+  It also means the send budget is shared: `CustomerDelivery` rate limits on the
+  fulfilment, so a merchant and a supplier acting on the same order cannot fire
+  six codes at one buyer's phone between them. The limit belongs to the
+  recipient, not the requester.
+  """
+  @spec request_delivery_code(term(), keyword()) :: {:ok, term()} | {:error, error()}
+  def request_delivery_code(token, opts \\ []) do
+    with {:ok, fulfillment} <- authorize(token) do
+      CustomerDelivery.request_delivery_code(fulfillment.store_id, fulfillment.id, opts)
+    end
+  end
+
+  @doc """
+  Verifies the code the buyer read out, which marks the fulfilment delivered and
+  releases the merchant's payout hold.
+
+  This is the money-moving action on an unauthenticated surface, and it is safe
+  for exactly one reason: the supplier cannot obtain the code. It goes to the
+  buyer's phone, it is stored only as a bcrypt hash, it expires in ten minutes,
+  and the attempt budget is capped for the life of the proof.
+  """
+  @spec verify_delivery(term(), term()) :: {:ok, Fulfillment.t()} | {:error, error()}
+  def verify_delivery(token, code) do
+    with {:ok, fulfillment} <- authorize(token) do
+      CustomerDelivery.verify_delivery(fulfillment.store_id, fulfillment.id, code)
     end
   end
 

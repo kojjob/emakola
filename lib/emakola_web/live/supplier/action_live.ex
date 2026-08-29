@@ -43,7 +43,9 @@ defmodule EmakolaWeb.Supplier.ActionLive do
         token: token,
         error: nil,
         tracking_form: to_form(%{"tracking_number" => ""}, as: :shipment),
-        confirming_decline: false
+        code_form: to_form(%{"code" => ""}, as: :delivery),
+        confirming_decline: false,
+        code_sent: false
       )
       |> resolve()
 
@@ -63,6 +65,24 @@ defmodule EmakolaWeb.Supplier.ActionLive do
     tracking = params |> Map.get("shipment", %{}) |> Map.get("tracking_number", "")
 
     run(socket, &SupplierAction.mark_sent(&1, tracking))
+  end
+
+  # Sends the code to the BUYER's phone. The supplier never sees it — that
+  # asymmetry is the entire security of this screen.
+  def handle_event("request_delivery_code", _params, socket) do
+    case SupplierAction.request_delivery_code(socket.assigns.token) do
+      {:ok, _proof} ->
+        {:noreply, assign(socket, code_sent: true, error: nil)}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, error: message_for(reason))}
+    end
+  end
+
+  def handle_event("verify_delivery", params, socket) do
+    code = params |> Map.get("delivery", %{}) |> Map.get("code", "")
+
+    run(socket, &SupplierAction.verify_delivery(&1, code))
   end
 
   def handle_event("confirm_decline", _params, socket) do
@@ -119,6 +139,13 @@ defmodule EmakolaWeb.Supplier.ActionLive do
 
   # Every error the supplier can actually cause, in words they can act on. No
   # codes: the label is for the log, the sentence is for the person.
+  defp message_for(:invalid_code), do: "That code is not right. Ask again."
+  defp message_for(:too_many_attempts), do: "Too many tries. The shop must help."
+  defp message_for(:expired), do: "That code has expired. Send a new one."
+  defp message_for(:already_verified), do: "This delivery is already confirmed."
+  defp message_for(:delivery_code_not_requested), do: "Send the code first."
+  defp message_for(:customer_phone_missing), do: "No phone number for the customer."
+  defp message_for(:delivery_failed), do: "Could not send the code. Try again."
   defp message_for(:tracking_required), do: "Please add the tracking number."
   defp message_for(:tracking_too_long), do: "That tracking number is too long."
   defp message_for(:rate_limited), do: "Too many taps. Please wait a moment."

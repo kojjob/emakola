@@ -108,7 +108,7 @@ Behind `Application.get_env(:emakola, :supplier_sms_fallback, true)`.
 enabling: confirm at the **provider's dashboard** whether that key is live and
 what a message costs, then size weekly volume. Do not trust the app's `{:ok, _}`.
 
-### SAF-13 — the supplier can close the delivery loop · `WIP`
+### SAF-13 — the supplier can close the delivery loop · `DONE`
 
 **The hole SAF-4 opened.** A supplier who ships direct through `/supply/:token`
 reaches `:shipped` and the page dead-ends at a green tick. The delivery OTP —
@@ -127,7 +127,13 @@ puts the merchant back in the chase.
 
 Add `request_delivery_code/1` and `verify_delivery/2` to
 `Emakola.Suppliers.SupplierAction`, token-scoped, plus two screens on the
-action page. **Do not generalise the existing two modules** — `CustomerDelivery`
+action page. **Resolved:** delegated the mechanics to `CustomerDelivery` rather than
+writing a third copy. The token establishes *which* fulfilment the caller may
+act on; the mechanics then run through the single existing implementation, so
+the shared send budget is automatic rather than something to remember. Original
+note kept below.
+
+**Do not generalise the existing two modules** — `CustomerDelivery`
 says it outright: the three differ precisely in *who is allowed to ask*, which
 is the security boundary, and collapsing them puts that decision behind a flag.
 
@@ -150,7 +156,7 @@ supplier enters what the buyer reads out, the fulfilment goes `:delivered`, and
 the protection hold releases. A wrong code burns an attempt; five wrong codes
 lock it; the merchant and supplier share one send budget.
 
-### SAF-15 — harden the delivery-OTP primitive · `TODO`
+### SAF-15 — harden the delivery-OTP primitive · `DONE`
 
 Two findings on `FulfillmentDeliveryProof`. Both affect the **existing** legs,
 not only the new one.
@@ -166,7 +172,7 @@ unverified. The only thing preventing a replay today is the
 `status != :shipped` guard in `validate_code`; the proof record itself offers
 none. Refuse to reissue a proof that has already been verified.
 
-### SAF-14 — self-attested delivery becomes visibly second-best · `TODO`
+### SAF-14 — self-attested delivery becomes visibly second-best · `TODO` (next)
 
 **F1, decided by Kojo 2026-08-29: keep the escape hatch, make it leave a trail.**
 
