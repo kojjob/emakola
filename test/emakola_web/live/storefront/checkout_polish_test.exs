@@ -48,6 +48,18 @@ defmodule EmakolaWeb.Storefront.CheckoutPolishTest do
     init_test_session(conn, %{"cart_session_id" => session_id})
   end
 
+  # Payment is step 3 now, not the first thing on screen. Walk there before
+  # asserting on its tiles.
+  defp at_payment(view) do
+    render_submit(view, "submit_details", %{
+      "phone" => "0244123456",
+      "fullname" => "Ama Mensah"
+    })
+
+    render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
+    render(view)
+  end
+
   test "the centered wordmark is bounded so it cannot wrap into Back to Bag", %{
     conn: conn,
     store: store,
@@ -72,7 +84,8 @@ defmodule EmakolaWeb.Storefront.CheckoutPolishTest do
     variant: variant
   } do
     conn = setup_cart_session(conn, variant)
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+    {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+    html = at_payment(view)
 
     refute html =~ ">VODA<"
     assert html =~ "Telecel Cash"
@@ -84,7 +97,8 @@ defmodule EmakolaWeb.Storefront.CheckoutPolishTest do
     variant: variant
   } do
     conn = setup_cart_session(conn, variant)
-    {:ok, view, html} = live(conn, "/s/#{store.slug}/checkout")
+    {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+    html = at_payment(view)
 
     assert html =~ "AirtelTigo",
            "AirtelTigo Money is advertised in the themes' We-accept strips but " <>

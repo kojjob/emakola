@@ -41,7 +41,15 @@ defmodule EmakolaWeb.Storefront.CheckoutDefaultRendererTest do
   test "the place-order button reads cleanly, without a literal double dash", %{conn: conn} do
     {conn, store} = checkout_with_item(conn)
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+    {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+    # The place-order button lives on step 3 now.
+    render_submit(view, "submit_details", %{
+      "phone" => "0244123456",
+      "fullname" => "Ama Mensah"
+    })
+
+    html = render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
 
     assert html =~ "Place Order"
     refute html =~ "Place Order --"

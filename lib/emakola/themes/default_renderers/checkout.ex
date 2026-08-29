@@ -72,30 +72,58 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         </div>
       </header>
 
-      <%!-- Checkout Progress Stepper --%>
+      <%!-- Checkout Progress Stepper. Reads @step: the LiveView has carried it
+            since it was written, but this markup used to hardcode step 1 as
+            current while every section rendered at once. A cart of downloads
+            has no shipping step, so it is dropped from the ladder rather than
+            shown as a stage nobody can reach. --%>
       <div class="bg-white border-b border-stone-100">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-cta-dark text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-cta-dark/20">
-                1
+            <%= for {{n, label}, index} <- Enum.with_index(checkout_steps(@requires_shipping)) do %>
+              <div class="flex items-center gap-2.5">
+                <div
+                  id={"checkout-step-#{n}"}
+                  data-state={step_state(@step, n)}
+                  class={[
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
+                    if(@step >= n,
+                      do: "bg-cta-dark text-white shadow-sm shadow-cta-dark/20",
+                      else: "border-2 border-stone-300 text-stone-400"
+                    )
+                  ]}
+                >
+                  <svg
+                    :if={@step > n}
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  <span :if={@step <= n}>{n}</span>
+                </div>
+                <span class={[
+                  "text-sm hidden sm:inline",
+                  if(@step == n,
+                    do: "font-semibold text-stone-900",
+                    else: "font-medium text-stone-400"
+                  )
+                ]}>
+                  {label}
+                </span>
               </div>
-              <span class="text-sm font-semibold text-stone-900 hidden sm:inline">Information</span>
-            </div>
-            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
-                2
+              <div
+                :if={index < length(checkout_steps(@requires_shipping)) - 1}
+                class={[
+                  "h-0.5 flex-1 mx-3 sm:mx-4 rounded-full",
+                  if(@step > n, do: "bg-cta-dark", else: "bg-stone-200")
+                ]}
+              >
               </div>
-              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Shipping</span>
-            </div>
-            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
-                3
-              </div>
-              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Payment</span>
-            </div>
+            <% end %>
           </div>
         </div>
       </div>
@@ -182,7 +210,18 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           >
             <%!-- LEFT COLUMN: Checkout Form (60%) --%>
             <div class="lg:col-span-3">
-              <form phx-submit="place_order" phx-change="update_details" novalidate class="space-y-10">
+              <%!-- One step at a time. Three forms rather than one, so each
+                    step submits its own event; `place_order` keeps meaning
+                    "place the order" and is never gated on the step. Fields on
+                    a step that is not rendered are absent from the params,
+                    which is why every handler falls back to its assign. --%>
+              <form
+                :if={@step == 1}
+                phx-submit="submit_details"
+                phx-change="update_details"
+                novalidate
+                class="space-y-10"
+              >
                 <%!-- SECTION 1: Contact Information --%>
                 <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
@@ -260,12 +299,100 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
+                <div>
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
+                    <p class="text-sm text-red-700">{@checkout_error}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    class="cursor-pointer w-full bg-cta-dark text-white py-4 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm shadow-cta-dark/20"
+                  >
+                    Continue to delivery
+                  </button>
+                </div>
+              </form>
 
+              <div :if={@step > 1} class="space-y-3">
+                <div
+                  id="step-summary-contact"
+                  class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5"
+                >
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cta-dark">
+                    <svg
+                      class="w-3 h-3 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xs text-stone-400">Your details</p>
+                    <p class="truncate text-sm font-semibold text-stone-900">
+                      {@phone} · {@fullname}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    phx-click="go_to_step"
+                    phx-value-step="1"
+                    class="cursor-pointer rounded px-2 py-1 text-xs font-semibold text-store-accent hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+                <div :if={@step > 2 and @requires_shipping}>
+                  <div
+                    id="step-summary-delivery"
+                    class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5"
+                  >
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cta-dark">
+                      <svg
+                        class="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4.5 12.75l6 6 9-13.5"
+                        />
+                      </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs text-stone-400">Deliver to</p>
+                      <p class="truncate text-sm font-semibold text-stone-900">{@address}</p>
+                    </div>
+                    <button
+                      type="button"
+                      phx-click="go_to_step"
+                      phx-value-step="2"
+                      class="cursor-pointer rounded px-2 py-1 text-xs font-semibold text-store-accent hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <form
+                :if={@step == 2 and @requires_shipping}
+                phx-submit="submit_delivery"
+                phx-change="update_details"
+                novalidate
+                class="mt-10 space-y-10"
+              >
                 <%!-- SECTION 2: Shipping Address. Hidden for a cart of
                      downloads — there is nothing to deliver, and the server
                      (CheckoutService.run_checkout/4) charges no fee either. --%>
-                <section :if={@requires_shipping}>
+                <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Shipping Address
                   </h2>
@@ -342,10 +469,8 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
-
                 <%!-- SECTION 3: Delivery Method --%>
-                <section :if={@requires_shipping}>
+                <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Delivery Method
                   </h2>
@@ -385,8 +510,29 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
+                <div>
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
+                    <p class="text-sm text-red-700">{@checkout_error}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    class="cursor-pointer w-full bg-cta-dark text-white py-4 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm shadow-cta-dark/20"
+                  >
+                    Continue to payment
+                  </button>
+                </div>
+              </form>
 
+              <form
+                :if={@step == 3}
+                phx-submit="place_order"
+                phx-change="update_details"
+                novalidate
+                class="mt-10 space-y-10"
+              >
                 <%!-- SECTION 4: Payment Method --%>
                 <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
@@ -394,8 +540,10 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </h2>
                   <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
 
-                  <%!-- Visual Payment Cards — 2x2 Grid --%>
-                  <div class="grid grid-cols-2 gap-3">
+                  <%!-- Laid out across rather than down: three per row on a
+                        desktop, two on a phone, so every brand mark stays big
+                        enough to recognise without reading its caption. --%>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <%!-- MTN Mobile Money --%>
                     <button
                       type="button"
@@ -1024,6 +1172,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
       assigns
       |> assign(:brand_color, momo_brand_color(assigns.payment_method))
       |> assign(:brand_name, momo_brand_name(assigns.payment_method))
+      |> assign(:ussd, momo_ussd(assigns.payment_method))
       |> assign(:timer_display, format_timer(assigns.timer_seconds))
       |> assign(:masked_phone, mask_phone(assigns.phone))
 
@@ -1105,7 +1254,9 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           </div>
           <div>
             <p class="text-sm font-medium text-stone-900">Awaiting approval</p>
-            <p class="text-xs text-stone-500">Dial *170# if you don't see the prompt</p>
+            <p :if={@ussd} id="momo-ussd-hint" class="text-xs text-stone-500">
+              Dial {@ussd} if you don't see the prompt
+            </p>
           </div>
         </div>
       </div>
@@ -1142,6 +1293,15 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
     """
   end
 
+  # The ladder, and the numbers that key it. `@step` values stay 1/2/3 across
+  # both shapes so nothing downstream has to know which cart it is looking at.
+  defp checkout_steps(true), do: [{1, "Information"}, {2, "Shipping"}, {3, "Payment"}]
+  defp checkout_steps(false), do: [{1, "Information"}, {3, "Payment"}]
+
+  defp step_state(step, n) when step > n, do: "done"
+  defp step_state(step, n) when step == n, do: "current"
+  defp step_state(_step, _n), do: "upcoming"
+
   # ── Display helpers ─────────────────────────────────────────────
 
   # TC-2 Buyer Protection: shown only when the charge WILL actually be held —
@@ -1172,6 +1332,14 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   defp momo_brand_color("momo"), do: "#FFC107"
   defp momo_brand_color("vodafone"), do: "#E60000"
   defp momo_brand_color(_), do: "#F59E0B"
+
+  # *170# is MTN's alone. It was hardcoded here, so a Telecel or AirtelTigo
+  # buyer was told to dial a code that does not belong to their wallet. A
+  # method with no USSD code shows no line at all rather than a wrong one.
+  defp momo_ussd("momo"), do: "*170#"
+  defp momo_ussd("vodafone"), do: "*110#"
+  defp momo_ussd("airteltigo"), do: "*110#"
+  defp momo_ussd(_), do: nil
 
   defp momo_brand_name("momo"), do: "MTN Mobile Money"
   defp momo_brand_name("vodafone"), do: "Telecel Cash"
