@@ -144,6 +144,12 @@ defmodule Emakola.Accounts.Merchant do
 
     attribute(:phone, :string, public?: true, constraints: [max_length: 20])
 
+    # When this phone was last proven by a one-time code. `PhoneAuth` proved
+    # phones already, but nothing durable recorded it — "verified" lived only
+    # as a socket assign that vanished with the connection. Cleared whenever
+    # the phone changes, so it can never vouch for a number nobody answered.
+    attribute(:phone_verified_at, :utc_datetime_usec, public?: true)
+
     attribute(:business_name, :string, public?: true, constraints: [max_length: 255])
 
     attribute(:avatar_url, :string, public?: true, constraints: [max_length: 2_048])
@@ -213,6 +219,7 @@ defmodule Emakola.Accounts.Merchant do
     create :register_with_phone do
       accept([:email, :name, :phone])
       change(set_attribute(:confirmed_at, &DateTime.utc_now/0))
+      change(set_attribute(:phone_verified_at, &DateTime.utc_now/0))
     end
 
     # Shared by all OAuth strategies (google/facebook/apple). ash_authentication
@@ -276,8 +283,20 @@ defmodule Emakola.Accounts.Merchant do
       prepare(build(load: [:stores, :stores_count]))
     end
 
+    # Changing the phone drops its proof. Without this a merchant could
+    # register with a number they proved, then quietly swap in one they never
+    # answered and keep the verified stamp.
     update :update_profile do
+      require_atomic?(false)
       accept([:name, :avatar_url, :preferences, :phone, :business_name])
+
+      change(fn changeset, _context ->
+        if Ash.Changeset.changing_attribute?(changeset, :phone) do
+          Ash.Changeset.force_change_attribute(changeset, :phone_verified_at, nil)
+        else
+          changeset
+        end
+      end)
     end
 
     # Moves the session cutoff to now, killing every browser session token

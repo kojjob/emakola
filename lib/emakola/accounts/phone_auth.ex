@@ -3,6 +3,19 @@ defmodule Emakola.Accounts.PhoneAuth do
   Issues and verifies phone one-time codes for WhatsApp/SMS authentication.
   Codes are 6 digits, stored hashed (Bcrypt), ~10-min TTL, ≤5 attempts, and
   rate-limited per phone. Delivery prefers WhatsApp, falls back to SMS.
+
+  Three purposes:
+
+    * `:merchant` / `:customer` — signing in.
+    * `:payout` — proving control of the wallet money will be sent to. This is
+      how Makola establishes a merchant's identity now that L.I. 2523 has
+      retired the Ghana Card flow: the telco already KYC'd the wallet against
+      a Ghana Card, so answering a code sent to it inherits that check.
+
+  The SMS body differs per purpose on purpose. "Your verification code" tells
+  the holder nothing about what they are approving, which is exactly what a
+  caller talking someone through handing over a code relies on. A payout code
+  says money is involved.
   """
   alias Emakola.Accounts.PhoneOtp
 
@@ -17,19 +30,20 @@ defmodule Emakola.Accounts.PhoneAuth do
   def enabled?, do: Application.get_env(:emakola, :phone_auth_enabled, false)
 
   @doc "Generate, store (hashed), and deliver a code. opts: :store_id."
-  def request_code(phone, purpose, opts \\ []) when purpose in [:merchant, :customer] do
+  def request_code(phone, purpose, opts \\ []) when purpose in [:merchant, :customer, :payout] do
     phone = normalize(phone)
 
     with :ok <- rate_limit("phone_otp:send:#{phone}", @send_limit, @send_window_ms),
          code <- generate_code(),
          {:ok, _otp} <- store(phone, code, purpose, opts),
-         :ok <- deliver(phone, code, opts) do
+         :ok <- deliver(phone, code, purpose, opts) do
       :ok
     end
   end
 
   @doc "Verify a code; consumes the OTP on success."
-  def verify_code(phone, code, purpose, opts \\ []) when purpose in [:merchant, :customer] do
+  def verify_code(phone, code, purpose, opts \\ [])
+      when purpose in [:merchant, :customer, :payout] do
     phone = normalize(phone)
 
     with :ok <- rate_limit("phone_otp:verify:#{phone}", @verify_limit, @verify_window_ms),
@@ -85,10 +99,10 @@ defmodule Emakola.Accounts.PhoneAuth do
     |> Ash.create(authorize?: false)
   end
 
-  defp deliver(phone, code, opts) do
+  defp deliver(phone, code, purpose, opts) do
     case send_whatsapp(phone, code, opts) do
       :ok -> :ok
-      :error -> send_sms(phone, code)
+      :error -> send_sms(phone, code, purpose)
     end
   end
 
@@ -104,13 +118,22 @@ defmodule Emakola.Accounts.PhoneAuth do
     end
   end
 
-  defp send_sms(phone, code) do
-    body = "Your Makola verification code is #{code}. It expires in 10 minutes."
-
-    case sms_provider().send_sms(phone, body, []) do
+  defp send_sms(phone, code, purpose) do
+    case sms_provider().send_sms(phone, sms_body(code, purpose), []) do
       {:ok, _} -> :ok
       _ -> {:error, :delivery_failed}
     end
+  end
+
+  # A payout code approves money movement, so it says so. Never share this
+  # code is the line that stops a merchant reading it out to a caller.
+  defp sms_body(code, :payout) do
+    "Makola code #{code}. Someone is linking this number to receive your money. " <>
+      "If this is not you, ignore it. Never share this code."
+  end
+
+  defp sms_body(code, _sign_in) do
+    "Your Makola verification code is #{code}. It expires in 10 minutes."
   end
 
   defp latest_live_otp(phone, purpose, _opts) do

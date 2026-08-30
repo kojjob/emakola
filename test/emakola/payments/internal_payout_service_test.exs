@@ -488,7 +488,10 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
 
       # The recipient re-registers a MoMo destination — a real action — so
       # the next payout in this test isn't blocked on that unrelated gate.
+      # Reloaded first: `payout_account` still holds the pre-blanking
+      # destination, and writing an identical map back is a no-op.
       payout_account
+      |> Ash.reload!(authorize?: false)
       |> Ash.Changeset.for_update(:update, %{
         payout_destination: %{
           "method" => "mobile_money",

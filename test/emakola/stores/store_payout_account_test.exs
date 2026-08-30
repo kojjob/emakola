@@ -15,6 +15,15 @@ defmodule Emakola.Stores.StorePayoutAccountTest do
     {:ok, store: create_store!()}
   end
 
+  defp momo(number) do
+    %{
+      "method" => "mobile_money",
+      "provider" => "mtn",
+      "number" => number,
+      "account_name" => "Ama"
+    }
+  end
+
   defp create_account!(store, attrs \\ %{}) do
     params = Map.merge(%{store_id: store.id}, Map.new(attrs))
 
@@ -55,6 +64,81 @@ defmodule Emakola.Stores.StorePayoutAccountTest do
 
       assert updated.subaccount_code == "ACCT_xyz"
       assert updated.verification_status == :verified
+    end
+  end
+
+  describe "wallet proof (payout_proven_at)" do
+    test "record_payout_proof stamps the moment the merchant answered the OTP", %{store: store} do
+      account = create_account!(store, %{payout_destination: momo("0244000000")})
+      assert is_nil(account.payout_proven_at)
+
+      {:ok, proven} =
+        account
+        |> Ash.Changeset.for_update(:record_payout_proof, %{})
+        |> Ash.update(authorize?: false)
+
+      assert %DateTime{} = proven.payout_proven_at
+    end
+  end
+
+  describe "changing the destination voids the proof (the one-way latch bug)" do
+    setup %{store: store} do
+      account =
+        store
+        |> create_account!(%{payout_destination: momo("0244000000")})
+        |> then(
+          &Ash.update!(Ash.Changeset.for_update(&1, :record_payout_proof, %{}), authorize?: false)
+        )
+        |> then(
+          &Ash.update!(
+            Ash.Changeset.for_update(&1, :record_subaccount, %{subaccount_code: "ACCT_old"}),
+            authorize?: false
+          )
+        )
+
+      assert account.verification_status == :verified
+      assert account.subaccount_code == "ACCT_old"
+      assert %DateTime{} = account.payout_proven_at
+
+      %{account: account}
+    end
+
+    test "swapping the MoMo number resets status, proof and subaccount", %{account: account} do
+      {:ok, updated} =
+        Stores.update_payout_account(account, %{payout_destination: momo("0209999999")},
+          authorize?: false
+        )
+
+      assert updated.verification_status == :unverified,
+             "a verified account must not survive being pointed at a different wallet"
+
+      assert is_nil(updated.payout_proven_at)
+
+      assert is_nil(updated.subaccount_code),
+             "the old subaccount settles to the old number; the worker must build a new one"
+    end
+
+    test "switching from MoMo to bank also voids the proof", %{account: account} do
+      {:ok, updated} =
+        Stores.update_payout_account(
+          account,
+          %{payout_destination: %{"method" => "bank", "account_number" => "1234567890"}},
+          authorize?: false
+        )
+
+      assert updated.verification_status == :unverified
+      assert is_nil(updated.payout_proven_at)
+    end
+
+    test "re-saving the identical destination leaves the proof intact", %{account: account} do
+      {:ok, updated} =
+        Stores.update_payout_account(account, %{payout_destination: momo("0244000000")},
+          authorize?: false
+        )
+
+      assert updated.verification_status == :verified
+      assert %DateTime{} = updated.payout_proven_at
+      assert updated.subaccount_code == "ACCT_old"
     end
   end
 
