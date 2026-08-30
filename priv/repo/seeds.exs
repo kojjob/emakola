@@ -198,13 +198,6 @@ feature_flags = [
     required_plan: "starter"
   },
   %{
-    key: "directory_featuring_floor",
-    name: "Directory featuring floor",
-    description:
-      "ON: a shop must clear the merit floor to hold a featured slot on /stores. OFF: every active shop competes on score alone.",
-    enabled: false
-  },
-  %{
     key: "custom_domain",
     name: "Custom Domain",
     description: "Use a custom domain for the storefront",
@@ -213,6 +206,12 @@ feature_flags = [
   }
 ]
 
+# `directory_featuring_floor` is deliberately NOT in the list above. Its row is
+# created by the SeedDirectoryFeaturingFloorFlag migration, which runs on every
+# environment including production, and `feature_flags.key` is unique — seeding
+# it a second time raises and takes the whole seed run down with it, leaving no
+# merchant to log in as. CI runs `ecto.migrate` then this file, so it would fail
+# every time.
 for flag <- feature_flags do
   Seeds.create!(Emakola.FeatureFlags.FeatureFlag, :create, flag)
 end
