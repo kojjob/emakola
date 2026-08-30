@@ -362,11 +362,18 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
         </div>
 
         <%!-- Studio split: merchant queue + case panel --%>
+        <%!--
+          A bounded height, not just a minimum. Both columns scroll inside this
+          frame; without a maximum, `overflow-y-auto` on them has nothing to
+          scroll against and the page grows instead — which on a desktop pushed
+          "Load more" and the detail panel below the fold as the merchant list
+          got longer.
+        --%>
         <div
           :if={@stats.total > 0}
-          class="flex flex-col lg:flex-row bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden lg:min-h-[560px]"
+          class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:h-[calc(100vh-12rem)] lg:min-h-[560px] lg:flex-row"
         >
-          <div class="w-full lg:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100 max-h-96 lg:max-h-none overflow-y-auto p-2">
+          <div class="w-full shrink-0 overflow-y-auto border-b border-gray-100 p-2 max-h-96 lg:h-full lg:max-h-full lg:w-[360px] lg:border-b-0 lg:border-r">
             <div id="platform-merchants" phx-update="stream" data-count={@merchants_count}>
               <div
                 :if={@merchants_count == 0}

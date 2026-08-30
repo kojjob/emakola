@@ -143,6 +143,35 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
       assert has_element?(view, "#merchant-panel", "Yaw Beta")
       assert has_element?(view, "#merchant-#{second.id}[data-selected]")
     end
+
+    test "the merchant list scrolls on its own rather than growing the page", %{conn: conn} do
+      # The list had `max-h-96 lg:max-h-none`: capped and scrollable on a
+      # phone, uncapped above lg. `overflow-y-auto` with no height to scroll
+      # against does nothing, so on a desktop the column grew with every
+      # merchant and the whole page scrolled instead — taking "Load more" and
+      # the detail panel down with it.
+      Factory.create_merchant!(%{name: "Ama Scroll", email: "ama.scroll@example.com"})
+      {conn, _user, _session} = setup_platform_staff(conn)
+
+      {:ok, _view, html} = live(conn, ~p"/platform/merchants")
+
+      list = list_column(html)
+
+      assert list =~ "overflow-y-auto", "the list column cannot scroll"
+
+      refute list =~ "lg:max-h-none",
+             "lg:max-h-none removes the only bound overflow-y-auto had"
+
+      assert html =~ "lg:h-[calc(100vh-12rem)]",
+             "the studio frame has no bounded height, so neither column can scroll"
+    end
+
+    # The list column is the one fixed-width child of the studio frame; its
+    # lg:w-[360px] is the only stable handle on it.
+    defp list_column(html) do
+      [_, tag] = Regex.run(~r/<div class="([^"]*lg:w-\[360px\][^"]*)"/, html)
+      tag
+    end
   end
 
   describe "drill-down drawer" do
