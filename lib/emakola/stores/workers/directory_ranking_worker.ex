@@ -64,15 +64,25 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
     clear_expired_pins!(now)
     conduct_marks = conduct_marks(now)
     overrides = existing_overrides()
+    # Read once per run, not once per store: the whole population is judged
+    # against the same switch, and a flag that flipped mid-stream would leave
+    # half the directory on each side of the floor.
+    floor_enforced? = Emakola.Stores.featuring_floor_enforced?()
 
     verdicts =
       Store
       |> Ash.Query.filter(active == true and status == :active)
       |> Ash.Query.load(@signals)
       |> Ash.stream!(authorize?: false, batch_size: 500)
-      |> Enum.map(&assess(&1, conduct_marks, overrides, now))
+      |> Enum.map(&assess(&1, conduct_marks, overrides, now, floor_enforced?))
 
-    slots = verdicts |> Enum.map(& &1.entry) |> DirectorySlots.assign(now)
+    # The floor's switch carries the slot categories with it: see
+    # `DirectorySlots`' moduledoc for why a directory too young for the floor
+    # is also too young for a "new shops" slot.
+    slots =
+      verdicts
+      |> Enum.map(& &1.entry)
+      |> DirectorySlots.assign(now, partition_slots?: floor_enforced?)
 
     slot_by_id =
       for {slot, entries} <- slots, entry <- entries, into: %{} do
@@ -99,10 +109,10 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
 
   # ── Assessment ─────────────────────────────────────────────────────────
 
-  defp assess(store, conduct_marks, overrides, now) do
+  defp assess(store, conduct_marks, overrides, now, floor_enforced?) do
     conduct_flagged? = MapSet.member?(conduct_marks, store.id)
 
-    {eligible?, disqualifiers} =
+    {floor_cleared?, disqualifiers} =
       DirectoryEligibility.evaluate(
         %{
           logo_url: store.logo_url,
@@ -123,6 +133,13 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
         },
         now
       )
+
+    # The disqualifiers are recorded either way. With the floor suspended a
+    # standing can read `eligible: true` alongside a full list of what would
+    # bar it — that is the point: the merchant still gets told what to fix,
+    # and the owner can see exactly who the floor would drop before turning
+    # it back on. See `Emakola.Stores.featuring_floor_enforced?/0`.
+    eligible? = floor_cleared? or not floor_enforced?
 
     {score, breakdown} =
       DirectoryScore.compute(%{

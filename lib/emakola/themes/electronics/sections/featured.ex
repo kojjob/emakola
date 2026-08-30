@@ -65,7 +65,7 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
               <img
                 src={Shared.first_image(@featured_deal)}
                 alt={@featured_deal.title}
-                class="max-w-full max-h-full object-contain"
+                class="max-w-full max-h-full object-cover"
               />
             <% else %>
               <span class="material-symbols-outlined text-[#134E4A]/30" style="font-size: 160px;">

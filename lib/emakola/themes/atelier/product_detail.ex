@@ -18,7 +18,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Atelier.Shared
   alias Emakola.Themes.Delivery
@@ -97,95 +97,20 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
           <div class="atelier-pdp-grid">
             <%!-- Image Gallery (left ~58%) --%>
             <div>
-              <%!-- Main Image with navigation --%>
-              <div class="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden mb-4 group">
-                <.optimized_image
-                  :if={@primary_image}
-                  src={@primary_image}
-                  alt={"#{@product.title} - image #{@current_idx + 1} of #{length(@images)}"}
-                  priority={:high}
-                  class="w-full h-full object-cover transition-opacity duration-300"
-                  id="atelier-primary-image"
-                />
-                <div :if={!@primary_image} class="w-full h-full flex items-center justify-center">
+              <Gallery.product_gallery
+                images={@images}
+                current_index={@current_idx}
+                alt={@product.title}
+                aspect_class="aspect-[3/4]"
+                frame_class="rounded-xl bg-gray-100"
+                thumb_class="h-20 w-20 rounded-lg"
+                thumb_active_class="border-green-600 ring-1 ring-green-600"
+                thumb_idle_class="border-transparent hover:border-gray-300"
+              >
+                <:placeholder>
                   <Shared.image_placeholder />
-                </div>
-
-                <%!-- Prev/Next arrows (visible on hover, always on mobile) --%>
-                <div
-                  :if={length(@images) > 1}
-                  class="absolute inset-0 flex items-center justify-between px-3 pointer-events-none"
-                >
-                  <button
-                    phx-click="prev_image"
-                    class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
-                    aria-label="Previous image"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    >
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
-                  <button
-                    phx-click="next_image"
-                    class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
-                    aria-label="Next image"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                </div>
-
-                <%!-- Image counter dots --%>
-                <div
-                  :if={length(@images) > 1}
-                  class="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2"
-                >
-                  <button
-                    :for={{_img, idx} <- Enum.with_index(@images)}
-                    phx-click="select_image"
-                    phx-value-index={idx}
-                    class={"w-2.5 h-2.5 rounded-full transition-all duration-200 cursor-pointer " <>
-                      if(idx == @current_idx, do: "bg-white scale-110 shadow", else: "bg-white/50 hover:bg-white/75")}
-                    aria-label={"View image #{idx + 1}"}
-                  />
-                </div>
-              </div>
-
-              <%!-- Thumbnail Strip --%>
-              <div :if={length(@images) > 1} class="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3">
-                <button
-                  :for={{img, idx} <- Enum.with_index(@images)}
-                  class={"aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 transition-all " <>
-                    if(idx == @current_idx, do: "border-green-600 ring-1 ring-green-600", else: "border-transparent hover:border-gray-300")}
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  aria-label={"View image #{idx + 1}"}
-                >
-                  <.optimized_image
-                    src={img}
-                    alt={"#{@product.title} - image #{idx + 1}"}
-                    priority={:low}
-                    class="w-full h-full object-cover"
-                  />
-                </button>
-              </div>
+                </:placeholder>
+              </Gallery.product_gallery>
             </div>
 
             <%!-- Product Info (right ~42%) --%>

@@ -11,7 +11,7 @@ defmodule Emakola.Themes.Dede.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Dede.Shared
   alias EmakolaWeb.Helpers.Currency
@@ -34,46 +34,23 @@ defmodule Emakola.Themes.Dede.ProductDetail do
       <div class="mx-auto max-w-[880px] px-4 pt-5 sm:px-6 sm:pt-8 lg:px-8">
         <div class="sm:grid sm:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] sm:items-start sm:gap-8">
           <div>
-            <div :if={@image} class="overflow-hidden rounded-2xl border-2 border-[#26211A]/10">
-              <.optimized_image
-                src={@image}
-                alt={@product.title}
-                priority={:high}
-                width={640}
-                height={800}
-                class="aspect-[4/5] w-full object-cover"
-              />
-            </div>
-            <div
-              :if={!@image}
-              class="flex h-28 items-center justify-center rounded-2xl bg-[#1B2E23] ring-1 ring-inset ring-white/10 sm:h-40"
-              aria-hidden="true"
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="rounded-2xl border-2 border-[#26211A]/10 bg-[#1B2E23]"
+              thumb_class="h-16 w-16 rounded-xl"
+              thumb_active_class="border-[#26211A]"
+              thumb_idle_class="border-[#26211A]/25 opacity-70 hover:opacity-100"
+              rail_class="sm:w-16"
             >
-              <span class="select-none text-6xl uppercase text-[#F3EDDF]/80 [font-family:var(--dt-heading-font,'Anton',sans-serif)]">
-                {String.first(@product.title)}
-              </span>
-            </div>
-            <div
-              :if={length(@product.images) > 1}
-              class="mt-3 flex items-center justify-center gap-2"
-            >
-              <button
-                :for={{_image, index} <- Enum.with_index(@product.images)}
-                type="button"
-                phx-click="select_image"
-                phx-value-index={index}
-                aria-label={"Image #{index + 1}"}
-                aria-current={to_string(index == @current_image_index)}
-                class={[
-                  "h-2.5 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#26211A] focus-visible:ring-offset-2 motion-safe:transition-all",
-                  if(index == @current_image_index,
-                    do: "w-7 bg-[#26211A]",
-                    else: "w-2.5 bg-[#26211A]/25 hover:bg-[#26211A]/50"
-                  )
-                ]}
-              >
-              </button>
-            </div>
+              <:placeholder>
+                <span class="select-none text-6xl uppercase text-[#F3EDDF]/80 [font-family:var(--dt-heading-font,'Anton',sans-serif)]">
+                  {String.first(@product.title)}
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <div class="mt-5 sm:mt-0">

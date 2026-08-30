@@ -18,6 +18,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
   import EmakolaWeb.StorefrontComponents,
     only: [image_placeholder: 1, optimized_image: 1]
 
+  alias Emakola.Themes.Gallery
+
   alias EmakolaWeb.Helpers.Currency
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.Market.Shared
@@ -81,73 +83,20 @@ defmodule Emakola.Themes.Market.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16">
           <%!-- ═══════════ Image Gallery Column ═══════════ --%>
           <div class="lg:sticky lg:top-20 lg:self-start">
-            <%!-- Primary Image --%>
-            <div class="w-full aspect-[4/5] lg:aspect-[3/4] overflow-hidden bg-stone-100 lg:rounded-2xl">
-              <%= if Shared.current_image(@product, @current_image_index) do %>
-                <.optimized_image
-                  src={Shared.current_image(@product, @current_image_index)}
-                  alt={"#{@product.title} — image #{@current_image_index + 1}"}
-                  priority={:high}
-                  class="w-full h-full object-cover transition-opacity duration-300"
-                  id="pdp-primary-image"
-                />
-              <% else %>
-                <div class="w-full h-full flex items-center justify-center">
-                  <.image_placeholder size="lg" />
-                </div>
-              <% end %>
-            </div>
-
-            <%!-- Mobile Dot Indicators --%>
-            <div
-              :if={length(@product.images) > 1}
-              class="flex items-center justify-center gap-2 py-3 px-4 lg:hidden"
-              role="tablist"
-              aria-label="Product image thumbnails"
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5] lg:aspect-[3/4]"
+              frame_class="bg-stone-100 lg:rounded-2xl"
+              thumb_class="h-20 w-20 rounded-xl"
+              thumb_active_class="border-store-accent ring-1 ring-store-accent/30"
+              thumb_idle_class="border-transparent opacity-70 hover:border-stone-300 hover:opacity-100"
             >
-              <button
-                :for={{_img, idx} <- Enum.with_index(@product.images)}
-                phx-click="select_image"
-                phx-value-index={idx}
-                role="tab"
-                aria-selected={idx == @current_image_index}
-                aria-label={"Image #{idx + 1}"}
-                class={[
-                  "h-2 rounded-full border-none transition-all cursor-pointer",
-                  if(idx == @current_image_index,
-                    do: "w-6 bg-store-accent",
-                    else: "w-2 bg-stone-300 hover:bg-stone-400"
-                  )
-                ]}
-              />
-            </div>
-
-            <%!-- Desktop Thumbnail Strip --%>
-            <div
-              :if={length(@product.images) > 1}
-              class="hidden lg:grid grid-cols-4 gap-2.5 mt-3"
-            >
-              <button
-                :for={{_img, idx} <- Enum.with_index(@product.images)}
-                phx-click="select_image"
-                phx-value-index={idx}
-                class={[
-                  "aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer hover:opacity-100",
-                  if(idx == @current_image_index,
-                    do: "border-store-accent opacity-100 ring-1 ring-store-accent/30",
-                    else: "border-transparent opacity-70 hover:border-stone-300"
-                  )
-                ]}
-                aria-label={"View image #{idx + 1}"}
-              >
-                <.optimized_image
-                  src={Shared.current_image(@product, idx)}
-                  alt={"#{@product.title} thumbnail #{idx + 1}"}
-                  priority={:low}
-                  class="w-full h-full object-cover"
-                />
-              </button>
-            </div>
+              <:placeholder>
+                <.image_placeholder size="lg" />
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <%!-- ═══════════ Product Info Column ═══════════ --%>

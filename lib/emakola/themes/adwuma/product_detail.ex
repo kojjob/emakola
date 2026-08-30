@@ -24,9 +24,9 @@ defmodule Emakola.Themes.Adwuma.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Adwuma.Shared
-  alias Emakola.Themes.Akwaaba.Shared, as: Cards
   alias EmakolaWeb.Helpers.Currency
 
   @digital_types [:digital_download, :license_key, :streaming, :course]
@@ -58,35 +58,23 @@ defmodule Emakola.Themes.Adwuma.ProductDetail do
 
         <div class="mt-6 grid gap-10 lg:grid-cols-2">
           <div>
-            <div class="relative aspect-[4/5] overflow-hidden rounded-2xl border border-[color:var(--adw-rule)] bg-white">
-              <Cards.photo_or_initial
-                image={Cards.current_image(@product, @current_image_index)}
-                title={@product.title}
-              />
-            </div>
-
-            <ul :if={length(@product.images || []) > 1} class="mt-3 flex flex-wrap gap-2">
-              <li :for={{_image, idx} <- Enum.with_index(@product.images)}>
-                <button
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  class={[
-                    "h-16 w-16 overflow-hidden rounded-xl border bg-white",
-                    if(@current_image_index == idx,
-                      do: "border-[color:var(--adw-ink)]",
-                      else: "border-[color:var(--adw-rule)]"
-                    )
-                  ]}
-                >
-                  <img
-                    src={Cards.current_image(@product, idx)}
-                    alt=""
-                    class="h-full w-full object-cover"
-                  />
-                </button>
-              </li>
-            </ul>
+            <Gallery.product_gallery
+              images={@product.images || []}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="rounded-2xl border border-[color:var(--adw-rule)] bg-white"
+              thumb_class="h-16 w-16 rounded-xl"
+              thumb_active_class="border-[color:var(--adw-ink)]"
+              thumb_idle_class="border-[color:var(--adw-rule)]"
+              rail_class="sm:w-16"
+            >
+              <:placeholder>
+                <span class="select-none text-8xl font-semibold text-[color:var(--adw-rule)]">
+                  {String.first(@product.title)}
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <div>

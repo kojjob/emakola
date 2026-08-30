@@ -7,7 +7,7 @@ defmodule Emakola.Themes.Beauty.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Beauty.Shared
 
@@ -46,46 +46,22 @@ defmodule Emakola.Themes.Beauty.ProductDetail do
       <section class="bg-[#F5EFE5] py-12 sm:py-16">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
-            <%!-- Gallery --%>
-            <div>
-              <div class="aspect-[4/5] beauty-card overflow-hidden">
-                <.optimized_image
-                  :if={Shared.current_image(@product, @current_image_index)}
-                  src={Shared.current_image(@product, @current_image_index)}
-                  alt={@product.title}
-                  class="w-full h-full object-cover"
-                />
-                <div
-                  :if={!Shared.current_image(@product, @current_image_index)}
-                  class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#E8DBC8] to-[#C9925E]/20"
-                >
-                  <span class="material-symbols-outlined text-[#C9925E]" style="font-size: 120px;">
-                    spa
-                  </span>
-                </div>
-              </div>
-
-              <%!-- Thumbnails --%>
-              <div :if={length(@product.images) > 1} class="flex gap-3 mt-4 overflow-x-auto">
-                <button
-                  :for={{image, idx} <- Enum.with_index(@product.images)}
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  class={"flex-shrink-0 w-20 h-24 rounded-xl overflow-hidden bg-white border-2 transition-colors " <>
-                    if(idx == @current_image_index,
-                      do: "border-[#C9925E]",
-                      else: "border-transparent hover:border-[#E8DBC8]"
-                    )}
-                >
-                  <img
-                    src={Map.get(image, :thumbnail_url) || Map.get(image, :url)}
-                    alt={"#{@product.title} #{idx + 1}"}
-                    class="w-full h-full object-cover"
-                  />
-                </button>
-              </div>
-            </div>
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="beauty-card"
+              thumb_class="h-24 w-20 rounded-xl"
+              thumb_active_class="border-[#C9925E]"
+              thumb_idle_class="border-transparent hover:border-[#E8DBC8]"
+            >
+              <:placeholder>
+                <span class="material-symbols-outlined text-[#C9925E]" style="font-size: 120px;">
+                  spa
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
 
             <%!-- Info --%>
             <div>

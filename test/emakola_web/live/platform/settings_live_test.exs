@@ -179,7 +179,7 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
       |> render_submit()
 
       assert has_element?(view, "#flag-form", "Name is required")
-      assert {:ok, []} = Emakola.FeatureFlags.list_flags(authorize?: false)
+      refute Enum.any?(list_flags(), &(&1.key == "k1"))
     end
 
     test "the plan gate offers only the four tiers plus none", %{conn: conn} do
@@ -228,9 +228,18 @@ defmodule EmakolaWeb.Platform.SettingsLiveTest do
 
   describe "empty state" do
     test "renders when no flags exist", %{conn: conn} do
+      # The directory featuring floor's switch is seeded by migration, so an
+      # "empty" platform is one with that row cleared too.
+      Enum.each(list_flags(), &Emakola.FeatureFlags.destroy_flag(&1, authorize?: false))
+
       conn = log_in_platform_admin(conn)
       {:ok, _view, html} = live(conn, ~p"/platform/settings")
       assert html =~ "No feature flags yet"
     end
+  end
+
+  defp list_flags do
+    {:ok, flags} = Emakola.FeatureFlags.list_flags(authorize?: false)
+    flags
   end
 end

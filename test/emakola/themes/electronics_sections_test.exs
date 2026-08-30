@@ -32,6 +32,23 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
     store
   end
 
+  # Writes settings onto the hero entry of the store's saved layout, the same
+  # shape the section editor persists.
+  defp set_hero_settings(store, settings) do
+    entries =
+      Emakola.Themes.HomeSections.effective_layout(store, Electronics)
+      |> Enum.map(fn entry ->
+        if entry["type"] == "electronics/hero",
+          do: Map.put(entry, "settings", settings),
+          else: entry
+      end)
+
+    Ash.Seed.update!(store, %{
+      theme_config:
+        Map.put(store.theme_config || %{}, "home_sections", %{"v" => 1, "electronics" => entries})
+    })
+  end
+
   defp render_home(store) do
     products =
       Emakola.Catalog.Product
@@ -54,6 +71,77 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
     |> rendered_to_string()
   end
 
+  describe "the hero spec card" do
+    test "does not render when the merchant has written nothing" do
+      html = render_home(stocked_store())
+
+      refute html =~ "absolute bottom-6 left-6 sm:bottom-8 sm:left-8"
+    end
+
+    test "renders the merchant's own words when they write them" do
+      store =
+        stocked_store()
+        |> set_hero_settings(%{"spec_label" => "Warranty", "spec_value" => "2 years, in Accra"})
+
+      html = render_home(store)
+
+      assert html =~ "Warranty"
+      assert html =~ "2 years, in Accra"
+    end
+
+    test "a label with no detail behind it does not render a card" do
+      store = stocked_store() |> set_hero_settings(%{"spec_label" => "Battery"})
+
+      html = render_home(store)
+
+      refute html =~ "absolute bottom-6 left-6 sm:bottom-8 sm:left-8"
+    end
+  end
+
+  describe "the hero always carries a picture" do
+    test "falls back to the shop's own product photo when no hero image is set" do
+      store = stocked_store()
+
+      [product | _] =
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+        |> Ash.read!(authorize?: false)
+
+      create_image!(product, store, %{url: "/uploads/#{store.slug}/gadget.jpg"})
+
+      html = render_home(store)
+
+      # The 200px headphones glyph is what a merchant who never opened the
+      # Design Studio used to get where their best photograph should be.
+      assert html =~ "/uploads/#{store.slug}/gadget.jpg"
+    end
+
+    test "a page link in a picture field cannot become the hero" do
+      store =
+        stocked_store()
+        |> Ash.Seed.update!(%{cover_image_url: "https://www.instagram.com/someone"})
+
+      html = render_home(store)
+
+      refute html =~ "instagram.com"
+    end
+
+    test "product cards fill their frame rather than sitting letterboxed" do
+      store = stocked_store()
+
+      [product | _] =
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+        |> Ash.read!(authorize?: false)
+
+      create_image!(product, store, %{url: "/uploads/#{store.slug}/gadget.jpg"})
+
+      html = render_home(store)
+
+      refute html =~ "object-contain"
+    end
+  end
+
   # ── characterization: today's home, block by block ──────────────
   #
   # Written against the pre-section Electronics home and re-run unchanged
@@ -67,8 +155,11 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # Hero — the only h1 on the page
       assert html =~ "Shop the latest"
       assert html =~ "New Arrivals"
-      assert html =~ "40hrs · BT 5.3"
       assert html =~ "Learn more"
+      # The spec card used to ship "Battery / 40hrs · BT 5.3" to every shop
+      # that installed this theme — a fact about goods the platform knows
+      # nothing about. It is the merchant's to write now, or absent.
+      refute html =~ "40hrs · BT 5.3"
       assert length(String.split(html, "<h1")) == 2
 
       # The nav is welded into the teal hero band — it is the hero section's

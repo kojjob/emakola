@@ -27,7 +27,14 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
     [
       %{key: "heading", type: :string, label: "Heading", default: ""},
       %{key: "subheading", type: :string, label: "Subheading", default: ""},
-      %{key: "cta_label", type: :string, label: "Button label", default: ""}
+      %{key: "cta_label", type: :string, label: "Button label", default: ""},
+      # The floating spec card. Empty by default and hidden when empty: the
+      # theme used to ship "Battery / 40hrs · BT 5.3" to every shop that
+      # installed it, which is a checkable fact about goods, stated on behalf
+      # of a merchant who never said it and could not withdraw it. Same rule
+      # `Emakola.Themes.Terms` already applies to warranties.
+      %{key: "spec_label", type: :string, label: "Spec name", default: ""},
+      %{key: "spec_value", type: :string, label: "Spec detail", default: ""}
     ]
   end
 
@@ -53,6 +60,8 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
         )
       )
       |> assign(:hero_image_url, hero_image_url(assigns))
+      |> assign(:spec_label, setting(assigns[:settings], "spec_label", nil))
+      |> assign(:spec_value, setting(assigns[:settings], "spec_value", nil))
 
     ~H"""
     <%!-- HERO: split layout, deep teal left, vibrant product right --%>
@@ -107,12 +116,22 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
                 </span>
               <% end %>
             </div>
-            <%!-- Floating spec card --%>
-            <div class="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-white rounded-2xl px-5 py-4 shadow-xl">
-              <p class="text-[10px] uppercase tracking-wider text-[#6B7280] font-semibold mb-1">
-                Battery
+            <%!--
+              Floating spec card — the merchant's own words or nothing. The
+              detail is what makes the card worth showing, so a label with no
+              detail behind it does not render.
+            --%>
+            <div
+              :if={@spec_value}
+              class="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-white rounded-2xl px-5 py-4 shadow-xl"
+            >
+              <p
+                :if={@spec_label}
+                class="text-[10px] uppercase tracking-wider text-[#6B7280] font-semibold mb-1"
+              >
+                {@spec_label}
               </p>
-              <p class="electronics-mono text-base font-bold text-[#134E4A]">40hrs · BT 5.3</p>
+              <p class="electronics-mono text-base font-bold text-[#134E4A]">{@spec_value}</p>
             </div>
           </div>
         </div>
@@ -121,17 +140,24 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
     """
   end
 
+  # The hero always shows a real picture when the shop has one anywhere.
+  # It used to read the theme's hero settings and nothing else, so a shop that
+  # had not set one — every demo store, and every merchant who never opened the
+  # Design Studio — got a 200px headphones glyph where its best photograph
+  # should be. The merchant's own choices still lead; the shop's own goods are
+  # the backstop, which is the same order the marketplace card uses.
+  #
+  # Every candidate goes through ImageUrl, so a page link pasted into a picture
+  # field cannot put a broken image at the top of a storefront.
   defp hero_image_url(assigns) do
-    case get_in(assigns.theme, [:hero, :images]) || [] do
-      [first | _] when is_binary(first) ->
-        first
+    theme_images = get_in(assigns.theme, [:hero, :images]) || []
+    product_images = Enum.map(assigns[:products] || [], &Shared.first_image/1)
 
-      _ ->
-        case get_in(assigns.theme, [:hero, :image_url]) do
-          url when is_binary(url) and url != "" -> url
-          _ -> nil
-        end
-    end
+    Emakola.Stores.ImageUrl.first_image(
+      theme_images ++
+        [get_in(assigns.theme, [:hero, :image_url]), Map.get(assigns.store, :cover_image_url)] ++
+        product_images
+    )
   end
 
   # Splits the hero title at the first comma so the headline can be

@@ -7,8 +7,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.Fashion.Shared
@@ -51,45 +50,23 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
       <section class="bg-[#FAF6EE] py-10 sm:py-16">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
-            <%!-- Gallery --%>
-            <div>
-              <div class="aspect-[3/4] bg-white overflow-hidden">
-                <.optimized_image
-                  :if={Shared.current_image(@product, @current_image_index)}
-                  src={Shared.current_image(@product, @current_image_index)}
-                  alt={@product.title}
-                  class="w-full h-full object-cover"
-                />
-                <div
-                  :if={!Shared.current_image(@product, @current_image_index)}
-                  class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FAF6EE] to-[#E7E5E4]"
-                >
-                  <span class="material-symbols-outlined text-[#5B21B6]/30" style="font-size: 140px;">
-                    checkroom
-                  </span>
-                </div>
-              </div>
-
-              <div :if={length(@product.images) > 1} class="grid grid-cols-4 gap-2 mt-3">
-                <button
-                  :for={{image, idx} <- Enum.with_index(@product.images)}
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  class={"aspect-[3/4] overflow-hidden bg-white border-2 transition-colors " <>
-                    if(idx == @current_image_index,
-                      do: "border-[#5B21B6]",
-                      else: "border-transparent hover:border-[#E7E5E4]"
-                    )}
-                >
-                  <img
-                    src={Map.get(image, :thumbnail_url) || Map.get(image, :url)}
-                    alt={"#{@product.title} #{idx + 1}"}
-                    class="w-full h-full object-cover"
-                  />
-                </button>
-              </div>
-            </div>
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[3/4]"
+              frame_class="bg-white"
+              thumb_class="h-20 w-[60px]"
+              thumb_active_class="border-[#5B21B6]"
+              thumb_idle_class="border-transparent hover:border-[#E7E5E4]"
+              rail_class="sm:w-[60px]"
+            >
+              <:placeholder>
+                <span class="material-symbols-outlined text-[#5B21B6]/30" style="font-size: 140px;">
+                  checkroom
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
 
             <%!-- Info --%>
             <div class="lg:sticky lg:top-24 lg:self-start">

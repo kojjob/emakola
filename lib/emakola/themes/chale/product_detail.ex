@@ -12,7 +12,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Chale.Shared
   alias EmakolaWeb.Helpers.Currency
@@ -66,64 +66,23 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       <div class="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:px-8">
         <%!-- Gallery: square, hard-framed, finished before the photo lands --%>
         <div class="lg:sticky lg:top-24 lg:self-start">
-          <div class="relative aspect-[4/5] overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
-            <div
-              class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
-              aria-hidden="true"
-            >
+          <Gallery.product_gallery
+            images={@product.images}
+            current_index={@current_image_index}
+            alt={@product.title}
+            aspect_class="aspect-[4/5]"
+            frame_class="rounded-xl border border-[#E3E0DA] bg-white shadow-md"
+            thumb_class="h-16 w-16"
+            thumb_active_class="border-[#E3E0DA]"
+            thumb_idle_class="border-[#E3E0DA] opacity-70 hover:opacity-100"
+            rail_class="sm:w-16"
+          >
+            <:placeholder>
               <span class="select-none text-9xl font-bold uppercase text-zinc-400 [font-family:var(--chale-display)]">
                 {String.first(@product.title)}
               </span>
-            </div>
-            <.optimized_image
-              :if={Shared.current_image(@product, @current_image_index)}
-              src={Shared.current_image(@product, @current_image_index)}
-              alt={"#{@product.title} — image #{@current_image_index + 1}"}
-              priority={:high}
-              width={640}
-              height={640}
-              class="absolute inset-0 h-full w-full object-cover"
-            />
-            <div
-              :if={!Shared.current_image(@product, @current_image_index)}
-              class="absolute bottom-3 left-3"
-            >
-              <Shared.price_stamp product={@product} store={@store} />
-            </div>
-          </div>
-
-          <div
-            :if={length(@product.images) > 1}
-            class="mt-3 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="Product images"
-          >
-            <button
-              :for={{_image, index} <- Enum.with_index(@product.images)}
-              type="button"
-              phx-click="select_image"
-              phx-value-index={index}
-              role="tab"
-              aria-selected={to_string(index == @current_image_index)}
-              aria-label={"View image #{index + 1}"}
-              class={[
-                "h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2",
-                if(index == @current_image_index,
-                  do: "border-[#E3E0DA]",
-                  else: "border-[#E3E0DA] opacity-70 hover:border-[#E3E0DA] hover:opacity-100"
-                )
-              ]}
-            >
-              <.optimized_image
-                src={Shared.current_image(@product, index)}
-                alt={"#{@product.title} thumbnail #{index + 1}"}
-                priority={:low}
-                width={64}
-                height={64}
-                class="h-full w-full object-cover"
-              />
-            </button>
-          </div>
+            </:placeholder>
+          </Gallery.product_gallery>
         </div>
 
         <%!-- Info column --%>

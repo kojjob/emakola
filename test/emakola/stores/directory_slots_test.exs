@@ -33,6 +33,46 @@ defmodule Emakola.Stores.DirectorySlotsTest do
 
   defp names(slots, key), do: slots |> Map.fetch!(key) |> Enum.map(& &1.name)
 
+  describe "partition_slots?: false" do
+    test "young shops and staff picks compete for the spotlight instead of their own slots" do
+      # What a young directory looks like: almost every shop is under a month
+      # old, so :rising swallows the population and the hero is left with the
+      # handful of veterans. With the floor suspended the partition is
+      # suspended too and everyone competes on score.
+      entries =
+        [entry(%{name: "Veteran", score: 100})] ++
+          Enum.map(1..4, &entry(%{name: "Young #{&1}", score: 900 + &1, young?: true})) ++
+          Enum.map(1..3, &entry(%{name: "Pick #{&1}", score: 800 + &1, staff_pick?: true}))
+
+      slots = DirectorySlots.assign(entries, @now, partition_slots?: false)
+
+      assert names(slots, :rising) == []
+      assert names(slots, :editors_pick) == []
+      # Top six by score across the whole population; Pick 1 and Veteran miss
+      # the cut on merit rather than on category.
+      assert names(slots, :spotlight) == [
+               "Young 4",
+               "Young 3",
+               "Young 2",
+               "Young 1",
+               "Pick 3",
+               "Pick 2"
+             ]
+    end
+
+    test "the partition returns when the floor does" do
+      entries =
+        Enum.map(1..4, &entry(%{name: "Young #{&1}", young?: true})) ++
+          Enum.map(1..3, &entry(%{name: "Pick #{&1}", staff_pick?: true}))
+
+      slots = DirectorySlots.assign(entries, @now, partition_slots?: true)
+
+      assert length(names(slots, :rising)) == 4
+      assert length(names(slots, :editors_pick)) == 3
+      assert names(slots, :spotlight) == []
+    end
+  end
+
   test "an ineligible shop lands in no slot, whatever its score" do
     slots =
       DirectorySlots.assign(

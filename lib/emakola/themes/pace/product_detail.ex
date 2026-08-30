@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Pace.ProductDetail do
 
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Pace.Shared
   alias Emakola.Themes.Terms
@@ -58,52 +59,22 @@ defmodule Emakola.Themes.Pace.ProductDetail do
             <div class="gap-10 py-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:py-8">
               <%!-- Image stage --%>
               <div class="lg:sticky lg:top-24 lg:self-start">
-                <div class="relative aspect-[4/5] overflow-hidden rounded-[24px] bg-gradient-to-b from-slate-800 to-slate-950 lg:aspect-[3/4]">
-                  <span
-                    class="pace-display absolute inset-0 flex select-none items-center justify-center text-9xl font-bold italic text-white/10"
-                    aria-hidden="true"
-                  >
-                    {String.first(@product.title)}
-                  </span>
-                  <.optimized_image
-                    :if={Shared.current_image(@product, @current_image_index)}
-                    src={Shared.current_image(@product, @current_image_index)}
-                    alt={"#{@product.title} — image #{@current_image_index + 1}"}
-                    priority={:high}
-                    class="absolute inset-0 h-full w-full object-cover"
-                  />
-                </div>
-
-                <div
-                  :if={length(@product.images) > 1}
-                  class="mt-3 grid grid-cols-4 gap-2.5"
-                  role="tablist"
-                  aria-label="Product images"
+                <Gallery.product_gallery
+                  images={@product.images}
+                  current_index={@current_image_index}
+                  alt={@product.title}
+                  aspect_class="aspect-[4/5] lg:aspect-[3/4]"
+                  frame_class="rounded-[24px] bg-gradient-to-b from-slate-800 to-slate-950"
+                  thumb_class="h-20 w-20 rounded-2xl"
+                  thumb_active_class="border-slate-950 opacity-100"
+                  thumb_idle_class="border-transparent opacity-70 hover:opacity-100"
                 >
-                  <button
-                    :for={{_img, idx} <- Enum.with_index(@product.images)}
-                    phx-click="select_image"
-                    phx-value-index={idx}
-                    role="tab"
-                    aria-selected={to_string(idx == @current_image_index)}
-                    aria-label={"View image #{idx + 1}"}
-                    class={[
-                      "aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 motion-safe:transition-opacity",
-                      if(idx == @current_image_index,
-                        do: "border-slate-950 opacity-100",
-                        else: "border-transparent opacity-70 hover:opacity-100"
-                      )
-                    ]}
-                  >
-                    <.optimized_image
-                      :if={Shared.current_image(@product, idx)}
-                      src={Shared.current_image(@product, idx)}
-                      alt=""
-                      priority={:low}
-                      class="h-full w-full object-cover"
-                    />
-                  </button>
-                </div>
+                  <:placeholder>
+                    <span class="pace-display select-none text-9xl font-bold italic text-white/10">
+                      {String.first(@product.title)}
+                    </span>
+                  </:placeholder>
+                </Gallery.product_gallery>
               </div>
 
               <%!-- Product info --%>

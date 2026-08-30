@@ -18,19 +18,16 @@ defmodule EmakolaWeb.StoresComponents do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.ThemeResolver
+  alias EmakolaWeb.GhanaMap
   alias EmakolaWeb.Helpers.CssColor
 
-  @regions [
-    {"", "All regions"},
-    {"greater_accra", "Greater Accra"},
-    {"ashanti", "Ashanti"},
-    {"central", "Central"},
-    {"western", "Western"},
-    {"eastern", "Eastern"},
-    {"northern", "Northern"},
-    {"volta", "Volta"},
-    {"other", "Other"}
-  ]
+  # Ghana's canonical sixteen regions, the same strings `Store.region` holds
+  # and `list_with_filters` matches on with `region == ^arg(:region)`. The
+  # list here used to be seven snake_case slugs — "greater_accra" against a
+  # column holding "Greater Accra" — so picking a region filtered the
+  # directory down to nothing and every count on the map read zero.
+  @regions [{"", "All regions"}] ++
+             Enum.map(EmakolaWeb.GhanaMap.names(), fn name -> {name, name} end)
 
   @sorts [
     {"featured", "Featured"},
@@ -38,21 +35,6 @@ defmodule EmakolaWeb.StoresComponents do
     {"popular", "Most popular"},
     {"name", "A → Z"}
   ]
-
-  # Approximate (x, y) coordinates for each region pin within the
-  # `viewBox 0 0 400 500` Ghana outline used by `map_view/1`. Not
-  # cartographically precise — placed where a Ghanaian user would
-  # expect each region to sit on a familiar outline.
-  @region_pins %{
-    "northern" => {200, 110},
-    "ashanti" => {185, 295},
-    "volta" => {305, 305},
-    "eastern" => {255, 360},
-    "western" => {135, 390},
-    "central" => {200, 420},
-    "greater_accra" => {275, 425},
-    "other" => {140, 205}
-  }
 
   @doc "Curated Ghana regions formatted as select options."
   def regions, do: Enum.map(@regions, fn {value, label} -> {label, value} end)
@@ -128,9 +110,9 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
           <div class="flex min-w-0 items-end gap-3">
             <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-              <%= if @store.logo_url && @store.logo_url != "" do %>
+              <%= if logo_image_url(@store) do %>
                 <img
-                  src={@store.logo_url}
+                  src={logo_image_url(@store)}
                   alt={"#{@store.name} logo"}
                   class="h-full w-full object-cover"
                   loading="lazy"
@@ -276,7 +258,17 @@ defmodule EmakolaWeb.StoresComponents do
           </a>
         </div>
 
-        <div class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <%!--
+          The companion panel needs shops to put in it. On a young directory
+          the day's spotlight can hold exactly one shop with a real photo, and
+          an empty "Also featured" box beside the hero reads as a broken page
+          — the same rule the rails follow, where a thin rail hides itself.
+          The hero takes the whole width instead.
+        --%>
+        <div class={[
+          "mt-7 grid gap-6",
+          @tiles != [] && "lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+        ]}>
           <a
             id="featured-hero"
             href={EmakolaWeb.Storefront.Path.public_path(@hero.slug)}
@@ -333,7 +325,10 @@ defmodule EmakolaWeb.StoresComponents do
             </div>
           </a>
 
-          <div class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6">
+          <div
+            :if={@tiles != []}
+            class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6"
+          >
             <div class="flex items-center justify-between">
               <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                 Also featured
@@ -561,9 +556,9 @@ defmodule EmakolaWeb.StoresComponents do
 
                 <%!-- Floating shop logo (bottom-left, overlapping) --%>
                 <div class="absolute -bottom-7 left-4 z-10">
-                  <%= if store.logo_url && store.logo_url != "" do %>
+                  <%= if logo_image_url(store) do %>
                     <img
-                      src={store.logo_url}
+                      src={logo_image_url(store)}
                       alt={"#{store.name} logo"}
                       class="w-14 h-14 rounded-2xl ring-4 ring-white shadow-xl object-cover bg-white"
                       loading="lazy"
@@ -970,20 +965,31 @@ defmodule EmakolaWeb.StoresComponents do
   # style declarations are unlayered, so they beat the `@layer theme`
   # :root token declarations for this element and its descendants.
   # The image a shop card leads with: the merchant's own cover when they set
-  # one, else the newest active-product photo (the :card_image_url aggregate —
-  # guard on is_binary because callers that don't load it get %Ash.NotLoaded{}),
-  # else nil and the themed gradient pattern renders.
-  defp card_image_url(store) do
-    cover = Map.get(store, :cover_image_url)
-    product_medium = Map.get(store, :card_image_medium_url)
-    product_photo = Map.get(store, :card_image_url)
+  # one, else the newest active-product photo. Nil falls through to the themed
+  # gradient, which fills the card the same as a photo would — an empty or
+  # broken frame is the one outcome a card must never have.
+  #
+  # No logo in this chain. A logo is a small mark on flat colour built for a
+  # 40px avatar; stretched across a card it reads as a broken image, which is
+  # exactly the complaint that started this. It still belongs on the card as
+  # the shop's avatar — that is identity, not imagery.
+  #
+  # Every candidate goes through ImageUrl: `%Ash.NotLoaded{}` from a caller
+  # that did not load the aggregate is rejected, and so is a page link a
+  # merchant pasted into a picture field before the validation existed.
+  # The avatar the shop is recognised by. Same guard as the card image: a page
+  # link pasted into the logo field falls through to the initial-letter badge,
+  # which fills the circle exactly as a logo would.
+  defp logo_image_url(store) do
+    Emakola.Stores.ImageUrl.first_image([Map.get(store, :logo_url)])
+  end
 
-    cond do
-      is_binary(cover) and cover != "" -> cover
-      is_binary(product_medium) and product_medium != "" -> product_medium
-      is_binary(product_photo) and product_photo != "" -> product_photo
-      true -> nil
-    end
+  defp card_image_url(store) do
+    Emakola.Stores.ImageUrl.first_image([
+      Map.get(store, :cover_image_url),
+      Map.get(store, :card_image_medium_url),
+      Map.get(store, :card_image_url)
+    ])
   end
 
   defp card_theme_vars(store) do
@@ -1003,26 +1009,36 @@ defmodule EmakolaWeb.StoresComponents do
     _ -> fallback
   end
 
-  # ── Ghana map_view modal (Phase 3) ──
+  # ── Ghana map_view modal ──
   #
-  # Modal that lets shoppers browse stores by Ghanaian region. Renders a
-  # backdrop overlay containing a hand-drawn SVG outline of Ghana with
-  # clickable region pins on the left, and the same regions as a
-  # scrollable list with per-region store counts on the right.
+  # Lets a shopper pick their region off a real map of Ghana. The picture is
+  # the point: many Makola shoppers do not read fluently, so a shape they
+  # recognise and a number they can count beats a list of names. What stood
+  # here before was a twenty-point hand-drawn blob with pins placed by eye,
+  # and no Ghanaian could find their own region on it.
   #
-  # Both the SVG pins and the list buttons emit `phx-click="select_region"`
-  # with `phx-value-region={slug}`. Backdrop and close button emit
-  # `phx-click="close_map"`. Wiring lives in the parent LiveView.
+  # Geometry lives in `EmakolaWeb.GhanaMap` (all sixteen regions, real
+  # boundaries). Counts arrive already tallied from `Stores.region_counts/0`
+  # — one GROUP BY over the whole directory, not the page the shopper
+  # happens to have scrolled to.
+  #
+  # Regions and list rows both emit `phx-click="select_region"` with
+  # `phx-value-region={name}`, where the name is the canonical region string
+  # `Store.region` holds, so the value can go straight to the filter.
 
-  attr :stores, :list,
+  attr :counts, :map,
     required: true,
-    doc: "Stores to plot. Each must have a :region string field."
+    doc: ~s(Store counts per region name, e.g. %{"Greater Accra" => 6}. Missing key means zero.)
 
   attr :active_region, :string, default: ""
   attr :open, :boolean, default: false
 
   def map_view(assigns) do
-    assigns = assign(assigns, :region_rows, regions_with_counts(assigns.stores))
+    assigns =
+      assigns
+      |> assign(:region_rows, region_rows(assigns.counts))
+      |> assign(:map_regions, GhanaMap.regions())
+      |> assign(:view_box, GhanaMap.view_box())
 
     ~H"""
     <div
@@ -1034,135 +1050,108 @@ defmodule EmakolaWeb.StoresComponents do
       aria-label="Browse stores by region"
     >
       <div
-        class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        class="mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
         phx-click-away="close_map"
       >
-        <header class="flex items-center justify-between gap-4 px-6 pt-6 pb-4 border-b border-slate-200">
+        <header class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 pb-4 pt-6">
           <div>
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
               Browse by region
             </p>
-            <h2 class="text-2xl font-bold text-slate-900 mt-0.5">Stores across Ghana</h2>
+            <h2 class="mt-0.5 text-2xl font-bold text-slate-900">Stores across Ghana</h2>
           </div>
           <button
             type="button"
             phx-click="close_map"
-            class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center"
+            class="flex h-10 w-10 items-center justify-center rounded-full hover:bg-slate-100"
             aria-label="Close map"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-5 h-5 text-slate-700"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <.icon name="hero-x-mark" class="size-5 text-slate-700" />
           </button>
         </header>
 
-        <div class="grid md:grid-cols-2 gap-6 p-6">
-          <div class="aspect-[4/5] rounded-2xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-center">
+        <div class="grid gap-6 p-6 md:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
             <svg
-              viewBox="0 0 400 500"
+              viewBox={@view_box}
               xmlns="http://www.w3.org/2000/svg"
-              class="w-full h-full"
+              class="h-full w-full"
               role="img"
-              aria-label="Outline map of Ghana with region pins"
+              aria-label="Map of Ghana's sixteen regions, shaded by how many stores each holds"
             >
-              <%!--
-                Hand-drawn approximation of Ghana's outline.
-                Tall north-south shape, narrower at the southern coast,
-                wider in the north, with a slight bulge eastward where
-                Volta meets Togo. Coast is a gentle curve along the
-                bottom edge.
-              --%>
-              <path
-                d="M 95 60
-                   L 200 50
-                   L 305 55
-                   L 320 110
-                   L 335 170
-                   L 330 230
-                   L 345 280
-                   L 340 340
-                   L 320 380
-                   L 310 420
-                   L 300 455
-                   Q 230 478 165 470
-                   Q 120 462 95 445
-                   L 75 400
-                   L 70 340
-                   L 60 270
-                   L 65 200
-                   L 80 130
-                   Z"
-                fill="#fef3c7"
-                stroke="#7A1F1F"
-                stroke-width="2.5"
-                stroke-linejoin="round"
-              />
-
-              <%!-- Region pins. Active region gets emerald; others amber. --%>
               <g
-                :for={{slug, label, _count} <- @region_rows}
+                :for={region <- @map_regions}
                 phx-click="select_region"
-                phx-value-region={slug}
+                phx-value-region={region.name}
                 class="cursor-pointer"
-                data-region={slug}
+                data-region={region.name}
               >
-                <circle
-                  cx={pin_x(slug)}
-                  cy={pin_y(slug)}
-                  r="9"
-                  fill={if slug == @active_region, do: "#059669", else: "#d4a843"}
-                  stroke={if slug == @active_region, do: "#065f46", else: "#7A1F1F"}
-                  stroke-width={if slug == @active_region, do: "3", else: "1.5"}
+                <title>{region.name} — {count_label(Map.get(@counts, region.name, 0))}</title>
+                <%!-- Hover thickens the border; a fill shift is invisible at these tints. --%>
+                <path
+                  d={region.d}
+                  stroke-linejoin="round"
+                  class={[
+                    "transition-colors duration-150 hover:[stroke-width:5px]",
+                    region_classes(
+                      Map.get(@counts, region.name, 0),
+                      region.name == @active_region
+                    )
+                  ]}
                 />
+                <%!--
+                  The number is drawn only where there is something to count.
+                  A "0" on every empty region turns a map into a scoreboard of
+                  failure, and a shopper who cannot read still counts.
+                --%>
                 <text
-                  x={pin_x(slug)}
-                  y={pin_y(slug) + 24}
+                  :if={Map.get(@counts, region.name, 0) > 0}
+                  x={region.label_x}
+                  y={region.label_y}
                   text-anchor="middle"
-                  font-size="11"
-                  font-weight="600"
-                  fill="#1f2937"
-                  style="paint-order: stroke; stroke: #ffffff; stroke-width: 3px;"
+                  dominant-baseline="central"
+                  font-size="46"
+                  font-weight="800"
+                  class={[
+                    "pointer-events-none [paint-order:stroke] stroke-white [stroke-width:8px]",
+                    if(region.name == @active_region, do: "fill-white", else: "fill-stone-900")
+                  ]}
                 >
-                  {label}
+                  {Map.get(@counts, region.name, 0)}
                 </text>
               </g>
             </svg>
           </div>
 
-          <div class="space-y-2">
+          <div class="max-h-[52vh] space-y-2 overflow-y-auto pr-1 md:max-h-none">
             <button
-              :for={{slug, label, count} <- @region_rows}
+              :for={{name, count} <- @region_rows}
               type="button"
               phx-click="select_region"
-              phx-value-region={slug}
+              phx-value-region={name}
               class={[
-                "w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors",
-                if(slug == @active_region,
-                  do: "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600",
-                  else: "border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50"
-                )
+                "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors",
+                cond do
+                  name == @active_region -> "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600"
+                  count > 0 -> "border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50"
+                  true -> "border-slate-100 bg-white text-slate-400 hover:border-slate-300"
+                end
               ]}
             >
-              <span class="font-semibold text-slate-900">{label}</span>
-              <span class="text-xs text-slate-500">
-                {count} {if count == 1, do: "store", else: "stores"}
+              <span class={["font-semibold", count > 0 && "text-slate-900"]}>{name}</span>
+              <span class={["text-xs", if(count > 0, do: "text-slate-500", else: "text-slate-400")]}>
+                {count_label(count)}
               </span>
             </button>
           </div>
         </div>
 
-        <footer class="px-6 py-4 border-t border-slate-200 text-xs text-slate-500 text-center">
-          Pick a region to filter the directory.
+        <footer class="space-y-1 border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-500">
+          <p>Pick a region to filter the directory.</p>
+          <%!-- Required by the boundary data's CC BY-SA licence. Do not remove. --%>
+          <p class="text-[10px] text-slate-400">
+            Region boundaries: geoBoundaries / OpenStreetMap contributors, CC BY-SA
+          </p>
         </footer>
       </div>
     </div>
@@ -1170,35 +1159,37 @@ defmodule EmakolaWeb.StoresComponents do
   end
 
   @doc """
-  Returns `[{slug, label, count}]` for the canonical Ghanaian region list,
-  where `count` is the number of `stores` whose `:region` equals `slug`.
-
-  Stores with a nil/missing/unrecognized `:region` field do not contribute
-  to any count (except the literal `"other"`, which buckets to Other).
-
-  Order matches `regions/0` (minus the "All regions" sentinel).
+  Returns `[{region_name, count}]` for Ghana's sixteen regions in display
+  order, reading `counts` as `Stores.region_counts/0` returns it. A region
+  absent from `counts` is zero.
   """
-  def regions_with_counts(stores) when is_list(stores) do
-    counts =
-      Enum.reduce(stores, %{}, fn store, acc ->
-        case Map.get(store, :region) do
-          slug when is_binary(slug) -> Map.update(acc, slug, 1, &(&1 + 1))
-          _ -> acc
-        end
-      end)
-
-    @regions
-    |> Enum.reject(fn {slug, _} -> slug == "" end)
-    |> Enum.map(fn {slug, label} -> {slug, label, Map.get(counts, slug, 0)} end)
+  @spec region_rows(map()) :: [{String.t(), non_neg_integer()}]
+  def region_rows(counts) when is_map(counts) do
+    Enum.map(GhanaMap.names(), fn name -> {name, Map.get(counts, name, 0)} end)
   end
 
-  # Pin coordinate accessors. Falls back to map centroid so a
-  # mistyped slug renders something visible rather than crashing.
-  for {slug, {x, y}} <- @region_pins do
-    defp pin_x(unquote(slug)), do: unquote(x)
-    defp pin_y(unquote(slug)), do: unquote(y)
+  defp count_label(1), do: "1 store"
+  defp count_label(n), do: "#{n} stores"
+
+  # Warmer where there is more to buy. The active region leaves the scale
+  # entirely for the chrome's emerald so the choice is never ambiguous.
+  #
+  # Palette classes rather than fill/stroke attributes: raw hex in this file
+  # is barred by the design-consistency sweep, and a class beats the
+  # presentation attribute anyway. Whole literal strings, so Tailwind's
+  # scanner finds them (`@source "../../lib/emakola_web"` in app.css).
+  #
+  # Slate borders, not white — on a young directory most regions are empty,
+  # and a white border on a near-white fill collapses sixteen regions into
+  # one blob.
+  defp region_classes(_count, true), do: "fill-emerald-600 stroke-emerald-800 [stroke-width:6px]"
+
+  defp region_classes(count, _active) do
+    "#{count_fill(count)} stroke-slate-400 [stroke-width:2.5px]"
   end
 
-  defp pin_x(_), do: 200
-  defp pin_y(_), do: 250
+  defp count_fill(0), do: "fill-slate-100"
+  defp count_fill(count) when count < 3, do: "fill-amber-200"
+  defp count_fill(count) when count < 6, do: "fill-amber-300"
+  defp count_fill(_count), do: "fill-amber-500"
 end

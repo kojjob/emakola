@@ -81,6 +81,18 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     | premium\s+audio
     | the\s+latest\s+phones
     | furniture\s+and\s+home\s+goods
+    # Product SPECIFICATIONS. Electronics shipped a floating card claiming a
+    # battery life and a Bluetooth version to every shop that installed the
+    # theme — a measurable claim about goods the platform has never seen, made
+    # on behalf of a merchant who never said it. A spec is the merchant's to
+    # write in the section editor, as a warranty already is
+    # (Emakola.Themes.Terms). Note: no slash in this comment, it would close
+    # the sigil.
+    | \d+\s*hrs?\b
+    | \d+\s*hours?\s+(?:battery|playback|standby)
+    | bt\s*\d+\.\d
+    | bluetooth\s*\d+\.\d
+    | \d+\s*(?:mah|mp|gb|tb)\b
   /ix
 
   # Claims about OTHER PEOPLE — that a crowd trusts this shop, that these goods

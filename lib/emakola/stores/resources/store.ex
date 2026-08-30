@@ -511,6 +511,26 @@ defmodule Emakola.Stores.Store do
     update :update_settings do
       require_atomic?(false)
 
+      # Scoped to this action rather than the resource: it is the only one that
+      # accepts these fields, and a resource-wide validation without `atomic/3`
+      # would force every atomic update (update_directory_meta among them) off
+      # its fast path.
+      #
+      # `changing/1` matters as much as the rule. Two live merchants already
+      # hold a page link in cover_image_url. Validating an unchanged field
+      # would lock them out of their whole settings page — unable to fix a
+      # tagline or a phone number because of a URL sitting inside a collapsed
+      # <details> they may never have opened. Shoppers are protected from the
+      # old value by the render guard (`Emakola.Stores.ImageUrl`); this
+      # validation's only job is to stop new ones being written.
+      validate({Emakola.Stores.Validations.ImageUrl, attribute: :logo_url},
+        where: [changing(:logo_url)]
+      )
+
+      validate({Emakola.Stores.Validations.ImageUrl, attribute: :cover_image_url},
+        where: [changing(:cover_image_url)]
+      )
+
       accept([
         :name,
         :description,

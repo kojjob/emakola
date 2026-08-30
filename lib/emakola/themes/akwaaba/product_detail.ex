@@ -9,7 +9,7 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Akwaaba.Shared
   alias EmakolaWeb.Helpers.Currency
@@ -39,37 +39,22 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
 
         <div class="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-14">
           <div>
-            <div class="group relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-[#F6F4F1]">
-              <Shared.photo_or_initial
-                image={Shared.first_image(@product)}
-                title={@product.title}
-                sizes={[900, 1125]}
-              />
-            </div>
-
-            <ul :if={length(@product.images) > 1} class="mt-3 grid grid-cols-4 gap-3">
-              <li :for={{_image, idx} <- Enum.with_index(@product.images)}>
-                <button
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  aria-label={"Show image #{idx + 1}"}
-                  aria-current={@current_image_index == idx && "true"}
-                  class={[
-                    "aspect-square w-full overflow-hidden rounded-2xl bg-[#F6F4F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--akwaaba-sun)] focus-visible:ring-offset-2",
-                    @current_image_index == idx && "ring-2 ring-[color:var(--akwaaba-ink)]"
-                  ]}
-                >
-                  <.optimized_image
-                    src={Shared.current_image(@product, idx)}
-                    alt=""
-                    width={200}
-                    height={200}
-                    class="h-full w-full object-cover"
-                  />
-                </button>
-              </li>
-            </ul>
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="rounded-[2rem] bg-[#F6F4F1]"
+              thumb_class="h-20 w-20 rounded-2xl"
+              thumb_active_class="border-[color:var(--akwaaba-ink)]"
+              thumb_idle_class="border-transparent hover:border-[color:var(--akwaaba-sun)]"
+            >
+              <:placeholder>
+                <span class="select-none text-8xl font-semibold text-[color:var(--akwaaba-sun)]">
+                  {String.first(@product.title)}
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <div>
