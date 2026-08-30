@@ -146,7 +146,11 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
 
     Stores.update_store_directory_meta(
       store,
-      %{verified: verified?, verified_basis: if(verified?, do: :business_review)},
+      %{
+        verified: verified?,
+        verified_basis: if(verified?, do: :business_review),
+        verified_basis_at: if(verified?, do: DateTime.utc_now())
+      },
       authorize?: false
     )
 

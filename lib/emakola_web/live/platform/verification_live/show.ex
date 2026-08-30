@@ -115,7 +115,11 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
   defp set_verified(%{} = store, value) do
     Stores.update_store_directory_meta(
       store,
-      %{verified: value, verified_basis: if(value, do: :business_review)},
+      %{
+        verified: value,
+        verified_basis: if(value, do: :business_review),
+        verified_basis_at: if(value, do: DateTime.utc_now())
+      },
       authorize?: false
     )
   end

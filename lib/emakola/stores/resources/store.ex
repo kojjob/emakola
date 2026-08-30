@@ -271,6 +271,13 @@ defmodule Emakola.Stores.Store do
     #                            Ghana Card.
     #   :nia_biometric         — verified through an accredited NIA IVSP
     #                            partner. Not yet built.
+    # When the current basis was stamped. Dates the claim so an approval under
+    # the retired Ghana Card flow can lapse rather than stand forever on a
+    # check nobody is allowed to repeat. See `Emakola.Stores.TrustBadge`.
+    attribute :verified_basis_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     attribute :verified_basis, :atom do
       constraints(
         one_of: [:retired_document_flow, :business_review, :wallet_proof, :nia_biometric]
@@ -720,7 +727,14 @@ defmodule Emakola.Stores.Store do
     end
 
     update :update_directory_meta do
-      accept([:featured, :featured_at, :featured_rank, :verified, :verified_basis])
+      accept([
+        :featured,
+        :featured_at,
+        :featured_rank,
+        :verified,
+        :verified_basis,
+        :verified_basis_at
+      ])
     end
 
     # The ranking worker's cache write. Separate from :update_directory_meta
