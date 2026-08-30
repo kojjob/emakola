@@ -77,7 +77,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.HighlightCards do
         <img
           src={Shared.first_image(@product)}
           alt={@product.title}
-          class="absolute right-2 sm:right-4 bottom-2 sm:bottom-4 w-32 h-32 sm:w-44 sm:h-44 object-contain group-hover:scale-105 transition-transform"
+          class="absolute right-2 sm:right-4 bottom-2 sm:bottom-4 w-32 h-32 sm:w-44 sm:h-44 object-cover group-hover:scale-105 transition-transform"
         />
       <% else %>
         <div

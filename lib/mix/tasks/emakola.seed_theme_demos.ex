@@ -44,6 +44,12 @@ defmodule Mix.Tasks.Emakola.SeedThemeDemos do
       compare_at_price: 95_000,
       stock: 8,
       image: "/images/seed/kente-kingdom/kente-adweneasa-1.jpg",
+      extra_images: [
+        "/images/seed/kente-kingdom/kente-stole-1.jpg",
+        "/images/seed/kente-kingdom/fusion-dress-1.jpg",
+        "/images/seed/kente-kingdom/kente-clutch-1.jpg",
+        "/images/seed/kente-kingdom/fugu-smock-1.jpg"
+      ],
       alt: "Royal Adweneasa Kente cloth in gold and green",
       tags: ["kente", "handwoven"]
     },
@@ -90,6 +96,10 @@ defmodule Mix.Tasks.Emakola.SeedThemeDemos do
       price: 2_500,
       stock: 60,
       image: "/images/seed/accra-fresh/jollof-spice-1.jpg",
+      extra_images: [
+        "/images/seed/accra-fresh/shito-1.jpg",
+        "/images/seed/accra-fresh/rice-1.jpg"
+      ],
       alt: "Jar of jollof spice mix",
       tags: ["spice", "jollof"]
     },
@@ -108,6 +118,11 @@ defmodule Mix.Tasks.Emakola.SeedThemeDemos do
       price: 1_500,
       stock: 80,
       image: "/images/seed/accra-fresh/plantain-chips-1.jpg",
+      extra_images: [
+        "/images/seed/accra-fresh/groundnuts-1.jpg",
+        "/images/seed/accra-fresh/dawadawa-1.jpg",
+        "/images/seed/accra-fresh/jollof-spice-1.jpg"
+      ],
       alt: "Bag of crunchy plantain chips",
       tags: ["snack", "plantain"]
     },
@@ -236,14 +251,23 @@ defmodule Mix.Tasks.Emakola.SeedThemeDemos do
       stock_quantity: spec.stock
     })
 
-    create!(Emakola.Catalog.Image, :create, %{
-      product_id: product.id,
-      store_id: store.id,
-      url: spec.image,
-      alt_text: spec.alt,
-      content_type: "image/jpeg",
-      file_size_bytes: 300_000
-    })
+    # Every image on the spec, in order — `spec.image` leads and `extra_images`
+    # follow. A product-detail gallery only exists above one photo, so a
+    # catalogue where every product has exactly one leaves the thumbnail rail
+    # untestable and unseeable.
+    # `:position` is not an accepted input on Image.create — it defaults to 0
+    # and `has_many :images` sorts `position: :asc, inserted_at: :asc`, so
+    # insertion order is what puts spec.image first in the gallery.
+    for url <- [spec.image | spec[:extra_images] || []] do
+      create!(Emakola.Catalog.Image, :create, %{
+        product_id: product.id,
+        store_id: store.id,
+        url: url,
+        alt_text: spec.alt,
+        content_type: "image/jpeg",
+        file_size_bytes: 300_000
+      })
+    end
 
     product
     |> Ash.Changeset.for_update(:activate, %{}, authorize?: false)

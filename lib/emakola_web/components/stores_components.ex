@@ -110,9 +110,9 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
           <div class="flex min-w-0 items-end gap-3">
             <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-              <%= if @store.logo_url && @store.logo_url != "" do %>
+              <%= if logo_image_url(@store) do %>
                 <img
-                  src={@store.logo_url}
+                  src={logo_image_url(@store)}
                   alt={"#{@store.name} logo"}
                   class="h-full w-full object-cover"
                   loading="lazy"
@@ -556,9 +556,9 @@ defmodule EmakolaWeb.StoresComponents do
 
                 <%!-- Floating shop logo (bottom-left, overlapping) --%>
                 <div class="absolute -bottom-7 left-4 z-10">
-                  <%= if store.logo_url && store.logo_url != "" do %>
+                  <%= if logo_image_url(store) do %>
                     <img
-                      src={store.logo_url}
+                      src={logo_image_url(store)}
                       alt={"#{store.name} logo"}
                       class="w-14 h-14 rounded-2xl ring-4 ring-white shadow-xl object-cover bg-white"
                       loading="lazy"
@@ -965,20 +965,31 @@ defmodule EmakolaWeb.StoresComponents do
   # style declarations are unlayered, so they beat the `@layer theme`
   # :root token declarations for this element and its descendants.
   # The image a shop card leads with: the merchant's own cover when they set
-  # one, else the newest active-product photo (the :card_image_url aggregate —
-  # guard on is_binary because callers that don't load it get %Ash.NotLoaded{}),
-  # else nil and the themed gradient pattern renders.
-  defp card_image_url(store) do
-    cover = Map.get(store, :cover_image_url)
-    product_medium = Map.get(store, :card_image_medium_url)
-    product_photo = Map.get(store, :card_image_url)
+  # one, else the newest active-product photo. Nil falls through to the themed
+  # gradient, which fills the card the same as a photo would — an empty or
+  # broken frame is the one outcome a card must never have.
+  #
+  # No logo in this chain. A logo is a small mark on flat colour built for a
+  # 40px avatar; stretched across a card it reads as a broken image, which is
+  # exactly the complaint that started this. It still belongs on the card as
+  # the shop's avatar — that is identity, not imagery.
+  #
+  # Every candidate goes through ImageUrl: `%Ash.NotLoaded{}` from a caller
+  # that did not load the aggregate is rejected, and so is a page link a
+  # merchant pasted into a picture field before the validation existed.
+  # The avatar the shop is recognised by. Same guard as the card image: a page
+  # link pasted into the logo field falls through to the initial-letter badge,
+  # which fills the circle exactly as a logo would.
+  defp logo_image_url(store) do
+    Emakola.Stores.ImageUrl.first_image([Map.get(store, :logo_url)])
+  end
 
-    cond do
-      is_binary(cover) and cover != "" -> cover
-      is_binary(product_medium) and product_medium != "" -> product_medium
-      is_binary(product_photo) and product_photo != "" -> product_photo
-      true -> nil
-    end
+  defp card_image_url(store) do
+    Emakola.Stores.ImageUrl.first_image([
+      Map.get(store, :cover_image_url),
+      Map.get(store, :card_image_medium_url),
+      Map.get(store, :card_image_url)
+    ])
   end
 
   defp card_theme_vars(store) do

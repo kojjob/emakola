@@ -305,7 +305,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
           :if={first_image(@product)}
           src={first_image(@product)}
           alt={@product.title}
-          class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <span
           :if={!first_image(@product)}

@@ -7,7 +7,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
@@ -49,44 +49,22 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Gallery --%>
-            <div>
-              <div class="aspect-[4/5] home-living-card overflow-hidden">
-                <.optimized_image
-                  :if={Shared.current_image(@product, @current_image_index)}
-                  src={Shared.current_image(@product, @current_image_index)}
-                  alt={@product.title}
-                  class="w-full h-full object-cover"
-                />
-                <div
-                  :if={!Shared.current_image(@product, @current_image_index)}
-                  class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#E8DBC8] to-[#FAF7F2]"
-                >
-                  <span class="material-symbols-outlined text-[#C2410C]/30" style="font-size: 120px;">
-                    chair
-                  </span>
-                </div>
-              </div>
-
-              <div :if={length(@product.images) > 1} class="flex gap-3 mt-4 overflow-x-auto">
-                <button
-                  :for={{image, idx} <- Enum.with_index(@product.images)}
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  class={"flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white border-2 transition-colors " <>
-                    if(idx == @current_image_index,
-                      do: "border-[#C2410C]",
-                      else: "border-transparent hover:border-[#E8DBC8]"
-                    )}
-                >
-                  <img
-                    src={Map.get(image, :thumbnail_url) || Map.get(image, :url)}
-                    alt={"#{@product.title} #{idx + 1}"}
-                    class="w-full h-full object-cover"
-                  />
-                </button>
-              </div>
-            </div>
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="home-living-card"
+              thumb_class="h-20 w-20 rounded-xl"
+              thumb_active_class="border-[#C2410C]"
+              thumb_idle_class="border-transparent hover:border-[#E8DBC8]"
+            >
+              <:placeholder>
+                <span class="material-symbols-outlined text-[#C2410C]/30" style="font-size: 120px;">
+                  chair
+                </span>
+              </:placeholder>
+            </Gallery.product_gallery>
 
             <%!-- Info --%>
             <div>

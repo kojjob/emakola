@@ -9,6 +9,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Item
   alias Emakola.Themes.Spotlight.Shared
@@ -109,17 +110,18 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             </p>
           </div>
           <div class="relative">
-            <div class="rounded-3xl overflow-hidden bg-white border border-[#ECE7DE] aspect-[4/5]">
-              <.optimized_image
-                :if={Shared.current_image(@product, @current_image_index)}
-                src={Shared.current_image(@product, @current_image_index)}
-                alt={@product.title}
-                class="w-full h-full object-cover"
-              />
-              <div
-                :if={!Shared.current_image(@product, @current_image_index)}
-                class="w-full h-full flex items-center justify-center bg-[#F3EFE8]"
-              >
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="rounded-3xl border border-[#ECE7DE] bg-white"
+              thumb_class="h-14 w-14 rounded-xl"
+              thumb_active_class="border-[var(--theme-accent,#7C3AED)]"
+              thumb_idle_class="border-[#ECE7DE] opacity-70 hover:opacity-100"
+              rail_class="sm:w-14"
+            >
+              <:placeholder>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -129,23 +131,8 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                 >
                   <path d="M3.6 5.4a1 1 0 0 1 .9-.6h15a1 1 0 0 1 .9.6l1.6 3.6a1 1 0 0 1-.1.94 3.5 3.5 0 0 1-2.9 1.56V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.5a3.5 3.5 0 0 1-2.9-1.56 1 1 0 0 1-.1-.94l1.6-3.6Zm5.4 8.6h6v4H9v-4Z" />
                 </svg>
-              </div>
-            </div>
-            <div :if={length(@product.images) > 1} class="flex gap-2 mt-3">
-              <button
-                :for={{image, idx} <- Enum.with_index(@product.images)}
-                type="button"
-                phx-click="select_image"
-                phx-value-index={idx}
-                class={"w-14 h-14 rounded-xl overflow-hidden border " <> if(idx == @current_image_index, do: "border-[var(--theme-accent,#7C3AED)]", else: "border-[#ECE7DE] opacity-70")}
-              >
-                <img
-                  src={Map.get(image, :thumbnail_url) || Map.get(image, :url)}
-                  alt={"#{@product.title} #{idx + 1}"}
-                  class="w-full h-full object-cover"
-                />
-              </button>
-            </div>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
         </div>
       </section>

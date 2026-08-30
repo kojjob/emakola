@@ -16,7 +16,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Depot.Shared
   alias EmakolaWeb.Helpers.Currency
@@ -57,50 +57,22 @@ defmodule Emakola.Themes.Depot.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-10">
           <%!-- Image column — placeholder-first, finished without a photo --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="relative aspect-[4/5] overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
-              <div
-                class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200"
-                aria-hidden="true"
-              >
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="border border-[#E7E5E1] bg-white shadow-sm"
+              thumb_class="h-20 w-20"
+              thumb_active_class="border-zinc-900"
+              thumb_idle_class="border-[#E7E5E1] opacity-70 hover:border-zinc-400 hover:opacity-100"
+            >
+              <:placeholder>
                 <span class="select-none text-8xl font-bold text-zinc-400 [font-family:var(--dt-heading-font,inherit)]">
                   {String.first(@product.title)}
                 </span>
-              </div>
-              <.optimized_image
-                :if={Shared.current_image(@product, @current_image_index)}
-                src={Shared.current_image(@product, @current_image_index)}
-                alt={@product.title}
-                priority={:high}
-                width={640}
-                height={640}
-                class="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-
-            <div :if={length(@product.images) > 1} class="mt-2.5 grid grid-cols-5 gap-2">
-              <button
-                :for={{_image, idx} <- Enum.with_index(@product.images)}
-                phx-click="select_image"
-                phx-value-index={idx}
-                aria-label={"View image #{idx + 1}"}
-                class={[
-                  "aspect-square cursor-pointer overflow-hidden border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 motion-safe:transition-colors",
-                  if(idx == @current_image_index,
-                    do: "border-zinc-900",
-                    else: "border-[#E7E5E1] opacity-70 hover:border-zinc-400 hover:opacity-100"
-                  )
-                ]}
-              >
-                <.optimized_image
-                  src={Shared.current_image(@product, idx)}
-                  alt={"#{@product.title} thumbnail #{idx + 1}"}
-                  priority={:low}
-                  width={96}
-                  height={96}
-                  class="h-full w-full object-cover"
-                />
-              </button>
-            </div>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <%!-- Spec column --%>

@@ -581,14 +581,17 @@ defmodule EmakolaWeb.StoresLive do
     end
   end
 
+  # Same chain and same order as the grid card, so a shop does not change
+  # picture when it moves between the two. The merchant's cover leads: it is
+  # the image they chose to stand for the shop, while the product photo is
+  # whichever they happened to upload last and shifts under them as they add
+  # stock. The logo is not in the chain — see the note on the grid card.
   defp card_image_url(store) do
-    medium = Map.get(store, :card_image_medium_url)
-
-    case {medium, Map.get(store, :card_image_url)} do
-      {m, _} when is_binary(m) and m != "" -> m
-      {_, url} when is_binary(url) and url != "" -> url
-      _missing -> Map.get(store, :cover_image_url) || Map.get(store, :logo_url)
-    end
+    Emakola.Stores.ImageUrl.first_image([
+      Map.get(store, :cover_image_url),
+      Map.get(store, :card_image_medium_url),
+      Map.get(store, :card_image_url)
+    ])
   end
 
   defp load_slot(action) do

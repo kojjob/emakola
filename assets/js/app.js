@@ -36,6 +36,7 @@ import ChartHook from "./hooks/chart_hook"
 import UnsavedChanges from "./hooks/unsaved_changes"
 import SectionSortable from "./hooks/section_sortable"
 import QRScanner from "./hooks/qr_scanner"
+import GallerySwipe from "./hooks/gallery_swipe"
 
 // Scroll effects on dead pages (e.g. the landing page) and on the shared
 // marketing nav: bind by data attribute since phx-hook needs a LiveView.
@@ -57,7 +58,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable, QueueKeys, QRScanner},
+  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable, QueueKeys, QRScanner, GallerySwipe},
 })
 
 // Show progress bar on live navigation and form submits

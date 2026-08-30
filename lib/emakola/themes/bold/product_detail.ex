@@ -16,7 +16,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Catalog.Variant
   alias Emakola.Themes.Bold.Shared
@@ -83,62 +83,32 @@ defmodule Emakola.Themes.Bold.ProductDetail do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-12 lg:grid lg:grid-cols-5 lg:gap-12">
         <%!-- Image Gallery (3/5 = 60%) --%>
         <section class="lg:col-span-3" aria-label="Product images">
-          <div class="w-full aspect-[3/4] lg:aspect-[4/5] overflow-hidden bg-[#F1F5F9]">
-            <%= if current_image(@product, @current_image_index) do %>
-              <.optimized_image
-                src={current_image(@product, @current_image_index)}
-                alt={"#{@product.title} — image #{@current_image_index + 1}"}
-                priority={:high}
-                class="w-full h-full object-cover"
-              />
-            <% else %>
-              <div class="w-full h-full flex items-center justify-center">
-                <svg
-                  class="w-20 h-20 text-[#CBD5E1]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-            <% end %>
-          </div>
-          <%!-- Thumbnail strip --%>
-          <div
-            :if={length(@product.images) > 1}
-            class="flex gap-2 mt-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="Product image thumbnails"
+          <Gallery.product_gallery
+            images={@product.images}
+            current_index={@current_image_index}
+            alt={@product.title}
+            aspect_class="aspect-[3/4] lg:aspect-[4/5]"
+            frame_class="bg-[#F1F5F9]"
+            thumb_class="h-16 w-16 sm:h-20 sm:w-20"
+            thumb_active_class="border-[#0F172A]"
+            thumb_idle_class="border-transparent opacity-60 hover:opacity-100"
           >
-            <button
-              :for={{img, idx} <- Enum.with_index(@product.images)}
-              phx-click="select_image"
-              phx-value-index={idx}
-              role="tab"
-              aria-selected={idx == @current_image_index}
-              aria-label={"Image #{idx + 1}"}
-              class={[
-                "flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 overflow-hidden transition-all",
-                if(idx == @current_image_index,
-                  do: "ring-2 ring-[#0F172A] ring-offset-2",
-                  else: "opacity-60 hover:opacity-100"
-                )
-              ]}
-            >
-              <.optimized_image
-                src={(img && (Map.get(img, :thumbnail_url) || Map.get(img, :url))) || ""}
-                alt={"Thumbnail #{idx + 1}"}
-                priority={:low}
-                class="w-full h-full object-cover"
-              />
-            </button>
-          </div>
+            <:placeholder>
+              <svg
+                class="w-20 h-20 text-[#CBD5E1]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </:placeholder>
+          </Gallery.product_gallery>
         </section>
 
         <%!-- Product Info (2/5 = 40%) --%>
@@ -507,14 +477,6 @@ defmodule Emakola.Themes.Bold.ProductDetail do
   end
 
   # ── Helpers ──
-
-  defp current_image(product, index) do
-    case Enum.at(product.images, index) do
-      %{medium_url: url} when is_binary(url) -> url
-      %{url: url} when is_binary(url) -> url
-      _ -> Shared.first_image(product)
-    end
-  end
 
   # ── Back in Stock ──
   #

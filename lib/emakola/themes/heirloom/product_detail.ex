@@ -30,7 +30,8 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1, share_strip: 1]
+  import EmakolaWeb.StorefrontComponents, only: [share_strip: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.Heirloom.ProductList
@@ -63,60 +64,16 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
 
         <div class="mt-8 grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <div class="relative overflow-hidden rounded-[28px] bg-[color:var(--hl-tile)]">
-              <div class="aspect-[4/5]">
-                <.optimized_image
-                  src={current_image(@images, @current_image_index)}
-                  alt={@product.title}
-                  width={1000}
-                  height={1000}
-                  class="h-full w-full object-cover"
-                />
-              </div>
-
-              <button
-                :if={length(@images) > 1}
-                type="button"
-                phx-click="prev_image"
-                aria-label="Previous image"
-                class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[color:var(--hl-ink)] shadow hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--hl-accent)]"
-              >
-                &larr;
-              </button>
-              <button
-                :if={length(@images) > 1}
-                type="button"
-                phx-click="next_image"
-                aria-label="Next image"
-                class="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[color:var(--hl-ink)] shadow hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--hl-accent)]"
-              >
-                &rarr;
-              </button>
-            </div>
-
-            <ul :if={length(@images) > 1} class="mt-4 grid grid-cols-5 gap-3">
-              <li :for={{_image, idx} <- Enum.with_index(@images)}>
-                <button
-                  type="button"
-                  phx-click="select_image"
-                  phx-value-index={idx}
-                  aria-label={"Show image #{idx + 1}"}
-                  aria-current={@current_image_index == idx && "true"}
-                  class={[
-                    "aspect-square w-full overflow-hidden rounded-2xl bg-[color:var(--hl-tile)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--hl-accent)] focus-visible:ring-offset-2",
-                    @current_image_index == idx && "ring-2 ring-[color:var(--hl-ink)]"
-                  ]}
-                >
-                  <.optimized_image
-                    src={current_image(@images, idx)}
-                    alt=""
-                    width={200}
-                    height={200}
-                    class="h-full w-full object-cover"
-                  />
-                </button>
-              </li>
-            </ul>
+            <Gallery.product_gallery
+              images={@images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="rounded-[28px] bg-[color:var(--hl-tile)]"
+              thumb_class="h-20 w-20 rounded-2xl"
+              thumb_active_class="border-[color:var(--hl-ink)]"
+              thumb_idle_class="border-transparent hover:border-[color:var(--hl-accent)]"
+            />
           </div>
 
           <div>
@@ -284,14 +241,6 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
 
     <Shared.footer store={@store} categories={assigns[:categories] || []} />
     """
-  end
-
-  defp current_image([], _index), do: nil
-
-  defp current_image(images, index) do
-    sorted = Enum.sort_by(images, & &1.position)
-    image = Enum.at(sorted, index || 0) || List.first(sorted)
-    image && (image.url || image.thumbnail_url)
   end
 
   defp on_sale?(nil), do: false

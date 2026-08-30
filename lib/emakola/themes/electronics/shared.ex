@@ -204,7 +204,7 @@ defmodule Emakola.Themes.Electronics.Shared do
           :if={first_image(@product)}
           src={first_image(@product)}
           alt={@product.title}
-          class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div
           :if={!first_image(@product)}

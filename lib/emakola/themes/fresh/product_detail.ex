@@ -18,6 +18,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
 
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Fresh.Shared
   alias Emakola.Themes.Terms
@@ -106,55 +107,32 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           class="bg-white lg:rounded-3xl lg:overflow-hidden lg:shadow-md lg:shadow-emerald-50"
           aria-label="Product images"
         >
-          <div class="w-full aspect-[4/5] overflow-hidden bg-[#ECFDF5]/30">
-            <%= if current_image(@product, @current_image_index) do %>
-              <.optimized_image
-                src={current_image(@product, @current_image_index)}
-                alt={"#{@product.title} — image #{@current_image_index + 1}"}
-                priority={:high}
-                class="w-full h-full object-cover"
-              />
-            <% else %>
-              <div class="w-full h-full flex items-center justify-center">
-                <svg
-                  class="w-16 h-16 text-[#059669]/30"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-            <% end %>
-          </div>
-          <%!-- Dot indicators --%>
-          <div
-            :if={length(@product.images) > 1}
-            class="flex items-center justify-center gap-2.5 py-4 px-4"
-            role="tablist"
-            aria-label="Product image thumbnails"
+          <Gallery.product_gallery
+            images={@product.images}
+            current_index={@current_image_index}
+            alt={@product.title}
+            aspect_class="aspect-[4/5]"
+            frame_class="bg-[#ECFDF5]/30"
+            thumb_class="h-20 w-20 rounded-xl"
+            thumb_active_class="border-[#059669]"
+            thumb_idle_class="border-[#D9F99D] opacity-70 hover:opacity-100"
           >
-            <button
-              :for={{_img, idx} <- Enum.with_index(@product.images)}
-              phx-click="select_image"
-              phx-value-index={idx}
-              role="tab"
-              aria-selected={idx == @current_image_index}
-              aria-label={"Image #{idx + 1}"}
-              class={[
-                "h-2.5 rounded-full border-none transition-all cursor-pointer",
-                if(idx == @current_image_index,
-                  do: "w-8 bg-[#059669]",
-                  else: "w-2.5 bg-[#D9F99D] hover:bg-[#A3E635]"
-                )
-              ]}
-            />
-          </div>
+            <:placeholder>
+              <svg
+                class="w-20 h-20 text-[#A3E635]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </:placeholder>
+          </Gallery.product_gallery>
         </section>
 
         <%!-- Product Info Panel --%>
@@ -619,14 +597,6 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
   end
 
   # ── Helpers ──
-
-  defp current_image(product, index) do
-    case Enum.at(product.images, index) do
-      %{medium_url: url} when is_binary(url) -> url
-      %{url: url} when is_binary(url) -> url
-      _ -> Shared.first_image(product)
-    end
-  end
 
   @fresh_keywords ~w(fresh organic local farm natural)
 

@@ -199,6 +199,43 @@ defmodule EmakolaWeb.StoresLiveTest do
       refute has_element?(view, ~s(a[href="/accra-goods"]))
     end
 
+    test "a page link sitting in a picture field never reaches an img tag", %{conn: conn} do
+      # Two live merchants pasted their Instagram profile and their website
+      # into cover_image_url through the "Or paste a picture link" field, and
+      # /stores rendered a broken image for every shopper. The validation stops
+      # new ones; this stops the rows that predate it.
+      store =
+        Factory.create_store!(%{name: "Pasted Link", slug: "pasted-link"})
+        |> Ash.Seed.update!(%{
+          cover_image_url: "https://www.instagram.com/someone?igsi=abc",
+          logo_url: "https://www.makolaai.com/#download"
+        })
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      html = render(view)
+      assert has_element?(view, ~s(a[href="/pasted-link"])), "the shop should still be listed"
+      refute html =~ "instagram.com"
+      refute html =~ "makolaai.com"
+      assert store.slug == "pasted-link"
+    end
+
+    test "a page link cannot take the featured hero", %{conn: conn} do
+      Factory.create_store!(%{
+        name: "Pasted Hero",
+        slug: "pasted-hero",
+        featured: true,
+        featured_rank: 1
+      })
+      |> Ash.Seed.update!(%{cover_image_url: "https://www.instagram.com/someone"})
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      # No real picture anywhere, so the shop keeps its place in the grid but
+      # does not hold the big slot.
+      refute has_element?(view, ~s(#featured-hero[href="/pasted-hero"]))
+    end
+
     test "picking a region on the map filters the directory", %{conn: conn} do
       Factory.create_store!(%{name: "Volta Wares", slug: "volta-wares", region: "Volta"})
       Factory.create_store!(%{name: "Accra Goods", slug: "accra-goods", region: "Greater Accra"})
@@ -257,7 +294,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "carousel-star",
         featured: true,
         featured_rank: 1,
-        logo_url: "https://cdn.example/carousel-star.png",
+        cover_image_url: "https://cdn.example/carousel-star.png",
         tagline: "Hand-picked excellence"
       })
 
@@ -276,7 +313,7 @@ defmodule EmakolaWeb.StoresLiveTest do
           slug: String.replace(String.downcase(name), " ", "-"),
           featured: true,
           featured_rank: rank,
-          logo_url: "https://cdn.example/#{rank}.png"
+          cover_image_url: "https://cdn.example/#{rank}.png"
         })
       end
 
@@ -304,7 +341,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "photo-shop",
         featured: true,
         featured_rank: 2,
-        logo_url: "https://cdn.example/photo-shop.png"
+        cover_image_url: "https://cdn.example/photo-shop.png"
       })
 
       {:ok, view, _html} = live(conn, "/stores")
@@ -321,7 +358,7 @@ defmodule EmakolaWeb.StoresLiveTest do
       Factory.create_store!(%{
         name: "Merit Shop",
         slug: "merit-shop",
-        logo_url: "https://cdn.example/merit.png"
+        cover_image_url: "https://cdn.example/merit.png"
       })
       |> Ash.Changeset.for_update(:set_directory_standing, %{
         directory_eligible: true,
@@ -344,7 +381,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "only-shop",
         featured: true,
         featured_rank: 1,
-        logo_url: "https://cdn.example/only.png"
+        cover_image_url: "https://cdn.example/only.png"
       })
 
       {:ok, view, _html} = live(conn, "/stores")
@@ -379,7 +416,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "featured-apparel",
         featured: true,
         featured_rank: 1,
-        logo_url: "https://cdn.example/apparel.png",
+        cover_image_url: "https://cdn.example/apparel.png",
         theme_config: %{"theme" => "fashion"}
       })
 
@@ -405,7 +442,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "top-shop",
         featured: true,
         featured_rank: 1,
-        logo_url: "https://cdn.example/top-shop.png"
+        cover_image_url: "https://cdn.example/top-shop.png"
       })
 
       {:ok, view, _html} = live(conn, "/stores")

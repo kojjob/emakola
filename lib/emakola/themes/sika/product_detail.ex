@@ -14,7 +14,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
-  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+  alias Emakola.Themes.Gallery
 
   alias Emakola.Themes.Sika.Shared
   alias EmakolaWeb.Helpers.Currency
@@ -57,44 +57,20 @@ defmodule Emakola.Themes.Sika.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-14">
           <%!-- Image column --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="border border-[#E8E3D9] bg-white p-2 sm:p-3">
-              <div class="relative aspect-[4/5] overflow-hidden">
+            <Gallery.product_gallery
+              images={@product.images}
+              current_index={@current_image_index}
+              alt={@product.title}
+              aspect_class="aspect-[4/5]"
+              frame_class="border border-[#E8E3D9] bg-white"
+              thumb_class="h-20 w-20"
+              thumb_active_class="border-[#211D16]"
+              thumb_idle_class="border-[#E8E3D9] opacity-70 hover:opacity-100"
+            >
+              <:placeholder>
                 <Shared.tray name={@product.title} />
-                <.optimized_image
-                  :if={Shared.current_image(@product, @current_image_index)}
-                  src={Shared.current_image(@product, @current_image_index)}
-                  alt={"#{@product.title} — image #{@current_image_index + 1}"}
-                  priority={:high}
-                  width={720}
-                  height={720}
-                  class="absolute inset-0 h-full w-full object-cover"
-                />
-              </div>
-            </div>
-            <div :if={length(@product.images) > 1} class="mt-3 grid grid-cols-5 gap-2">
-              <button
-                :for={{_image, idx} <- Enum.with_index(@product.images)}
-                phx-click="select_image"
-                phx-value-index={idx}
-                aria-label={"View image #{idx + 1}"}
-                class={[
-                  "aspect-square cursor-pointer overflow-hidden border bg-white p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16]",
-                  if(idx == @current_image_index,
-                    do: "border-[#211D16]",
-                    else: "border-[#E8E3D9] opacity-70 hover:opacity-100"
-                  )
-                ]}
-              >
-                <.optimized_image
-                  src={Shared.current_image(@product, idx)}
-                  alt={"#{@product.title} thumbnail #{idx + 1}"}
-                  priority={:low}
-                  width={120}
-                  height={120}
-                  class="h-full w-full object-cover"
-                />
-              </button>
-            </div>
+              </:placeholder>
+            </Gallery.product_gallery>
           </div>
 
           <%!-- Detail column --%>
