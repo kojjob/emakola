@@ -132,6 +132,22 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     {store, product}
   end
 
+  # LiveView's own machinery is not theme copy, and it is random: the session
+  # blob and the root element id are base64, so a page can carry "P1GB" or
+  # "LC3TB" by chance. The spec patterns below (128GB, 40hrs) then match a
+  # string no merchant wrote and no shopper sees, and the suite fails on
+  # roughly one run in thirty with nothing wrong.
+  #
+  # A word boundary is not enough: base64 includes "+", "/" and "=", which are
+  # boundaries themselves. The machinery has to come out.
+  defp copy(html) do
+    html
+    |> String.replace(~r/data-phx-(?:session|static)="[^"]*"/, "")
+    |> String.replace(~r/\bid="phx-[^"]*"/, "")
+    |> String.replace(~r/\bname="_csrf_token"[^>]*value="[^"]*"/, "")
+    |> String.replace(~r/<meta name="csrf-token" content="[^"]*"\/?>/, "")
+  end
+
   describe "a theme states no fact about goods it knows nothing about" do
     for theme <- @all_themes do
       @theme theme
@@ -141,7 +157,7 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
 
         {:ok, _view, html} = live(conn, "/s/#{store.slug}")
 
-        refute html =~ @invented_claim,
+        refute copy(html) =~ @invented_claim,
                "the #{@theme} home page claims something about how this store's goods were made or sourced"
       end
 
@@ -150,7 +166,7 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
 
         {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
 
-        refute html =~ @invented_claim,
+        refute copy(html) =~ @invented_claim,
                "the #{@theme} PDP claims something about how this product was made or sourced"
       end
 
@@ -159,7 +175,7 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
 
         {:ok, _view, html} = live(conn, "/s/#{store.slug}/products")
 
-        refute html =~ @invented_claim,
+        refute copy(html) =~ @invented_claim,
                "the #{@theme} product list claims something about how these goods were made"
       end
     end
