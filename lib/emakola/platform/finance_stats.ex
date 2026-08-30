@@ -109,18 +109,32 @@ defmodule Emakola.Platform.FinanceStats do
   `total_platform_fees/0` (non-pending platform splits, reversals netted),
   bucketed in Elixir like `Stats.gmv_by_day/1`.
   """
+  # Daily platform-fee buckets, grouped and summed by Postgres. This used to
+  # read every platform split into memory and fold them in Elixir; the filter
+  # and the sum are the same ones `platform_fees_total/0` uses, so the numbers
+  # are unchanged — `amount - reversed_amount` over non-pending platform
+  # splits. A day with no fees is absent from the query and reads as zero.
   def platform_fees_by_day(days \\ 30) do
+    import Ecto.Query
+
     today = Date.utc_today()
     start_date = Date.add(today, -(days - 1))
 
-    fees_by_date =
-      platform_fee_splits()
-      |> Enum.group_by(&DateTime.to_date(&1.inserted_at))
+    totals =
+      from(s in PaymentSplit,
+        where: s.role == :platform and s.status != :pending,
+        where: fragment("?::date", s.inserted_at) >= ^start_date,
+        group_by: fragment("?::date", s.inserted_at),
+        select:
+          {fragment("?::date", s.inserted_at),
+           coalesce(type(sum(s.amount - s.reversed_amount), :integer), 0)}
+      )
+      |> Emakola.Repo.all()
+      |> Map.new()
 
     buckets =
       Enum.map(Date.range(start_date, today), fn date ->
-        daily_total = fees_by_date |> Map.get(date, []) |> Enum.map(&net_amount/1) |> Enum.sum()
-        {Calendar.strftime(date, "%b %d"), daily_total}
+        {Calendar.strftime(date, "%b %d"), Map.get(totals, date, 0)}
       end)
 
     %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
