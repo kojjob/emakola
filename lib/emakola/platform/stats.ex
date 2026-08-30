@@ -12,9 +12,22 @@ defmodule Emakola.Platform.Stats do
     end
   end
 
+  @doc """
+  Stores the marketplace actually serves.
+
+  Both switches, not one. `active` is the merchant's own open/closed flag;
+  `status` is the platform's, and archiving or suspending a store leaves
+  `active` untouched. Counting only the merchant flag reported stores that no
+  longer appear anywhere public — the tile read 41 while /stores served 39,
+  sitting beside a "total stores" of 41 and so implying every store was
+  healthy.
+
+  `total_stores/0` still counts everything on purpose: the platform's own
+  records should not lose a store because it was archived.
+  """
   def active_stores do
     Emakola.Stores.Store
-    |> Ash.Query.filter(active == true)
+    |> Ash.Query.filter(active == true and status == :active)
     |> Ash.count(authorize?: false)
     |> case do
       {:ok, count} -> count

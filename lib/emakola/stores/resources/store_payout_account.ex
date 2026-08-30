@@ -3,7 +3,19 @@ defmodule Emakola.Stores.StorePayoutAccount do
   A store's payout identity for trustless dropship settlement (SP1).
 
   Holds the gateway subaccount a payment split routes this store's money to,
-  plus whether that destination has been verified. One per store.
+  plus two independent facts about that destination:
+
+    * `verification_status` — the *gateway* fact. `:verified` means the
+      gateway accepted a subaccount for this destination.
+    * `payout_proven_at` — the *ownership* fact. Stamped when the merchant
+      answered a one-time code delivered to the payout wallet itself, which
+      is how Makola establishes identity now that L.I. 2523 has retired the
+      Ghana Card flow. A Ghana MoMo wallet is already KYC'd against a Ghana
+      Card by the telco, so control of the wallet inherits that verification
+      without Makola ever touching a card.
+
+  Both are proof about **one specific destination**. Point the account at a
+  different wallet and both are void — see `:update`. One per store.
 
   Deliberately a separate resource rather than columns on `Store`: the `Store`
   read policy is effectively public (storefront code reads it with no actor),
@@ -53,6 +65,14 @@ defmodule Emakola.Stores.StorePayoutAccount do
       public?(true)
     end
 
+    # When the merchant proved they control this wallet by answering a code
+    # sent to it. Nil until proven, and cleared whenever the destination
+    # changes — a code answered on the old number says nothing about the new
+    # one.
+    attribute :payout_proven_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -82,8 +102,28 @@ defmodule Emakola.Stores.StorePayoutAccount do
       accept([:store_id, :payout_provider, :payout_destination])
     end
 
+    # Verification and proof are claims about a specific destination, so
+    # repointing the account voids both. This closes a live money bug: a
+    # merchant could bind a real wallet, reach :verified, then swap the number
+    # and keep the badge while PayoutService transferred to the new, never
+    # checked number (it builds the recipient from the live destination, not
+    # from subaccount_code). Clearing subaccount_code matters too — the worker
+    # early-returns when one exists, so leaving it would settle to the old
+    # wallet forever.
     update :update do
+      require_atomic?(false)
       accept([:payout_destination])
+
+      change(fn changeset, _context ->
+        if Ash.Changeset.changing_attribute?(changeset, :payout_destination) do
+          changeset
+          |> Ash.Changeset.force_change_attribute(:verification_status, :unverified)
+          |> Ash.Changeset.force_change_attribute(:payout_proven_at, nil)
+          |> Ash.Changeset.force_change_attribute(:subaccount_code, nil)
+        else
+          changeset
+        end
+      end)
     end
 
     # Records the subaccount returned by the gateway and marks the account
@@ -91,6 +131,13 @@ defmodule Emakola.Stores.StorePayoutAccount do
     update :record_subaccount do
       accept([:subaccount_code])
       change(set_attribute(:verification_status, :verified))
+    end
+
+    # The merchant answered a one-time code delivered to the payout wallet.
+    update :record_payout_proof do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:payout_proven_at, &DateTime.utc_now/0))
     end
 
     read :get_by_store do

@@ -20,7 +20,7 @@ defmodule Emakola.Accounts.PhoneOtp do
     attribute(:purpose, :atom,
       allow_nil?: false,
       public?: false,
-      constraints: [one_of: [:merchant, :customer]]
+      constraints: [one_of: [:merchant, :customer, :payout]]
     )
 
     attribute(:store_id, :uuid, public?: false)
