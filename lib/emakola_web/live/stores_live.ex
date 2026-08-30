@@ -63,6 +63,10 @@ defmodule EmakolaWeb.StoresLive do
         # The hero photo is the page's LCP — preload it, not a static asset.
         preload_image: hero && card_image_url(hero),
         rails: Directory.rails(),
+        # Counted across the whole directory, not the page the shopper has
+        # scrolled to — the map used to tally its own paginated list and
+        # every region read zero.
+        region_counts: Emakola.Stores.region_counts(),
         current_customer: customer,
         favorite_slugs: favorite_slugs,
         favorite_stores: load_stores_by_slug(favorite_slugs),
@@ -467,7 +471,7 @@ defmodule EmakolaWeb.StoresLive do
           </section>
 
           <StoresComponents.map_view
-            stores={@map_stores}
+            counts={@region_counts}
             active_region={@active_region}
             open={@map_open}
           />

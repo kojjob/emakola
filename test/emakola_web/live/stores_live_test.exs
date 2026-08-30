@@ -22,7 +22,7 @@ defmodule EmakolaWeb.StoresLiveTest do
         slug: "akosua-boutique",
         description: "Handmade Ankara fashion from Accra",
         city: "Accra",
-        region: "greater_accra"
+        region: "Greater Accra"
       })
 
       Factory.create_store!(%{name: "Kente Collective", slug: "kente-collective"})
@@ -172,28 +172,67 @@ defmodule EmakolaWeb.StoresLiveTest do
     end
 
     test "region filter narrows by region", %{conn: conn} do
+      # Canonical region names throughout — the same strings `Store.region`
+      # holds. The filter used to offer snake_case slugs against a column
+      # storing "Greater Accra", so picking a region matched nothing.
       Factory.create_store!(%{
         name: "Accra Goods",
         slug: "accra-goods",
-        region: "greater_accra"
+        region: "Greater Accra"
       })
 
       Factory.create_store!(%{
         name: "Kumasi Crafts",
         slug: "kumasi-crafts",
-        region: "ashanti"
+        region: "Ashanti"
       })
 
       {:ok, view, _html} = live(conn, "/stores")
 
       view
       |> form("#stores-filter-form",
-        filters: %{region: "ashanti", sort: "featured"}
+        filters: %{region: "Ashanti", sort: "featured"}
       )
       |> render_change()
 
       assert has_element?(view, ~s(a[href="/kumasi-crafts"]))
       refute has_element?(view, ~s(a[href="/accra-goods"]))
+    end
+
+    test "picking a region on the map filters the directory", %{conn: conn} do
+      Factory.create_store!(%{name: "Volta Wares", slug: "volta-wares", region: "Volta"})
+      Factory.create_store!(%{name: "Accra Goods", slug: "accra-goods", region: "Greater Accra"})
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      view |> element("#stores-map-button") |> render_click()
+      assert has_element?(view, ~s([data-region="Volta"]))
+
+      view
+      |> element(~s(button[phx-value-region="Volta"]))
+      |> render_click()
+
+      assert has_element?(view, ~s(a[href="/volta-wares"]))
+      refute has_element?(view, ~s(a[href="/accra-goods"]))
+    end
+
+    test "the map counts every store in a region, not just the loaded page", %{conn: conn} do
+      # Fifteen shops against a twelve-per-page grid: a count derived from
+      # the page would say 12, and the old map said 0 for every region.
+      for n <- 1..15 do
+        Factory.create_store!(%{
+          name: "Accra Shop #{n}",
+          slug: "accra-shop-#{n}",
+          region: "Greater Accra"
+        })
+      end
+
+      {:ok, view, _html} = live(conn, "/stores")
+      view |> element("#stores-map-button") |> render_click()
+
+      html = render(view)
+      assert html =~ "15 stores"
+      refute html =~ "12 stores"
     end
 
     test "sort dropdown switches the order", %{conn: conn} do

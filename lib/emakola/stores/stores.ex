@@ -100,6 +100,34 @@ defmodule Emakola.Stores do
     |> Map.new()
   end
 
+  @doc """
+  Active-store counts per Ghanaian region, for the directory's map picker —
+  `%{"Greater Accra" => 6, "Ashanti" => 1, ...}`.
+
+  One GROUP BY over the whole directory. The map previously counted the
+  stores the page had paginated in so far, which made the numbers a function
+  of how far the shopper had scrolled, and looked them up under a snake_case
+  slug that `Store.region` never holds — so every region read "0 stores"
+  however many shops were in it.
+
+  Keyed by the canonical region name, the same string `list_with_filters`
+  matches on, so a key here can be handed straight to the region filter.
+  A region with no active stores is simply absent; callers treat a missing
+  key as zero.
+  """
+  @spec region_counts() :: %{String.t() => pos_integer()}
+  def region_counts do
+    import Ecto.Query
+
+    from(s in Emakola.Stores.Store,
+      where: s.active == true and s.status == :active and not is_nil(s.region),
+      group_by: s.region,
+      select: {s.region, count(s.id)}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
+  end
+
   @featuring_floor_flag "directory_featuring_floor"
 
   @doc """
