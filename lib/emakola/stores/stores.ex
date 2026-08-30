@@ -75,4 +75,28 @@ defmodule Emakola.Stores do
       define(:get_primary_custom_domain_by_slug, action: :get_primary_by_slug, args: [:slug])
     end
   end
+
+  @doc """
+  Active-store counts per theme, for the marketplace directory's filter
+  chips — `%{"market" => 12, "atelier" => 4, ...}`.
+
+  One GROUP BY instead of one COUNT per theme (the directory previously ran
+  ~11 sequential counts on every unguarded public-page mount). A store with
+  no `theme_config["theme"]` set falls back to `"market"`, mirroring
+  `Store.list_with_filters`'s theme-argument fallback. A theme with zero
+  active stores is simply absent — callers already treat a missing key the
+  same as zero (`Map.get(counts, id) && count > 0`).
+  """
+  @spec theme_counts() :: %{String.t() => pos_integer()}
+  def theme_counts do
+    import Ecto.Query
+
+    from(s in Emakola.Stores.Store,
+      where: s.active == true and s.status == :active,
+      group_by: fragment("COALESCE(?->>'theme', 'market')", s.theme_config),
+      select: {fragment("COALESCE(?->>'theme', 'market')", s.theme_config), count(s.id)}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
+  end
 end

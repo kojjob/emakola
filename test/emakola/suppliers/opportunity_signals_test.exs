@@ -41,4 +41,51 @@ defmodule Emakola.Suppliers.OpportunitySignalsTest do
     refute Map.has_key?(alert.metadata, "query")
     refute Map.has_key?(alert.metadata, "customer_id")
   end
+
+  test "dedup is scoped per offer — a second offer alerts even on the same day" do
+    item = fn offer_id ->
+      %{
+        supplier_alert?: true,
+        offer_id: offer_id,
+        wholesaler_store_id: "supplier-store",
+        title: "Item #{offer_id}",
+        views: 10,
+        searches: 2,
+        orders: 0
+      }
+    end
+
+    assert :ok = OpportunitySignals.emit_supplier_alerts([item.("offer-1")])
+    assert :ok = OpportunitySignals.emit_supplier_alerts([item.("offer-2")])
+
+    assert {:ok, alerts} = OpportunitySignals.supplier_alerts("supplier-store")
+    assert Enum.map(alerts, & &1.metadata["offer_id"]) |> Enum.sort() == ["offer-1", "offer-2"]
+  end
+
+  test "supplier_alerts/2 excludes another wholesaler's alerts" do
+    mine = %{
+      supplier_alert?: true,
+      offer_id: "offer-mine",
+      wholesaler_store_id: "my-store",
+      title: "Mine",
+      views: 5,
+      searches: 1,
+      orders: 0
+    }
+
+    theirs = %{
+      supplier_alert?: true,
+      offer_id: "offer-theirs",
+      wholesaler_store_id: "their-store",
+      title: "Theirs",
+      views: 5,
+      searches: 1,
+      orders: 0
+    }
+
+    assert :ok = OpportunitySignals.emit_supplier_alerts([mine, theirs])
+
+    assert {:ok, [alert]} = OpportunitySignals.supplier_alerts("my-store")
+    assert alert.metadata["offer_id"] == "offer-mine"
+  end
 end

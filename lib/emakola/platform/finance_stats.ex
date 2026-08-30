@@ -31,9 +31,7 @@ defmodule Emakola.Platform.FinanceStats do
   used to sum every `:platform` row regardless of status, overstating revenue.
   """
   def total_platform_fees do
-    platform_fee_splits()
-    |> Enum.map(&net_amount/1)
-    |> Enum.sum()
+    platform_fees_total()
   end
 
   @doc """
@@ -58,7 +56,7 @@ defmodule Emakola.Platform.FinanceStats do
   breakdown before approving a payout.
   """
   def per_store_finance do
-    fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
+    fees_by_store = platform_fees_by_store()
     legacy_by_store = sum_by_store(unsplit_success_payments(), &payable_amount/1)
 
     internal_by_store =
@@ -111,18 +109,32 @@ defmodule Emakola.Platform.FinanceStats do
   `total_platform_fees/0` (non-pending platform splits, reversals netted),
   bucketed in Elixir like `Stats.gmv_by_day/1`.
   """
+  # Daily platform-fee buckets, grouped and summed by Postgres. This used to
+  # read every platform split into memory and fold them in Elixir; the filter
+  # and the sum are the same ones `platform_fees_total/0` uses, so the numbers
+  # are unchanged — `amount - reversed_amount` over non-pending platform
+  # splits. A day with no fees is absent from the query and reads as zero.
   def platform_fees_by_day(days \\ 30) do
+    import Ecto.Query
+
     today = Date.utc_today()
     start_date = Date.add(today, -(days - 1))
 
-    fees_by_date =
-      platform_fee_splits()
-      |> Enum.group_by(&DateTime.to_date(&1.inserted_at))
+    totals =
+      from(s in PaymentSplit,
+        where: s.role == :platform and s.status != :pending,
+        where: fragment("?::date", s.inserted_at) >= ^start_date,
+        group_by: fragment("?::date", s.inserted_at),
+        select:
+          {fragment("?::date", s.inserted_at),
+           coalesce(type(sum(s.amount - s.reversed_amount), :integer), 0)}
+      )
+      |> Emakola.Repo.all()
+      |> Map.new()
 
     buckets =
       Enum.map(Date.range(start_date, today), fn date ->
-        daily_total = fees_by_date |> Map.get(date, []) |> Enum.map(&net_amount/1) |> Enum.sum()
-        {Calendar.strftime(date, "%b %d"), daily_total}
+        {Calendar.strftime(date, "%b %d"), Map.get(totals, date, 0)}
       end)
 
     %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
@@ -130,15 +142,37 @@ defmodule Emakola.Platform.FinanceStats do
 
   # ── helpers ────────────────────────────────────────────────────────
 
-  # Confirmed fee rows only — never :pending. Reversals are netted per row by
-  # net_amount/1 (a fully :reversed row nets to zero).
-  defp platform_fee_splits do
-    PaymentSplit
-    |> Ash.Query.filter(role == :platform and status != :pending)
-    |> Ash.read!(authorize?: false)
+  # Confirmed fee rows only — never :pending. Reversals are netted in the
+  # SUM itself (a fully :reversed row contributes zero). This filter is
+  # local to this module (not a shared named read action like
+  # :outstanding_for_payout below), so computing it directly in SQL carries
+  # no duplication risk — it was already the single definition, just moved
+  # from an Elixir Enum.sum over every matching row to a DB-side sum.
+  # `amount`/`reversed_amount` are `bigint` columns — Postgres's SUM(bigint)
+  # returns `numeric` (overflow-safe), which Postgrex decodes as `Decimal`.
+  # `type(..., :integer)` casts the aggregate back to a plain integer; money
+  # here is always minor-unit integers, never floats or decimals.
+  defp platform_fees_total do
+    import Ecto.Query
+
+    from(s in PaymentSplit,
+      where: s.role == :platform and s.status != :pending,
+      select: coalesce(type(sum(s.amount - s.reversed_amount), :integer), 0)
+    )
+    |> Emakola.Repo.one()
   end
 
-  defp net_amount(split), do: split.amount - split.reversed_amount
+  defp platform_fees_by_store do
+    import Ecto.Query
+
+    from(s in PaymentSplit,
+      where: s.role == :platform and s.status != :pending,
+      group_by: s.store_id,
+      select: {s.store_id, type(sum(s.amount - s.reversed_amount), :integer)}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
+  end
 
   # What PayoutService actually pays for a payment — the released
   # buyer-protection net when present, otherwise the gross amount. Kept in
