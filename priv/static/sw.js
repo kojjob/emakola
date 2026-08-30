@@ -1,7 +1,7 @@
 // Emakola Service Worker
 // Cache-first for static assets, network-first for HTML/API
 
-const CACHE_VERSION = "emakola-v2";
+const CACHE_VERSION = "emakola-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
