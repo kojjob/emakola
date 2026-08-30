@@ -66,6 +66,32 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// A picture that 404s leaves a broken frame — the browser's own torn-page
+// icon, or on some engines the alt text over a grey box. `Emakola.Stores.
+// ImageUrl` can only check the shape of a URL; whether the object is still
+// there is something only the browser finds out, and a merchant whose file was
+// deleted should not have that shown to shoppers.
+//
+// One delegated listener rather than an `onerror` attribute per image: the CSP
+// sets `script-src` with no `'unsafe-inline'`, so inline handlers are dropped
+// without a word. Load errors do not bubble, hence the capture phase.
+//
+// Hiding the image reveals whatever the container already draws behind it —
+// the themed gradient on a shop card, the initial-letter tile on a product.
+// Those are the same fallbacks a shop with no photo at all gets.
+window.addEventListener(
+  "error",
+  (event) => {
+    const el = event.target
+    if (!el || el.tagName !== "IMG" || el.dataset.imgFailed) return
+    // Marked so a LiveView patch that re-runs this cannot loop, and so the
+    // state is visible in the DOM when debugging a report of a missing photo.
+    el.dataset.imgFailed = "1"
+    el.hidden = true
+  },
+  true,
+)
+
 // Password visibility toggle (used by auth forms via JS.dispatch)
 window.addEventListener("toggle-password", (e) => {
   const input = e.target

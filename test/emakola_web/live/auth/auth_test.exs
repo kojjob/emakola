@@ -49,23 +49,42 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
     test "the login attempt limit reads from config so shared-IP suites can raise it",
          %{conn: conn} do
-      Application.put_env(:emakola, :auth_login_rate_limit, 2)
+      # LoginLive keys its limiter "auth_login:\#{ip}", and `ClientIp.resolve/1`
+      # falls back to the peer address when no forwarded header is present —
+      # 127.0.0.1 for every LiveView test in the suite. That put this test in
+      # one bucket with every other login test, so what it measured depended on
+      # what had run before it: the bucket could already be spent, and the
+      # 60-second window could then reset mid-test and let the attempt through.
+      # It failed in CI asserting a denial and getting "Invalid email or
+      # password". A forwarded address unique to this run gives it a bucket of
+      # its own.
+      ip = "203.0.113.#{System.unique_integer([:positive]) |> rem(250) |> Kernel.+(1)}"
+      conn = Plug.Conn.put_req_header(conn, "x-forwarded-for", ip)
+
+      limit = 2
+      Application.put_env(:emakola, :auth_login_rate_limit, limit)
       on_exit(fn -> Application.delete_env(:emakola, :auth_login_rate_limit) end)
 
       {:ok, view, _html} = live(conn, "/auth/login")
 
-      for _attempt <- 1..2 do
+      attempt = fn ->
         view
         |> form("form", user: %{email: "nobody@example.com", password: "wrong"})
         |> render_submit()
       end
 
-      denied_html =
-        view
-        |> form("form", user: %{email: "nobody@example.com", password: "wrong"})
-        |> render_submit()
+      # Up to the limit, every attempt is answered on its merits. This is the
+      # half that proves the configured number is the one being read: a limit
+      # left at the default, or dropped by another test, cannot deny here.
+      allowed = for _ <- 1..limit, do: attempt.()
+      refute Enum.any?(allowed, &(&1 =~ "Too many login attempts"))
 
-      assert denied_html =~ "Too many login attempts"
+      # Past it, the limiter engages. Two attempts rather than one because
+      # Hammer counts in fixed windows: a boundary falling between them resets
+      # the count, and one extra attempt covers that without the test having to
+      # know where the boundary is.
+      denied = for _ <- 1..2, do: attempt.()
+      assert Enum.any?(denied, &(&1 =~ "Too many login attempts"))
     end
 
     test "login with invalid credentials does not redirect", %{conn: conn} do
