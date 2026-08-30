@@ -7,14 +7,20 @@ defmodule Emakola.Themes.DesignTokens do
   Pure functions — no runtime overhead, pattern matching is compile-time optimized.
   """
 
+  # `navbar_layout`, `hero_layout` and `product_card_style` were removed on
+  # 2026-07-25. They were structural — each needed alternate markup in all 21
+  # themes — so no storefront ever read them. Two of the three had no UI at
+  # all, and the third moved only the studio's own preview. A control that
+  # shows a change, confirms the save and then discards it costs more trust
+  # than the feature was ever worth.
+  #
+  # `resolve/1` ignores keys absent from this map, so merchants who saved a
+  # value for them are unaffected: the stored key is simply dropped.
   @default_tokens %{
     button_style: "rounded",
     card_style: "shadow",
-    navbar_layout: "left",
     product_grid_columns: 3,
-    hero_layout: "full-bleed",
     footer_style: "columns",
-    product_card_style: "card",
     typography_scale: "default",
     heading_font: "sans",
     body_font: "sans"
@@ -59,14 +65,6 @@ defmodule Emakola.Themes.DesignTokens do
   def card_classes("bordered"), do: "bg-white border border-gray-200 rounded-xl"
   def card_classes(_), do: "bg-white shadow-md rounded-xl"
 
-  # -- Navbar Layout --
-
-  @doc "Returns Tailwind classes for navbar layout."
-  def navbar_classes("centered"), do: "justify-center"
-  def navbar_classes("left"), do: "justify-start"
-  def navbar_classes("hamburger"), do: "justify-between"
-  def navbar_classes(_), do: "justify-start"
-
   # -- Product Grid --
 
   @doc "Returns Tailwind grid classes for product columns."
@@ -78,14 +76,6 @@ defmodule Emakola.Themes.DesignTokens do
   def grid_classes("4"), do: grid_classes(4)
   def grid_classes(_), do: grid_classes(3)
 
-  # -- Hero Layout --
-
-  @doc "Returns the hero layout variant identifier."
-  def hero_layout("full-bleed"), do: :full_bleed
-  def hero_layout("split"), do: :split
-  def hero_layout("video"), do: :video
-  def hero_layout(_), do: :full_bleed
-
   # -- Footer Style --
 
   @doc "Returns the footer style variant identifier."
@@ -93,14 +83,6 @@ defmodule Emakola.Themes.DesignTokens do
   def footer_style("columns"), do: :columns
   def footer_style("mega"), do: :mega
   def footer_style(_), do: :columns
-
-  # -- Product Card Style --
-
-  @doc "Returns the product card variant identifier."
-  def product_card_style("card"), do: :card
-  def product_card_style("list"), do: :list
-  def product_card_style("magazine"), do: :magazine
-  def product_card_style(_), do: :card
 
   # -- Typography Scale --
 
@@ -288,30 +270,15 @@ defmodule Emakola.Themes.DesignTokens do
         %{value: "shadow", label: "Shadow", icon: "layers"},
         %{value: "bordered", label: "Bordered", icon: "check_box_outline_blank"}
       ],
-      navbar_layout: [
-        %{value: "left", label: "Left", icon: "format_align_left"},
-        %{value: "centered", label: "Centered", icon: "format_align_center"},
-        %{value: "hamburger", label: "Burger", icon: "menu"}
-      ],
       product_grid_columns: [
         %{value: 2, label: "2 Columns", icon: "grid_view"},
         %{value: 3, label: "3 Columns", icon: "grid_on"},
         %{value: 4, label: "4 Columns", icon: "apps"}
       ],
-      hero_layout: [
-        %{value: "full-bleed", label: "Full Bleed", icon: "panorama"},
-        %{value: "split", label: "Split", icon: "vertical_split"},
-        %{value: "video", label: "Video", icon: "play_circle"}
-      ],
       footer_style: [
         %{value: "minimal", label: "Minimal", icon: "minimize"},
         %{value: "columns", label: "Columns", icon: "view_column"},
         %{value: "mega", label: "Mega", icon: "dashboard"}
-      ],
-      product_card_style: [
-        %{value: "card", label: "Card", icon: "view_module"},
-        %{value: "list", label: "List", icon: "view_list"},
-        %{value: "magazine", label: "Magazine", icon: "article"}
       ],
       typography_scale: [
         %{value: "compact", label: "Compact", icon: "density_small"},
