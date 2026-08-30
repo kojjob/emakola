@@ -80,12 +80,27 @@ defmodule EmakolaWeb.LandingHTML do
           You already sell in your DMs. Makola gives you a link that takes MoMo —
           so you stop chasing transfer screenshots and start getting paid.
         </p>
-        <a
-          href="/auth/register"
-          class="inline-flex items-center px-8 py-4 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
-        >
-          Start selling — free
-        </a>
+        <%!--
+          Two audiences land here. The gold CTA leads because the page sells to
+          merchants, but a shopper had no way to the marketplace above the fold:
+          "Browse stores" sat sixth among grey nav links, behind the mobile
+          hamburger, and at the bottom of ten sections. It stacks on a phone and
+          pairs on wider screens, the same shape the closing CTA uses.
+        --%>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center px-8 py-4 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
+          >
+            Start selling — free
+          </a>
+          <a
+            href="/stores"
+            class="inline-flex items-center px-8 py-4 text-base font-semibold text-[#f1f5f9] border border-[#2a3a5c] rounded-lg hover:border-[#f1f5f9] transition-colors focus-visible:ring-2 focus-visible:ring-[#f1f5f9] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
+          >
+            Browse shops
+          </a>
+        </div>
         <p class="text-xs text-[#cbd5e1] mt-4">No credit card needed</p>
       </div>
     </section>

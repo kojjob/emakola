@@ -18,6 +18,23 @@ defmodule EmakolaWeb.LandingControllerTest do
       assert html =~ "No credit card needed"
     end
 
+    test "a shopper can reach the marketplace from the hero, not only the footer", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      # "Browse stores" lived in the nav (sixth grey link), the mobile menu
+      # (behind a tap) and the final CTA (bottom of ten sections). A shopper
+      # landing here had no visible route to the shops above the fold, on a
+      # page whose only hero CTA sells to merchants.
+      [hero, _rest] = String.split(html, "Built for how Ghana actually sells", parts: 2)
+
+      assert hero =~ ~s(href="/stores"), "the hero has no link to the marketplace"
+      assert hero =~ "Browse shops"
+
+      # Selling still leads: the gold CTA comes first in the source, so it is
+      # first for a screen reader and left-most in the pair.
+      assert :binary.match(hero, "Start selling — free") < :binary.match(hero, "Browse shops")
+    end
+
     # Cold-traffic repositioning: the page led with generic ecommerce features
     # (Discounts, Reports, Blog) while the differentiators shipped in #363/#364/
     # #367/#372-374 were invisible. Every claim below maps to shipped code.
