@@ -1,5 +1,25 @@
 # Single-Rail Settlement P1 — The Flip: Implementation Plan
 
+> ⛔ **BLOCKED — do not implement this plan yet.**
+>
+> The flip routes every charge onto a rail whose design *deliberately accepts platform
+> custody of all funds as float*: one Makola bank account holds buyer money — including
+> susu contributions and buyer-protection escrow — while a ledger allocates it. See
+> decision 1 of the design spec, which records custody as **accepted**.
+>
+> Holding customer funds that way is capable of being a regulated activity in Ghana under
+> the Payment Systems and Services Act 2019 (**Act 987**), which attaches licensing and
+> minimum-capital requirements to whoever holds the float. **No one has asked counsel.**
+> The design spec raises the question once, late and hedged; this plan does not raise it
+> at all — and this plan is the one an implementer would actually follow. The licence
+> research that exists (repo `kojjob/split_payment`,
+> `docs/research/2026-08-11-psp-licence-paths.md`) frames the question for SplitPay only,
+> not for Makola holding the float.
+>
+> Do not start the flip until that has an answer in writing. Nothing else here changes —
+> the architecture, phases and task list stay exactly as written. This is a gate, not a
+> rewrite.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Route every new charge onto the internal settlement rail so gateway subaccount
