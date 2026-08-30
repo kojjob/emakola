@@ -16,7 +16,7 @@ defmodule Emakola.Themes.Dede.Sections.Newsletter do
 
   @impl true
   def settings_schema do
-    [%{key: "heading", type: :string, label: "Heading", default: "Fresh pot alerts"}]
+    [%{key: "heading", type: :string, label: "Heading", default: "Hear it first"}]
   end
 
   @impl true
@@ -33,10 +33,10 @@ defmodule Emakola.Themes.Dede.Sections.Newsletter do
         >
           {if @settings["heading"] not in [nil, ""],
             do: @settings["heading"],
-            else: "Fresh pot alerts"}
+            else: "Hear it first"}
         </h2>
         <p class="mx-auto mt-2 max-w-[440px] text-sm leading-relaxed text-[#A8BAA5]">
-          Menu updates from {@store.name}, straight to your inbox.
+          News from {@store.name}, straight to your inbox.
         </p>
         <form
           id="dede-newsletter-form"

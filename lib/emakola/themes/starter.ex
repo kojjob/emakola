@@ -111,8 +111,6 @@ defmodule Emakola.Themes.Starter do
     to: Emakola.Themes.Starter.ProductDetail,
     as: :render
 
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   def storefront_nav(assigns) do
     Emakola.Themes.Starter.Shared.starter_nav(%{
       __changed__: nil,

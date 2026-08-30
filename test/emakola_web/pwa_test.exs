@@ -65,6 +65,20 @@ defmodule EmakolaWeb.PWATest do
       assert body =~ "caches"
     end
 
+    test "static assets are never served cache-first-forever", %{conn: conn} do
+      # A cache-first CSS/JS strategy plus a long-lived registration served
+      # merchants a stale stylesheet for weeks — the mobile drawer "opened"
+      # as a backdrop with no menu, because the slide-in rules lived in a
+      # CSS file the worker refused to refetch. Assets must revalidate.
+      body = get(conn, "/sw.js").resp_body
+
+      assert body =~ "staleWhileRevalidate"
+      refute body =~ ~s[cacheFirst(request, STATIC_CACHE)]
+      # The version bump is the recovery path for every browser already
+      # holding a v1 cache: activate deletes caches from other versions.
+      refute body =~ ~s["emakola-v1"]
+    end
+
     test "references offline fallback page", %{conn: conn} do
       conn = get(conn, "/sw.js")
       assert conn.resp_body =~ "offline.html"

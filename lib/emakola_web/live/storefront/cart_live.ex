@@ -151,32 +151,6 @@ defmodule EmakolaWeb.Storefront.CartLive do
   end
 
   @impl true
-  def handle_event("apply_promo", %{"promo" => promo}, socket) do
-    promo = String.trim(promo) |> String.upcase()
-
-    if promo == "WELCOME10" do
-      {:noreply,
-       socket
-       |> assign(:promo_code, promo)
-       |> assign(:promo_error, nil)
-       |> assign_totals(socket.assigns.cart)}
-    else
-      {:noreply,
-       socket
-       |> assign(:promo_error, "Invalid promo code. Please try again.")}
-    end
-  end
-
-  @impl true
-  def handle_event("remove_promo", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:promo_code, nil)
-     |> assign(:promo_error, nil)
-     |> assign_totals(socket.assigns.cart)}
-  end
-
-  @impl true
   def handle_event("update_promo_code", %{"promo_code" => code}, socket) do
     {:noreply, assign(socket, :promo_code, code)}
   end
@@ -212,6 +186,17 @@ defmodule EmakolaWeb.Storefront.CartLive do
      |> assign(:promo_error, nil)}
   end
 
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
+  end
+
   @impl true
   def render(assigns) do
     case Emakola.Themes.ThemeRenderer.theme_render(assigns, :cart) do
@@ -224,40 +209,23 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   defp reload_cart(socket) do
     cart = CartStore.get_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
-    total = cart_total(cart)
-
-    _discount =
-      if socket.assigns[:applied_coupon] do
-        calculate_discount(socket.assigns.applied_coupon, total)
-      else
-        0
-      end
 
     socket
     |> assign(:cart, cart)
     |> assign_totals(cart)
   end
 
+  # The preview promises only what checkout will charge: items. Shipping is
+  # calculated at checkout, coupons are applied at checkout, and no tax is
+  # charged anywhere — a tax line here would show the customer a total the
+  # checkout page then contradicts.
   defp assign_totals(socket, cart) do
     subtotal = cart_total(cart)
-
-    discount =
-      if socket.assigns[:promo_code] == "WELCOME10" do
-        trunc(subtotal * 0.10)
-      else
-        0
-      end
-
-    taxable = max(0, subtotal - discount)
-    tax = trunc(taxable * 0.08)
-    total = taxable + tax
 
     socket
     |> assign(:cart_count, cart_count(cart))
     |> assign(:cart_subtotal, subtotal)
-    |> assign(:cart_discount, discount)
-    |> assign(:cart_tax, tax)
-    |> assign(:cart_total, total)
+    |> assign(:cart_total, subtotal)
   end
 
   defp cart_count(cart) do

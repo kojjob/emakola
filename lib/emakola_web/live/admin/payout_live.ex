@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
   # Fixed display order for the accrual breakdown card, independent of
   # whichever roles happen to have splits.
-  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner]
+  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner, :affiliate]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -107,6 +107,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   defp role_label(:wholesaler), do: "Resales of your stock"
   defp role_label(:dropshipper), do: "Dropship margin"
   defp role_label(:credit_partner), do: "Credit repayment"
+  defp role_label(:affiliate), do: "Commission you paid"
 
   defp order_word(1), do: "order"
   defp order_word(_), do: "orders"
@@ -227,250 +228,258 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <header class="mb-6">
-        <h1 class="text-2xl font-semibold text-slate-900">Get paid</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          Tell us where to send your sales. Stored securely.
-        </p>
-      </header>
+    <section class="max-w-[1600px] mx-auto px-4 py-8 sm:px-6">
+      <.admin_page_header
+        title="Get paid"
+        subtitle="Tell us where to send your sales. Stored securely."
+        icon="hero-banknotes"
+      />
 
-      <.async_result :let={money} assign={@money}>
-        <:loading>
-          <div id="payout-money-loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div id="payout-tile-accrued">
-              <.money_tile
-                label="Accrued balance"
-                icon="hero-banknotes"
-                icon_class="text-emerald-600"
-                icon_bg="bg-emerald-50"
-                state={:loading}
-              />
-            </div>
-            <div id="payout-tile-held">
-              <.money_tile
-                label="Held by Buyer Protection"
-                icon="hero-lock-closed"
-                icon_class="text-amber-600"
-                icon_bg="bg-amber-50"
-                state={:loading}
-              />
-            </div>
-            <div id="payout-tile-legacy">
-              <.money_tile
-                label="Legacy outstanding"
-                icon="hero-clock"
-                icon_class="text-slate-600"
-                icon_bg="bg-slate-100"
-                state={:loading}
-              />
-            </div>
-          </div>
-        </:loading>
-        <:failed>
-          <div id="payout-money-failed" class="mb-6 space-y-3">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <%!-- Money on the left, the form that changes it on the right. The page
+            used to be one max-w-2xl column, which left two thirds of a laptop
+            screen empty and pushed the payout history below the fold. --%>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div class="lg:col-span-2 space-y-6">
+          <.async_result :let={money} assign={@money}>
+            <:loading>
+              <div id="payout-money-loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div id="payout-tile-accrued">
+                  <.money_tile
+                    label="Accrued balance"
+                    icon="hero-banknotes"
+                    icon_class="text-emerald-600"
+                    tone={:success}
+                    state={:loading}
+                  />
+                </div>
+                <div id="payout-tile-held">
+                  <.money_tile
+                    label="Held by Buyer Protection"
+                    icon="hero-lock-closed"
+                    icon_class="text-amber-600"
+                    state={:loading}
+                  />
+                </div>
+                <div id="payout-tile-legacy">
+                  <.money_tile
+                    label="Legacy outstanding"
+                    icon="hero-clock"
+                    icon_class="text-slate-600"
+                    state={:loading}
+                  />
+                </div>
+              </div>
+            </:loading>
+            <:failed>
+              <div id="payout-money-failed" class="mb-6 space-y-3">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div id="payout-tile-accrued">
+                    <.money_tile
+                      label="Accrued balance"
+                      icon="hero-banknotes"
+                      icon_class="text-emerald-600"
+                      tone={:success}
+                      state={:failed}
+                    />
+                  </div>
+                  <div id="payout-tile-held">
+                    <.money_tile
+                      label="Held by Buyer Protection"
+                      icon="hero-lock-closed"
+                      icon_class="text-amber-600"
+                      state={:failed}
+                    />
+                  </div>
+                  <div id="payout-tile-legacy">
+                    <.money_tile
+                      label="Legacy outstanding"
+                      icon="hero-clock"
+                      icon_class="text-slate-600"
+                      state={:failed}
+                    />
+                  </div>
+                </div>
+                <p class="text-sm text-slate-500">
+                  Couldn't load your payout numbers. Refresh the page to try again.
+                </p>
+              </div>
+            </:failed>
+
+            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div id="payout-tile-accrued">
                 <.money_tile
                   label="Accrued balance"
+                  value={Currency.format_price(money.accrued, @currency)}
                   icon="hero-banknotes"
                   icon_class="text-emerald-600"
-                  icon_bg="bg-emerald-50"
-                  state={:failed}
+                  tone={:success}
                 />
               </div>
               <div id="payout-tile-held">
                 <.money_tile
                   label="Held by Buyer Protection"
+                  value={Currency.format_price(money.held, @currency)}
                   icon="hero-lock-closed"
                   icon_class="text-amber-600"
-                  icon_bg="bg-amber-50"
-                  state={:failed}
+                  tone={:warning}
                 />
               </div>
               <div id="payout-tile-legacy">
                 <.money_tile
                   label="Legacy outstanding"
+                  value={Currency.format_price(money.legacy, @currency)}
                   icon="hero-clock"
                   icon_class="text-slate-600"
-                  icon_bg="bg-slate-100"
-                  state={:failed}
                 />
               </div>
             </div>
-            <p class="text-sm text-slate-500">
-              Couldn't load your payout numbers. Refresh the page to try again.
-            </p>
-          </div>
-        </:failed>
 
-        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div id="payout-tile-accrued">
-            <.money_tile
-              label="Accrued balance"
-              value={Currency.format_price(money.accrued, @currency)}
-              icon="hero-banknotes"
-              icon_class="text-emerald-600"
-              icon_bg="bg-emerald-50"
-            />
+            <%!-- The nudge used to live inside the first tile's grid cell, where it
+              overflowed the row and printed on top of the card below. It is a
+              message about the page, not about one tile — so it spans the row. --%>
             <div
               :if={money.nudge?}
-              class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+              class="mb-6 flex items-center gap-3 rounded-card border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
             >
+              <.icon name="hero-exclamation-triangle" class="size-6 shrink-0 text-amber-600" />
               Your balance is waiting — add your mobile money number to get paid out.
             </div>
-          </div>
-          <div id="payout-tile-held">
-            <.money_tile
-              label="Held by Buyer Protection"
-              value={Currency.format_price(money.held, @currency)}
-              icon="hero-lock-closed"
-              icon_class="text-amber-600"
-              icon_bg="bg-amber-50"
-            />
-          </div>
-          <div id="payout-tile-legacy">
-            <.money_tile
-              label="Legacy outstanding"
-              value={Currency.format_price(money.legacy, @currency)}
-              icon="hero-clock"
-              icon_class="text-slate-600"
-              icon_bg="bg-slate-100"
-            />
-          </div>
+
+            <div
+              :if={money.breakdown != []}
+              id="payout-breakdown"
+              class="mb-6 rounded-lg border border-slate-200 bg-white p-5"
+            >
+              <h2 class="mb-3 text-sm font-semibold text-slate-700">Balance breakdown</h2>
+              <div
+                :for={row <- money.breakdown}
+                class="flex items-center justify-between border-b border-slate-100 py-2 last:border-0"
+              >
+                <span class="text-sm text-slate-700">{role_label(row.role)}</span>
+                <span class="text-xs text-slate-500">
+                  {row.count} {order_word(row.count)} · oldest {Layouts.relative_time(
+                    row.oldest_inserted_at
+                  )} ago
+                </span>
+              </div>
+            </div>
+
+            <div id="payout-history" class="mb-6">
+              <h2 class="mb-3 text-sm font-semibold text-slate-700">Recent payouts</h2>
+              <.empty_state
+                :if={money.history == []}
+                icon="hero-banknotes"
+                title="No payouts yet"
+                description="Once Makola issues your first payout, it'll show up here."
+              />
+              <div
+                :if={money.history != []}
+                class="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+              >
+                <table class="min-w-full divide-y divide-slate-100">
+                  <thead>
+                    <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <th class="px-4 py-2">Date</th>
+                      <th class="px-4 py-2">Amount</th>
+                      <th class="px-4 py-2">Basis</th>
+                      <th class="px-4 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr :for={payout <- money.history} class="border-t border-slate-100">
+                      <td class="px-4 py-3 text-sm text-slate-500">
+                        {format_payout_date(payout.inserted_at)}
+                      </td>
+                      <td class="px-4 py-3 text-sm font-medium tabular-nums text-slate-900">
+                        {Currency.format_price(payout.amount, payout.currency)}
+                      </td>
+                      <td class="px-4 py-3">
+                        <.pill
+                          classes={basis_pill_classes(payout.basis)}
+                          dot={basis_pill_dot(payout.basis)}
+                          label={basis_pill_label(payout.basis)}
+                        />
+                      </td>
+                      <td class="px-4 py-3">
+                        <.pill
+                          classes={status_pill_classes(payout.status)}
+                          dot={status_pill_dot(payout.status)}
+                          label={status_pill_label(payout.status)}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </.async_result>
         </div>
 
-        <div
-          :if={money.breakdown != []}
-          id="payout-breakdown"
-          class="mb-6 rounded-lg border border-slate-200 bg-white p-5"
-        >
-          <h2 class="mb-3 text-sm font-semibold text-slate-700">Balance breakdown</h2>
-          <div
-            :for={row <- money.breakdown}
-            class="flex items-center justify-between border-b border-slate-100 py-2 last:border-0"
+        <div class="space-y-6 lg:sticky lg:top-6">
+          <.destination_notice account={@account} />
+
+          <.form
+            for={@payout_form}
+            id="payout-form"
+            phx-submit="save"
+            phx-change="validate"
+            class="space-y-5 rounded-lg border border-slate-200 bg-white p-6"
           >
-            <span class="text-sm text-slate-700">{role_label(row.role)}</span>
-            <span class="text-xs text-slate-500">
-              {row.count} {order_word(row.count)} · oldest {Layouts.relative_time(
-                row.oldest_inserted_at
-              )} ago
-            </span>
-          </div>
+            <div>
+              <.input
+                field={@payout_form[:method]}
+                type="select"
+                label="Payout method"
+                options={[{"Mobile money", "mobile_money"}, {"Bank account", "bank"}]}
+                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+
+            <div :if={@method == "mobile_money"} class="space-y-4">
+              <div>
+                <.input
+                  field={@payout_form[:provider]}
+                  type="select"
+                  label="Provider"
+                  options={[
+                    {"MTN MoMo", "mtn"},
+                    {"Telecel / Telecel Cash", "vodafone"},
+                    {"AirtelTigo Money", "airteltigo"}
+                  ]}
+                  class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+              <.text_field
+                field={@payout_form[:number]}
+                label="Mobile money number"
+              />
+              <.text_field
+                field={@payout_form[:account_name]}
+                label="Account name"
+              />
+            </div>
+
+            <div :if={@method == "bank"} class="space-y-4">
+              <.text_field field={@payout_form[:bank_name]} label="Bank" />
+              <.text_field
+                field={@payout_form[:account_number]}
+                label="Account number"
+              />
+              <.text_field
+                field={@payout_form[:account_name]}
+                label="Account name"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              {if @account, do: "Update payout details", else: "Save payout details"}
+            </button>
+          </.form>
         </div>
-
-        <div id="payout-history" class="mb-6">
-          <h2 class="mb-3 text-sm font-semibold text-slate-700">Recent payouts</h2>
-          <.empty_state
-            :if={money.history == []}
-            icon="hero-banknotes"
-            title="No payouts yet"
-            description="Once Makola issues your first payout, it'll show up here."
-          />
-          <div
-            :if={money.history != []}
-            class="overflow-x-auto rounded-lg border border-slate-200 bg-white"
-          >
-            <table class="min-w-full divide-y divide-slate-100">
-              <thead>
-                <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-400">
-                  <th class="px-4 py-2">Date</th>
-                  <th class="px-4 py-2">Amount</th>
-                  <th class="px-4 py-2">Basis</th>
-                  <th class="px-4 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={payout <- money.history} class="border-t border-slate-100">
-                  <td class="px-4 py-3 text-sm text-slate-500">
-                    {format_payout_date(payout.inserted_at)}
-                  </td>
-                  <td class="px-4 py-3 text-sm font-medium tabular-nums text-slate-900">
-                    {Currency.format_price(payout.amount, payout.currency)}
-                  </td>
-                  <td class="px-4 py-3">
-                    <.pill
-                      classes={basis_pill_classes(payout.basis)}
-                      dot={basis_pill_dot(payout.basis)}
-                      label={basis_pill_label(payout.basis)}
-                    />
-                  </td>
-                  <td class="px-4 py-3">
-                    <.pill
-                      classes={status_pill_classes(payout.status)}
-                      dot={status_pill_dot(payout.status)}
-                      label={status_pill_label(payout.status)}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </.async_result>
-
-      <.destination_notice account={@account} />
-
-      <.form
-        for={@payout_form}
-        id="payout-form"
-        phx-submit="save"
-        phx-change="validate"
-        class="space-y-5 rounded-lg border border-slate-200 bg-white p-6"
-      >
-        <div>
-          <.input
-            field={@payout_form[:method]}
-            type="select"
-            label="Payout method"
-            options={[{"Mobile money", "mobile_money"}, {"Bank account", "bank"}]}
-            class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          />
-        </div>
-
-        <div :if={@method == "mobile_money"} class="space-y-4">
-          <div>
-            <.input
-              field={@payout_form[:provider]}
-              type="select"
-              label="Provider"
-              options={[
-                {"MTN MoMo", "mtn"},
-                {"Telecel / Telecel Cash", "vodafone"},
-                {"AirtelTigo Money", "airteltigo"}
-              ]}
-              class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
-          </div>
-          <.text_field
-            field={@payout_form[:number]}
-            label="Mobile money number"
-          />
-          <.text_field
-            field={@payout_form[:account_name]}
-            label="Account name"
-          />
-        </div>
-
-        <div :if={@method == "bank"} class="space-y-4">
-          <.text_field field={@payout_form[:bank_name]} label="Bank" />
-          <.text_field
-            field={@payout_form[:account_number]}
-            label="Account number"
-          />
-          <.text_field
-            field={@payout_form[:account_name]}
-            label="Account name"
-          />
-        </div>
-
-        <button
-          type="submit"
-          class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-        >
-          {if @account, do: "Update payout details", else: "Save payout details"}
-        </button>
-      </.form>
+      </div>
     </section>
     """
   end
@@ -481,13 +490,13 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   attr :value, :string, default: nil
   attr :icon, :string, required: true
   attr :icon_class, :string, required: true
-  attr :icon_bg, :string, required: true
+  attr :tone, :atom, default: :neutral
   attr :state, :atom, default: :ok, values: [:ok, :loading, :failed]
 
   defp money_tile(%{state: :loading} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
       <:delta>
         <div class="mt-2 h-7 w-24 animate-pulse rounded bg-slate-200" aria-hidden="true"></div>
         <span class="sr-only">Loading {@label}</span>
@@ -498,16 +507,16 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
   defp money_tile(%{state: :failed} = assigns) do
     ~H"""
-    <.stat_card label={@label} value="—" icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value="—" tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end
 
   defp money_tile(assigns) do
     ~H"""
-    <.stat_card label={@label} value={@value} icon_bg={@icon_bg}>
-      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    <.stat_card label={@label} value={@value} tone={@tone}>
+      <:icon><.icon name={@icon} class="size-7" /></:icon>
     </.stat_card>
     """
   end

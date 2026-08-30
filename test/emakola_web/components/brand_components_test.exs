@@ -1,0 +1,134 @@
+defmodule EmakolaWeb.BrandComponentsTest do
+  use ExUnit.Case, async: true
+
+  import Phoenix.LiveViewTest
+
+  alias EmakolaWeb.BrandComponents
+
+  # The slit is the one path present in every variant — assert on it rather than
+  # on the whole mark, so re-tuning the teeth never breaks these tests.
+  @slit ~s(d="M31 11 C27 21 27 43 30 53")
+
+  describe "logo_mark/1" do
+    test "renders the coin mark, still, by default" do
+      html = render_component(&BrandComponents.logo_mark/1, [])
+
+      assert html =~ @slit
+      refute html =~ "logo-reveal"
+      refute html =~ "logo-loading"
+    end
+
+    test "each motion state adds only its own class" do
+      for {motion, class} <- [
+            {"reveal", "logo-reveal"},
+            {"loading", "logo-loading"},
+            {"awaiting", "logo-awaiting"},
+            {"paid", "logo-paid"},
+            {"splash", "logo-splash"}
+          ] do
+        html = render_component(&BrandComponents.logo_mark/1, motion: motion)
+
+        assert html =~ class, "expected #{motion} to render #{class}"
+        assert html =~ @slit
+      end
+    end
+
+    test "the ten teeth are individually animatable in every state" do
+      for motion <- ~w(none reveal loading awaiting paid splash) do
+        html = render_component(&BrandComponents.logo_mark/1, motion: motion)
+
+        assert html |> String.split(~s(class="logo-tooth")) |> length() == 11,
+               "expected #{motion} to draw ten separate teeth"
+      end
+    end
+
+    test "the awaiting state adds a coin, drawn after the face so it lands on the shell" do
+      html = render_component(&BrandComponents.logo_mark/1, motion: "awaiting")
+
+      assert html =~ "logo-coin"
+      # Painted after the face, so it stays visible until it sinks into the slit.
+      assert :binary.match(html, "logo-face") < :binary.match(html, "logo-coin")
+    end
+
+    test "the paid state adds the tick, and nothing else does" do
+      assert render_component(&BrandComponents.logo_mark/1, motion: "paid") =~ "logo-tick"
+      refute render_component(&BrandComponents.logo_mark/1, motion: "reveal") =~ "logo-tick"
+    end
+
+    test "states that do not need extra elements do not pay for them" do
+      html = render_component(&BrandComponents.logo_mark/1, motion: "reveal")
+
+      refute html =~ "logo-coin"
+      refute html =~ "logo-tick"
+    end
+
+    test "the coin is tone-invariant — gold and ink read on light and dark alike" do
+      dark = render_component(&BrandComponents.logo_mark/1, tone: "reversed")
+      light = render_component(&BrandComponents.logo_mark/1, [])
+
+      assert dark == light
+    end
+
+    test "gold stays gold in both tones — it is the one fixed colour" do
+      for tone <- ~w(ink reversed) do
+        assert render_component(&BrandComponents.logo_mark/1, tone: tone) =~ "#d4a843"
+      end
+    end
+
+    test "size drives both dimensions" do
+      html = render_component(&BrandComponents.logo_mark/1, size: 64)
+
+      assert html =~ ~s(width="64")
+      assert html =~ ~s(height="64")
+    end
+
+    test "it is decorative unless given a label" do
+      assert render_component(&BrandComponents.logo_mark/1, []) =~ ~s(aria-hidden="true")
+
+      labelled = render_component(&BrandComponents.logo_mark/1, label: "Makola.io")
+      assert labelled =~ ~s(aria-label="Makola.io")
+      assert labelled =~ ~s(role="img")
+      refute labelled =~ "aria-hidden"
+    end
+
+    test "extra classes are kept alongside the motion class" do
+      html = render_component(&BrandComponents.logo_mark/1, motion: "reveal", class: "shrink-0")
+
+      assert html =~ "shrink-0"
+      assert html =~ "logo-reveal"
+    end
+  end
+
+  describe "brand_loader/1" do
+    test "puts the mark in its loading state above a label" do
+      html = render_component(&BrandComponents.brand_loader/1, label: "Checking invite")
+
+      assert html =~ "logo-loading"
+      assert html =~ "Checking invite"
+    end
+
+    test "announces itself to a screen reader without the mark speaking twice" do
+      html = render_component(&BrandComponents.brand_loader/1, [])
+
+      assert html =~ ~s(role="status")
+      assert html =~ ~s(aria-live="polite")
+      # The label carries the text; the mark stays decorative.
+      assert html =~ ~s(aria-hidden="true")
+    end
+
+    test "labels itself when not told otherwise" do
+      assert render_component(&BrandComponents.brand_loader/1, []) =~ "Loading"
+    end
+
+    test "passes tone and size through to the mark" do
+      html = render_component(&BrandComponents.brand_loader/1, tone: "reversed", size: 72)
+
+      assert html =~ "#d4a843"
+      assert html =~ ~s(width="72")
+    end
+
+    test "extra classes survive" do
+      assert render_component(&BrandComponents.brand_loader/1, class: "py-24") =~ "py-24"
+    end
+  end
+end

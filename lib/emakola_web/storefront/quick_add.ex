@@ -39,7 +39,9 @@ defmodule EmakolaWeb.Storefront.QuickAdd do
         variant_id: variant.id,
         quantity: 1,
         product_title: product.title,
-        variant_info: variant.sku || "",
+        # The quick-add always takes the default variant, so there is no
+        # option choice to describe — and a SKU is not a customer-facing label.
+        variant_info: "",
         unit_price: variant.price,
         sku: variant.sku,
         image_url: primary_image_url(product)

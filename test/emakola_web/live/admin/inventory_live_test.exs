@@ -16,6 +16,107 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     {:ok, conn: conn, store: store, merchant: merchant}
   end
 
+  describe "InventoryLive redesign" do
+    test "filter tabs carry stock-band counts", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Kente Scarf"})
+      Factory.create_variant!(product, store, %{stock_quantity: 15, sku: "IN-1"})
+      Factory.create_variant!(product, store, %{stock_quantity: 4, sku: "LOW-1"})
+      Factory.create_variant!(product, store, %{stock_quantity: 0, sku: "OUT-1"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=in_stock]", "1")
+      assert has_element?(view, "#inventory-filter-tabs button[phx-value-status=low_stock]", "1")
+
+      assert has_element?(
+               view,
+               "#inventory-filter-tabs button[phx-value-status=out_of_stock]",
+               "1"
+             )
+    end
+
+    test "rows render a stock meter beside the quantity", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Shea Butter"})
+      Factory.create_variant!(product, store, %{stock_quantity: 4, sku: "SHEA-1"})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "bg-amber-500"
+    end
+
+    test "rows lead with a product thumbnail", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Bolga Basket"})
+      Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "BOL-1"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      # No image uploaded yet, so the thumb falls back to the photo icon.
+      assert has_element?(view, "tbody span.hero-photo")
+    end
+  end
+
+  describe "scanning a shelf label" do
+    test "offers a scanner, and the camera only mounts once opened", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      assert has_element?(view, "#scan-stock-open")
+      refute has_element?(view, "#stock-scanner video")
+
+      render_click(view, "open_scanner", %{})
+      assert has_element?(view, "#stock-scanner video")
+    end
+
+    test "a scanned label narrows the list to that product", %{conn: conn, store: store} do
+      wanted = Factory.create_product!(store, %{title: "Kente Wrap Dress"})
+      Factory.create_variant!(wanted, store, %{sku: "KENTE-1", stock_quantity: 5})
+
+      other = Factory.create_product!(store, %{title: "Ankara Shirt"})
+      Factory.create_variant!(other, store, %{sku: "ANKARA-1", stock_quantity: 5})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{"value" => EmakolaWeb.QR.product_url(store, wanted)})
+
+      assert html =~ "Kente Wrap Dress"
+      refute html =~ "Ankara Shirt"
+    end
+
+    test "another store's label matches nothing here", %{conn: conn} do
+      elsewhere = Factory.create_store!()
+      theirs = Factory.create_product!(elsewhere, %{title: "Someone Elses Item"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{
+          "value" => EmakolaWeb.QR.product_url(elsewhere, theirs)
+        })
+
+      assert html =~ "Nothing here matches that code"
+      refute html =~ "Someone Elses Item"
+    end
+
+    test "a hostile payload never becomes a destination", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "qr_scanned", %{"value" => "https://evil.example/admin/inventory"})
+
+      assert html =~ "Nothing here matches that code"
+    end
+
+    test "a merchant with no working camera is told", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+      render_click(view, "open_scanner", %{})
+
+      assert render_hook(view, "scan_camera_unavailable", %{}) =~ "No camera"
+    end
+  end
+
   describe "InventoryLive page rendering" do
     test "renders page with stat cards", %{conn: conn, store: store} do
       product = Factory.create_product!(store, %{title: "Test Product"})

@@ -46,19 +46,32 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     {conn, session_id}
   end
 
+  defp to_shipping_step(view) do
+    render_submit(view, "submit_details", %{"phone" => "0244123456", "fullname" => "Ama Mensah"})
+  end
+
+  defp to_payment_step(view) do
+    to_shipping_step(view)
+    render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
+  end
+
   # -- Mount --
 
   describe "mount/3" do
-    test "renders single-page checkout with all sections", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+    test "renders checkout one step at a time", %{conn: conn, store: store} do
+      {:ok, view, html} = live(conn, "/s/#{store.slug}/checkout")
 
       assert html =~ "Contact"
       assert html =~ "Phone number"
       assert html =~ "Full name"
-      assert html =~ "Shipping Address"
-      assert html =~ "Delivery Method"
-      assert html =~ "Payment"
-      assert html =~ "Place Order"
+
+      shipping = to_shipping_step(view)
+      assert shipping =~ "Shipping Address"
+      assert shipping =~ "Delivery Method"
+
+      payment = render_submit(view, "submit_delivery", %{"address" => "House 14, Osu"})
+      assert payment =~ "Payment"
+      assert payment =~ "Place Order"
     end
 
     test "loads cart items from CartStore session", %{conn: conn, store: store, variant: variant} do
@@ -124,6 +137,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   describe "payment method selection" do
     test "selects card payment method", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      to_payment_step(view)
 
       html = render_click(view, "select_payment", %{"method" => "card"})
 
@@ -131,7 +145,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "shows MTN MoMo selected by default", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_payment_step(view)
 
       assert html =~ "MTN MoMo"
       assert html =~ "prompt will appear on your phone"
@@ -139,6 +154,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     test "shows COD info when selected", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      to_payment_step(view)
 
       html = render_click(view, "select_payment", %{"method" => "cod"})
 
@@ -300,7 +316,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       conn: conn,
       store: store
     } do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_shipping_step(view)
 
       assert html =~ ~s(name="digital_address")
       assert html =~ ~s(name="landmark")
@@ -717,7 +734,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   describe "region select" do
     test "renders all 16 canonical regions plus Other", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      html = to_shipping_step(view)
 
       # Count option elements in the region select
       option_count = Regex.scan(~r/<option[^>]*>/, html) |> length()
@@ -1026,6 +1044,91 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert Emakola.Orders.Order
              |> Ash.Query.filter(store_id == ^store.id)
              |> Ash.read!(authorize?: false) == []
+    end
+
+    # Found by the production smoke test: the gate keyed on requires_shipping,
+    # which a physical item flips true — so a MIXED cart sailed past it and the
+    # digital line item minted a customer_id: nil grant nobody can ever redeem.
+    # Taking money for an unredeemable download is the exact thing the gate
+    # exists to prevent, so a mixed guest cart must be refused too.
+    test "a guest is refused a MIXED digital+physical cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Guest Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      assert Emakola.Orders.Order
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.read!(authorize?: false) == []
+    end
+
+    test "a signed-in customer CAN buy a mixed cart", %{conn: conn} do
+      store = digital_store_fixture!()
+      {conn, _digital_variant} = digital_cart(conn, store)
+      {conn, _customer} = sign_in_customer(conn, store)
+
+      physical = create_product!(store, %{title: "Tote"})
+
+      physical_variant =
+        create_variant!(physical, store,
+          price: 3000,
+          stock_quantity: 5,
+          sku: "TOTE-#{System.unique_integer([:positive])}"
+        )
+
+      cart_session_id = conn.private.plug_session["cart_session_id"]
+
+      CartStore.add_item(cart_session_id, store.id, %{
+        variant_id: physical_variant.id,
+        product_title: "Tote",
+        variant_info: "TOTE",
+        unit_price: 3000,
+        quantity: 1,
+        sku: "TOTE"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "244123456",
+        "fullname" => "Ama Buyer",
+        "address" => "12 Oxford St",
+        "region" => "greater_accra"
+      })
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(orders) == 1
     end
 
     # Regression: phone-first guest checkout for physical goods is the dominant

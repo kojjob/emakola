@@ -45,6 +45,24 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       end
     end
 
+    test "no renderer calls the generic bottom bar directly" do
+      # The mobile bottom bar dispatches through Chrome.bottom_nav so a theme
+      # with its own bar keeps it on fallback pages. A direct
+      # `<.bottom_nav` / StorefrontComponents.bottom_nav call reintroduces
+      # the generic Home/Search/Saved/Cart bar mid-store.
+      for file <- renderer_files() do
+        source = File.read!(file)
+
+        refute source =~ ~r/<\.bottom_nav[\s\/]/,
+               "#{Path.basename(file)} calls the generic bottom_nav directly — " <>
+                 "use Emakola.Themes.DefaultRenderers.Chrome.bottom_nav instead"
+
+        refute source =~ "StorefrontComponents.bottom_nav",
+               "#{Path.basename(file)} calls the generic bottom_nav directly — " <>
+                 "use Emakola.Themes.DefaultRenderers.Chrome.bottom_nav instead"
+      end
+    end
+
     test "every renderer mounts the shared navbar" do
       for file <- nav_footer_renderer_files() do
         source = File.read!(file)
@@ -90,6 +108,12 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
 
     # LiveViews that legitimately render their own content (not via the
     # theme delegation pattern). These don't need a default renderer.
+    #
+    # customer_messages_live is the same class as account_downloads: a message
+    # thread and a text box, not a themed storefront surface.
+    #
+    # Comments must stay OUT of the sigil — ~w has no comment syntax, so every
+    # word of one becomes an entry in the list.
     @exempt ~w(
       checkout_live.ex
       customer_login_live.ex
@@ -101,6 +125,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       about_live.ex
       page_live.ex
       account_downloads_live.ex
+      customer_messages_live.ex
       saved_stores_live.ex
       pay_link_live.ex
       susu_link_live.ex

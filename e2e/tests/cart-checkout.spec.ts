@@ -42,11 +42,23 @@ test.describe("Cart & Checkout Flow", () => {
     await page.goto(`${STORE}/checkout`);
     await page.waitForLoadState("networkidle");
 
+    // One step at a time: contact first, and the later steps only once their
+    // predecessor is answered.
     await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("heading", { name: "Shipping Address" })).toBeVisible();
     await expect(page.locator("#phone")).toBeVisible();
     await expect(page.locator("#fullname")).toBeVisible();
+    await expect(page.locator("#address")).toHaveCount(0);
+
+    await page.locator("#phone").fill("0244123456");
+    await page.locator("#fullname").fill("QA Shopper");
+    await page.getByRole("button", { name: /Continue to delivery/i }).click();
+
+    await expect(page.getByRole("heading", { name: "Shipping Address" })).toBeVisible();
     await expect(page.locator("#address")).toBeVisible();
+
+    await page.locator("#address").fill("12 Step Street, Osu");
+    await page.getByRole("button", { name: /Continue to payment/i }).click();
+
     await expect(page.getByRole("button", { name: /Place Order/i })).toBeVisible();
   });
 

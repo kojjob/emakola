@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
   """
   use EmakolaWeb, :live_view
 
+  alias EmakolaWeb.BrandComponents
   alias Emakola.Accounts.PlatformTeam
 
   @accepted_flash "This invite has already been used — sign in instead."
@@ -110,14 +111,17 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
       <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
         <div class="w-full max-w-md">
           <div class="flex items-center justify-center gap-2 mb-8">
-            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-8 w-auto" />
             <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
           </div>
 
           <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-            <div :if={@state == :loading} class="py-8 text-center text-sm text-[#8896ab]">
-              Checking invite…
-            </div>
+            <BrandComponents.brand_loader
+              :if={@state == :loading}
+              label="Checking invite"
+              size={48}
+              class="py-8"
+            />
 
             <.dead_end :if={@state == :invalid} title="Invite not valid">
               This invite link is invalid or has been revoked.

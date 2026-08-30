@@ -14,7 +14,7 @@ defmodule Emakola.Customers.CustomerOAuthTest do
     |> Ash.Changeset.for_create(
       :register_with_oauth2,
       %{
-        user_info: %{"email" => email, "name" => name},
+        user_info: %{"email" => email, "name" => name, "sub" => "google-#{email}"},
         oauth_tokens: %{"access_token" => "tok"}
       },
       tenant: store_id

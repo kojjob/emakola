@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Beauty.Sections.ClosingCta do
   end
 
   defp closing_title(theme),
-    do: get_in(theme, [:closing_cta, :title]) || "Ready for flawless skin?"
+    do: get_in(theme, [:closing_cta, :title]) || "Ready when you are."
 
   defp closing_subtitle(theme),
     do: get_in(theme, [:closing_cta, :subtitle]) || "Shop the collection."

@@ -114,7 +114,10 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
 
     {:ok, _view, html} = live(conn, ~p"/platform/protection")
 
-    refute html =~ "2222"
+    # The whole phone number, not its last four digits. A four-digit run can
+    # turn up by chance in the CSRF token or the phx-session blob, which are
+    # random base64 — the same fragility that made the reports guard flaky.
+    refute html =~ "0201112222"
   end
 
   test "a forged event cannot act on a hold outside the mounted oversight queues", %{
@@ -275,6 +278,150 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
       )
 
     assert still_held.status == :held
+  end
+
+  describe "studio layout" do
+    test "auto-selects the first frozen hold into the case panel on load", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :not_received, complaint_text: "Box never arrived"},
+          authorize?: false
+        )
+
+      {:ok, view, html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#protection-panel")
+      assert has_element?(view, "#frozen_holds-#{hold.id}[data-selected]")
+      assert html =~ "1 frozen"
+      assert html =~ "Box never arrived"
+      assert html =~ "recorded in the platform audit log"
+    end
+
+    test "clicking a stale queue row moves the selection into the panel", %{
+      conn: conn,
+      store: store
+    } do
+      frozen_hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          frozen_hold,
+          %{complaint_reason: :other, complaint_text: "Investigating"},
+          authorize?: false
+        )
+
+      stale_store = Factory.create_store!(%{name: "Tamale Weaves"})
+
+      stale_hold =
+        protected_hold!(stale_store, order_attrs: %{shipping_address: %{"phone" => "0209998888"}})
+
+      force_age!(stale_hold.id, days: 45)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#frozen_holds-#{frozen_hold.id}[data-selected]")
+
+      panel_html =
+        view
+        |> element("#stale_holds-#{stale_hold.id} [phx-click='select_hold']")
+        |> render_click()
+
+      assert has_element?(view, "#stale_holds-#{stale_hold.id}[data-selected]")
+      refute has_element?(view, "#frozen_holds-#{frozen_hold.id}[data-selected]")
+      assert panel_html =~ "Tamale Weaves"
+      assert panel_html =~ "8888"
+    end
+
+    test "a forged select_hold outside the queue leaves the panel unchanged", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store)
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :other, complaint_text: "On file"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      outside_hold = protected_hold!(Factory.create_store!(%{name: "Outside Store"}))
+      render_hook(view, "select_hold", %{"id" => outside_hold.id})
+
+      assert has_element?(view, "#frozen_holds-#{hold.id}[data-selected]")
+      refute render(view) =~ "Outside Store"
+    end
+
+    test "shows a rich empty state when no holds need a decision", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/platform/protection")
+
+      assert has_element?(view, "#protection-panel")
+      assert html =~ "All money is moving"
+    end
+
+    # The panel led with `amount` and put `net` on the release button, with
+    # `fee` rendered nowhere. Two different numbers for one hold, and nothing
+    # on screen accounting for the difference.
+    test "the panel accounts for the whole hold: paid, fee, and what the merchant gets", %{
+      conn: conn,
+      store: store
+    } do
+      hold = protected_hold!(store, %{amount: 25_000})
+
+      {:ok, _frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :not_received, complaint_text: "Never arrived"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+      panel = view |> element("#protection-panel") |> render()
+
+      assert panel =~ money_str(hold.amount)
+      assert panel =~ money_str(hold.fee)
+      assert panel =~ money_str(hold.net)
+      assert hold.fee + hold.net == hold.amount
+    end
+  end
+
+  describe "money at rest" do
+    # Staff had two counts and no idea how much money the queue was sitting on.
+    test "the header reports what is held, not only how many holds there are", %{
+      conn: conn,
+      store: store
+    } do
+      first = protected_hold!(store, %{amount: 25_000})
+      second = protected_hold!(store, %{amount: 15_000})
+
+      for hold <- [first, second] do
+        {:ok, _frozen} =
+          Payments.freeze_protection_hold(
+            hold,
+            %{complaint_reason: :other, complaint_text: "Looking into it"},
+            authorize?: false
+          )
+      end
+
+      {:ok, _view, html} = live(conn, ~p"/platform/protection")
+
+      assert html =~ money_str(40_000)
+    end
+  end
+
+  defp money_str(cents) do
+    major = cents |> div(100) |> Emakola.Money.group_thousands()
+    minor = cents |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")
+    "GHS #{major}.#{minor}"
   end
 
   test "refund buyer refuses a second click once the return is already approved, and calls RefundService zero times",

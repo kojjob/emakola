@@ -12,7 +12,17 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Stores
+
+  # A merchant with no store has nothing to configure here yet. RequireActiveStore
+  # lets them through on purpose (they are mid-onboarding), so send them where
+  # the work actually is instead of rendering a page with no store behind it.
+  @impl true
+  def mount(_params, _session, %{assigns: %{current_store: nil}} = socket) do
+    {:ok, Phoenix.LiveView.push_navigate(socket, to: "/onboarding")}
+  end
 
   @impl true
   def mount(_params, _session, socket) do
@@ -37,10 +47,19 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
     %{store: store, base: base} = socket.assigns
     host = "#{slugify(label)}.#{base}"
 
-    attrs = %{store_id: store.id, host: host, type: :subdomain, primary?: true}
+    # Host is not updatable, so "change" is create-then-replace — and the
+    # one-primary-per-store index makes the order load-bearing. The new row is
+    # created NON-primary (a second primary would violate the index and the
+    # re-claim used to hard-fail right here), the old address is retired only
+    # after the new one exists, and promotion happens last. A rejected label
+    # therefore leaves the old address fully intact.
+    attrs = %{store_id: store.id, host: host, type: :subdomain, primary?: false}
+    previous = socket.assigns.domain
 
     case Stores.create_store_domain(attrs, actor: actor(socket)) do
       {:ok, domain} ->
+        domain = domain |> retire_previous(previous, socket) |> promote(previous, socket)
+
         {:noreply,
          socket
          |> assign(domain: domain, error: nil)
@@ -62,11 +81,47 @@ defmodule EmakolaWeb.Admin.StoreAddressLive do
     {:noreply, assign(socket, domain: updated)}
   end
 
+  defp retire_previous(domain, %{id: old_id, type: :subdomain} = previous, socket)
+       when old_id != domain.id do
+    case Stores.destroy_store_domain(previous, actor: actor(socket)) do
+      :ok ->
+        domain
+
+      {:error, error} ->
+        # The new address works either way; a lingering old row is cosmetic.
+        Logger.warning("[store_address] could not retire #{previous.host}: #{inspect(error)}")
+        domain
+    end
+  end
+
+  defp retire_previous(domain, _previous, _socket), do: domain
+
+  # Carries the old serve-in-place choice forward too — a merchant who turned
+  # their branded address on should not have it silently revert on a rename.
+  defp promote(domain, previous, socket) do
+    serve? = (previous && previous.serve_in_place?) || domain.serve_in_place?
+
+    case Stores.update_store_domain(domain, %{primary?: true, serve_in_place?: serve?},
+           actor: actor(socket)
+         ) do
+      {:ok, promoted} ->
+        promoted
+
+      {:error, error} ->
+        Logger.warning("[store_address] could not promote #{domain.host}: #{inspect(error)}")
+        domain
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold text-stone-900">Your storefront address</h1>
+      <.admin_page_header
+        icon="hero-globe-alt"
+        title="Your storefront address"
+        subtitle="Give your shop a branded web address."
+      />
       <p class="mt-2 text-sm text-stone-600">
         Give your shop a branded web address. By default it sends visitors to your
         canonical store page so all your search-engine credit stays in one place.

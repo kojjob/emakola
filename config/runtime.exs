@@ -37,6 +37,21 @@ config :emakola, EmakolaWeb.Endpoint,
 # builder's (unset) value into release builds permanently.
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
+# SplitPay tenant client (any env) — ships dark until both are set.
+# Fly certificate provisioning for merchant custom domains. Ships dark: without
+# FLY_API_TOKEN the client makes no network call and no certificate is ever
+# requested, so the whole custom-domain flow stalls harmlessly at :verifying.
+config :emakola, Emakola.Infra.FlyCerts,
+  api_token: System.get_env("FLY_API_TOKEN"),
+  app_name: System.get_env("FLY_APP_NAME") || "emakola"
+
+if splitpay_url = System.get_env("SPLITPAY_API_URL") do
+  config :emakola, Emakola.SplitPay.Client,
+    base_url: splitpay_url,
+    api_key: System.get_env("SPLITPAY_API_KEY"),
+    webhook_secret: System.get_env("SPLITPAY_WEBHOOK_SECRET")
+end
+
 if config_env() == :prod do
   config :emakola,
          :metrics_port,
@@ -310,6 +325,13 @@ if config_env() == :prod do
   # deliver codes: set PHONE_AUTH_ENABLED=true. See docs/PROVIDER_SETUP.md.
   config :emakola, :phone_auth_enabled, System.get_env("PHONE_AUTH_ENABLED") == "true"
 
+  # Supplier WhatsApp→SMS fallthrough — ship-dark, and deliberately so. Turning
+  # this on makes real sends to the SMS gateway for every supplier
+  # notification, because WhatsApp fails for every store today. Confirm at the
+  # PROVIDER's dashboard that SMS_API_KEY is live and what a message costs
+  # before setting SUPPLIER_SMS_FALLBACK=true.
+  config :emakola, :supplier_sms_fallback, System.get_env("SUPPLIER_SMS_FALLBACK") == "true"
+
   # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
   # pipeline observable without sending anything.
@@ -398,20 +420,16 @@ if config_env() == :prod do
 
   config :emakola, EmakolaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    # WebSocket origin allowlist. The wildcard covers merchant subdomain
-    # storefronts (shopname.emakola.com). NOTE: merchant CUSTOM domains
-    # (www.merchantshop.com) need their origins added here — or a
-    # function-based check_origin — before LiveView will connect for them.
-    check_origin: [
-      "https://#{host}",
-      "https://www.#{host}",
-      "https://*.#{host}",
-      # Fly's default hostname — the app is reachable here until (and after)
-      # the emakola.com DNS cutover. Without it, LiveView websockets from
-      # emakola.fly.dev are rejected and clients degrade to long-polling,
-      # which breaks across multiple machines (reconnect/error loops).
-      "https://emakola.fly.dev"
-    ],
+    # WebSocket origin allowlist. A list cannot express merchant custom
+    # domains — those are rows in a table, not config — so this is a function.
+    # OriginChecker covers the apex, www, every *.PHX_HOST store subdomain,
+    # Fly's own hostname, and any ACTIVE custom domain, checking the cheap
+    # cases before it ever looks anything up.
+    #
+    # Getting this wrong fails silently: the page still renders, LiveView
+    # degrades to long-polling, and long-polling then breaks across multiple
+    # machines. Verify with a real wss:// handshake, not a status code.
+    check_origin: {EmakolaWeb.OriginChecker, :allowed?, []},
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

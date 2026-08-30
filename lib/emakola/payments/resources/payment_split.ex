@@ -38,7 +38,10 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner])
+      constraints(
+        one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner, :affiliate]
+      )
+
       allow_nil?(false)
       public?(true)
     end
@@ -54,6 +57,11 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :credit_agreement_id, :uuid do
+      public?(true)
+    end
+
+    # Which affiliate this allocation pays. Nil on every other role.
+    attribute :affiliate_id, :uuid do
       public?(true)
     end
 
@@ -219,7 +227,11 @@ defmodule Emakola.Payments.PaymentSplit do
     # must not be able to double-record an allocation. `nils_distinct?: false`
     # because supplier_id/credit_agreement_id are nil for most roles — two
     # :platform rows for the same payment must collide.
-    identity :unique_allocation, [:payment_id, :role, :supplier_id, :credit_agreement_id] do
+    # affiliate_id joins the discriminators for the same reason supplier_id and
+    # credit_agreement_id did: without it, two affiliates on one payment
+    # collide and the second is silently dropped rather than paid.
+    identity :unique_allocation,
+             [:payment_id, :role, :supplier_id, :credit_agreement_id, :affiliate_id] do
       nils_distinct?(false)
     end
   end
@@ -260,6 +272,7 @@ defmodule Emakola.Payments.PaymentSplit do
         :recipient_store_id,
         :supplier_id,
         :credit_agreement_id,
+        :affiliate_id,
         :subaccount_code,
         :amount,
         :recovery_amount,
@@ -276,7 +289,8 @@ defmodule Emakola.Payments.PaymentSplit do
         :recovered_amount,
         :reserved_recovery_amount,
         :recovery_applied_amount,
-        :recovery_reversed_amount
+        :recovery_reversed_amount,
+        :recovery_breakdown
       ])
     end
 
@@ -354,11 +368,20 @@ defmodule Emakola.Payments.PaymentSplit do
     #     the FULL reversal is recoverable (today's exact behavior).
     #   - internal_hold, claimed (paid_out_at set): netted_reversal_amount, the
     #     value frozen by mark_paid_out — already net of any recovery taken
-    #     before that claim.
+    #     before that claim. This is where a genuine debt shows up: the payout
+    #     DELIVERED (or is in flight to deliver) the frozen paid_amount, and a
+    #     reversal that grows AFTER that claim is real money owed back.
     #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
-    #     own future claim will net up to its full amount; only reversal BEYOND
-    #     amount (over-reversal from dispatch-fee redistribution) is exposed
-    #     here, never the part the split will net itself.
+    #     own future claim will net up to its full amount; only reversal
+    #     BEYOND amount (over-reversal from dispatch-fee redistribution) is
+    #     exposed here, never the part the split will net itself. This also
+    #     correctly covers a released `unreclaimable_release`-stamped row: its
+    #     payout never delivered anything (release_from_payout only fires on a
+    #     failed/reversed transfer), the underlying refund came out of the
+    #     platform's own held float, and any recovery that dead claim had
+    #     justified is unwound by RefundLiability.release_payout_recovery!/1
+    #     (P2a) — so its own reversal, up to its own amount, nets to a real
+    #     zero debt here, not a phantom one.
     read :recoverable_by_recipient do
       argument(:recipient_store_id, :uuid, allow_nil?: false)
 
@@ -509,9 +532,16 @@ defmodule Emakola.Payments.PaymentSplit do
           )
 
         # An unreclaimable split (fully reversed while claimed) exits the
-        # payable population forever; any recovery its claim justified cannot
-        # be auto-unwound yet (see P2 plan Task 4 — decision pending). Stamp
-        # the release so finance can find and remediate these manually.
+        # payable population forever — but it does NOT mark a debt. This
+        # split's payout never delivered anything (release_from_payout only
+        # fires on a failed/reversed transfer), so the recipient received
+        # nothing; the customer's refund came out of the platform's own held
+        # float, not the recipient's pocket. Any recovery the now-dead claim
+        # had justified is separately unwound by RefundLiability.
+        # release_payout_recovery!/1 (P2a), so nothing is double-counted
+        # either. The stamp below is purely a historical audit trail for
+        # finance to investigate WHY a claimed split was fully reversed — not
+        # a to-do list, and not evidence of money owed.
         if changeset.data.status == :reversed do
           Ash.Changeset.change_attribute(
             changeset,
@@ -530,8 +560,11 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     # Splits `release_from_payout` stamped as unreclaimable (fully reversed
-    # while claimed — see that action's comment) — finance's manual-remediation
-    # worklist. No args: this is a cross-store platform view.
+    # while claimed — see that action's comment) — finance's audit trail, not
+    # a to-do list. These claims never delivered any money (the payout's
+    # transfer failed/reversed) and carry no outstanding debt; remediation
+    # here means investigating WHY a claimed split was fully reversed, not
+    # collecting anything. No args: this is a cross-store platform view.
     #
     # `recovery_breakdown["unreclaimable_release"] == true` (Ash bracket
     # syntax) compiles but fails at the DB: AshPostgres's jsonb `get_path`
@@ -545,6 +578,27 @@ defmodule Emakola.Payments.PaymentSplit do
       )
 
       prepare(build(sort: [updated_at: :desc]))
+    end
+
+    # Finds every split still carrying a `payout_recoveries` entry for a
+    # given payout's `transfer_reference` — the read counterpart to
+    # `RefundLiability.collect_at_payout!/3`'s write, used by
+    # `release_payout_recovery!/1` to undo a collection whose payout never
+    # actually transferred. `@>` containment on the jsonb array matches an
+    # entry with AT LEAST this `payout_ref` (the `amount` key riding along is
+    # irrelevant to the match).
+    read :recovered_via_payout do
+      argument(:transfer_reference, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          fragment(
+            "(? -> 'payout_recoveries') @> jsonb_build_array(jsonb_build_object('payout_ref', ?::text))",
+            recovery_breakdown,
+            ^arg(:transfer_reference)
+          )
+        )
+      )
     end
   end
 end

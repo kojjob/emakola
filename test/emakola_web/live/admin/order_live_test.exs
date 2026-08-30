@@ -27,10 +27,82 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ order.order_number
     end
 
+    test "offers a scanner for finding an order from its parcel", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      # A merchant holding a parcel should not have to read its order number and
+      # type it into search. The button is the visual entry point; the panel
+      # only mounts the camera once opened.
+      assert has_element?(view, "#scan-order-open")
+      refute has_element?(view, "#order-scanner video")
+
+      render_click(view, "open_scanner", %{})
+      assert has_element?(view, "#order-scanner video")
+    end
+
+    test "a scanned slip navigates to that order", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      render_hook(view, "qr_scanned", %{"value" => EmakolaWeb.QR.order_tracking_url(store, order)})
+
+      assert_redirect(view, "/admin/orders/#{order.id}")
+    end
+
+    test "a scan for another store's order reports not found and stays put", %{conn: conn} do
+      other_store = Emakola.Factory.create_store!()
+      other_customer = Emakola.Factory.create_customer!(other_store)
+
+      other_order =
+        Emakola.Factory.create_order!(other_store, %{
+          customer_id: other_customer.id,
+          status: :processing
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html =
+        render_hook(view, "qr_scanned", %{
+          "value" => EmakolaWeb.QR.order_tracking_url(other_store, other_order)
+        })
+
+      # Tenant isolation, and no hint that the order exists somewhere else.
+      assert html =~ "No order here matches that code"
+    end
+
+    test "a merchant with no working camera is told, not left staring", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "scan_camera_unavailable", %{})
+
+      assert html =~ "No camera"
+    end
+
+    test "a hostile payload never becomes a destination", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      render_click(view, "open_scanner", %{})
+
+      html = render_hook(view, "qr_scanned", %{"value" => "https://evil.example/admin/orders"})
+
+      # The decoded string is read as an identifier claim, never followed. A
+      # sticker on a parcel cannot steer an authenticated merchant session.
+      assert html =~ "No order here matches that code"
+    end
+
     test "displays empty state when no orders", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      assert html =~ "No orders found"
+      # A store that has never had an order gets first-day guidance rather
+      # than "not found" — see the "first day" describe block.
+      assert html =~ "Your orders will show here"
     end
 
     test "caps the order list at 50 rows", %{conn: conn, store: store, customer: customer} do
@@ -38,8 +110,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      # 1 header <tr> + 50 order rows
-      assert length(String.split(html, "<tr")) - 1 == 51
+      assert length(String.split(html, ~s(id="order-row-))) - 1 == 50
     end
 
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
@@ -76,9 +147,9 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders")
 
-      # Use the order number link specifically (has font-mono class)
+      # The row's name/number block is the link now.
       view
-      |> element("a.font-mono[href='/admin/orders/#{order.id}']")
+      |> element("#order-row-#{order.id} a[href='/admin/orders/#{order.id}']", order.order_number)
       |> render_click()
 
       assert_redirect(view, "/admin/orders/#{order.id}")
@@ -100,6 +171,218 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
       assert html =~ "520"
+    end
+  end
+
+  describe "OrderLive.Index redesign" do
+    test "renders KPI tiles for today, pending, revenue and delivered", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending, total: 10_000)
+      create_order!(store.id, customer.id, :pending, total: 10_000)
+      create_order!(store.id, customer.id, :delivered, total: 30_000)
+      create_order!(store.id, customer.id, :cancelled, total: 99_900)
+
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Orders today"
+      assert has_element?(view, "#stat-orders-today", "4")
+      assert has_element?(view, "#stat-orders-pending", "2")
+      # Cancelled money never counts as revenue.
+      assert has_element?(view, "#stat-orders-revenue", "GH₵ 500")
+      assert has_element?(view, "#stat-orders-delivered", "1")
+    end
+
+    test "filter tabs carry store-wide status counts", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending)
+      create_order!(store.id, customer.id, :pending)
+      create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=pending]", "2")
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=delivered]", "1")
+    end
+
+    test "tab counts stay store-wide while the list filters", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      pending = create_order!(store.id, customer.id, :pending)
+      delivered = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      view
+      |> element("#orders-filter-tabs button[phx-value-status=pending]")
+      |> render_click()
+
+      assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "2")
+      assert render(view) =~ pending.order_number
+      refute render(view) =~ delivered.order_number
+    end
+  end
+
+  describe "first day" do
+    test "a store with no orders is told how to get one", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "Your orders will show here"
+      assert html =~ "Share your store to get the first one"
+      # A real WhatsApp share, prefilled with the store's own link — the way
+      # these merchants actually send a shop to a customer.
+      assert has_element?(view, "a[href^='https://wa.me/?text=']", "Share on WhatsApp")
+    end
+
+    test "a filter that matches nothing still says so", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      html =
+        view
+        |> element("#orders-filter-tabs button[phx-value-status='delivered']")
+        |> render_click()
+
+      assert html =~ "No orders found"
+      refute html =~ "Your orders will show here"
+    end
+  end
+
+  describe "OrderLive.Show redesign" do
+    test "order journey timeline marks done, current and upcoming steps", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-timeline [data-step='confirmed'][data-state='done']")
+      assert has_element?(view, "#order-timeline [data-step='processing'][data-state='current']")
+      assert has_element?(view, "#order-timeline [data-step='shipped'][data-state='todo']")
+      assert has_element?(view, "#order-timeline", "Delivered")
+    end
+
+    test "a cancelled order shows a cancelled end on the timeline", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :cancelled)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-timeline [data-step='cancelled']")
+    end
+
+    test "an MTN mobile money payment shows the MTN MoMo rail chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+
+      create_paid_payment!(store, order, %{
+        "channel" => "mobile_money",
+        "authorization" => %{"channel" => "mobile_money", "bank" => "MTN"}
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "MTN MoMo")
+    end
+
+    test "a card payment shows the card rail chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+      create_paid_payment!(store, order, %{"channel" => "card"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "Card")
+    end
+
+    test "a hubtel payment without channel data shows the Hubtel chip", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :confirmed)
+
+      Emakola.Factory.create_payment!(store, %{order_id: order.id, gateway: :hubtel})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#payment-rail-chip", "Hubtel")
+    end
+
+    test "line items lead with the product image", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      image = create_line_item_with_image!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "img[src='#{image.url}']")
+    end
+  end
+
+  describe "OrderLive.Show packing slip QR" do
+    test "the order carries a QR of its tracking page", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      # Printed onto the slip that goes in the parcel: the buyer scans it to
+      # track, instead of typing an order number into a URL they were told over
+      # the phone. In Phase 2 the same square is what the merchant scans at
+      # handoff to jump straight to this order.
+      assert has_element?(view, "#order-qr svg")
+    end
+
+    test "the packing slip can be printed", %{conn: conn, store: store, customer: customer} do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#packing-slip-print")
+      assert has_element?(view, "#packing-slip", order.order_number)
+    end
+
+    test "the QR payload is the store-scoped tracking URL", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#packing-slip", EmakolaWeb.QR.order_tracking_url(store, order))
     end
   end
 
@@ -266,6 +549,47 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       # The cancel button has text "Cancel Order" inside the actions area
       # For a delivered order, the :if guard prevents it from rendering
       refute has_element?(view, "div.flex.flex-wrap.gap-3 button", "Cancel Order")
+    end
+
+    # A delivered or cancelled order has no next step, so every button in the
+    # card was guarded away and the merchant was left looking at a heading over
+    # empty space — which reads as a page that failed to load, not as "nothing
+    # to do here".
+    test "a finished order says so instead of showing an empty actions card", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order is done")
+    end
+
+    test "a cancelled order names its own end state", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :cancelled)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#order-actions-none", "This order was cancelled")
+    end
+
+    test "an order with a next step shows buttons, not the finished note", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      refute has_element?(view, "#order-actions-none")
+      assert has_element?(view, "div.flex.flex-wrap.gap-3 button", "Confirm Order")
     end
 
     test "displays shipping address when present", %{
@@ -684,6 +1008,30 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     Emakola.Payments.ProtectionHold
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
     |> Ash.create!(authorize?: false)
+  end
+
+  defp create_paid_payment!(store, order, gateway_response) do
+    store
+    |> Emakola.Factory.create_payment!(%{order_id: order.id})
+    |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp create_line_item_with_image!(store, order) do
+    product = Emakola.Factory.create_product!(store, %{title: "Kente Scarf"})
+    variant = Emakola.Factory.create_variant!(product, store)
+    image = Emakola.Factory.create_image!(product, store)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: store.id,
+      variant_id: variant.id,
+      quantity: 1
+    })
+    |> Ash.create!(authorize?: false)
+
+    image
   end
 
   defp transition_to_status(order, :pending), do: order

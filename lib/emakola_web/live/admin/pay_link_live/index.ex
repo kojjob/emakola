@@ -17,10 +17,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
   require Ash.Query
 
+  import EmakolaWeb.QRComponents, only: [qr_code: 1]
+
   alias Emakola.Orders.PayLink
   alias Emakola.Orders.SusuLifecycle
   alias Emakola.Orders.SusuPlan
   alias EmakolaWeb.Helpers.Currency
+  alias EmakolaWeb.QR
 
   @impl true
   def mount(_params, _session, socket) do
@@ -59,6 +62,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
            created_link: nil,
            created_susu_plan: nil,
            extending_plan_id: nil,
+           showing_code_plan: nil,
            extend_deadline_form: to_form(%{"plan_id" => "", "deadline" => ""}),
            pay_link_form: pay_link_form("custom"),
            susu_plan_form: susu_plan_form(),
@@ -180,6 +184,23 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     end
   end
 
+  # A susu customer comes back week after week to pay the next bit. The code was
+  # shown once, at creation; copying a link is no use to someone standing at the
+  # stall. This puts it back on screen on demand.
+  #
+  # The id is matched against the plans this store already loaded rather than
+  # fetched by id — params are never trusted for tenancy.
+  @impl true
+  def handle_event("show_susu_code", %{"id" => id}, socket) do
+    {:noreply,
+     assign(socket, showing_code_plan: Enum.find(socket.assigns.susu_plans, &(&1.id == id)))}
+  end
+
+  @impl true
+  def handle_event("close_susu_code", _params, socket) do
+    {:noreply, assign(socket, showing_code_plan: nil)}
+  end
+
   @impl true
   def handle_event("cancel_link", %{"id" => id}, socket) do
     store = socket.assigns.store
@@ -292,6 +313,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <.admin_page_header
+        icon="hero-link"
         title="Pay Links"
         subtitle="Share a checkout link for a custom deal or a catalog item"
       >
@@ -312,15 +334,15 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
         <.stat_card
           label="Active Links"
           value={to_string(count_by_status(@links, :active))}
-          icon_bg="bg-emerald-50"
+          tone={:success}
         >
-          <:icon><.icon name="hero-link" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
+          <:icon><.icon name="hero-link" class="size-7" /></:icon>
         </.stat_card>
-        <.stat_card label="Opened" value={to_string(total_opened(@links))} icon_bg="bg-violet-50">
-          <:icon><.icon name="hero-eye" class="w-[18px] h-[18px] text-violet-600" /></:icon>
+        <.stat_card label="Opened" value={to_string(total_opened(@links))} tone={:accent}>
+          <:icon><.icon name="hero-eye" class="size-7" /></:icon>
         </.stat_card>
-        <.stat_card label="Paid" value={to_string(total_paid(@links))} icon_bg="bg-amber-50">
-          <:icon><.icon name="hero-banknotes" class="w-[18px] h-[18px] text-amber-600" /></:icon>
+        <.stat_card label="Paid" value={to_string(total_paid(@links))} tone={:info}>
+          <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
         </.stat_card>
       </div>
 
@@ -335,9 +357,14 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
         <%= if @links == [] do %>
           <.empty_state
+            id="pay-links-empty"
             icon="hero-link"
-            title="No pay links yet"
-            description="Create a pay link to share a custom deal or a catalog item over WhatsApp."
+            tone={:accent}
+            title="Sell in one message"
+            description="Make a link, send it, get paid"
+            action_label="Make a pay link"
+            action_icon="hero-plus"
+            action_event="open_create"
           />
         <% else %>
           <div class="overflow-x-auto">
@@ -479,6 +506,15 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                     <div class="flex items-center justify-end gap-1">
                       <button
                         type="button"
+                        id={"show-susu-code-#{plan.id}"}
+                        phx-click="show_susu_code"
+                        phx-value-id={plan.id}
+                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      >
+                        Show code
+                      </button>
+                      <button
+                        type="button"
                         phx-click={
                           JS.dispatch("copy-to-clipboard", detail: %{text: susu_share_url(plan)})
                         }
@@ -551,6 +587,39 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
         <% end %>
       </div>
 
+      <%!-- A susu plan's code, back on screen for a customer at the stall. --%>
+      <div
+        :if={@showing_code_plan}
+        id="susu-code-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <div class="absolute inset-0 bg-slate-900/40" phx-click="close_susu_code"></div>
+
+        <div class="relative bg-white rounded-card shadow-xl w-full max-w-sm p-6 text-center">
+          <h2 class="text-base font-bold text-slate-900 mb-1">{@showing_code_plan.title}</h2>
+          <p class="text-sm text-slate-600 mb-4">
+            {susu_progress_text(@showing_code_plan, @store.currency)}
+          </p>
+
+          <.qr_code
+            id="susu-plan-code"
+            svg={QR.susu_svg(@showing_code_plan)}
+            caption="Buyer scans to pay the next bit"
+            class="mb-4"
+          />
+
+          <p class="text-xs text-slate-400 break-all mb-4">{QR.susu_url(@showing_code_plan)}</p>
+
+          <button
+            type="button"
+            phx-click="close_susu_code"
+            class="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-control transition-colors cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+
       <%!-- Create modal --%>
       <div :if={@show_create} class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-900/40" phx-click="close_create"></div>
@@ -571,7 +640,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
           </div>
 
           <div :if={@created_link}>
-            <p class="text-sm text-slate-600 mb-3">Share this link with your buyer:</p>
+            <.qr_code
+              id="pay-link-qr"
+              svg={QR.pay_link_svg(@created_link)}
+              caption="Buyer scans to pay"
+              class="mb-4"
+            />
+            <p class="text-sm text-slate-600 mb-3">Or send the link:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"
@@ -607,7 +682,13 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
           </div>
 
           <div :if={@created_susu_plan}>
-            <p class="text-sm text-slate-600 mb-3">Share this susu plan with your buyer:</p>
+            <.qr_code
+              id="susu-plan-qr"
+              svg={QR.susu_svg(@created_susu_plan)}
+              caption="Buyer scans to pay bit by bit"
+              class="mb-4"
+            />
+            <p class="text-sm text-slate-600 mb-3">Or send the link:</p>
             <div class="flex items-center gap-2 mb-4">
               <input
                 type="text"
@@ -1447,7 +1528,9 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     end
   end
 
-  defp share_url(link), do: "#{EmakolaWeb.Endpoint.url()}/pay/#{link.code}"
+  # One definition of the payload, so the printed QR and the pasted link
+  # can never drift apart.
+  defp share_url(link), do: QR.pay_link_url(link)
 
   defp whatsapp_share_url(link, store, item_variants) do
     text =
@@ -1476,7 +1559,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     "#{Currency.format_price(contributed, currency || "GHS")} / #{Currency.format_price(total, currency || "GHS")}"
   end
 
-  defp susu_share_url(plan), do: "#{EmakolaWeb.Endpoint.url()}/susu/#{plan.code}"
+  defp susu_share_url(plan), do: QR.susu_url(plan)
 
   defp susu_whatsapp_share_url(plan, store, item_variants) do
     text =

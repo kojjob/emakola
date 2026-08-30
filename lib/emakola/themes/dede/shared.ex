@@ -100,7 +100,7 @@ defmodule Emakola.Themes.Dede.Shared do
           <div class="flex flex-shrink-0 items-center gap-0.5">
             <a
               href={store_path(@store.slug, "/products")}
-              aria-label="Search the menu"
+              aria-label="Search the shop"
               class="flex h-11 w-11 items-center justify-center rounded-full text-[#6B6355] hover:bg-[#26211A]/5 hover:text-[#26211A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#26211A] motion-safe:transition-colors"
             >
               <svg

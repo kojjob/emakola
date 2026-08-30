@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 900px; padding: 28px; background: #f8fafc; box-sizing: border-box;">
+  <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #94a3b8; margin-bottom: 16px;">Tile states</div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+
+    <div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 12px 16px; border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; text-align: center;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: #f1f5f9;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8m-8 4h5M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #334155;">Connect WhatsApp</div>
+        <div style="display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #475569;">
+          Add number
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+        </div>
+      </div>
+      <div style="text-align: center; font-size: 12px; color: #64748b; margin-top: 10px;">Waiting — quiet grey</div>
+    </div>
+
+    <div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 12px 14px; border-radius: 14px; background: #ffffff; border: 2px solid #059669; box-shadow: 0 8px 20px rgba(5,150,105,0.18); text-align: center;">
+        <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #059669; color: #ffffff; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px;">Do this now</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: #ECFDF5; margin-top: 4px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8m-8 4h5M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Connect WhatsApp</div>
+        <div style="display: flex; align-items: center; gap: 6px; background: #059669; color: #ffffff; font-size: 12.5px; font-weight: 700; padding: 8px 16px; border-radius: 10px;">
+          Start
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+        </div>
+      </div>
+      <div style="text-align: center; font-size: 12px; color: #64748b; margin-top: 10px;">Next — only one tile is ever loud</div>
+    </div>
+
+    <div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 12px 16px; border-radius: 14px; background: #ECFDF5; border: 1px solid #a7f3d0; text-align: center;">
+        <div style="position: relative;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: #ffffff;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8m-8 4h5M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+          </div>
+          <div style="position: absolute; right: -6px; top: -6px; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: #059669; border: 2.5px solid #ECFDF5;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #047857;">Connect WhatsApp</div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #059669;">Done</div>
+      </div>
+      <div style="text-align: center; font-size: 12px; color: #64748b; margin-top: 10px;">Done — green tile, badge tick</div>
+    </div>
+  </div>
+
+  <!-- All-done banner -->
+  <div style="display: flex; align-items: center; gap: 16px; margin-top: 26px; background: linear-gradient(135deg, #059669, #047857); border-radius: 16px; padding: 18px 24px;">
+    <svg width="44" height="44" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="7"/>
+      <circle cx="32" cy="32" r="27" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="0" transform="rotate(-90 32 32)"/>
+      <path d="M22 33l7 7 13-14" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div style="flex: 1;">
+      <div style="font-size: 16px; font-weight: 800; color: #ffffff;">Your shop is ready</div>
+      <div style="font-size: 12.5px; color: rgba(255,255,255,0.85); margin-top: 2px;">This card leaves the dashboard now.</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.15); color: #ffffff; font-size: 12.5px; font-weight: 700; padding: 9px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.3);">See my shop</div>
+  </div>
+  <div style="font-size: 12px; color: #64748b; margin-top: 10px;">All 5 done — one celebration, then the checklist retires.</div>
+</div>
+</x-dc>
+</body>
+</html>

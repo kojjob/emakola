@@ -251,27 +251,27 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
             <.stat_card
               label="You owe"
               value={format_price(you_owe_total(@supplier), "GHS")}
-              icon_bg="bg-slate-100"
+              tone={:warning}
             >
-              <:icon><.icon name="hero-banknotes" class="size-[18px] text-slate-600" /></:icon>
+              <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
             </.stat_card>
           </div>
           <div id="settling-balance">
             <.stat_card
               label="Settling via Makola"
               value={format_price(settling_total(@ledger_entries), "GHS")}
-              icon_bg="bg-amber-50"
+              tone={:info}
             >
-              <:icon><.icon name="hero-clock" class="size-[18px] text-amber-600" /></:icon>
+              <:icon><.icon name="hero-clock" class="size-7" /></:icon>
             </.stat_card>
           </div>
           <div id="paid-total">
             <.stat_card
               label="Paid (recent)"
               value={format_price(paid_total(@ledger_entries), "GHS")}
-              icon_bg="bg-emerald-50"
+              tone={:success}
             >
-              <:icon><.icon name="hero-check-circle" class="size-[18px] text-emerald-600" /></:icon>
+              <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
             </.stat_card>
           </div>
         </div>

@@ -24,7 +24,7 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
       <div class="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
         <div class="w-full max-w-md">
           <div class="flex items-center justify-center gap-2 mb-8">
-            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola.io" class="h-8 w-auto" />
             <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
           </div>
 
@@ -89,6 +89,10 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
 
           <p class="mt-6 text-center text-sm text-[#5f6b7a]">
             Remembered it?
+            <a href="/auth/recover-phone" class="font-medium text-[#2563eb] hover:underline">
+              No email? Use your phone number
+            </a>
+            <span class="mx-2 text-slate-300">·</span>
             <a href="/auth/login" class="font-medium text-[#2563eb] hover:underline">Back to login</a>
           </p>
         </div>

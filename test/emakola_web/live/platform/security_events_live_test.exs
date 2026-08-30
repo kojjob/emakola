@@ -25,6 +25,32 @@ defmodule EmakolaWeb.Platform.SecurityEventsLiveTest do
       assert html =~ "All quiet"
     end
 
+    test "hero tiles render through the shared stat tiles with stable ids", %{conn: conn} do
+      Security.record(%{event_type: :rate_limit_exceeded, ip: "203.0.113.9", path: "/x"})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/security-events")
+
+      assert has_element?(view, "#security-events-total", "1")
+      assert has_element?(view, "#security-events-rate-limit", "1")
+      assert has_element?(view, "#security-events-auth-failed", "0")
+      assert has_element?(view, "#security-events-flagged")
+    end
+
+    test "recent events render as a severity timeline", %{conn: conn} do
+      Security.record(%{event_type: :rate_limit_exceeded, ip: "203.0.113.9", path: "/x"})
+
+      Security.record(%{
+        event_type: :auth_failed,
+        subject_type: :merchant,
+        identifier: "attacker@example.com"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/platform/security-events")
+
+      assert has_element?(view, "#recent-security-events [data-severity='red']")
+      assert has_element?(view, "#recent-security-events [data-severity='amber']")
+    end
+
     test "renders aggregates, top sources, and recent events", %{conn: conn} do
       for _ <- 1..3,
           do:

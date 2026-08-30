@@ -72,7 +72,8 @@ defmodule Emakola.Suppliers.SalesSharing do
     token = Map.get(attribution, "share_token") || Map.get(attribution, :share_token)
 
     with token when is_binary(token) <- token,
-         {:ok, %{} = share} <- find_share(token, order.store_id) do
+         {:ok, %{} = share} <- find_share(token, order.store_id),
+         true <- order_contains_product?(order, share.product_id) do
       SalesShareConversion
       |> Ash.Changeset.for_create(:record, %{
         share_id: share.id,
@@ -137,6 +138,20 @@ defmodule Emakola.Suppliers.SalesSharing do
           authorize?: false
         )
     end
+  end
+
+  # A share promotes ONE product, so only an order containing that product is
+  # its conversion. Matching on token + store alone credited a share with every
+  # sale the shop made while its token sat in the buyer's session — tolerable
+  # as an inflated analytic, indefensible once commission is paid on it.
+  defp order_contains_product?(order, product_id) do
+    order_id = order.id
+
+    Emakola.Orders.LineItem
+    |> Ash.Query.filter(order_id == ^order_id)
+    |> Ash.Query.load(:variant)
+    |> Ash.read!(authorize?: false)
+    |> Enum.any?(&(&1.variant && &1.variant.product_id == product_id))
   end
 
   defp find_share(token, store_id) do

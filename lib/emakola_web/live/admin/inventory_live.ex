@@ -25,6 +25,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         store_id: store_id,
         status_filter: :all,
         search_query: "",
+        scanner_open?: false,
+        scan_error: nil,
         search_form: to_form(%{"query" => ""}),
         variants: [],
         stats: %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0},
@@ -80,6 +82,50 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       |> apply_filters()
 
     {:noreply, socket}
+  end
+
+  # -- Scanning a shelf label -------------------------------------------------
+  #
+  # Counting stock means reading a label and typing what it says into search.
+  # The camera does that step instead.
+
+  @impl true
+  def handle_event("open_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: true, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("close_scanner", _params, socket) do
+    {:noreply, assign(socket, scanner_open?: false, scan_error: nil)}
+  end
+
+  @impl true
+  def handle_event("scan_camera_unavailable", _params, socket) do
+    {:noreply, assign(socket, scan_error: "No camera. Type the name instead.")}
+  end
+
+  # Same posture as the orders scanner: the decoded string is a claim about an
+  # identifier, resolved by EmakolaWeb.QRScan against the store_id in assigns —
+  # never taken from the payload — so a label from another shop resolves to
+  # nothing rather than to its own product.
+  @impl true
+  def handle_event("qr_scanned", %{"value" => value}, socket) do
+    case EmakolaWeb.QRScan.resolve_product(value, socket.assigns.store_id) do
+      {:ok, product} ->
+        {:noreply,
+         socket
+         |> assign(
+           scanner_open?: false,
+           scan_error: nil,
+           search_query: product.title,
+           search_form: to_form(%{"query" => product.title})
+         )
+         |> apply_filters()}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket, scanner_open?: false, scan_error: "Nothing here matches that code.")}
+    end
   end
 
   @impl true
@@ -493,89 +539,42 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Inventory" subtitle="Monitor stock levels and manage inventory" />
+      <.admin_page_header
+        title="Inventory"
+        subtitle="Monitor stock levels and manage inventory"
+        icon="hero-archive-box"
+      />
 
-      <%!-- Stat Cards --%>
+      <%!-- Stat Cards: one hue per stock state, so the row can be read from
+            across the shop without reading the labels. --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} icon_bg="bg-slate-100">
-          <:icon>
-            <svg
-              class="w-5 h-5 text-slate-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} tone={:accent}>
+          <:icon><.icon name="hero-archive-box" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Everything you sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="In Stock"
-          value={Integer.to_string(@stats.in_stock)}
-          icon_bg="bg-emerald-50"
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="In Stock" value={Integer.to_string(@stats.in_stock)} tone={:success}>
+          <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Ready to sell</p>
+          </:delta>
         </.stat_card>
-        <.stat_card
-          label="Low Stock"
-          value={Integer.to_string(@stats.low_stock)}
-          icon_bg="bg-amber-50"
-        >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-              />
-            </svg>
-          </:icon>
+        <.stat_card label="Low Stock" value={Integer.to_string(@stats.low_stock)} tone={:warning}>
+          <:icon><.icon name="hero-exclamation-triangle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Order more soon</p>
+          </:delta>
         </.stat_card>
         <.stat_card
           label="Out of Stock"
           value={Integer.to_string(@stats.out_of_stock)}
-          icon_bg="bg-red-50"
+          tone={:danger}
         >
-          <:icon>
-            <svg
-              class="w-5 h-5 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-              />
-            </svg>
-          </:icon>
+          <:icon><.icon name="hero-x-circle" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Add stock now</p>
+          </:delta>
         </.stat_card>
       </div>
 
@@ -592,13 +591,26 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Filter Bar --%>
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-control p-1">
-          <.filter_button
-            :for={status <- [:all, :in_stock, :low_stock, :out_of_stock]}
-            status={status}
-            current={@status_filter}
-          />
-        </div>
+        <.filter_tabs
+          id="inventory-filter-tabs"
+          current={@status_filter}
+          tabs={[
+            %{key: :all, label: "All", count: @stats.total},
+            %{key: :in_stock, label: "In Stock", count: @stats.in_stock},
+            %{key: :low_stock, label: "Low Stock", count: @stats.low_stock},
+            %{key: :out_of_stock, label: "Out of Stock", count: @stats.out_of_stock}
+          ]}
+        />
+        <%!-- Point at a shelf label instead of reading it and typing the name. --%>
+        <.admin_button
+          :if={!@scanner_open?}
+          id="scan-stock-open"
+          variant={:secondary}
+          phx-click="open_scanner"
+        >
+          <.icon name="hero-qr-code" class="size-4" /> Scan a label
+        </.admin_button>
+
         <div class="flex-1 w-full sm:w-auto">
           <.form
             for={@search_form}
@@ -627,8 +639,36 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
             />
           </.form>
+          <p
+            :if={@scan_error && !@scanner_open?}
+            id="stock-scan-error"
+            class="text-sm text-danger mt-2"
+          >
+            {@scan_error}
+          </p>
         </div>
       </div>
+
+      <.admin_card :if={@scanner_open?} id="stock-scanner-card">
+        <div class="flex flex-col sm:flex-row items-center gap-5">
+          <div
+            id="stock-scanner"
+            phx-hook="QRScanner"
+            data-decoder-url={~p"/assets/js/qr_decoder.js"}
+            class="w-56 h-56 shrink-0 rounded-card overflow-hidden bg-slate-900"
+          >
+            <video class="w-full h-full object-cover" muted playsinline></video>
+          </div>
+          <div class="min-w-0 text-center sm:text-left">
+            <h3 class="text-base font-bold text-slate-900">Point at the label</h3>
+            <p class="text-sm text-slate-600 mt-1">Hold the code in the box.</p>
+            <p :if={@scan_error} class="text-sm text-danger mt-2">{@scan_error}</p>
+            <.admin_button variant={:secondary} size={:sm} class="mt-4" phx-click="close_scanner">
+              Stop
+            </.admin_button>
+          </div>
+        </div>
+      </.admin_card>
 
       <%!-- Stock Table --%>
       <%= if @variants == [] do %>
@@ -670,15 +710,24 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   :for={variant <- @variants}
                   class="hover:bg-slate-50 transition-colors"
                 >
-                  <td class="px-4 py-3.5 text-slate-700 font-medium">
-                    {product_title(variant)}
-                    <span
-                      :if={variant.supplier_id}
-                      class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                      title={dropship_label(variant)}
-                    >
-                      Dropshipped
-                    </span>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-3">
+                      <.product_thumb
+                        url={variant_image_url(variant)}
+                        alt={product_title(variant)}
+                        class="w-9 h-9"
+                      />
+                      <div class="min-w-0">
+                        <span class="text-slate-700 font-medium">{product_title(variant)}</span>
+                        <span
+                          :if={variant.supplier_id}
+                          class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                          title={dropship_label(variant)}
+                        >
+                          Dropshipped
+                        </span>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-4 py-3.5 font-mono text-xs text-slate-500">
                     {variant.sku || "--"}
@@ -748,14 +797,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         </button>
                       </.form>
                     <% else %>
-                      <button
-                        phx-click="start_edit"
-                        phx-value-id={variant.id}
-                        class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
-                        title="Click to edit stock"
-                      >
-                        {variant.stock_quantity}
-                      </button>
+                      <div class="flex items-center gap-2.5">
+                        <button
+                          phx-click="start_edit"
+                          phx-value-id={variant.id}
+                          class="font-mono text-sm font-semibold text-slate-800 hover:text-slate-600 cursor-pointer"
+                          title="Click to edit stock"
+                        >
+                          {variant.stock_quantity}
+                        </button>
+                        <.stock_meter quantity={variant.stock_quantity} />
+                      </div>
                       <.location_breakdown
                         :if={@multi_location?}
                         entries={breakdown_entries(variant, @levels_by_variant, @locations)}
@@ -845,26 +897,33 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <div class="md:hidden space-y-3">
           <.admin_card :for={variant <- @variants} padding={:none} class="p-4">
             <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p class="text-sm font-medium text-slate-800">
-                  {product_title(variant)}
-                  <span
-                    :if={variant.supplier_id}
-                    class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
-                  >
-                    Dropshipped
-                  </span>
-                </p>
-                <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+              <div class="flex items-center gap-3 min-w-0">
+                <.product_thumb
+                  url={variant_image_url(variant)}
+                  alt={product_title(variant)}
+                  class="w-10 h-10"
+                />
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-slate-800">
+                    {product_title(variant)}
+                    <span
+                      :if={variant.supplier_id}
+                      class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                    >
+                      Dropshipped
+                    </span>
+                  </p>
+                  <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
+                </div>
               </div>
               <.stock_status_badge quantity={variant.stock_quantity} />
             </div>
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-slate-600">
+                <div class="flex items-center gap-2 text-sm text-slate-600">
                   <span class="text-slate-400">Stock:</span>
-                  <span class="font-mono font-semibold">{variant.stock_quantity}</span>
-                </p>
+                  <.stock_meter quantity={variant.stock_quantity} />
+                </div>
                 <.location_breakdown
                   :if={@multi_location?}
                   entries={breakdown_entries(variant, @levels_by_variant, @locations)}
@@ -1003,29 +1062,6 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   defp dropship_label(%{supplier: %{name: name}}) when is_binary(name), do: "Supplier: #{name}"
   defp dropship_label(_), do: "Dropshipped"
-
-  # ── Components ──
-
-  attr :status, :atom, required: true
-  attr :current, :atom, required: true
-
-  defp filter_button(assigns) do
-    ~H"""
-    <button
-      phx-click="filter_status"
-      phx-value-status={@status}
-      class={[
-        "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
-        if(@status == @current,
-          do: "bg-white text-slate-900 shadow-sm",
-          else: "text-slate-500 hover:text-slate-700"
-        )
-      ]}
-    >
-      {filter_label(@status)}
-    </button>
-    """
-  end
 
   # ── Data Loading ──
 
@@ -1303,10 +1339,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   defp product_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp product_title(_), do: "Unknown Product"
 
-  defp filter_label(:all), do: "All"
-  defp filter_label(:in_stock), do: "In Stock"
-  defp filter_label(:low_stock), do: "Low Stock"
-  defp filter_label(:out_of_stock), do: "Out of Stock"
+  defp variant_image_url(%{product: %{images: [%{thumbnail_url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(%{product: %{images: [%{url: url} | _]}})
+       when is_binary(url) and url != "",
+       do: url
+
+  defp variant_image_url(_), do: nil
 
   defp find_variant(variants, id) do
     Enum.find(variants, &(&1.id == id))

@@ -66,7 +66,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       <div class="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:px-8">
         <%!-- Gallery: square, hard-framed, finished before the photo lands --%>
         <div class="lg:sticky lg:top-24 lg:self-start">
-          <div class="relative aspect-square overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
+          <div class="relative aspect-[4/5] overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
             <div
               class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
               aria-hidden="true"

@@ -54,6 +54,18 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :store_blocked,
           :store_archived,
           :store_reactivated,
+          # Directory featuring curation
+          :directory_slot_overridden,
+          :directory_slot_override_cleared,
+          :directory_override_expired,
+          :directory_store_excluded,
+          :directory_store_readmitted,
+          :store_featured,
+          :store_unfeatured,
+          :store_verified_badge_granted,
+          :store_verified_badge_revoked,
+          :domain_approved,
+          :domain_rejected,
           :verification_approved,
           :verification_rejected,
           :impersonation_started,
@@ -103,6 +115,25 @@ defmodule Emakola.Accounts.PlatformAuditLog do
     read :list_for_store do
       argument(:store_id, :string, allow_nil?: false)
       filter(expr(fragment("? ->> 'store_id' = ?", metadata, ^arg(:store_id))))
+      prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
+    end
+
+    read :list_for_product do
+      argument(:product_id, :string, allow_nil?: false)
+      filter(expr(fragment("? ->> 'product_id' = ?", metadata, ^arg(:product_id))))
+      prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
+    end
+
+    read :takedowns_for_store do
+      argument(:store_id, :string, allow_nil?: false)
+
+      filter(
+        expr(
+          action == :product_taken_down and
+            fragment("? ->> 'store_id' = ?", metadata, ^arg(:store_id))
+        )
+      )
+
       prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
     end
   end

@@ -55,19 +55,21 @@ defmodule Emakola.Customers.Customer do
         sign_in_action_name(:sign_in_with_password)
       end
 
-      # Storefront social login. No identity_resource on purpose: the per-store
-      # Customer is found/created by the upsert action keyed on
-      # :unique_store_email (store_id from the request tenant).
-      # AshAuthentication.UserIdentity has no multitenancy support, so an
-      # identity table would make the same social account ambiguous across
-      # stores. prevent_hijacking? true — armed by the confirmation add-on above,
-      # (no email-confirmation flow yet).
+      # Storefront social login. The identity resource is per-store: Ash scopes
+      # an identity on a multitenant resource to the tenant by default
+      # (all_tenants?: false), so the extension's (uid, strategy) becomes
+      # (store_id, uid, strategy). The same Google account is therefore a
+      # different customer at every shop, which is what a shopper needs and the
+      # opposite of the merchant rule. See CustomerIdentity for why.
+      #
+      # prevent_hijacking? true — armed by the confirmation add-on above.
       google :google do
         client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_id) end)
         client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_secret) end)
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
 
@@ -82,6 +84,7 @@ defmodule Emakola.Customers.Customer do
         authorization_params(scope: "email public_profile")
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
 
@@ -93,6 +96,7 @@ defmodule Emakola.Customers.Customer do
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
+        identity_resource(Emakola.Customers.CustomerIdentity)
         prevent_hijacking?(true)
       end
     end
@@ -117,8 +121,12 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    # Optional on purpose. Most buyers in this market do not use email, and
+    # requiring it made phone-first signup impossible — the WhatsApp flow had
+    # to ask for an address the buyer did not have. Reachability is enforced
+    # instead by ContactDetailPresent on the create actions: a customer must
+    # have a phone or an email, so the shop can always reach them.
     attribute :email, :ci_string do
-      allow_nil?(false)
       public?(true)
       constraints(max_length: 320)
     end
@@ -135,6 +143,14 @@ defmodule Emakola.Customers.Customer do
 
     attribute :tags, {:array, :string} do
       default([])
+      public?(true)
+    end
+
+    # Set when a customer asks to stop receiving marketing messages. A stamp
+    # rather than a boolean so the date is auditable — every SMS costs the
+    # merchant money, and "when did they opt out" is the question that
+    # settles a dispute. nil means never opted out.
+    attribute :marketing_opt_out_at, :utc_datetime_usec do
       public?(true)
     end
 
@@ -221,12 +237,24 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
+    end
+
+    # Opting out is its own intent, not a field edit — widening :update to
+    # accept the stamp would let any customer edit clear it by omission.
+    update :opt_out_of_marketing do
+      change(set_attribute(:marketing_opt_out_at, &DateTime.utc_now/0))
+    end
+
+    update :opt_in_to_marketing do
+      change(set_attribute(:marketing_opt_out_at, nil))
     end
 
     # Passwordless, store-scoped registration via verified phone. store_id comes
     # from the request tenant (multitenancy :attribute).
     create :register_with_phone do
       accept([:email, :name, :phone])
+      validate(Emakola.Customers.Validations.ContactDetailPresent)
     end
 
     create :register_with_password do
@@ -264,6 +292,11 @@ defmodule Emakola.Customers.Customer do
       argument(:oauth_tokens, :map, allow_nil?: false)
 
       change(AshAuthentication.GenerateTokenChange)
+
+      # Records the provider's iss/sub against this store's customer. The tenant
+      # rides along from the changeset, so the identity lands scoped to the shop
+      # the shopper is signing in to.
+      change(AshAuthentication.Strategy.OAuth2.IdentityChange)
 
       change(fn changeset, _context ->
         user_info = Ash.Changeset.get_argument(changeset, :user_info) || %{}

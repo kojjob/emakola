@@ -190,7 +190,7 @@ defmodule Emakola.Notifications.TemplatesTest do
     ]
   end
 
-  describe "supplier_fulfillment_sms/3" do
+  describe "supplier_fulfillment_sms/4" do
     test "includes order number, item summary, and address" do
       msg =
         Templates.supplier_fulfillment_sms(supplier_order(), supplier(), supplier_line_items())
@@ -201,7 +201,45 @@ defmodule Emakola.Notifications.TemplatesTest do
       assert msg =~ "1x Beaded Necklace"
       assert msg =~ "12 Market Road"
       assert msg =~ "Kumasi"
-      assert msg =~ "tracking"
+    end
+
+    # The message used to end "Reply to confirm and share a tracking number."
+    # Nothing reads replies — there is no inbound WhatsApp or SMS webhook in the
+    # app, only Paystack, Hubtel and SplitPay — so that was an instruction the
+    # system could not honour. It is gone deliberately; this test is the guard
+    # against it coming back.
+    test "does not ask the supplier to reply, because nothing reads replies" do
+      msg =
+        Templates.supplier_fulfillment_sms(supplier_order(), supplier(), supplier_line_items())
+
+      refute msg =~ "Reply"
+      refute msg =~ "reply"
+    end
+
+    test "carries the action link when one is given" do
+      msg =
+        Templates.supplier_fulfillment_sms(
+          supplier_order(),
+          supplier(),
+          supplier_line_items(),
+          "https://makola.io/supply/abc123"
+        )
+
+      assert msg =~ "https://makola.io/supply/abc123"
+      assert msg =~ "no stock"
+    end
+
+    test "omits the link sentence entirely when there is no link" do
+      msg =
+        Templates.supplier_fulfillment_sms(
+          supplier_order(),
+          supplier(),
+          supplier_line_items(),
+          nil
+        )
+
+      refute msg =~ "/supply/"
+      refute msg =~ "Confirm or say"
     end
 
     test "handles nil shipping address gracefully" do

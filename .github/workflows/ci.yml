@@ -60,7 +60,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: _build
-          key: build-test-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          key: build-test-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock', 'config/config.exs') }}
           restore-keys: build-test-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
 
       - name: Cache Dialyzer PLT
@@ -71,7 +71,7 @@ jobs:
           restore-keys: plt-${{ runner.os }}-otp-${{ steps.beam.outputs.otp-version }}-elixir-${{ steps.beam.outputs.elixir-version }}-
 
       - name: Install dependencies
-        run: mix deps.get
+        run: mix deps.get && mix deps.clean mime --build
 
       - name: Install asset dependencies
         run: npm ci --prefix assets --no-audit --no-fund
@@ -162,11 +162,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: _build
-          key: build-pdf-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          key: build-pdf-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock', 'config/config.exs') }}
           restore-keys: build-pdf-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
 
       - name: Install dependencies
-        run: mix deps.get
+        run: mix deps.get && mix deps.clean mime --build
 
       - name: Install Chromium
         working-directory: e2e
@@ -237,12 +237,13 @@ jobs:
         uses: actions/cache@v5
         with:
           path: _build
-          key: build-e2e-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock') }}
+          key: build-e2e-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-mix-${{ hashFiles('mix.lock', 'config/config.exs') }}
           restore-keys: build-e2e-${{ runner.os }}-otp-${{ env.OTP_VERSION }}-elixir-${{ env.ELIXIR_VERSION }}-
 
       - name: Install application dependencies
         run: |
           mix deps.get
+          mix deps.clean mime --build
           npm ci --prefix assets --no-audit --no-fund
           npm ci --prefix e2e --no-audit --no-fund
 

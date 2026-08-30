@@ -11,6 +11,16 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
     %{conn: conn, user: user, store: store}
   end
 
+  test "a merchant with no pay links is told what one is for, in a few words", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/admin/pay-links")
+
+    # Artboard order: the promise is the headline, the mechanic is the line
+    # under it, the button is the one thing to do.
+    assert has_element?(view, "#pay-links-empty h3", "Sell in one message")
+    assert has_element?(view, "#pay-links-empty", "Make a link, send it, get paid")
+    assert has_element?(view, "#pay-links-empty button", "Make a pay link")
+  end
+
   test "lists links with funnel columns and empty state", %{conn: conn, store: store} do
     {:ok, _view, html} = live(conn, "/admin/pay-links")
     assert html =~ "Pay Links"
@@ -43,6 +53,42 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
 
     assert html =~ "/pay/"
     assert html =~ "wa.me"
+  end
+
+  test "the created pay link is shown as a QR the buyer can scan on the spot", %{conn: conn} do
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    view |> element("button", "New pay link") |> render_click()
+
+    view
+    |> form("#pay-link-create-form", %{
+      "pay_link" => %{"type" => "custom", "title" => "Kente", "amount_ghs" => "250"}
+    })
+    |> render_submit()
+
+    # The link + Copy + WhatsApp row serves a buyer who is elsewhere. The QR
+    # serves the buyer standing at the stall: nothing to type, nothing to read.
+    assert has_element?(view, "#pay-link-qr svg")
+  end
+
+  test "the created susu plan is shown as a QR", %{conn: conn} do
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    view |> element("button", "New pay link") |> render_click()
+    view |> render_click("set_create_type", %{"type" => "susu"})
+
+    view
+    |> form("#susu-plan-create-form", %{
+      "susu_plan" => %{
+        "title" => "Fridge",
+        "total_amount_ghs" => "200",
+        "min_chunk_ghs" => "20",
+        "deadline" => Date.utc_today() |> Date.add(30) |> Date.to_iso8601()
+      }
+    })
+    |> render_submit()
+
+    assert has_element?(view, "#susu-plan-qr svg")
   end
 
   test "the buyer protection override checkbox is hidden when the store setting is off",
@@ -449,6 +495,61 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
   # ── Test helpers ──────────────────────────────────────────────────
 
   defp future_deadline(days), do: DateTime.add(DateTime.utc_now(), days, :day)
+
+  describe "showing a susu plan's code again" do
+    test "a merchant can pull up an existing plan's QR for a returning customer", %{
+      conn: conn,
+      store: store
+    } do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+
+      # The code is shown once at creation. A susu customer comes back weekly to
+      # pay the next bit, and the merchant needs to show it again each time —
+      # copying a link is no use to someone standing at the stall.
+      refute has_element?(view, "#susu-code-modal svg")
+
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+
+      assert has_element?(view, "#susu-code-modal svg")
+      assert has_element?(view, "#susu-code-modal", "Fridge")
+    end
+
+    test "the shown code is that plan's own", %{conn: conn, store: store} do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+
+      assert has_element?(view, "#susu-code-modal", EmakolaWeb.QR.susu_url(plan))
+    end
+
+    test "the code closes again", %{conn: conn, store: store} do
+      plan = create_susu_plan!(store, %{type: :custom, title: "Fridge", total_amount: 20_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+      view |> element("#show-susu-code-#{plan.id}") |> render_click()
+      render_click(view, "close_susu_code", %{})
+
+      refute has_element?(view, "#susu-code-modal svg")
+    end
+
+    test "another store's plan id shows nothing", %{conn: conn} do
+      elsewhere = Emakola.Factory.create_store!()
+
+      theirs =
+        create_susu_plan!(elsewhere, %{type: :custom, title: "Theirs", total_amount: 9_000})
+
+      {:ok, view, _} = live(conn, "/admin/pay-links")
+
+      # Params are never trusted for tenancy: the id is matched against the
+      # plans this store actually loaded.
+      render_click(view, "show_susu_code", %{"id" => theirs.id})
+
+      refute has_element?(view, "#susu-code-modal svg")
+    end
+  end
 
   defp create_susu_plan!(store, attrs) do
     attrs = Map.new(attrs) |> Map.put_new(:deadline, future_deadline(30))

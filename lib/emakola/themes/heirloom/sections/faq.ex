@@ -66,6 +66,7 @@ defmodule Emakola.Themes.Heirloom.Sections.Faq do
         <div>
           <details
             :for={item <- @items}
+            name="faq"
             class="group border-b border-[color:var(--hl-border)] py-6"
           >
             <summary class="flex cursor-pointer list-none items-center justify-between gap-6">

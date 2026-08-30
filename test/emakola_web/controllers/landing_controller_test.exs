@@ -277,6 +277,22 @@ defmodule EmakolaWeb.LandingControllerTest do
     end
   end
 
+  describe "FAQ" do
+    test "items share a name so opening one closes the others", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      # A single-open accordion: native <details> siblings that share a
+      # `name` are mutually exclusive, so a reader never has to close the
+      # previous answer by hand.
+      names =
+        Regex.scan(~r/<details[^>]*\bname="([^"]+)"/, html)
+        |> Enum.map(fn [_, name] -> name end)
+
+      assert length(names) == 7
+      assert Enum.uniq(names) == ["faq"]
+    end
+  end
+
   describe "page chrome" do
     test "scroll-reveal binding and footer render", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)

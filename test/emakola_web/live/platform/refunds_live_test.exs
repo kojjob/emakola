@@ -9,8 +9,8 @@ defmodule EmakolaWeb.Platform.RefundsLiveTest do
 
   alias Emakola.Factory
 
-  defp refunded!(store, amount) do
-    payment = Factory.create_payment!(store, %{amount: amount})
+  defp refunded!(store, amount, currency \\ "GHS") do
+    payment = Factory.create_payment!(store, %{amount: amount, currency: currency})
 
     {:ok, payment} =
       payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update(authorize?: false)
@@ -52,6 +52,51 @@ defmodule EmakolaWeb.Platform.RefundsLiveTest do
       assert has_element?(view, "#platform-refunds[phx-update='stream']")
       assert has_element?(view, "#refunds-#{payment.id}")
       refute has_element?(view, "#platform-refunds-empty")
+    end
+
+    test "ledger rows show a capitalized gateway pill and a friendly date", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Kente Kingdom"})
+      payment = refunded!(store, 100_000)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
+
+      assert has_element?(view, "#refunds-#{payment.id}", "Paystack")
+
+      assert has_element?(
+               view,
+               "#refunds-#{payment.id}",
+               Calendar.strftime(payment.inserted_at, "%b %d, %Y")
+             )
+    end
+
+    # The headline was hardcoded "GHS" while summing every currency into one
+    # integer, so a single NGN refund both mislabelled and corrupted the total.
+    test "totals are kept apart per currency, never added together", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Kente Kingdom"})
+      refunded!(store, 100_000)
+      refunded!(store, 40_000, "NGN")
+
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
+
+      total = view |> element("#platform-refunds-total") |> render()
+
+      assert total =~ "GHS 1,000.00"
+      assert total =~ "NGN 400.00"
+      # 140_000 minor units labelled as one currency is the bug.
+      refute total =~ "GHS 1,400.00"
+    end
+
+    # The table stops at a server-side cap while the count tile reports the
+    # true total, and nothing on screen accounted for the gap.
+    test "the table says how much of the total it is showing", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Kente Kingdom"})
+      refunded!(store, 100_000)
+      refunded!(store, 25_000)
+
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
+
+      assert has_element?(view, "#platform-refunds-showing", "Showing 2")
+      assert has_element?(view, "#platform-refunds-showing", "of 2")
     end
   end
 end

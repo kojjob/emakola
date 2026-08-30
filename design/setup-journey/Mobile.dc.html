@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+  </style>
+</helmet>
+<div style="width: 390px; min-height: 700px; padding: 16px; background: #f8fafc; box-sizing: border-box;">
+
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 14px; padding: 18px 18px 14px;">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="27" fill="none" stroke="#e2e8f0" stroke-width="7"/>
+        <circle cx="32" cy="32" r="27" fill="none" stroke="#059669" stroke-width="7" stroke-linecap="round"
+                stroke-dasharray="169.6" stroke-dashoffset="101.8" transform="rotate(-90 32 32)"/>
+        <text x="32" y="30" text-anchor="middle" font-size="15" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">2/5</text>
+        <text x="32" y="43" text-anchor="middle" font-size="8.5" font-weight="600" fill="#94a3b8" font-family="Inter, sans-serif">done</text>
+      </svg>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 17px; font-weight: 800; color: #0f172a;">Set up your shop</div>
+        <div style="font-size: 12.5px; color: #64748b; margin-top: 2px;">5 small steps. Do one now.</div>
+        <div style="display: flex; gap: 4px; margin-top: 8px;">
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #059669;"></div>
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #059669;"></div>
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #e2e8f0;"></div>
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #e2e8f0;"></div>
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #e2e8f0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next step: full-width loud row -->
+    <div style="margin: 4px 14px 12px; padding: 14px; border-radius: 14px; border: 2px solid #059669; box-shadow: 0 6px 16px rgba(5,150,105,0.15); display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; background: #ECFDF5; flex-shrink: 0;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V7h11v10H3zm11-6h4l3 3v3h-7M5.5 20a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm11 0a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6z"/></svg>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #059669;">Do this now</div>
+        <div style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-top: 1px;">Set where you deliver</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; background: #059669; color: #ffffff; font-size: 13px; font-weight: 700; padding: 10px 16px; border-radius: 10px; flex-shrink: 0;">
+        Start
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Remaining + done rows, compact -->
+    <div style="border-top: 1px solid #f1f5f9;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 11px; background: #f1f5f9; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8m-8 4h5M21 12c0 4-4 7-9 7-1.2 0-2.3-.16-3.3-.46L4 20l1.3-3.1C4 15.6 3 13.9 3 12c0-4 4-7 9-7s9 3 9 7z"/></svg>
+        </div>
+        <div style="flex: 1; font-size: 14px; font-weight: 700; color: #334155;">Connect WhatsApp</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid #f1f5f9;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 11px; background: #f1f5f9; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.2 10.8l7-4M8.2 13.2l7 4"/></svg>
+        </div>
+        <div style="flex: 1; font-size: 14px; font-weight: 700; color: #334155;">Link your socials</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid #f1f5f9; opacity: 0.75;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #ECFDF5; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="flex: 1; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: line-through;">Pick a look</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid #f1f5f9; opacity: 0.75;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #ECFDF5; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="flex: 1; font-size: 14px; font-weight: 600; color: #64748b; text-decoration: line-through;">Add one product</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px; margin-top: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 18px;">
+    <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: #ECFDF5; flex-shrink: 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+    </div>
+    <div>
+      <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">Nothing waiting today</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 1px;">New orders and questions show here.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

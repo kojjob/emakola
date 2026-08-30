@@ -106,17 +106,44 @@ defmodule Emakola.Stores.StoreLifecycleTest do
 
   describe "public directory reads exclude non-live stores" do
     setup do
-      # Featured + ranked so each store qualifies for every directory read.
+      # Featured + ranked so each store qualifies for every directory read;
+      # a spotlight/rising/promoted cache slot so the worker-fed reads see
+      # them too. What matters here is only that lifecycle status wins.
       meta = %{featured: true, featured_rank: 1}
-      live = Factory.create_store!(meta)
+
+      with_slot! = fn store, slot ->
+        store
+        |> Ash.Changeset.for_update(:set_directory_standing, %{
+          directory_eligible: true,
+          directory_score: 500,
+          directory_slot: slot
+        })
+        |> Ash.update!(authorize?: false)
+      end
+
+      live = Factory.create_store!(meta) |> then(&with_slot!.(&1, :spotlight))
 
       {:ok, suspended} =
-        Stores.suspend_store(Factory.create_store!(meta), %{reason: "x"}, authorize?: false)
+        Stores.suspend_store(
+          Factory.create_store!(meta) |> then(&with_slot!.(&1, :spotlight)),
+          %{reason: "x"},
+          authorize?: false
+        )
 
       {:ok, blocked} =
-        Stores.block_store(Factory.create_store!(meta), %{reason: "x"}, authorize?: false)
+        Stores.block_store(
+          Factory.create_store!(meta) |> then(&with_slot!.(&1, :spotlight)),
+          %{reason: "x"},
+          authorize?: false
+        )
 
-      {:ok, archived} = Stores.archive_store(Factory.create_store!(meta), %{}, authorize?: false)
+      {:ok, archived} =
+        Stores.archive_store(
+          Factory.create_store!(meta) |> then(&with_slot!.(&1, :spotlight)),
+          %{},
+          authorize?: false
+        )
+
       %{live: live, suspended: suspended, blocked: blocked, archived: archived}
     end
 
@@ -132,7 +159,10 @@ defmodule Emakola.Stores.StoreLifecycleTest do
           :list_active,
           :list_recent,
           :list_featured,
-          :list_editor_picks,
+          # The three slot reads share one filter shape; a store holds one
+          # slot, so the sweep exercises :list_spotlight and the dedicated
+          # slot-read tests cover the rest.
+          :list_spotlight,
           :list_with_filters
         ] do
       test "#{action} shows live, hides suspended/blocked/archived", ctx do

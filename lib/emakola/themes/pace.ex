@@ -125,9 +125,6 @@ defmodule Emakola.Themes.Pace do
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Pace.ProductDetail, as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   @doc """
   Pace's chrome on fallback storefront pages (cart, checkout, account…)
   via `Emakola.Themes.DefaultRenderers.Chrome` — keeps the store in the
@@ -152,4 +149,20 @@ defmodule Emakola.Themes.Pace do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Pace.Shared.pace_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active_tab: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Pace's bar speaks
+  # :home | :search | :saved | :cart.
+  defp bottom_nav_active(:cart), do: :cart
+  defp bottom_nav_active(:search), do: :search
+  defp bottom_nav_active(_), do: :home
 end

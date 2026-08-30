@@ -57,7 +57,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-10">
           <%!-- Image column — placeholder-first, finished without a photo --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="relative aspect-square overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
+            <div class="relative aspect-[4/5] overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
               <div
                 class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200"
                 aria-hidden="true"

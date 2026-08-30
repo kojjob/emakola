@@ -28,7 +28,7 @@ defmodule Emakola.Themes.Dede.ProductList do
         </p>
 
         <form phx-change="search" class="mt-5">
-          <label for="dede-menu-search" class="sr-only">Search the menu</label>
+          <label for="dede-menu-search" class="sr-only">Search the shop</label>
           <div class="relative">
             <svg
               class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6B6355]"
@@ -49,7 +49,7 @@ defmodule Emakola.Themes.Dede.ProductList do
               type="text"
               name="query"
               value={@search_query}
-              placeholder="Search the menu..."
+              placeholder="Search the shop..."
               phx-debounce="300"
               class="min-h-12 w-full rounded-full border-2 border-[#26211A]/15 bg-white py-3 pl-11 pr-5 text-sm text-[#26211A] placeholder-[#6B6355] hover:border-[#26211A]/30 focus:border-[#26211A] focus:outline-none focus:ring-2 focus:ring-[#26211A]/15 motion-safe:transition-colors"
             />
@@ -104,7 +104,7 @@ defmodule Emakola.Themes.Dede.ProductList do
               <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#A8BAA5]">
                 {if @search_query != "" || @selected_category,
                   do: "Try another dish, or see everything on the board.",
-                  else: "#{@store.name} hasn't written up the menu yet — check back soon."}
+                  else: "#{@store.name} hasn't added products yet — check back soon."}
               </p>
               <button
                 :if={@search_query != "" || @selected_category}

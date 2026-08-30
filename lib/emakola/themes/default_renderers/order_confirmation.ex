@@ -19,6 +19,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
     ~H"""
     <Emakola.Themes.DefaultRenderers.Chrome.navbar
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -386,6 +387,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
     <Emakola.Themes.DefaultRenderers.Chrome.footer
       theme_module={assigns[:theme_module]}
+      theme={assigns[:theme] || %{}}
       store={@store}
       categories={@categories}
     />
@@ -504,7 +506,6 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   # storefront home so social shares from the order confirmation drive new
   # traffic into the store. Uses host from EmakolaWeb.Endpoint config.
   defp share_url(store, _order) do
-    base = EmakolaWeb.Endpoint.url()
-    "#{base}/s/#{store.slug}"
+    EmakolaWeb.SEO.Canonical.store_url(store)
   end
 end

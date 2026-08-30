@@ -34,8 +34,8 @@ function productBlock(page: import("@playwright/test").Page) {
   return page
     .locator("tr", { hasText: PRODUCT })
     // `.p-4` pins the mobile CARD; the desktop table wrapper is also
-    // `bg-white rounded-lg` but has no padding class and holds every product.
-    .or(page.locator("div.bg-white.rounded-lg.p-4", { hasText: PRODUCT }))
+    // `bg-surface rounded-card` but has no padding class and holds every product.
+    .or(page.locator("div.bg-surface.rounded-card.p-4", { hasText: PRODUCT }))
     .filter({ visible: true })
     .first();
 }

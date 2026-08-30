@@ -18,13 +18,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
-    socket =
-      assign(socket,
-        active_nav: :dashboard,
-        setup_banner_dismissed: false,
-        impersonator: nil,
-        robots: "noindex, nofollow"
-      )
+    socket = base_assigns(socket)
 
     case resolve_platform_session(socket, session["platform_session_token"]) do
       {:ok, socket} ->
@@ -35,6 +29,39 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   end
 
+  # Merchant admin surfaces. A browser often holds both logins — the same
+  # person runs the platform and a shop — and here the merchant login must
+  # win, or a platform session shadows it and every merchant page bounces
+  # to a login that cannot fix anything (RequireAuth's contract, enforced).
+  def on_mount(:merchant, _params, session, socket) do
+    socket = base_assigns(socket)
+
+    case resolve_merchant_token(socket, session["user_token"], session) do
+      {:cont, %{assigns: %{current_merchant: %{}}} = socket} ->
+        {:cont, socket}
+
+      {:halt, socket} ->
+        {:halt, socket}
+
+      {:cont, socket} ->
+        # No merchant login. Resolve staff so shared chrome still knows who
+        # is looking; RequireAuth will still ask them to log in as a merchant.
+        case resolve_platform_session(socket, session["platform_session_token"]) do
+          {:ok, socket} -> {:cont, attach_notification_hook(socket)}
+          :error -> {:cont, socket}
+        end
+    end
+  end
+
+  defp base_assigns(socket) do
+    assign(socket,
+      active_nav: :dashboard,
+      setup_banner_dismissed: false,
+      impersonator: nil,
+      robots: "noindex, nofollow"
+    )
+  end
+
   defp resolve_platform_session(socket, signed_token) do
     with {:ok, session_id} <- EmakolaWeb.AuthTokens.verify_platform_session(signed_token),
          {:ok, user, user_session} <- Emakola.Accounts.Sessions.verify_session_id(session_id) do
@@ -42,8 +69,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         Emakola.Accounts.Sessions.touch(user_session)
       end
 
-      {notifs, unread} =
-        if Phoenix.LiveView.connected?(socket), do: load_notifications(user.id), else: {[], 0}
+      {notifs, unread} = load_notifications(socket, user)
 
       {:ok,
        assign(socket,
@@ -54,7 +80,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
          onboarding_complete: true,
          notifications: notifs,
          unread_notification_count: unread,
-         pending_order_count: 0
+         pending_order_count: 0,
+         unread_message_count: 0
        )}
     else
       _ -> :error
@@ -109,7 +136,15 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   defp resolve_live_merchant(socket, merchant, impersonator) do
     store = load_merchant_store(merchant.id)
-    {notifs, unread} = load_notifications(nil)
+    {notifs, unread} = load_notifications(socket, merchant)
+
+    # The badge lives in the layout, on every admin page, so it cannot rely on
+    # any one LiveView subscribing. Store-wide topic rather than the
+    # per-conversation one: a merchant on the dashboard is in no thread.
+    if store && Phoenix.LiveView.connected?(socket) do
+      Emakola.Conversations.subscribe_store(store.id)
+    end
+
     # Defer the 4 stat-count queries to the connected mount — the disconnected
     # dead render throws them away (CLAUDE.md: no DB work in the dead render).
     stats =
@@ -128,8 +163,29 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       product_count: stats.products,
       order_count: stats.orders,
       customer_count: stats.customers,
-      pending_order_count: stats.pending_orders
+      pending_order_count: stats.pending_orders,
+      unread_message_count: stats.unread_messages
     )
+    |> attach_message_badge_hook()
+  end
+
+  # Recount on the store-wide signal and pass everything else through. This
+  # runs in every LiveView of the :app session, so `:cont` on a non-match is
+  # load-bearing — halting here would swallow each page's own messages.
+  defp attach_message_badge_hook(socket) do
+    Phoenix.LiveView.attach_hook(socket, :message_badge, :handle_info, fn
+      :store_messages_changed, socket ->
+        count =
+          case socket.assigns[:current_store] do
+            nil -> 0
+            store -> Emakola.Conversations.unread_total_for_store(store.id)
+          end
+
+        {:cont, assign(socket, unread_message_count: count)}
+
+      _message, socket ->
+        {:cont, socket}
+    end)
   end
 
   # `:none` (no/!impersonation), `:expired` (window elapsed → force exit), or
@@ -164,18 +220,39 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       onboarding_complete: false,
       notifications: [],
       unread_notification_count: 0,
-      pending_order_count: 0
+      pending_order_count: 0,
+      unread_message_count: 0
     )
   end
 
   defp attach_notification_hook(socket) do
-    Phoenix.LiveView.attach_hook(
-      socket,
+    socket
+    |> Phoenix.LiveView.attach_hook(
       :notification_actions,
       :handle_event,
       &handle_notification_event/3
     )
+    |> Phoenix.LiveView.attach_hook(
+      :notification_arrivals,
+      :handle_info,
+      &handle_notification_info/2
+    )
   end
+
+  # The bell is in the layout, on every page, so arrivals cannot depend on any
+  # one LiveView subscribing. `:cont` on a non-match is load-bearing — halting
+  # would swallow each page's own messages.
+  defp handle_notification_info({:new_notification, notification}, socket) do
+    notifications = [notification | socket.assigns[:notifications] || []]
+
+    {:cont,
+     assign(socket,
+       notifications: Enum.take(notifications, 20),
+       unread_notification_count: (socket.assigns[:unread_notification_count] || 0) + 1
+     )}
+  end
+
+  defp handle_notification_info(_message, socket), do: {:cont, socket}
 
   defp load_merchant_store(merchant_id) do
     case Emakola.Accounts.get_merchant_store_membership(merchant_id, authorize?: false) do
@@ -186,28 +263,69 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp handle_notification_event("mark_all_notifications_read", _params, socket) do
-    notifs = socket.assigns[:notifications] || []
+    # One statement for the whole bell. The previous version looped over the
+    # 20 loaded rows, which both cost a query each and quietly left a 21st
+    # unread notification behind.
+    case notification_recipient(socket) do
+      nil ->
+        {:halt, socket}
 
-    updated =
-      Enum.map(notifs, fn notif ->
-        if is_nil(notif.read_at) do
-          case Emakola.Notifications.mark_as_read(notif, authorize?: false) do
-            {:ok, updated} -> updated
-            _ -> notif
-          end
-        else
-          notif
-        end
-      end)
+      recipient ->
+        Emakola.Notifications.mark_all_read_for(recipient)
+        now = DateTime.utc_now()
 
-    {:halt,
-     socket
-     |> assign(notifications: updated, unread_notification_count: 0)}
+        read =
+          Enum.map(socket.assigns[:notifications] || [], fn notification ->
+            %{notification | read_at: notification.read_at || now}
+          end)
+
+        {:halt, assign(socket, notifications: read, unread_notification_count: 0)}
+    end
+  end
+
+  # Clicking a notification is the read receipt AND the navigation — the row
+  # goes where its action_url points, or to the actor's inbox when it has
+  # none. Rendered by both bells (admin topbar, platform layout), handled
+  # once here.
+  defp handle_notification_event("open_notification", %{"id" => id}, socket) do
+    notifications = socket.assigns[:notifications] || []
+
+    case Enum.find(notifications, &(&1.id == id)) do
+      nil ->
+        {:halt, socket}
+
+      notification ->
+        if is_nil(notification.read_at), do: Emakola.Notifications.mark_read(notification)
+        now = DateTime.utc_now()
+
+        updated =
+          Enum.map(notifications, fn n ->
+            if n.id == id, do: %{n | read_at: n.read_at || now}, else: n
+          end)
+
+        unread = Enum.count(updated, &is_nil(&1.read_at))
+
+        {:halt,
+         socket
+         |> assign(notifications: updated, unread_notification_count: unread)
+         |> Phoenix.LiveView.push_navigate(to: notification.action_url || inbox_path(socket))}
+    end
   end
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
 
-  defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+  defp inbox_path(socket) do
+    if socket.assigns[:current_merchant], do: "/admin/messages", else: "/platform/messages"
+  end
+
+  # Whichever actor this session belongs to. Both are never set at once —
+  # the merchant path nils current_user and vice versa.
+  defp notification_recipient(socket) do
+    socket.assigns[:current_merchant] || socket.assigns[:current_user]
+  end
+
+  defp load_store_stats(nil),
+    do: %{products: 0, orders: 0, customers: 0, pending_orders: 0, unread_messages: 0}
 
   defp load_store_stats(store) do
     {:ok, product_count} =
@@ -234,28 +352,29 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       products: product_count,
       orders: order_count,
       customers: customer_count,
-      pending_orders: pending_order_count
+      pending_orders: pending_order_count,
+      unread_messages: Emakola.Conversations.unread_total_for_store(store.id)
     }
   rescue
     exception ->
       Logger.error("[assign_defaults] load_store_stats raised: #{Exception.message(exception)}")
-      %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+      load_store_stats(nil)
   end
 
-  defp load_notifications(user_id) do
-    case user_id do
-      nil ->
-        {[], 0}
+  # Deferred to the connected mount like the other counts — the dead render
+  # throws the result away. Subscribing here rather than in each LiveView
+  # because the bell lives in the layout and is on every page.
+  #
+  # The count is its own query rather than `Enum.count` over the loaded rows:
+  # the list is capped at 20, so counting it would cap the badge at 20 too.
+  defp load_notifications(socket, recipient) do
+    if Phoenix.LiveView.connected?(socket) && recipient do
+      Emakola.Notifications.subscribe(recipient)
 
-      uid ->
-        case Emakola.Notifications.list_notifications_by_user(uid, authorize?: false) do
-          {:ok, notifs} ->
-            unread = Enum.count(notifs, &is_nil(&1.read_at))
-            {notifs, unread}
-
-          _ ->
-            {[], 0}
-        end
+      {Emakola.Notifications.list_for(recipient),
+       Emakola.Notifications.unread_count_for(recipient)}
+    else
+      {[], 0}
     end
   rescue
     exception ->

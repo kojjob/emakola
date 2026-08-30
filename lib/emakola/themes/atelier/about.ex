@@ -15,22 +15,6 @@ defmodule Emakola.Themes.Atelier.About do
 
   alias Emakola.Themes.Atelier.Shared
 
-  @step_icons ["search", "hands", "package"]
-  @value_icons ["shield", "heart", "leaf", "globe"]
-
-  @default_steps [
-    {"Browse", "Explore our collection and find the pieces you love."},
-    {"Order", "Add to cart and check out securely in just a few taps."},
-    {"Delivered", "We carefully pack your order and get it safely to your door."}
-  ]
-
-  @default_values [
-    {"Quality", "We stand behind every item we sell."},
-    {"Fair Prices", "Honest pricing with no surprises at checkout."},
-    {"Customer Care", "Real people ready to help, before and after your order."},
-    {"Trust", "Secure payments and reliable delivery you can count on."}
-  ]
-
   attr :store, :map, required: true
   attr :theme, :map, required: true
   attr :categories, :list, default: []
@@ -38,25 +22,10 @@ defmodule Emakola.Themes.Atelier.About do
   attr :page_content, :map, default: %{}
 
   def render(assigns) do
-    store = assigns.store
-    pc = Map.get(assigns, :page_content) || %{}
-
-    assigns =
-      assigns
-      |> assign(
-        :about_headline,
-        blank_to_nil(Map.get(pc, :about_headline)) || "About #{store.name}"
-      )
-      |> assign(:about_intro, about_intro(pc, store))
-      |> assign(:story_paragraphs, build_story(pc, store))
-      |> assign(:process_steps, build_steps(pc))
-      |> assign(:value_cards, build_values(pc))
-      |> assign(:cta_heading, blank_to_nil(Map.get(pc, :about_cta_heading)) || "Ready to shop?")
-      |> assign(
-        :cta_text,
-        blank_to_nil(Map.get(pc, :about_cta_text)) ||
-          "Explore our collection — we'd love to have you."
-      )
+    # Content assembly (headline/story/steps/values/CTA with neutral,
+    # store-name-driven fallbacks) is single-sourced in the default About
+    # renderer so buyer-facing copy cannot drift between the two pages.
+    assigns = Emakola.Themes.DefaultRenderers.About.content_assigns(assigns)
 
     ~H"""
     <div class="atelier-body">
@@ -431,93 +400,4 @@ defmodule Emakola.Themes.Atelier.About do
     </svg>
     """
   end
-
-  # ── Content helpers ──
-  #
-  # Every text slot reads from the store's `StorePageContent` and falls back to
-  # NEUTRAL, store-name-driven copy — never the old shared artisan/heritage prose.
-
-  defp about_intro(pc, store) do
-    blank_to_nil(Map.get(pc, :about_intro)) ||
-      blank_to_nil(Map.get(store, :description)) ||
-      "Welcome to #{store.name}. Here's a little more about who we are and what we offer."
-  end
-
-  defp build_story(pc, store) do
-    case blank_to_nil(Map.get(pc, :about_story)) do
-      nil ->
-        [
-          "#{store.name} is dedicated to bringing you quality products and a shopping experience you can trust. Thanks for taking a moment to learn more about us."
-        ]
-
-      story ->
-        story
-        |> String.split(~r/\n{2,}/, trim: true)
-        |> Enum.map(&String.trim/1)
-        |> Enum.reject(&(&1 == ""))
-    end
-  end
-
-  defp build_steps(pc) do
-    rows =
-      case custom_pairs(pc, :about_steps) do
-        [] -> @default_steps
-        rows -> rows
-      end
-
-    rows
-    |> Enum.with_index()
-    |> Enum.map(fn {{title, description}, index} ->
-      %{
-        number: number(index),
-        title: title,
-        description: description || "",
-        icon: Enum.at(@step_icons, rem(index, length(@step_icons)))
-      }
-    end)
-  end
-
-  defp build_values(pc) do
-    rows =
-      case custom_pairs(pc, :about_values) do
-        [] -> @default_values
-        rows -> rows
-      end
-
-    rows
-    |> Enum.with_index()
-    |> Enum.map(fn {{title, description}, index} ->
-      %{
-        title: title,
-        description: description || "",
-        icon: Enum.at(@value_icons, rem(index, length(@value_icons)))
-      }
-    end)
-  end
-
-  # Non-blank {title, description} pairs from a stored list field. Rows whose
-  # title is blank are dropped so a half-filled admin form never renders gaps.
-  defp custom_pairs(pc, key) do
-    pc
-    |> Map.get(key)
-    |> List.wrap()
-    |> Enum.filter(&is_map/1)
-    |> Enum.map(fn row ->
-      {blank_to_nil(Map.get(row, "title")), blank_to_nil(Map.get(row, "description"))}
-    end)
-    |> Enum.filter(fn {title, _description} -> title end)
-  end
-
-  defp number(index) do
-    index
-    |> Kernel.+(1)
-    |> Integer.to_string()
-    |> String.pad_leading(2, "0")
-  end
-
-  defp blank_to_nil(value) when is_binary(value) do
-    if String.trim(value) == "", do: nil, else: value
-  end
-
-  defp blank_to_nil(_), do: nil
 end

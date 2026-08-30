@@ -263,6 +263,7 @@ defmodule Emakola.Notifications.Dispatcher do
       {:ok, job} ->
         enqueue_push(order_id, event)
         maybe_broadcast(order, event)
+        notify_merchants(order, event)
         {:ok, job}
 
       {:error, reason} ->
@@ -280,6 +281,29 @@ defmodule Emakola.Notifications.Dispatcher do
     Logger.error("[notifications] cannot dispatch #{inspect(event)}: order has no :id")
     {:error, :missing_order_id}
   end
+
+  # The merchant's in-app bell. Only a new order: the later status events are
+  # the merchant's own doing, and a bell that tells you what you just did is
+  # noise. Free and instant, unlike the SMS the worker above may send.
+  # Matched on store_id alone, with order_number fetched rather than
+  # destructured. Callers hand this function whatever they hold — protection
+  # holds pass a bare %{id:, store_id:} map — and a pattern naming
+  # order_number would simply not match those, skipping the notification with
+  # no error to show for it.
+  defp notify_merchants(%{store_id: store_id} = order, :order_placed) when is_binary(store_id) do
+    title =
+      case Map.get(order, :order_number) do
+        number when is_binary(number) -> "New order #{number}"
+        _ -> "New order"
+      end
+
+    Emakola.Notifications.notify_store(store_id, :order_placed, %{
+      title: title,
+      action_url: "/admin/orders"
+    })
+  end
+
+  defp notify_merchants(_order, _event), do: :ok
 
   # Mobile push fires only on new orders (Phase 0). Failures are logged and
   # swallowed — push must never break the primary notification path.
@@ -306,6 +330,37 @@ defmodule Emakola.Notifications.Dispatcher do
     %{order_id: order_id, event: Atom.to_string(event)}
     |> OrderNotificationWorker.new(queue: :notifications)
     |> Oban.insert()
+  end
+
+  @doc """
+  Tells a store's merchants that a supplier has gone quiet on a paid order.
+
+  Deliberately NOT routed through `dispatch/2` and `@valid_events`: that path
+  ends at `OrderNotificationWorker`, which messages the BUYER. This one is for
+  the merchant only.
+
+  Bell plus PubSub, never SMS. A 6-hour clock stamped at 23:00 comes due at
+  05:00, Ghana is UTC+0 and this project carries no tzdata, so an SMS rung would
+  need quiet-hours work before it could ship — and it would cost money per
+  escalation. `notify_store/3` is free, silent, and already wired to the bell.
+  """
+  def dispatch_supplier_overdue(order, supplier_name) do
+    Emakola.Notifications.notify_store(order.store_id, :supplier_overdue,
+      title: "#{supplier_name} has not replied",
+      body: "Order #{order.order_number}. Chase them, or cancel this part.",
+      action_url: "/admin/orders/#{order.id}",
+      metadata: %{"order_id" => order.id}
+    )
+
+    maybe_broadcast(order, :supplier_overdue)
+    :ok
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch_supplier_overdue raised: #{Exception.message(exception)}"
+      )
+
+      :ok
   end
 
   defp maybe_broadcast(%{store_id: store_id} = order, event) when not is_nil(store_id) do

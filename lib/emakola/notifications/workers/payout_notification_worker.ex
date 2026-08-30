@@ -37,11 +37,22 @@ defmodule Emakola.Notifications.Workers.PayoutNotificationWorker do
   end
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"payout_id" => payout_id}}) do
+  def perform(%Oban.Job{args: %{"payout_id" => payout_id}, attempt: attempt}) do
     with {:ok, payout} when not is_nil(payout) <- get_payout(payout_id),
          {:ok, store} <- load_store(payout.store_id) do
       # Attempt both channels; fail the job only if an ATTEMPTED send errored so
       # Oban retries a transient outage. A skipped channel returns :ok.
+      # The bell first: free, instant, and it does not depend on the merchant
+      # having a phone number or an SMS provider being configured. First
+      # attempt only — the :notify create has no uniqueness, so a retry after
+      # a failed send would mint the bell row again.
+      if attempt <= 1 do
+        Emakola.Notifications.notify_store(store.id, :payout_sent, %{
+          title: "Payout sent",
+          action_url: "/admin/payouts"
+        })
+      end
+
       results = [maybe_send_sms(store, payout), maybe_send_email(store, payout)]
 
       if Enum.any?(results, &match?({:error, _}, &1)) do

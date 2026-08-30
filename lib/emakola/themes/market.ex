@@ -30,12 +30,14 @@ defmodule Emakola.Themes.Market do
     ]
 
   def fonts,
-    do: ["https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"]
+    do: [
+      "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap"
+    ]
 
   def defaults do
     %{
       colors: %{primary: "#1C1917", accent: "#B45309", background: "#FAFAF9"},
-      fonts: %{heading: "Inter", body: "Inter"},
+      fonts: %{heading: "DM Sans", body: "DM Sans"},
       hero: %{
         image_url: "",
         images: [],
@@ -86,5 +88,11 @@ defmodule Emakola.Themes.Market do
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Market.ProductDetail, as: :render
 
   @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Market.Shared.market_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
 end

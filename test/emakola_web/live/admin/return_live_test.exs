@@ -16,6 +16,81 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     {:ok, conn: conn, store: store, merchant: merchant}
   end
 
+  describe "first day" do
+    test "a store with no returns is reassured, not alarmed", %{conn: conn} do
+      {:ok, _html_view, html} = live(conn, ~p"/admin/returns")
+
+      # Positive framing: no returns is good news for a merchant, not a gap.
+      assert html =~ "No returns — great job"
+      assert html =~ "Requests will show here if they come"
+      assert html =~ "Set your return rules"
+    end
+
+    test "a filter that matches nothing still says so", %{conn: conn, store: store} do
+      create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html =
+        view
+        |> element("#returns-filter-tabs button[phx-value-status='denied']")
+        |> render_click()
+
+      assert html =~ "No returns found"
+      refute html =~ "No returns yet"
+    end
+  end
+
+  describe "ReturnLive redesign" do
+    test "KPI tiles show open, approved and refunded totals", %{conn: conn, store: store} do
+      create_return!(store)
+      create_return!(store)
+      create_return!(store) |> force_return_status!(:approved)
+      create_return!(store) |> force_return_status!(:refunded, %{refund_amount: 5_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      assert has_element?(view, "#stat-returns-open", "2")
+      assert has_element?(view, "#stat-returns-approved", "1")
+      assert has_element?(view, "#stat-returns-refunded", "GH₵ 50")
+    end
+
+    test "filter tabs carry per-status counts", %{conn: conn, store: store} do
+      create_return!(store)
+      create_return!(store)
+      create_return!(store) |> force_return_status!(:denied)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      assert has_element?(view, "#returns-filter-tabs button[phx-value-status=all]", "3")
+      assert has_element?(view, "#returns-filter-tabs button[phx-value-status=requested]", "2")
+      assert has_element?(view, "#returns-filter-tabs button[phx-value-status=denied]", "1")
+    end
+
+    test "selecting a return highlights it in the admin emerald", %{conn: conn, store: store} do
+      return = create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html =
+        view
+        |> element("[phx-click='select_return'][phx-value-id='#{return.id}']")
+        |> render_click()
+
+      assert html =~ "ring-emerald-500"
+      refute html =~ "ring-amber-700"
+    end
+
+    test "return status pills use the shared badge language", %{conn: conn, store: store} do
+      create_return!(store)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/returns")
+
+      assert html =~ "hero-clock"
+      assert html =~ "warning"
+    end
+  end
+
   describe "ReturnLive" do
     test "renders returns page with title and subtitle", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/returns")
@@ -27,8 +102,10 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     test "displays empty state when no returns exist", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/returns")
 
-      assert html =~ "No returns found"
-      assert html =~ "Return requests from customers will appear here"
+      # A store that has never had a return sees first-day copy rather than
+      # "not found" — see the "first day" describe block.
+      assert html =~ "No returns — great job"
+      assert html =~ "Requests will show here if they come"
     end
 
     test "displays status filter tabs", %{conn: conn} do
@@ -641,6 +718,27 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     Emakola.Orders.Fulfillment
     |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
     |> Ash.create!(authorize?: false)
+  end
+
+  defp force_return_status!(return, status, extra \\ %{}) do
+    case status do
+      :approved ->
+        transition_return!(return, :approve, extra)
+
+      :denied ->
+        transition_return!(return, :deny, extra)
+
+      :refunded ->
+        return
+        |> transition_return!(:approve, extra)
+        |> transition_return!(:mark_refunded, %{})
+    end
+  end
+
+  defp transition_return!(return, action, params) do
+    return
+    |> Ash.Changeset.for_update(action, params)
+    |> Ash.update!(authorize?: false)
   end
 
   defp create_return!(store, order \\ nil, attrs \\ []) do

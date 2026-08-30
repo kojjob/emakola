@@ -335,6 +335,33 @@ defmodule Emakola.Payments.RefundFlowTest do
       assert reload_fulfillment(fulfillment).status == :cancelled
     end
 
+    # A declined group is still work the merchant owes the buyer, so a full
+    # refund must cancel it. This is also the tripwire for the coupling between
+    # RefundReconciliation's @active_fulfillment_statuses and Fulfillment's
+    # :cancel `from:` list — if they drift, the Ash.update! raises INSIDE the
+    # transaction and reconciliation fails for the entire order, not just this
+    # group.
+    test "full refund cancels a declined fulfillment without raising", %{store: store} do
+      order = create_order!(store)
+      supplier = create_supplier!(store)
+      declined = create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      {:ok, declined} =
+        Emakola.Orders.supplier_decline_fulfillment(
+          declined,
+          %{decline_reason: :out_of_stock},
+          authorize?: false
+        )
+
+      assert declined.status == :declined
+
+      payment = successful_payment!(store, order.id)
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event(payment, payment.amount))
+
+      assert reload_order(order).status == :cancelled
+      assert reload_fulfillment(declined).status == :cancelled
+    end
+
     test "a partial refund leaves order and fulfillment state unchanged", %{store: store} do
       order = create_order!(store, status: :confirmed)
       fulfillment = create_fulfillment!(order, store)

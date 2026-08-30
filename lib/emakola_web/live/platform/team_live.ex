@@ -105,10 +105,9 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
           case PlatformTeam.update_permissions(user, attrs, socket.assigns.current_user) do
             {:ok, _updated} ->
+              # load_team refreshes the selection and its form from fresh data.
               {:noreply,
                socket
-               |> assign(:edit_user, nil)
-               |> assign(:edit_permissions_form, edit_permissions_form())
                |> load_team()
                |> put_flash(:info, "Permissions updated.")}
 
@@ -226,11 +225,22 @@ defmodule EmakolaWeb.Platform.TeamLive do
         {user.id, length(ok_or_empty(Sessions.list_active_for_user(user.id)))}
       end)
 
+    # Keep the panel selection across reloads (refreshed from the new list);
+    # default to the first member so the Studio panel is never empty.
+    selected = refresh_selection(socket.assigns[:edit_user], staff)
+
     socket
     |> assign(:staff, staff)
     |> assign(:invites, ok_or_empty(PlatformTeam.list_open_invites()))
     |> assign(:session_counts, session_counts)
+    |> assign(:edit_user, selected)
+    |> assign(:edit_permissions_form, edit_permissions_form(selected))
   end
+
+  defp refresh_selection(nil, staff), do: List.first(staff)
+
+  defp refresh_selection(current, staff),
+    do: Enum.find(staff, &(&1.id == current.id)) || List.first(staff)
 
   defp ok_or_empty({:ok, list}), do: list
   defp ok_or_empty({:error, _}), do: []

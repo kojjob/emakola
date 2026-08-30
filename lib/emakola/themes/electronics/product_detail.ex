@@ -53,7 +53,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16">
             <%!-- Gallery --%>
             <div>
-              <div class="aspect-square electronics-card overflow-hidden flex items-center justify-center">
+              <div class="aspect-[4/5] electronics-card overflow-hidden flex items-center justify-center">
                 <.optimized_image
                   :if={Shared.current_image(@product, @current_image_index)}
                   src={Shared.current_image(@product, @current_image_index)}
@@ -180,7 +180,10 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                 {Emakola.Themes.Delivery.callout(assigns)}
               </p>
               <div class="flex flex-col sm:flex-row items-stretch gap-3 mb-7">
-                <div class="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E5E7EB]">
+                <div
+                  :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                  class="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-[#E5E7EB]"
+                >
                   <button
                     type="button"
                     phx-click="decrement_quantity"
@@ -206,6 +209,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   </button>
                 </div>
                 <button
+                  :if={not Emakola.Catalog.Variant.sold_out?(@selected_variant)}
                   type="button"
                   phx-click="add_to_cart"
                   class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold hover:bg-[#0E3F3B] transition-colors min-h-[48px]"
@@ -214,6 +218,11 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   Add to Cart
                 </button>
               </div>
+              <.back_in_stock
+                :if={Emakola.Catalog.Variant.sold_out?(@selected_variant)}
+                store={@store}
+                product={@product}
+              />
             </div>
           </div>
         </div>
@@ -308,5 +317,47 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
 
     n = min(max(n, 0), 5)
     String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
+  end
+
+  # ── Back in Stock ──
+  #
+  # Electronics reads like a spec sheet, so the sold-out state is a stock line
+  # rather than an apology.
+  attr :store, :map, required: true
+  attr :product, :map, required: true
+
+  defp back_in_stock(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :url,
+        Emakola.Themes.BackInStock.whatsapp_url(assigns.store, assigns.product)
+      )
+
+    ~H"""
+    <div
+      :if={@url}
+      id="back-in-stock"
+      class="border-l-[3px] border-[var(--theme-primary,#134E4A)] bg-white px-5 py-[18px]"
+      style="font-family: 'JetBrains Mono', ui-monospace, monospace;"
+    >
+      <div class="mb-3 flex items-center justify-between border-b border-gray-200 pb-2.5">
+        <span class="text-[11px] tracking-[0.08em] text-[#4B5563]">STOCK</span>
+        <span class="text-[11px] font-bold tracking-[0.08em] text-[#DC2626]">0 — NONE LEFT</span>
+      </div>
+      <p class="mb-3.5 text-[11.5px] leading-[1.7] text-[#4B5563]">
+        Open a WhatsApp thread with {@store.name} about this unit.
+      </p>
+      <a
+        href={@url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex h-[46px] items-center justify-center gap-2.5 bg-[var(--theme-primary,#134E4A)] text-[12px] font-bold tracking-[0.08em] text-[#F5EFE5] transition-opacity hover:opacity-90"
+      >
+        <EmakolaWeb.StorefrontComponents.whatsapp_glyph class="h-4 w-4 text-[#5EEAD4]" />
+        OPEN WHATSAPP THREAD
+      </a>
+    </div>
+    """
   end
 end

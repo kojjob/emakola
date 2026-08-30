@@ -12,10 +12,17 @@ test.describe("Admin Dashboard & Navigation", () => {
   });
 
   test("dashboard shows metrics", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    // The dashboard's h1 is a time-of-day greeting, so pin the element rather
+    // than its text.
+    await expect(page.locator("#dashboard-greeting")).toBeVisible();
+    // The market-stall layout leads with the money row, pinned by id — the
+    // classic KPI cards sit behind the "See more numbers" toggle now.
+    await expect(page.locator("#money-made")).toBeVisible();
+    await expect(page.locator("#money-orders")).toBeVisible();
+    await expect(page.locator("#money-buyers")).toBeVisible();
+    // The analyst's view is one tap away.
+    await page.locator("#more-numbers-toggle").click();
     await expect(page.getByRole("main").getByText("Revenue").first()).toBeVisible();
-    await expect(page.getByRole("main").getByText("Orders").first()).toBeVisible();
-    await expect(page.getByRole("main").getByText("Customers").first()).toBeVisible();
   });
 
   test("admin pages load with correct content", async ({ page }) => {

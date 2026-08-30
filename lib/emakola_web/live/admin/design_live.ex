@@ -49,14 +49,14 @@ defmodule EmakolaWeb.Admin.DesignLive do
     token_atom =
       Emakola.SafeAtom.to_atom_in(
         token,
+        # navbar_layout, hero_layout and product_card_style were removed: they
+        # were structural, no storefront read them, and two had no UI at all —
+        # so they were writable only by a crafted event and visible to nobody.
         [
           :button_style,
           :card_style,
-          :navbar_layout,
           :product_grid_columns,
-          :hero_layout,
           :footer_style,
-          :product_card_style,
           :typography_scale,
           :heading_font,
           :body_font
@@ -135,21 +135,19 @@ defmodule EmakolaWeb.Admin.DesignLive do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
       <%!-- Header (matches Theme page) --%>
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Design Studio</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Customize buttons, cards, typography, and layout — preview live
-          </p>
-        </div>
+      <.admin_page_header
+        icon="hero-paint-brush"
+        title="Design Studio"
+        subtitle="Customize buttons, cards, typography, and layout — preview live"
+      >
         <a
-          href={"/s/#{@store.slug}/"}
+          href={EmakolaWeb.Storefront.Path.public_path(@store.slug, "/")}
           target="_blank"
-          class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium self-start sm:self-auto"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control border border-border bg-surface text-sm font-semibold text-text hover:bg-surface-subtle transition-colors"
         >
-          <span class="material-symbols-outlined text-base">open_in_new</span> View live store
+          <.icon name="hero-arrow-top-right-on-square" class="size-5" /> View live store
         </a>
-      </div>
+      </.admin_page_header>
 
       <%!-- 3-COLUMN LAYOUT — components | preview | typography ──────── --%>
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-32">
@@ -323,10 +321,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
                 </div>
 
                 <%!-- Preview Navbar --%>
-                <div class={
-                  "flex items-center h-12 px-4 border-b border-slate-200 gap-3 " <>
-                    Emakola.Themes.DesignTokens.navbar_classes(@design_tokens.navbar_layout)
-                }>
+                <div class="flex items-center h-12 px-4 border-b border-slate-200 gap-3 justify-start">
                   <div class="w-6 h-6 rounded-full bg-slate-200"></div>
                   <span class="text-sm font-semibold text-slate-800">{@store.name}</span>
                   <div class="flex-1"></div>
@@ -335,72 +330,36 @@ defmodule EmakolaWeb.Admin.DesignLive do
                 </div>
 
                 <%!-- Preview Hero --%>
-                <%= if @design_tokens.hero_layout == "split" do %>
-                  <div class="flex">
-                    <div class="flex-1 p-8">
-                      <h2
-                        class={
-                          "font-bold text-slate-900 mb-2 " <>
-                            Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)
-                        }
-                        style={
-                          "font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"
-                        }
-                      >
-                        Welcome to our store
-                      </h2>
-                      <p
-                        class={
-                          "text-slate-500 mb-4 " <>
-                            Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)
-                        }
-                        style={
-                          "font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"
-                        }
-                      >
-                        Discover our curated collection of premium products.
-                      </p>
-                      <button class={
-                        "bg-slate-900 text-white text-sm font-semibold px-6 py-2.5 " <>
-                          Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)
-                      }>
-                        Shop Now
-                      </button>
-                    </div>
-                    <div class="flex-1 bg-gradient-to-br from-amber-100 to-orange-200"></div>
-                  </div>
-                <% else %>
-                  <div class="relative bg-gradient-to-br from-stone-800 to-stone-900 p-8 sm:p-12">
-                    <h2
-                      class={
+                <div class="relative bg-gradient-to-br from-stone-800 to-stone-900 p-8 sm:p-12">
+                  <h2
+                    class={
                         "font-bold text-white mb-2 " <>
                           Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)
                       }
-                      style={
+                    style={
                         "font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"
                       }
-                    >
-                      Welcome to our store
-                    </h2>
-                    <p
-                      class={
+                  >
+                    Welcome to our store
+                  </h2>
+                  <p
+                    class={
                         "text-stone-300 mb-4 " <>
                           Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)
                       }
-                      style={
+                    style={
                         "font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"
                       }
-                    >
-                      Discover our curated collection of premium products.
-                    </p>
-                    <button class={
+                  >
+                    Discover our curated collection of premium products.
+                  </p>
+                  <button class={
                       "bg-white text-stone-900 text-sm font-semibold px-6 py-2.5 " <>
                         Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)
                     }>
-                      Shop Now
-                    </button>
-                  </div>
-                <% end %>
+                    Shop Now
+                  </button>
+                </div>
 
                 <%!-- Preview Product Grid --%>
                 <div class="p-6">
@@ -612,40 +571,6 @@ defmodule EmakolaWeb.Admin.DesignLive do
                 <div class="space-y-1 h-6 flex flex-col justify-center">
                   <div class="h-2 bg-slate-300 rounded w-3/4"></div>
                   <div class="h-0.5 bg-slate-200 rounded w-full"></div>
-                </div>
-              </.option_tile>
-            </div>
-          </div>
-
-          <%!-- Hero --%>
-          <div class="bg-white rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-xl text-emerald-600">image</span>
-              <h2 class="text-base font-bold text-slate-800">Hero Layout</h2>
-            </div>
-            <.reach_note token="hero_layout" />
-            <div class="space-y-2">
-              <.option_tile
-                token="hero_layout"
-                value="full-bleed"
-                selected={@design_tokens.hero_layout}
-                label="Full Bleed"
-              >
-                <div class="h-6 bg-slate-300 rounded-sm relative">
-                  <div class="absolute bottom-0.5 left-1">
-                    <div class="h-0.5 bg-white/70 rounded w-4"></div>
-                  </div>
-                </div>
-              </.option_tile>
-              <.option_tile
-                token="hero_layout"
-                value="split"
-                selected={@design_tokens.hero_layout}
-                label="Split"
-              >
-                <div class="h-6 flex gap-0.5">
-                  <div class="flex-1 bg-slate-100 rounded-sm"></div>
-                  <div class="flex-1 bg-slate-300 rounded-sm"></div>
                 </div>
               </.option_tile>
             </div>

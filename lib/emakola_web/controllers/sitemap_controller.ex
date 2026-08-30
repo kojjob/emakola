@@ -37,6 +37,7 @@ defmodule EmakolaWeb.SitemapController do
         "/",
         "/pricing",
         "/stores",
+        "/blog",
         "/docs",
         "/about",
         "/careers",
@@ -70,8 +71,16 @@ defmodule EmakolaWeb.SitemapController do
         "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>"
       end)
 
+    # Published platform blog posts (nil store_id) — merchant-acquisition SEO.
+    blog_entries =
+      Emakola.Content.list_platform_published_posts!()
+      |> Enum.map_join("\n", fn post ->
+        loc = xml_escape(base <> "/blog/" <> post.slug)
+        "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>"
+      end)
+
     entries =
-      [marketing_entries, region_entries, sell_online_entries]
+      [marketing_entries, blog_entries, region_entries, sell_online_entries]
       |> Enum.reject(&(&1 == ""))
       |> Enum.join("\n")
 
@@ -158,6 +167,7 @@ defmodule EmakolaWeb.SitemapController do
 
     - Home: #{base}/
     - Pricing: #{base}/pricing
+    - Blog (merchant guides): #{base}/blog
     - Store directory: #{base}/stores
     - Documentation: #{base}/docs
     - About Makola: #{base}/about

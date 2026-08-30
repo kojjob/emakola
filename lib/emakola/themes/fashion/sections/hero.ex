@@ -136,7 +136,7 @@ defmodule Emakola.Themes.Fashion.Sections.Hero do
   end
 
   defp issue_eyebrow(theme),
-    do: get_in(theme, [:editorial_intro, :eyebrow]) || "Volume IV · Drop No. 12"
+    do: get_in(theme, [:editorial_intro, :eyebrow]) || "New collection"
 
   defp issue_date do
     Calendar.strftime(DateTime.utc_now(), "%B %Y")

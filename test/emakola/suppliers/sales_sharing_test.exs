@@ -80,6 +80,23 @@ defmodule Emakola.Suppliers.SalesSharingTest do
         authorize?: false
       )
 
+    # The order must actually contain the promoted product — a share is
+    # credited with sales of the thing it promotes, not with everything the
+    # shop sells while its token is in the session.
+    [variant | _] =
+      Emakola.Catalog.Variant
+      |> Ash.Query.filter(product_id == ^share.product_id)
+      |> Ash.read!(authorize?: false)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: context.reseller.id,
+      variant_id: variant.id,
+      quantity: 1
+    })
+    |> Ash.create!(authorize?: false)
+
     assert {:ok, confirmed} = Emakola.Orders.confirm_order(order, authorize?: false)
     assert confirmed.status == :confirmed
     assert :ok = SalesSharing.record_conversion(confirmed)
@@ -95,6 +112,45 @@ defmodule Emakola.Suppliers.SalesSharingTest do
     assert reloaded.revenue == 5_000
 
     assert [_conversion] =
+             Emakola.Suppliers.SalesShareConversion
+             |> Ash.Query.filter(order_id == ^order.id)
+             |> Ash.read!(authorize?: false)
+  end
+
+  test "does not attribute an order for a product the share never promoted", context do
+    # A share token in the session used to attribute ANY order from that store,
+    # whatever was actually bought. As analytics that overstated a share; once
+    # commission rides on it, it pays an affiliate for someone else's sale.
+    {:ok, [share | _]} = SalesSharing.create_kit(context.reseller_actor, context.listing)
+    assert :ok = SalesSharing.record_click(share.token)
+
+    unrelated = create_product!(context.reseller, status: :active, title: "Something Else")
+    unrelated_variant = create_variant!(unrelated, context.reseller, stock_quantity: 5)
+
+    order =
+      Emakola.Orders.create_order!(
+        %{
+          store_id: context.reseller.id,
+          total: 5_000,
+          subtotal: 5_000,
+          attribution: %{"share_token" => share.token}
+        },
+        authorize?: false
+      )
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: context.reseller.id,
+      variant_id: unrelated_variant.id,
+      quantity: 1
+    })
+    |> Ash.create!(authorize?: false)
+
+    {:ok, confirmed} = Emakola.Orders.confirm_order(order, authorize?: false)
+    assert :ok = SalesSharing.record_conversion(confirmed)
+
+    assert [] ==
              Emakola.Suppliers.SalesShareConversion
              |> Ash.Query.filter(order_id == ^order.id)
              |> Ash.read!(authorize?: false)

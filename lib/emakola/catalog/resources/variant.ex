@@ -78,6 +78,14 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    # Stamped by LowStockAlertWorker when this variant is included in a
+    # low-stock digest; cleared when stock recovers. Alert on the drop, not
+    # on every morning the state persists.
+    attribute :low_stock_alerted_at, :utc_datetime_usec do
+      allow_nil?(true)
+      public?(false)
+    end
+
     attribute :track_inventory, :boolean do
       default(true)
       allow_nil?(false)
@@ -330,7 +338,7 @@ defmodule Emakola.Catalog.Variant do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
 
-      prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
+      prepare(build(sort: [stock_quantity: :asc], load: [:supplier, product: [:images]]))
     end
 
     read :by_stock_range do
@@ -374,4 +382,14 @@ defmodule Emakola.Catalog.Variant do
   def in_stock?(variant, qty \\ 1) do
     not variant.track_inventory or variant.stock_quantity >= qty
   end
+
+  @doc """
+  A variant the shopper has actually landed on which has run out.
+
+  `nil` means the options are not chosen yet, which is not the same thing as
+  sold out — themes offer a back-in-stock nudge for one and a "select options"
+  button for the other.
+  """
+  def sold_out?(nil), do: false
+  def sold_out?(variant), do: not in_stock?(variant)
 end

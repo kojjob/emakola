@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
-  def mount(%{"code" => code}, _session, socket) do
+  def mount(%{"code" => code}, session, socket) do
     case Emakola.Orders.get_pay_link_by_code(code, authorize?: false) do
       {:ok, link} ->
         store = Ash.get!(Emakola.Stores.Store, link.store_id, authorize?: false)
@@ -39,6 +39,9 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:variant, variant)
          |> assign(:state, page_state(link, store, variant))
          |> assign(:quantity, quantity)
+         # UtmCapture wrote this when the buyer followed a shared link.
+         # Without carrying it, a pay-link sale credits nobody.
+         |> assign(:attribution, Map.get(session, "utm_attribution", %{}))
          |> assign(:processing, false)
          |> assign(:buyer, empty_buyer())
          |> assign(:form_errors, %{})
@@ -196,7 +199,13 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           {:ok, fresh_link} ->
             case PayLink.usable?(fresh_link) do
               :ok ->
-                case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
+                case create_order(
+                       fresh_link,
+                       store,
+                       buyer,
+                       socket.assigns.quantity,
+                       socket.assigns.attribution
+                     ) do
                   {:ok, order} ->
                     initiate_payment(socket, store, order)
 
@@ -216,6 +225,17 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
             {:noreply, refresh_inactive_state(socket, link, store, variant)}
         end
     end
+  end
+
+  # A page that does not know an event is a bug in whatever sent it — a theme
+  # calling `add_to_bag` where this page listens for `add_to_cart`. Raising
+  # takes the storefront down in front of a shopper mid-purchase, which is a
+  # far worse answer than ignoring the click. Logged rather than swallowed
+  # silently, so the next wrong event name does not ship unnoticed.
+  def handle_event(event, _params, socket) do
+    Logger.warning("[storefront] #{inspect(__MODULE__)} ignored unknown event #{inspect(event)}")
+
+    {:noreply, socket}
   end
 
   # Validates the RAW input's digit shape before any normalization —
@@ -268,7 +288,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     end
   end
 
-  defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty) do
+  defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty, attribution) do
     Emakola.Orders.CheckoutService.checkout_custom!(
       store.id,
       %{title: link.title, unit_price: link.amount},
@@ -278,11 +298,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         presence(buyer["email"]) ||
           Emakola.Orders.CheckoutService.phone_placeholder_email(buyer["phone"]),
       shipping_address: shipping_address(link, buyer),
-      pay_link_id: link.id
+      pay_link_id: link.id,
+      attribution: attribution
     )
   end
 
-  defp create_order(%PayLink{type: :catalog} = link, store, buyer, qty) do
+  defp create_order(%PayLink{type: :catalog} = link, store, buyer, qty, attribution) do
     Emakola.Orders.CheckoutService.checkout!(
       store.id,
       [%{variant_id: link.variant_id, quantity: qty}],
@@ -292,7 +313,8 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
       customer_name: buyer["name"],
       customer_phone: buyer["phone"],
       shipping_address: shipping_address(link, buyer),
-      pay_link_id: link.id
+      pay_link_id: link.id,
+      attribution: attribution
     )
   end
 
@@ -337,7 +359,41 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   # -- Payment initiation (mirrors CheckoutLive:470-530) -------------------
 
+  # Ship-dark SplitPay pilot: when the client is configured, pay-link
+  # charges route through SplitPay (order confirmation then arrives via
+  # /webhooks/splitpay); otherwise the existing gateway path runs
+  # unchanged.
   defp initiate_payment(socket, store, order) do
+    if Emakola.SplitPay.Client.enabled?() do
+      initiate_splitpay_payment(socket, store, order)
+    else
+      initiate_gateway_payment(socket, store, order)
+    end
+  end
+
+  defp initiate_splitpay_payment(socket, store, order) do
+    case Emakola.SplitPay.Checkout.initiate(order, store,
+           customer_email: customer_email(order, store)
+         ) do
+      {:ok, %{checkout_url: url}} ->
+        {:noreply, socket |> assign(:processing, false) |> redirect(external: url)}
+
+      {:error, reason} ->
+        Logger.error(
+          "[pay_link] SplitPay initiation failed for order #{order.order_number}: #{inspect(reason)}"
+        )
+
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> assign(:form_errors, %{
+           base:
+             "We couldn't start your payment just now. Your order #{order.order_number} is saved — please try again."
+         })}
+    end
+  end
+
+  defp initiate_gateway_payment(socket, store, order) do
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
     # Resolve how the charge is split at the gateway — same trustless

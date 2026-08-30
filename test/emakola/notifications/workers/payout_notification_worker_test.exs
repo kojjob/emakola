@@ -74,6 +74,18 @@ defmodule Emakola.Notifications.Workers.PayoutNotificationWorkerTest do
     assert {:error, _} = perform_job(Worker, %{"payout_id" => payout.id})
   end
 
+  test "a retried job does not ring the bell twice" do
+    {merchant, store} = Factory.create_merchant_with_store!(%{contact_phone: "+233244123456"})
+    payout = paid_payout!(store)
+
+    expect(Emakola.SMSProviderMock, :send_sms, 2, fn _, _, _ -> {:error, :provider_down} end)
+
+    assert {:error, _} = perform_job(Worker, %{"payout_id" => payout.id}, attempt: 1)
+    assert {:error, _} = perform_job(Worker, %{"payout_id" => payout.id}, attempt: 2)
+
+    assert [%{title: "Payout sent"}] = Emakola.Notifications.list_for(merchant)
+  end
+
   test "no-ops when the payout no longer exists" do
     assert :ok = perform_job(Worker, %{"payout_id" => Ecto.UUID.generate()})
   end

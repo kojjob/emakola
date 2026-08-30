@@ -86,7 +86,7 @@ defmodule Emakola.MixProject do
       {:ash, "~> 3.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash_phoenix, "~> 2.0"},
-      {:ash_authentication, "~> 4.0"},
+      {:ash_authentication, "~> 4.14"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_json_api, "~> 1.4"},
       {:open_api_spex, "~> 3.16"},
@@ -111,6 +111,7 @@ defmodule Emakola.MixProject do
 
       # S3-compatible file storage
       {:ex_aws, "~> 2.5"},
+      {:vix, "~> 0.41"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
 

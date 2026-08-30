@@ -7,7 +7,7 @@ defmodule EmakolaWeb.StoresComponents do
   - `filter_chips/1` — theme filter chips (All + one chip per registered theme).
   - `region_filter/1` — dropdown for Ghana regions.
   - `sort_dropdown/1` — Newest / A-Z / Most popular / Featured.
-  - `featured_carousel/1` — horizontal-scroll snap row of featured stores.
+  - `featured_spotlight/1` — the big hero plus the also-featured photo tiles.
   - `recently_viewed_strip/1` — 6-up horizontal strip from cookie.
   - `map_view/1` — Ghana SVG with regional pins (Phase 3).
   """
@@ -66,6 +66,10 @@ defmodule EmakolaWeb.StoresComponents do
   attr :store, :map, required: true
   attr :is_favorite, :boolean, default: false
   attr :variant, :atom, default: :default, values: [:default, :featured, :editorial, :compact]
+  # Admin embeds (the Directory Studio preview) open the storefront in a new
+  # tab and hide the customer-only favorite button.
+  attr :target, :string, default: nil
+  attr :show_favorite, :boolean, default: true
 
   def store_card(assigns) do
     ~H"""
@@ -77,14 +81,15 @@ defmodule EmakolaWeb.StoresComponents do
       ]}
     >
       <a
-        href={"/s/#{@store.slug}"}
+        href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
+        target={@target}
+        rel={@target == "_blank" && "noopener"}
         class="relative block aspect-[16/10] overflow-hidden bg-slate-200"
-        aria-label={"Visit #{@store.name}"}
       >
-        <%= if @store.cover_image_url && @store.cover_image_url != "" do %>
+        <%= if card_image_url(@store) do %>
           <.optimized_image
-            src={@store.cover_image_url}
-            alt={"#{@store.name} cover"}
+            src={card_image_url(@store)}
+            alt={"#{@store.name} shop photo"}
             class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
           />
         <% else %>
@@ -154,7 +159,9 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <a
-              href={"/s/#{@store.slug}"}
+              href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
+              target={@target}
+              rel={@target == "_blank" && "noopener"}
               class="line-clamp-1 text-lg font-black tracking-tight text-slate-900 transition hover:text-emerald-700"
             >
               {@store.name}
@@ -176,13 +183,14 @@ defmodule EmakolaWeb.StoresComponents do
                 (!Map.get(@store, :tagline) || @store.tagline == "") &&
                   (!Map.get(@store, :description) || @store.description == "")
               }
-              class="mt-1 min-h-10 text-sm leading-5 text-slate-400"
+              class="mt-1 min-h-10 text-sm leading-5 text-slate-500"
             >
               Independent shop on Makola
             </p>
           </div>
 
           <button
+            :if={@show_favorite}
             type="button"
             phx-click="toggle_favorite"
             phx-value-slug={@store.slug}
@@ -210,13 +218,18 @@ defmodule EmakolaWeb.StoresComponents do
             <span class="truncate">{location(@store)}</span>
           </span>
 
+          <span :if={tenure(@store) != ""} class="inline-flex items-center gap-1.5">
+            <.icon name="hero-calendar" class="size-4 shrink-0 text-slate-400" />
+            {tenure(@store)}
+          </span>
+
           <span :if={product_count(@store) > 0} class="inline-flex items-center gap-1.5">
             <.icon name="hero-shopping-bag" class="size-4 text-amber-700" />
             {product_count(@store)} {if product_count(@store) == 1, do: "product", else: "products"}
           </span>
 
           <a
-            href={"/s/#{@store.slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(@store.slug)}
             class="ml-auto inline-flex items-center gap-1 font-bold text-emerald-700 transition group-hover:gap-1.5"
           >
             Visit shop <.icon name="hero-arrow-right" class="size-3.5" />
@@ -232,22 +245,19 @@ defmodule EmakolaWeb.StoresComponents do
   defp card_variant_class(:compact), do: ""
   defp card_variant_class(_), do: ""
 
-  # ── Featured carousel (horizontal snap) ──
+  # ── Featured spotlight (hero + photo tiles) ──
   #
-  # Renders a horizontally scrolling row of taller hero cards. Pure CSS
-  # scroll-snap; no JS hook needed. Each card uses the same color/logo
-  # treatment as `store_card/1` but with a larger cover and editorial
-  # vibe (tagline takes precedence over description).
+  # Pattern A from the approved stores redesign: rank one holds a big 3:2
+  # hero, the next few featured shops sit beside it as photo tiles. Nobody
+  # has to swipe to be seen, and the hero stays the loudest thing in the
+  # row because only one shop ever holds it.
 
-  attr :stores, :list, required: true
+  attr :hero, :map, required: true
+  attr :tiles, :list, default: []
 
-  def featured_carousel(assigns) do
+  def featured_spotlight(assigns) do
     ~H"""
-    <section
-      :if={@stores != []}
-      id="featured-stores"
-      class="border-b border-slate-200 bg-white py-12 sm:py-16"
-    >
+    <section id="featured-spotlight" class="border-b border-slate-200 bg-white py-12 sm:py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between gap-5">
           <div>
@@ -257,9 +267,6 @@ defmodule EmakolaWeb.StoresComponents do
             <h2 class="mt-2 font-headline text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
               Shops people should know
             </h2>
-            <p class="mt-2 text-sm text-slate-500 sm:text-base">
-              A closer look at merchants doing something special.
-            </p>
           </div>
           <a
             href="#main-grid"
@@ -269,88 +276,99 @@ defmodule EmakolaWeb.StoresComponents do
           </a>
         </div>
 
-        <div class="-mx-4 mt-7 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div class="flex min-w-max snap-x snap-mandatory gap-4 sm:gap-5">
-            <a
-              :for={store <- @stores}
-              href={"/s/#{store.slug}"}
-              class="group relative block w-[82vw] max-w-[400px] shrink-0 snap-start overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_20px_50px_-30px_rgba(12,31,23,0.65)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_-28px_rgba(12,31,23,0.5)]"
-            >
-              <div class="relative aspect-[4/3] overflow-hidden">
-                <%= if store.cover_image_url && store.cover_image_url != "" do %>
-                  <.optimized_image
-                    src={store.cover_image_url}
-                    alt={"#{store.name} cover"}
-                    class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  />
-                <% else %>
-                  <div
-                    class="stores-card-pattern absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
-                    style={card_theme_vars(store)}
-                  >
-                  </div>
-                  <div class="absolute inset-0 flex items-center justify-center text-white/20">
-                    <.icon
-                      name="hero-building-storefront"
-                      class="size-24 transition duration-500 group-hover:scale-110"
-                    />
-                  </div>
-                <% end %>
+        <div class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <a
+            id="featured-hero"
+            href={EmakolaWeb.Storefront.Path.public_path(@hero.slug)}
+            class="group relative block overflow-hidden rounded-[1.75rem] bg-slate-900 shadow-[0_32px_64px_-36px_rgba(12,31,23,0.55)]"
+          >
+            <div class="relative aspect-[4/5] sm:aspect-[3/2]">
+              <%!-- The LCP element: lazy-loading it cost 10s of LCP on 4G. --%>
+              <.optimized_image
+                src={card_image_url(@hero)}
+                alt={"#{@hero.name} shop photo"}
+                priority={:high}
+                class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-black/5">
+              </div>
 
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent">
-                </div>
-
-                <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-amber-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-950">
+              <div class="absolute left-5 top-5 flex flex-wrap gap-2">
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-950">
                   <.icon name="hero-star-solid" class="size-3" /> Featured
                 </span>
+                <span
+                  :if={Map.get(@hero, :verified)}
+                  class="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-800"
+                >
+                  <.icon name="hero-check-badge-solid" class="size-3.5" /> Verified
+                </span>
+              </div>
 
-                <div class="absolute inset-x-0 bottom-0 p-5">
-                  <div class="flex items-end gap-3">
-                    <div class="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-                      <%= if store.logo_url && store.logo_url != "" do %>
-                        <img
-                          src={store.logo_url}
-                          alt={"#{store.name} logo"}
-                          class="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      <% else %>
-                        <span
-                          class="text-lg font-black text-store-accent"
-                          style={card_theme_vars(store)}
-                        >
-                          {String.first(store.name) |> String.upcase()}
-                        </span>
-                      <% end %>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="line-clamp-1 text-xl font-black tracking-tight text-white">
-                        {store.name}
-                      </p>
-                      <p
-                        :if={Map.get(store, :tagline) && store.tagline != ""}
-                        class="mt-0.5 line-clamp-1 text-sm text-white/75"
-                      >
-                        {store.tagline}
-                      </p>
-                    </div>
-                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur transition group-hover:bg-amber-300 group-hover:text-emerald-950">
-                      <.icon name="hero-arrow-up-right" class="size-4" />
+              <div class="absolute inset-x-5 bottom-5 flex flex-col items-start gap-3 sm:inset-x-8 sm:bottom-7 sm:flex-row sm:items-end sm:justify-between sm:gap-7">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold uppercase tracking-[0.16em] text-white/80">
+                    {theme_label(@hero)}
+                    <span :if={location(@hero) != ""}>&middot; {location(@hero)}</span>
+                    <span :if={product_count(@hero) > 0}>
+                      &middot; {product_count(@hero)} {if product_count(@hero) == 1,
+                        do: "product",
+                        else: "products"}
                     </span>
+                  </p>
+                  <p class="mt-2 font-headline text-3xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl">
+                    {@hero.name}
+                  </p>
+                  <p
+                    :if={Map.get(@hero, :tagline) && @hero.tagline != ""}
+                    class="mt-2 line-clamp-2 max-w-md text-base text-white/90 sm:text-lg"
+                  >
+                    {@hero.tagline}
+                  </p>
+                </div>
+                <span class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#d4a843] px-6 py-3.5 text-base font-bold text-emerald-950 transition group-hover:bg-amber-300">
+                  Visit shop <.icon name="hero-arrow-right" class="size-4" />
+                </span>
+              </div>
+            </div>
+          </a>
+
+          <div class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                Also featured
+              </p>
+              <a href="#main-grid" class="text-sm font-bold text-emerald-700">
+                See all <.icon name="hero-arrow-down" class="inline size-3.5" />
+              </a>
+            </div>
+
+            <div id="featured-tiles" class="grid flex-1 grid-cols-2 gap-3">
+              <a
+                :for={store <- @tiles}
+                href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
+                class="group relative block overflow-hidden rounded-2xl bg-slate-200"
+              >
+                <div class="relative aspect-square">
+                  <.optimized_image
+                    src={card_image_url(store)}
+                    alt={"#{store.name} shop photo"}
+                    class="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/10 to-transparent">
+                  </div>
+                  <div class="absolute inset-x-3.5 bottom-3">
+                    <p class="line-clamp-1 text-base font-black tracking-tight text-white">
+                      {store.name}
+                    </p>
+                    <p class="mt-0.5 line-clamp-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white/75">
+                      {theme_label(store)}
+                      <span :if={location(store) != ""}>&middot; {location(store)}</span>
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              <div class="flex items-center gap-3 px-5 py-4 text-xs font-semibold text-slate-300">
-                <span :if={location(store) != ""} class="inline-flex min-w-0 items-center gap-1.5">
-                  <.icon name="hero-map-pin" class="size-4 shrink-0 text-amber-300" />
-                  <span class="truncate">{location(store)}</span>
-                </span>
-                <span class="ml-auto inline-flex items-center gap-1 text-white">
-                  Visit shop <.icon name="hero-arrow-right" class="size-3.5" />
-                </span>
-              </div>
-            </a>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -363,6 +381,10 @@ defmodule EmakolaWeb.StoresComponents do
   attr :stores, :list, required: true
   attr :title, :string, default: "New on Makola"
   attr :subtitle, :string, default: "Just joined the marketplace"
+
+  attr :id_prefix, :string,
+    default: "recent",
+    doc: "namespaces the strip's SVG pattern ids — several strips now share one page"
 
   def recent_strip(assigns) do
     ~H"""
@@ -437,15 +459,15 @@ defmodule EmakolaWeb.StoresComponents do
             --%>
             <a
               :for={store <- @stores}
-              href={"/s/#{store.slug}"}
+              href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
               class="group block w-[260px] sm:w-[290px] shrink-0 bg-white rounded-3xl overflow-hidden ring-1 ring-slate-200 hover:ring-2 hover:ring-emerald-300 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/15 hover:-translate-y-1 transition-all duration-300"
             >
               <%!-- IMAGE HERO --%>
               <div class="relative h-48 w-full overflow-hidden bg-slate-100">
-                <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                <%= if card_image_url(store) do %>
                   <.optimized_image
-                    src={store.cover_image_url}
-                    alt={"#{store.name} cover"}
+                    src={card_image_url(store)}
+                    alt={"#{store.name} shop photo"}
                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                 <% else %>
@@ -462,7 +484,7 @@ defmodule EmakolaWeb.StoresComponents do
                   >
                     <defs>
                       <pattern
-                        id={"diag-#{store.slug}"}
+                        id={"diag-#{@id_prefix}-#{store.slug}"}
                         width="14"
                         height="14"
                         patternUnits="userSpaceOnUse"
@@ -471,7 +493,11 @@ defmodule EmakolaWeb.StoresComponents do
                         <line x1="0" y="0" x2="0" y2="14" stroke="white" stroke-width="2" />
                       </pattern>
                     </defs>
-                    <rect width="100%" height="100%" fill={"url(#diag-#{store.slug})"} />
+                    <rect
+                      width="100%"
+                      height="100%"
+                      fill={"url(##{"diag-" <> @id_prefix <> "-" <> store.slug})"}
+                    />
                   </svg>
                   <%!-- Centered storefront mark --%>
                   <div class="absolute inset-0 flex items-center justify-center">
@@ -586,7 +612,7 @@ defmodule EmakolaWeb.StoresComponents do
                   </svg>
                   <span class="truncate font-medium text-slate-700">{location(store)}</span>
                 </div>
-                <span :if={location(store) == ""} class="text-slate-400 italic">
+                <span :if={location(store) == ""} class="text-slate-500 italic">
                   Just opened
                 </span>
                 <span class="inline-flex items-center gap-1 text-emerald-700 font-bold whitespace-nowrap group-hover:gap-1.5 transition-all">
@@ -685,7 +711,7 @@ defmodule EmakolaWeb.StoresComponents do
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <a
             :for={store <- @stores}
-            href={"/s/#{store.slug}"}
+            href={EmakolaWeb.Storefront.Path.public_path(store.slug)}
             class="group relative bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-2xl overflow-hidden transition-all flex flex-col"
           >
             <div class="relative aspect-[16/9] overflow-hidden">
@@ -882,6 +908,17 @@ defmodule EmakolaWeb.StoresComponents do
 
   # ── Helpers ──
 
+  # "Since Mar 2026" from the store's own age. Longevity is the one trust
+  # signal a fly-by-night seller cannot fake quickly, so it earns a place on
+  # every card — as a number and a word, not a sentence, for readers who
+  # decode symbols faster than prose.
+  defp tenure(store) do
+    case Map.get(store, :inserted_at) do
+      %{year: _} = stamp -> "Since " <> Calendar.strftime(stamp, "%b %Y")
+      _missing -> ""
+    end
+  end
+
   defp location(store) do
     [Map.get(store, :city), region_label(Map.get(store, :region))]
     |> Enum.reject(&(is_nil(&1) or &1 == ""))
@@ -932,6 +969,23 @@ defmodule EmakolaWeb.StoresComponents do
   # Setting the color tokens directly is the simplest override: inline
   # style declarations are unlayered, so they beat the `@layer theme`
   # :root token declarations for this element and its descendants.
+  # The image a shop card leads with: the merchant's own cover when they set
+  # one, else the newest active-product photo (the :card_image_url aggregate —
+  # guard on is_binary because callers that don't load it get %Ash.NotLoaded{}),
+  # else nil and the themed gradient pattern renders.
+  defp card_image_url(store) do
+    cover = Map.get(store, :cover_image_url)
+    product_medium = Map.get(store, :card_image_medium_url)
+    product_photo = Map.get(store, :card_image_url)
+
+    cond do
+      is_binary(cover) and cover != "" -> cover
+      is_binary(product_medium) and product_medium != "" -> product_medium
+      is_binary(product_photo) and product_photo != "" -> product_photo
+      true -> nil
+    end
+  end
+
   defp card_theme_vars(store) do
     "--color-store-accent: #{CssColor.safe_css_color(theme_primary(store), "#B45309")}; " <>
       "--color-cta-dark: #{CssColor.safe_css_color(theme_accent(store), "#1C1917")}"

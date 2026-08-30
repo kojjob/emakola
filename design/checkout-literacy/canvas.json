@@ -1,0 +1,94 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "One Thing at a Time"
+    },
+    {
+      "id": "page-2",
+      "name": "Not chosen"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Mobile.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "One Thing at a Time \u2014 mobile",
+      "page": "page-1",
+      "is_interactive": true
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 550,
+      "y": 0,
+      "w": 1160,
+      "h": 1060,
+      "title": "One Thing at a Time \u2014 desktop",
+      "page": "page-1",
+      "is_interactive": true
+    },
+    {
+      "file": "PictureFirst.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1160,
+      "h": 860,
+      "title": "2 \u00b7 Picture First \u2014 desktop",
+      "page": "page-2",
+      "is_interactive": true
+    },
+    {
+      "file": "PictureFirstMobile.dc.html",
+      "x": 1320,
+      "y": 0,
+      "w": 390,
+      "h": 1440,
+      "title": "2 \u00b7 Picture First \u2014 mobile",
+      "page": "page-2",
+      "is_interactive": true
+    },
+    {
+      "file": "AskLess.dc.html",
+      "x": 1870,
+      "y": 0,
+      "w": 1160,
+      "h": 860,
+      "title": "3 \u00b7 Ask Less",
+      "page": "page-2",
+      "is_interactive": true
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-mobile",
+      "x": 0,
+      "y": -300,
+      "w": 390,
+      "page": "page-1",
+      "text": "MOBILE \u2014 where the stepped flow actually belongs.\nEvery step fits one screen; nothing scrolls. The goods and the running total sit pinned under the header and never leave. What is already settled folds to one line with a Change link \u2014 desktop can afford two rows, a phone cannot. One action, always the bottom of the screen."
+    },
+    {
+      "id": "note-desktop",
+      "x": 550,
+      "y": -300,
+      "w": 1160,
+      "page": "page-1",
+      "text": "DESKTOP \u2014 the layout the live checkout already has at lg: but never had a design.\nThree steps, one open at a time. Finished steps fold to an editable line; steps not reached sit greyed below, so the column reads as a sequence rather than an empty half-page. The payment method opens in place.\nColour comes from the theme chip \u2014 the 22 real themes in lib/emakola/themes. Checkout reads --theme-primary twice, as --color-store-accent and as --color-cta-dark. Telco marks never follow the theme. Cash and card never borrow the mobile-money screen: own picture, own words, no USSD code.\nStill open: the region list is words plus a price. A buyer who cannot read \"Ashanti\" cannot pick it."
+    },
+    {
+      "id": "note-rejected",
+      "x": 0,
+      "y": -220,
+      "w": 1160,
+      "page": "page-2",
+      "text": "NOT CHOSEN \u2014 kept for the record, 2026-08-29. One Thing at a Time won.\nPicture First demoted words to captions under pictures; Ask Less cut the form to two fields and moved delivery to a seller phone call."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

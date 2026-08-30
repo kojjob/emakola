@@ -31,9 +31,7 @@ defmodule Emakola.Platform.FinanceStats do
   used to sum every `:platform` row regardless of status, overstating revenue.
   """
   def total_platform_fees do
-    platform_fee_splits()
-    |> Enum.map(&net_amount/1)
-    |> Enum.sum()
+    platform_fees_total()
   end
 
   @doc """
@@ -58,7 +56,7 @@ defmodule Emakola.Platform.FinanceStats do
   breakdown before approving a payout.
   """
   def per_store_finance do
-    fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
+    fees_by_store = platform_fees_by_store()
     legacy_by_store = sum_by_store(unsplit_success_payments(), &payable_amount/1)
 
     internal_by_store =
@@ -90,10 +88,11 @@ defmodule Emakola.Platform.FinanceStats do
   end
 
   @doc """
-  Splits flagged for manual remediation (`PaymentSplit.needs_remediation` —
-  `release_from_payout` stamped `recovery_breakdown["unreclaimable_release"]`)
-  with their recipient store resolved, newest-flagged first — the platform
-  finance page's "Needs remediation" worklist.
+  Splits stamped as unreclaimable releases (`PaymentSplit.needs_remediation` —
+  `release_from_payout` stamped `recovery_breakdown["unreclaimable_release"]`):
+  audit trail of fully-reversed failed-payout claims with their recipient store
+  resolved, newest-flagged first. These rows carry no outstanding debt.
+  See `PaymentSplit.needs_remediation`.
 
   Each row: `%{split, store}`.
   """
@@ -104,17 +103,76 @@ defmodule Emakola.Platform.FinanceStats do
     Enum.map(splits, &%{split: &1, store: Map.get(stores, &1.recipient_store_id)})
   end
 
-  # ── helpers ────────────────────────────────────────────────────────
+  @doc """
+  Confirmed platform fees (minor units) per day, oldest first, gaps filled —
+  the finance hero's trend series. Same fee definition as
+  `total_platform_fees/0` (non-pending platform splits, reversals netted),
+  bucketed in Elixir like `Stats.gmv_by_day/1`.
+  """
+  # Daily platform-fee buckets, grouped and summed by Postgres. This used to
+  # read every platform split into memory and fold them in Elixir; the filter
+  # and the sum are the same ones `platform_fees_total/0` uses, so the numbers
+  # are unchanged — `amount - reversed_amount` over non-pending platform
+  # splits. A day with no fees is absent from the query and reads as zero.
+  def platform_fees_by_day(days \\ 30) do
+    import Ecto.Query
 
-  # Confirmed fee rows only — never :pending. Reversals are netted per row by
-  # net_amount/1 (a fully :reversed row nets to zero).
-  defp platform_fee_splits do
-    PaymentSplit
-    |> Ash.Query.filter(role == :platform and status != :pending)
-    |> Ash.read!(authorize?: false)
+    today = Date.utc_today()
+    start_date = Date.add(today, -(days - 1))
+
+    totals =
+      from(s in PaymentSplit,
+        where: s.role == :platform and s.status != :pending,
+        where: fragment("?::date", s.inserted_at) >= ^start_date,
+        group_by: fragment("?::date", s.inserted_at),
+        select:
+          {fragment("?::date", s.inserted_at),
+           coalesce(type(sum(s.amount - s.reversed_amount), :integer), 0)}
+      )
+      |> Emakola.Repo.all()
+      |> Map.new()
+
+    buckets =
+      Enum.map(Date.range(start_date, today), fn date ->
+        {Calendar.strftime(date, "%b %d"), Map.get(totals, date, 0)}
+      end)
+
+    %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
   end
 
-  defp net_amount(split), do: split.amount - split.reversed_amount
+  # ── helpers ────────────────────────────────────────────────────────
+
+  # Confirmed fee rows only — never :pending. Reversals are netted in the
+  # SUM itself (a fully :reversed row contributes zero). This filter is
+  # local to this module (not a shared named read action like
+  # :outstanding_for_payout below), so computing it directly in SQL carries
+  # no duplication risk — it was already the single definition, just moved
+  # from an Elixir Enum.sum over every matching row to a DB-side sum.
+  # `amount`/`reversed_amount` are `bigint` columns — Postgres's SUM(bigint)
+  # returns `numeric` (overflow-safe), which Postgrex decodes as `Decimal`.
+  # `type(..., :integer)` casts the aggregate back to a plain integer; money
+  # here is always minor-unit integers, never floats or decimals.
+  defp platform_fees_total do
+    import Ecto.Query
+
+    from(s in PaymentSplit,
+      where: s.role == :platform and s.status != :pending,
+      select: coalesce(type(sum(s.amount - s.reversed_amount), :integer), 0)
+    )
+    |> Emakola.Repo.one()
+  end
+
+  defp platform_fees_by_store do
+    import Ecto.Query
+
+    from(s in PaymentSplit,
+      where: s.role == :platform and s.status != :pending,
+      group_by: s.store_id,
+      select: {s.store_id, type(sum(s.amount - s.reversed_amount), :integer)}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
+  end
 
   # What PayoutService actually pays for a payment — the released
   # buyer-protection net when present, otherwise the gross amount. Kept in
@@ -138,9 +196,11 @@ defmodule Emakola.Platform.FinanceStats do
     splits
   end
 
-  # Display sums must agree with the payout engine to the pesewa (design spec
-  # §4.5) — delegates to PaymentSplit.frozen_paid_amount/1, THE single
-  # formula authority also called by mark_paid_out and
+  # Display sums are GROSS payable; the payout engine additionally nets
+  # outstanding refund liability at payout time (P2a), so an indebted
+  # recipient's actual transfer can be smaller. Liability-aware display is the
+  # P2b/UI pass. This delegates to PaymentSplit.frozen_paid_amount/1, the
+  # single formula authority also called by mark_paid_out and
   # PayoutService.prepare_internal_payout/1.
   defp payable_net(split), do: PaymentSplit.frozen_paid_amount(split)
 

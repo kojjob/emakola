@@ -117,31 +117,31 @@ defmodule Emakola.Catalog do
   @spec category_covers(Ecto.UUID.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
   def category_covers(_store_id, []), do: %{}
 
+  # One DISTINCT ON query rather than loading every active product (with its
+  # images) just to keep the first URL per category in Elixir — a store with
+  # 500 active products previously paid for all 500 (plus their images) to
+  # render ~6 category tiles. `url` is `allow_nil?: false` on Image, so the
+  # inner join already gives exactly the "has a real photo" filter the old
+  # Elixir-side reduce used to apply by hand — a product with zero image rows
+  # simply produces no join row and never wins a category. Raw Ecto because
+  # Ash's query DSL has
+  # no DISTINCT ON; same precedent as `Emakola.Cart.CartStore`'s domain-layer
+  # queries (this stays in the Catalog domain, never in a LiveView — see
+  # arch-review issue 6 for why that distinction matters).
   def category_covers(store_id, category_ids) when is_list(category_ids) do
-    require Ash.Query
+    import Ecto.Query
 
-    Emakola.Catalog.Product
-    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
-    |> Ash.Query.filter(category_id in ^category_ids)
-    |> Ash.Query.load(:images)
-    |> Ash.read!(authorize?: false)
-    |> Enum.reduce(%{}, fn product, covers ->
-      case cover_url(product) do
-        nil -> covers
-        url -> Map.put_new(covers, product.category_id, url)
-      end
-    end)
+    from(p in Emakola.Catalog.Product,
+      join: i in Emakola.Catalog.Image,
+      on: i.product_id == p.id and i.store_id == p.store_id,
+      where: p.store_id == ^store_id and p.status == :active and p.category_id in ^category_ids,
+      distinct: p.category_id,
+      order_by: [asc: p.category_id, asc: p.inserted_at, asc: i.inserted_at],
+      select: {p.category_id, coalesce(i.thumbnail_url, i.url)}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
   end
-
-  defp cover_url(%{images: images}) when is_list(images) do
-    Enum.find_value(images, fn
-      %{thumbnail_url: url} when is_binary(url) -> url
-      %{url: url} when is_binary(url) -> url
-      _ -> nil
-    end)
-  end
-
-  defp cover_url(_product), do: nil
 
   @doc """
   The store's own published reviews, for themes that show testimonials.

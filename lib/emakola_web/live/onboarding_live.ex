@@ -882,8 +882,10 @@ defmodule EmakolaWeb.OnboardingLive do
   defp maybe_flash_theme_failure(socket, message), do: put_flash(socket, :error, message)
 
   defp parse_price(price) when is_binary(price) do
-    case Float.parse(price) do
-      {amount, _} when amount > 0 -> round(amount * 100)
+    # {:ok, _} is only returned for positive amounts; signs and trailing
+    # garbage ("50abc") are rejected rather than silently coerced.
+    case Emakola.Money.parse_price(price) do
+      {:ok, pesewas} -> pesewas
       _ -> 0
     end
   end
@@ -891,9 +893,11 @@ defmodule EmakolaWeb.OnboardingLive do
   defp parse_price(_), do: 0
 
   defp format_price(price_str, currency) do
-    case Float.parse(price_str) do
-      {amount, _} ->
-        "#{currency_symbol(currency)}#{:erlang.float_to_binary(amount, decimals: 2)}"
+    # Preview through the same parser that will store the value, so the
+    # preview can never show a price the form would not save.
+    case Emakola.Money.parse_price(price_str) do
+      {:ok, pesewas} ->
+        "#{currency_symbol(currency)}#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
 
       _ ->
         ""

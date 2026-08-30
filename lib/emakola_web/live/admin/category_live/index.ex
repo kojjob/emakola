@@ -254,43 +254,63 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     ~H"""
     <div id="categories-page" class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Categories</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Organize your products into groups
-          </p>
-        </div>
-        <button
+      <.admin_page_header
+        title="Categories"
+        subtitle="Organize your products into groups"
+        icon="hero-folder"
+      >
+        <.admin_button
           phx-click={show_modal("category-modal")}
           phx-value-action="add"
-          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold
-                 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
-                 shadow-sm w-full sm:w-auto justify-center"
+          class="w-full sm:w-auto"
         >
-          <span class="material-symbols-outlined text-lg">add</span> Add Category
-        </button>
-      </div>
+          <.icon name="hero-plus" class="size-5" /> Add Category
+        </.admin_button>
+      </.admin_page_header>
 
-      <%!-- Stats Bar --%>
-      <div class="flex items-center gap-6 px-1">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-emerald-600">folder</span>
-          </div>
-          <div>
-            <p class="text-lg font-bold text-slate-900">{length(@all_categories)}</p>
-            <p class="text-[11px] text-slate-400 -mt-0.5">Total</p>
-          </div>
+      <%!-- KPI tiles (store-wide) --%>
+      <div id="category-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div id="stat-categories-total">
+          <.stat_card
+            label="Total categories"
+            value={to_string(length(@all_categories))}
+            tone={:accent}
+          >
+            <:icon><.icon name="hero-folder" class="size-7" /></:icon>
+          </.stat_card>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-            <span class="material-symbols-outlined text-sm text-blue-600">account_tree</span>
-          </div>
-          <div>
-            <p class="text-lg font-bold text-slate-900">{length(@category_tree)}</p>
-            <p class="text-[11px] text-slate-400 -mt-0.5">Main</p>
-          </div>
+        <div id="stat-categories-main">
+          <.stat_card
+            label="Main groups"
+            value={to_string(length(@category_tree))}
+            tone={:success}
+          >
+            <:icon><.icon name="hero-squares-2x2" class="size-7" /></:icon>
+          </.stat_card>
+        </div>
+        <div id="stat-categories-products">
+          <.stat_card
+            label="Products organized"
+            value={to_string(@category_stats.organized)}
+            tone={:cyan}
+          >
+            <:icon><.icon name="hero-cube" class="size-7" /></:icon>
+            <:delta>
+              <p :if={@category_stats.uncategorized > 0} class="text-sm text-slate-500">
+                {@category_stats.uncategorized} uncategorized
+              </p>
+            </:delta>
+          </.stat_card>
+        </div>
+        <div id="stat-categories-top">
+          <.stat_card label="Most stocked" value={@category_stats.top_name} tone={:warning}>
+            <:icon><.icon name="hero-star" class="size-7" /></:icon>
+            <:delta>
+              <p :if={@category_stats.top_count > 0} class="text-xs text-slate-400 mt-1">
+                {@category_stats.top_count} products
+              </p>
+            </:delta>
+          </.stat_card>
         </div>
       </div>
 
@@ -442,6 +462,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       |> assign(:text_color, text_color)
       |> assign(:icon, icon)
       |> assign(:child_count, child_count)
+      |> assign(:product_count, assigns.node.category.product_count || 0)
 
     ~H"""
     <div
@@ -481,8 +502,13 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         </div>
       </div>
 
-      <%!-- Name --%>
-      <h3 class="text-base font-bold text-slate-900 mb-1">{@node.category.name}</h3>
+      <%!-- Name + product count --%>
+      <div class="flex items-center gap-2 mb-1">
+        <h3 class="text-base font-bold text-slate-900">{@node.category.name}</h3>
+        <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">
+          {@product_count} products
+        </span>
+      </div>
       <p
         :if={@node.category.description && @node.category.description != ""}
         class="text-xs text-slate-400 line-clamp-2 mb-3"
@@ -524,7 +550,10 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
     all_categories =
       try do
-        Emakola.Catalog.list_categories_by_store!(store_id, category_opts(socket))
+        Emakola.Catalog.list_categories_by_store!(
+          store_id,
+          Keyword.put(category_opts(socket), :load, [:product_count])
+        )
       rescue
         exception ->
           Logger.error(
@@ -536,7 +565,50 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
     tree = build_tree(all_categories, nil)
 
-    assign(socket, category_tree: tree, all_categories: all_categories)
+    assign(socket,
+      category_tree: tree,
+      all_categories: all_categories,
+      category_stats: build_category_stats(all_categories, socket)
+    )
+  end
+
+  # Store-wide numbers for the KPI tiles — organized products come from the
+  # per-category aggregate; the uncategorized remainder needs the store's
+  # total product count.
+  defp build_category_stats(all_categories, socket) do
+    organized = all_categories |> Enum.map(&(&1.product_count || 0)) |> Enum.sum()
+
+    top =
+      all_categories
+      |> Enum.max_by(&(&1.product_count || 0), fn -> nil end)
+
+    top_count = (top && top.product_count) || 0
+
+    %{
+      organized: organized,
+      uncategorized: max(count_store_products(socket) - organized, 0),
+      top_name: if(top_count > 0, do: top.name, else: "—"),
+      top_count: top_count
+    }
+  end
+
+  defp count_store_products(%{assigns: %{store_id: nil}}), do: 0
+
+  defp count_store_products(socket) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store, %{store_id: socket.assigns.store_id})
+    |> Ash.count(category_opts(socket))
+    |> case do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[category_live.index] count_store_products raised: #{Exception.message(exception)}"
+      )
+
+      0
   end
 
   defp build_tree(categories, parent_id) do

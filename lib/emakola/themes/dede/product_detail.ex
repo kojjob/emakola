@@ -40,8 +40,8 @@ defmodule Emakola.Themes.Dede.ProductDetail do
                 alt={@product.title}
                 priority={:high}
                 width={640}
-                height={480}
-                class="aspect-[4/3] w-full object-cover"
+                height={800}
+                class="aspect-[4/5] w-full object-cover"
               />
             </div>
             <div

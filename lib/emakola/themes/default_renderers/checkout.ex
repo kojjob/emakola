@@ -34,6 +34,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           <div class="flex items-center justify-between h-16">
             <a
               href={store_path(@store.slug, "/cart")}
+              aria-label="Back to Bag"
               class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
               <svg
@@ -45,9 +46,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Bag
+              <%!-- Icon-only on mobile (mirrors Secure Checkout on the right)
+                    so the centered wordmark has clean room at 375px. --%>
+              <span class="hidden sm:inline">Back to Bag</span>
             </a>
-            <span class="absolute left-1/2 -translate-x-1/2 text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
+            <%!-- Bounded + truncated: unbounded absolute text wraps to two
+                  lines on long store names and collides with the side links. --%>
+            <span class="absolute left-1/2 -translate-x-1/2 max-w-[55%] truncate text-lg sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
               {String.upcase(@store.name)}
             </span>
             <div class="flex items-center gap-2 text-stone-600 text-sm font-medium">
@@ -67,30 +72,58 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         </div>
       </header>
 
-      <%!-- Checkout Progress Stepper --%>
+      <%!-- Checkout Progress Stepper. Reads @step: the LiveView has carried it
+            since it was written, but this markup used to hardcode step 1 as
+            current while every section rendered at once. A cart of downloads
+            has no shipping step, so it is dropped from the ladder rather than
+            shown as a stage nobody can reach. --%>
       <div class="bg-white border-b border-stone-100">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-cta-dark text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-cta-dark/20">
-                1
+            <%= for {{n, label}, index} <- Enum.with_index(checkout_steps(@requires_shipping)) do %>
+              <div class="flex items-center gap-2.5">
+                <div
+                  id={"checkout-step-#{n}"}
+                  data-state={step_state(@step, n)}
+                  class={[
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
+                    if(@step >= n,
+                      do: "bg-cta-dark text-white shadow-sm shadow-cta-dark/20",
+                      else: "border-2 border-stone-300 text-stone-400"
+                    )
+                  ]}
+                >
+                  <svg
+                    :if={@step > n}
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  <span :if={@step <= n}>{n}</span>
+                </div>
+                <span class={[
+                  "text-sm hidden sm:inline",
+                  if(@step == n,
+                    do: "font-semibold text-stone-900",
+                    else: "font-medium text-stone-400"
+                  )
+                ]}>
+                  {label}
+                </span>
               </div>
-              <span class="text-sm font-semibold text-stone-900 hidden sm:inline">Information</span>
-            </div>
-            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
-                2
+              <div
+                :if={index < length(checkout_steps(@requires_shipping)) - 1}
+                class={[
+                  "h-0.5 flex-1 mx-3 sm:mx-4 rounded-full",
+                  if(@step > n, do: "bg-cta-dark", else: "bg-stone-200")
+                ]}
+              >
               </div>
-              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Shipping</span>
-            </div>
-            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
-                3
-              </div>
-              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Payment</span>
-            </div>
+            <% end %>
           </div>
         </div>
       </div>
@@ -177,7 +210,18 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           >
             <%!-- LEFT COLUMN: Checkout Form (60%) --%>
             <div class="lg:col-span-3">
-              <form phx-submit="place_order" phx-change="update_details" novalidate class="space-y-10">
+              <%!-- One step at a time. Three forms rather than one, so each
+                    step submits its own event; `place_order` keeps meaning
+                    "place the order" and is never gated on the step. Fields on
+                    a step that is not rendered are absent from the params,
+                    which is why every handler falls back to its assign. --%>
+              <form
+                :if={@step == 1}
+                phx-submit="submit_details"
+                phx-change="update_details"
+                novalidate
+                class="space-y-10"
+              >
                 <%!-- SECTION 1: Contact Information --%>
                 <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
@@ -255,12 +299,100 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
+                <div>
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
+                    <p class="text-sm text-red-700">{@checkout_error}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    class="cursor-pointer w-full bg-cta-dark text-white py-4 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm shadow-cta-dark/20"
+                  >
+                    Continue to delivery
+                  </button>
+                </div>
+              </form>
 
+              <div :if={@step > 1} class="space-y-3">
+                <div
+                  id="step-summary-contact"
+                  class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5"
+                >
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cta-dark">
+                    <svg
+                      class="w-3 h-3 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xs text-stone-400">Your details</p>
+                    <p class="truncate text-sm font-semibold text-stone-900">
+                      {@phone} · {@fullname}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    phx-click="go_to_step"
+                    phx-value-step="1"
+                    class="cursor-pointer rounded px-2 py-1 text-xs font-semibold text-store-accent hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+                <div :if={@step > 2 and @requires_shipping}>
+                  <div
+                    id="step-summary-delivery"
+                    class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5"
+                  >
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cta-dark">
+                      <svg
+                        class="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4.5 12.75l6 6 9-13.5"
+                        />
+                      </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs text-stone-400">Deliver to</p>
+                      <p class="truncate text-sm font-semibold text-stone-900">{@address}</p>
+                    </div>
+                    <button
+                      type="button"
+                      phx-click="go_to_step"
+                      phx-value-step="2"
+                      class="cursor-pointer rounded px-2 py-1 text-xs font-semibold text-store-accent hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <form
+                :if={@step == 2 and @requires_shipping}
+                phx-submit="submit_delivery"
+                phx-change="update_details"
+                novalidate
+                class="mt-10 space-y-10"
+              >
                 <%!-- SECTION 2: Shipping Address. Hidden for a cart of
                      downloads — there is nothing to deliver, and the server
                      (CheckoutService.run_checkout/4) charges no fee either. --%>
-                <section :if={@requires_shipping}>
+                <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Shipping Address
                   </h2>
@@ -337,10 +469,8 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
-
                 <%!-- SECTION 3: Delivery Method --%>
-                <section :if={@requires_shipping}>
+                <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Delivery Method
                   </h2>
@@ -380,8 +510,29 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </div>
                 </section>
 
-                <div class="border-t border-stone-200"></div>
+                <div>
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
+                    <p class="text-sm text-red-700">{@checkout_error}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    class="cursor-pointer w-full bg-cta-dark text-white py-4 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm shadow-cta-dark/20"
+                  >
+                    Continue to payment
+                  </button>
+                </div>
+              </form>
 
+              <form
+                :if={@step == 3}
+                phx-submit="place_order"
+                phx-change="update_details"
+                novalidate
+                class="mt-10 space-y-10"
+              >
                 <%!-- SECTION 4: Payment Method --%>
                 <section>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
@@ -389,8 +540,10 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   </h2>
                   <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
 
-                  <%!-- Visual Payment Cards — 2x2 Grid --%>
-                  <div class="grid grid-cols-2 gap-3">
+                  <%!-- Laid out across rather than down: three per row on a
+                        desktop, two on a phone, so every brand mark stays big
+                        enough to recognise without reading its caption. --%>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <%!-- MTN Mobile Money --%>
                     <button
                       type="button"
@@ -447,10 +600,42 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         </svg>
                       </div>
                       <div class="w-14 h-14 rounded-2xl bg-voda flex items-center justify-center shadow-sm">
-                        <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
+                        <span class="text-white font-extrabold text-xs tracking-tight">Telecel</span>
                       </div>
                       <div>
                         <p class="text-sm font-bold text-stone-900">Telecel Cash</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
+                      </div>
+                    </button>
+
+                    <%!-- AirtelTigo Money --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="airteltigo"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "airteltigo", do: "border-atl bg-atl/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "airteltigo", do: "border-atl bg-atl", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "airteltigo"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-atl flex items-center justify-center shadow-sm">
+                        <span class="text-white font-extrabold text-lg tracking-tight">AT</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">AirtelTigo Money</p>
                         <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
                       </div>
                     </button>
@@ -697,7 +882,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         Processing...
                       </span>
                     <% else %>
-                      Place Order -- {Currency.format_price(@order_total, @store.currency)}
+                      {"Place Order · #{Currency.format_price(@order_total, @store.currency)}"}
                     <% end %>
                   </button>
 
@@ -768,7 +953,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         <h3 class="text-sm font-semibold text-stone-900 truncate">
                           {item.product_title}
                         </h3>
-                        <p :if={item[:variant_info]} class="text-xs text-stone-500 mt-0.5">
+                        <p
+                          :if={
+                            item[:variant_info] not in [nil, ""] &&
+                              item[:variant_info] != item[:sku]
+                          }
+                          class="text-xs text-stone-500 mt-0.5"
+                        >
                           {item[:variant_info]}
                         </p>
                         <p class="text-xs text-stone-500">Qty: {item.quantity}</p>
@@ -847,30 +1038,27 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                     id="buyer-protection-badge"
                     class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
                   >
-                    <span aria-hidden="true">🛡</span>
+                    <svg
+                      class="w-4 h-4 shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                      />
+                    </svg>
                     <span>Protected by Makola — payment held until you confirm delivery.</span>
                   </div>
 
                   <%!-- Trust Badges --%>
+                  <%!-- Honest trust row: real payment facts and the store's own
+                       policies — never guarantees no merchant wrote. --%>
                   <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-stone-100">
-                    <div class="flex flex-col items-center gap-1.5 text-center">
-                      <svg
-                        class="w-5 h-5 text-stone-400"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-                        />
-                      </svg>
-                      <p class="text-xs text-stone-500 leading-tight">
-                        <span class="font-semibold text-stone-700 block">Free</span>Returns
-                      </p>
-                    </div>
                     <div class="flex flex-col items-center gap-1.5 text-center">
                       <svg
                         class="w-5 h-5 text-stone-400"
@@ -900,13 +1088,35 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         <path
                           stroke-linecap="round"
                           stroke-linejoin="round"
-                          d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                          d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
                         />
                       </svg>
                       <p class="text-xs text-stone-500 leading-tight">
-                        <span class="font-semibold text-stone-700 block">100%</span>Authentic
+                        <span class="font-semibold text-stone-700 block">MoMo</span>&amp; Cards
                       </p>
                     </div>
+                    <.link
+                      navigate={store_path(@store.slug, "/policies#returns")}
+                      class="flex flex-col items-center gap-1.5 text-center rounded focus-visible:ring-2 focus-visible:ring-store-accent focus-visible:outline-none"
+                    >
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                        />
+                      </svg>
+                      <p class="text-xs text-stone-500 leading-tight underline decoration-stone-300 underline-offset-2">
+                        <span class="font-semibold text-stone-700 block no-underline">Returns</span>
+                        Store policy
+                      </p>
+                    </.link>
                   </div>
                 </div>
               </div>
@@ -962,6 +1172,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
       assigns
       |> assign(:brand_color, momo_brand_color(assigns.payment_method))
       |> assign(:brand_name, momo_brand_name(assigns.payment_method))
+      |> assign(:ussd, momo_ussd(assigns.payment_method))
       |> assign(:timer_display, format_timer(assigns.timer_seconds))
       |> assign(:masked_phone, mask_phone(assigns.phone))
 
@@ -1043,7 +1254,9 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
           </div>
           <div>
             <p class="text-sm font-medium text-stone-900">Awaiting approval</p>
-            <p class="text-xs text-stone-500">Dial *170# if you don't see the prompt</p>
+            <p :if={@ussd} id="momo-ussd-hint" class="text-xs text-stone-500">
+              Dial {@ussd} if you don't see the prompt
+            </p>
           </div>
         </div>
       </div>
@@ -1080,6 +1293,15 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
     """
   end
 
+  # The ladder, and the numbers that key it. `@step` values stay 1/2/3 across
+  # both shapes so nothing downstream has to know which cart it is looking at.
+  defp checkout_steps(true), do: [{1, "Information"}, {2, "Shipping"}, {3, "Payment"}]
+  defp checkout_steps(false), do: [{1, "Information"}, {3, "Payment"}]
+
+  defp step_state(step, n) when step > n, do: "done"
+  defp step_state(step, n) when step == n, do: "current"
+  defp step_state(_step, _n), do: "upcoming"
+
   # ── Display helpers ─────────────────────────────────────────────
 
   # TC-2 Buyer Protection: shown only when the charge WILL actually be held —
@@ -1111,8 +1333,17 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   defp momo_brand_color("vodafone"), do: "#E60000"
   defp momo_brand_color(_), do: "#F59E0B"
 
+  # *170# is MTN's alone. It was hardcoded here, so a Telecel or AirtelTigo
+  # buyer was told to dial a code that does not belong to their wallet. A
+  # method with no USSD code shows no line at all rather than a wrong one.
+  defp momo_ussd("momo"), do: "*170#"
+  defp momo_ussd("vodafone"), do: "*110#"
+  defp momo_ussd("airteltigo"), do: "*110#"
+  defp momo_ussd(_), do: nil
+
   defp momo_brand_name("momo"), do: "MTN Mobile Money"
   defp momo_brand_name("vodafone"), do: "Telecel Cash"
+  defp momo_brand_name("airteltigo"), do: "AirtelTigo Money"
   defp momo_brand_name(_), do: "Mobile Money"
 
   defp format_timer(seconds) do

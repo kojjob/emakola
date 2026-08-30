@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <.admin_page_header title="Customers" subtitle="Manage your customer base">
+      <.admin_page_header icon="hero-users" title="Customers" subtitle="Manage your customer base">
         <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
         </button>
@@ -71,34 +71,30 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       </.admin_page_header>
 
       <%!-- KPI Cards --%>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <%!-- Three tiles, not four: "Active" rendered @total_customers, the same
+            assign as "Total Customers", so it was the same number by
+            construction and told a merchant nothing. --%>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <.stat_card
           label="Total Customers"
           value={Integer.to_string(@total_customers)}
-          icon_bg="bg-emerald-50"
+          tone={:accent}
         >
-          <:icon><.icon name="hero-users" class="size-[18px] text-emerald-600" /></:icon>
-        </.stat_card>
-        <.stat_card
-          label="Active"
-          value={Integer.to_string(@total_customers)}
-          icon_bg="bg-violet-50"
-        >
-          <:icon><.icon name="hero-check-circle" class="size-[18px] text-violet-600" /></:icon>
+          <:icon><.icon name="hero-users" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="New This Month"
           value={Integer.to_string(@new_this_month)}
-          icon_bg="bg-amber-50"
+          tone={:success}
         >
-          <:icon><.icon name="hero-user-plus" class="size-[18px] text-amber-600" /></:icon>
+          <:icon><.icon name="hero-user-plus" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
           label="Avg. Order Value"
           value={calculate_avg_order_value(@customers)}
-          icon_bg="bg-rose-50"
+          tone={:info}
         >
-          <:icon><.icon name="hero-currency-dollar" class="size-[18px] text-rose-600" /></:icon>
+          <:icon><.icon name="hero-currency-dollar" class="size-7" /></:icon>
         </.stat_card>
       </div>
 
@@ -112,17 +108,24 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
-          <.icon name="hero-users" class="size-12 mx-auto text-slate-300 mb-3" />
-          <p class="text-slate-600 font-medium">No customers found</p>
-          <p class="text-sm text-slate-400 mt-1">
-            <%= if @search_query != "" do %>
-              Try adjusting your search
-            <% else %>
-              Customers will appear here once they place orders
-            <% end %>
-          </p>
-        </div>
+        <%!-- A store with no customers yet is waiting, not broken; a search
+              that matched nothing needs to say it was the search. --%>
+        <.empty_state
+          :if={@search_query != ""}
+          icon="hero-users"
+          title="No customers found"
+          description="Try adjusting your search"
+        />
+        <.empty_state
+          :if={@search_query == ""}
+          icon="hero-users"
+          tone={:info}
+          title="No customers yet"
+          description="They appear when someone buys"
+          secondary_label="See how selling works"
+          secondary_path="/how-it-works/tour"
+          secondary_icon="hero-play-circle"
+        />
       <% else %>
         <%!-- Desktop Table --%>
         <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">

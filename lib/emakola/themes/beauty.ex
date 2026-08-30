@@ -110,7 +110,7 @@ defmodule Emakola.Themes.Beauty do
         subtitle: nil
       },
       why_us: %{
-        title: "Why your skin deserves the best",
+        title: "Why buy from us",
         items: []
       },
       faq: %{
@@ -159,13 +159,13 @@ defmodule Emakola.Themes.Beauty do
         ]
       },
       newsletter: %{
-        title: "Join the beauty list",
-        subtitle: "New launches, restocks, and rituals — delivered monthly.",
+        title: "Join the list",
+        subtitle: "New launches and restocks, first.",
         button_text: "Subscribe"
       },
       closing_cta: %{
-        title: "Ready for flawless skin and luscious hair?",
-        subtitle: "Shop the collection that's changing routines across Ghana.",
+        title: "Ready when you are.",
+        subtitle: "Shop the collection.",
         button_text: "Shop Now"
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
@@ -199,9 +199,6 @@ defmodule Emakola.Themes.Beauty do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.Beauty.ProductDetail,
     as: :render
-
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
 
   @impl true
   def storefront_nav(assigns) do

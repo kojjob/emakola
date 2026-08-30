@@ -5,7 +5,12 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.QRComponents, only: [qr_panel: 1]
+
   alias EmakolaWeb.AddressComponents
+  alias EmakolaWeb.QR
 
   @ghana_regions [
     "Greater Accra",
@@ -26,6 +31,17 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     "Oti"
   ]
 
+  # Pictures, not URLs: a merchant who cannot comfortably read a link still has
+  # to be able to put a face on their shop. `auto_upload: true` is deliberate —
+  # a submit that waits on progress deadlocks without it (see
+  # emakola-liveview-upload-progress-gate).
+  @image_upload_opts [
+    accept: ~w(.jpg .jpeg .png .webp),
+    max_entries: 1,
+    max_file_size: 5_000_000,
+    auto_upload: true
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     store = socket.assigns.current_store
@@ -38,8 +54,11 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         active_tab: "general",
         ghana_regions: @ghana_regions,
         store: store,
+        general_errors: %{},
         saved: false
       )
+      |> allow_upload(:logo, @image_upload_opts)
+      |> allow_upload(:cover, @image_upload_opts)
 
     {:ok, socket}
   end
@@ -49,9 +68,37 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     {:noreply, assign(socket, active_tab: tab, saved: false)}
   end
 
+  # Runs on every keystroke in the General tab. It also registers upload
+  # entries with LiveView — a form holding a live_file_input needs a
+  # phx-change or the entries never arrive.
+  @impl true
+  def handle_event("validate_general", %{"store" => params}, socket) do
+    {:noreply, assign(socket, general_errors: validate_general(params))}
+  end
+
+  def handle_event("validate_general", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("cancel_upload", %{"ref" => ref, "slot" => slot}, socket) do
+    {:noreply, cancel_upload(socket, upload_slot(slot), ref)}
+  end
+
   @impl true
   def handle_event("save_general", %{"store" => params}, socket) do
-    save_settings(socket, params)
+    case validate_general(params) do
+      errors when errors == %{} ->
+        params =
+          params
+          |> put_uploaded_image(socket, :logo, "logo_url")
+          |> put_uploaded_image(socket, :cover, "cover_image_url")
+
+        save_settings(assign(socket, general_errors: %{}), params)
+
+      errors ->
+        # Field errors stay on the field. A flash saying "Could not save
+        # settings" never told the merchant WHICH box was wrong.
+        {:noreply, assign(socket, general_errors: errors)}
+    end
   end
 
   @impl true
@@ -67,6 +114,56 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   def handle_event("save_social", %{"store" => params}, socket) do
     save_settings(socket, params)
   end
+
+  # The slot comes from the client, so it is matched against the two names this
+  # page allows rather than converted with String.to_atom/1.
+  defp upload_slot("cover"), do: :cover
+  defp upload_slot(_logo), do: :logo
+
+  # Consumes a picture, if one was chosen, and merges its stored URL into the
+  # params under the Store attribute name. No entry means the key is untouched,
+  # so saving other fields never wipes an existing picture.
+  defp put_uploaded_image(params, socket, slot, attribute) do
+    store_id = socket.assigns.store.id
+
+    url =
+      socket
+      |> consume_uploaded_entries(slot, fn %{path: tmp_path}, entry ->
+        extension = Path.extname(entry.client_name)
+        path = "stores/#{store_id}/branding/#{slot}-#{Ecto.UUID.generate()}#{extension}"
+
+        case Emakola.Storage.upload(File.read!(tmp_path), path, content_type: entry.client_type) do
+          {:ok, url} ->
+            {:ok, url}
+
+          {:error, reason} ->
+            Logger.error("[settings_live] #{slot} upload failed: #{inspect(reason)}")
+            {:ok, nil}
+        end
+      end)
+      |> List.first()
+
+    if is_nil(url), do: params, else: Map.put(params, attribute, url)
+  end
+
+  # Field-level messages in the merchant's own words — the Store resource
+  # carries the same limits (name max 255, tagline max 140) but surfaces them
+  # only after a failed write, as one flash for the whole form.
+  defp validate_general(params) do
+    %{}
+    |> check(:name, blank?(params["name"]), "Your shop needs a name")
+    |> check(:name, too_long?(params["name"], 255), "That name is too long")
+    |> check(:tagline, too_long?(params["tagline"], 140), "Keep it under 140 letters")
+  end
+
+  defp check(errors, field, true, message), do: Map.put_new(errors, field, message)
+  defp check(errors, _field, false, _message), do: errors
+
+  defp blank?(nil), do: false
+  defp blank?(value) when is_binary(value), do: String.trim(value) == ""
+
+  defp too_long?(value, limit) when is_binary(value), do: String.length(value) > limit
+  defp too_long?(_value, _limit), do: false
 
   defp save_settings(socket, params) do
     store = socket.assigns.store
@@ -101,11 +198,20 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp error_message(%{message: msg}) when is_binary(msg), do: msg
   defp error_message(_), do: "invalid"
 
+  defp upload_error_message(:too_large), do: "That picture is too big (5MB max)"
+  defp upload_error_message(:not_accepted), do: "Use a JPG, PNG or WebP picture"
+  defp upload_error_message(:too_many_files), do: "Choose one picture"
+  defp upload_error_message(_), do: "Could not use that picture"
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.admin_page_header title="Settings" subtitle="Manage your store preferences" />
+      <.admin_page_header
+        title="Settings"
+        subtitle="Manage your store preferences"
+        icon="hero-cog-6-tooth"
+      />
 
       <%!-- Settings layout: tabs + content --%>
       <div class="flex flex-col md:flex-row gap-6">
@@ -121,6 +227,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             <.tab_button tab="delivery" active_tab={@active_tab} icon="hero-truck">
               Delivery
             </.tab_button>
+            <.tab_button tab="domain" active_tab={@active_tab} icon="hero-globe-alt">
+              Domain
+            </.tab_button>
             <.tab_button tab="social" active_tab={@active_tab} icon="hero-share">
               Social
             </.tab_button>
@@ -133,13 +242,16 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         <%!-- Right content --%>
         <div class="flex-1 min-w-0">
           <div :if={@active_tab == "general"}>
-            <.general_tab store={@store} />
+            <.general_tab store={@store} uploads={@uploads} errors={@general_errors} />
           </div>
           <div :if={@active_tab == "contact"}>
             <.contact_tab store={@store} ghana_regions={@ghana_regions} />
           </div>
           <div :if={@active_tab == "delivery"}>
             <.delivery_tab />
+          </div>
+          <div :if={@active_tab == "domain"}>
+            <.domain_tab />
           </div>
           <div :if={@active_tab == "social"}>
             <.social_tab store={@store} />
@@ -182,21 +294,129 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   # -- General tab --
 
   attr :store, :map, required: true
+  attr :uploads, :map, required: true
+  attr :errors, :map, default: %{}
 
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
+      <%!-- The stall sign. First card on the tab because it is the one control
+            here that needs no reading at all. Hidden until the merchant has a
+            store: there is no shop code to print yet, and QR.store_svg/2 needs
+            a real slug. --%>
+      <.admin_card :if={@store} id="store-qr-sign" class="print-sheet">
+        <.qr_panel
+          id="store-qr"
+          svg={QR.store_svg(@store)}
+          title="My shop code"
+          hint="Print it. Buyers scan it."
+          caption="Scan to open my shop"
+          url={QR.store_url(@store)}
+        >
+          <:actions>
+            <.admin_button
+              variant={:secondary}
+              size={:sm}
+              phx-click={JS.dispatch("copy-to-clipboard", detail: %{text: QR.store_url(@store)})}
+            >
+              Copy link
+            </.admin_button>
+            <.admin_button id="store-qr-print" size={:sm} phx-click={JS.dispatch("makola:print")}>
+              Print sign
+            </.admin_button>
+          </:actions>
+        </.qr_panel>
+      </.admin_card>
+
+      <%!-- Signing in the phone. Sits by the shop code because both are "show a
+            square to a phone", which is the shape a merchant remembers. --%>
+      <.admin_card class="print:hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-slate-900">Sign in my phone</h3>
+            <p class="text-sm text-slate-600 mt-1">Scan a code instead of typing your password.</p>
+          </div>
+          <.link navigate={~p"/admin/pair-phone"} id="pair-phone-link">
+            <.admin_button variant={:secondary}>
+              <.icon name="hero-device-phone-mobile" class="size-4" /> Show me the code
+            </.admin_button>
+          </.link>
+        </div>
+      </.admin_card>
+
       <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
-        <.form for={%{}} as={:store} id="general-form" phx-submit="save_general" class="space-y-5">
+        <.form
+          for={%{}}
+          as={:store}
+          id="general-form"
+          phx-change="validate_general"
+          phx-submit="save_general"
+          class="space-y-5"
+        >
+          <%!-- Shop picture. The tile used to show initials beside a button
+                that did nothing — there was no upload wired to this page. --%>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">Shop picture</label>
+            <div class="flex items-center gap-4">
+              <div class="relative w-20 h-20 shrink-0">
+                <.live_img_preview
+                  :for={entry <- @uploads.logo.entries}
+                  entry={entry}
+                  class="w-20 h-20 rounded-control object-cover border border-slate-200"
+                />
+                <img
+                  :if={@uploads.logo.entries == [] && @store && @store.logo_url}
+                  src={@store.logo_url}
+                  alt="Your shop picture"
+                  class="w-20 h-20 rounded-control object-cover border border-slate-200"
+                />
+                <div
+                  :if={@uploads.logo.entries == [] && !(@store && @store.logo_url)}
+                  class="w-20 h-20 rounded-control bg-primary flex items-center justify-center text-white text-2xl font-bold"
+                >
+                  {logo_initials(@store)}
+                </div>
+                <%!-- A full-size opacity-0 input, not sr-only: an sr-only file
+                      input will not open the picker on iOS Safari, and these
+                      merchants are on phones. --%>
+                <label class="absolute -right-1.5 -bottom-1.5 w-9 h-9 rounded-full bg-surface border border-border shadow-sm flex items-center justify-center cursor-pointer hover:bg-slate-50">
+                  <.icon name="hero-camera" class="size-4 text-slate-700" />
+                  <.live_file_input
+                    upload={@uploads.logo}
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                </label>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm text-slate-600">Tap the camera to change it.</p>
+                <p class="text-xs text-slate-400 mt-1">JPG or PNG, up to 5MB.</p>
+                <p :for={err <- upload_errors(@uploads.logo)} class="text-xs text-red-600 mt-1">
+                  {upload_error_message(err)}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Store Name</label>
             <input
               type="text"
               name="store[name]"
               value={@store && @store.name}
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class={[
+                "w-full px-4 py-2.5 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 transition-all",
+                if(@errors[:name],
+                  do: "bg-red-50 border border-red-300 focus:ring-red-500/30",
+                  else:
+                    "bg-white border border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-500"
+                )
+              ]}
             />
+            <p :if={@errors[:name]} class="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+              <.icon name="hero-exclamation-circle" class="size-4 shrink-0" />
+              {@errors[:name]}
+            </p>
           </div>
 
           <div>
@@ -227,8 +447,19 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               value={@store && @store.tagline}
               maxlength="140"
               placeholder="One line that captures your shop in 140 characters"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class={[
+                "w-full px-4 py-2.5 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 transition-all",
+                if(@errors[:tagline],
+                  do: "bg-red-50 border border-red-300 focus:ring-red-500/30",
+                  else:
+                    "bg-white border border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-500"
+                )
+              ]}
             />
+            <p :if={@errors[:tagline]} class="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+              <.icon name="hero-exclamation-circle" class="size-4 shrink-0" />
+              {@errors[:tagline]}
+            </p>
           </div>
 
           <div>
@@ -242,40 +473,113 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
-              Cover image URL
+              Cover picture
               <span class="text-xs text-slate-400 font-normal">
-                — 16:9 banner on the marketplace card
+                — the wide banner buyers see on the marketplace
               </span>
             </label>
-            <input
-              type="url"
-              name="store[cover_image_url]"
-              value={@store && @store.cover_image_url}
-              placeholder="https://your-cdn.com/cover.jpg"
-              inputmode="url"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-            />
-            <p :if={@store && @store.cover_image_url && @store.cover_image_url != ""} class="mt-2">
+
+            <%!-- Capped: a 16:9 dropzone at full form width is ~480px tall and
+                  swallows the page. The cover is one field, not the form. --%>
+            <div
+              class="relative max-w-md border-2 border-dashed border-slate-300 rounded-control hover:border-emerald-400 transition-colors overflow-hidden"
+              phx-drop-target={@uploads.cover.ref}
+            >
+              <.live_img_preview
+                :for={entry <- @uploads.cover.entries}
+                entry={entry}
+                class="w-full aspect-[16/9] object-cover"
+              />
               <img
+                :if={
+                  @uploads.cover.entries == [] && @store && @store.cover_image_url &&
+                    @store.cover_image_url != ""
+                }
                 src={@store.cover_image_url}
                 alt="Cover preview"
-                class="w-full max-w-md aspect-[16/9] object-cover rounded-control border border-slate-200"
+                class="w-full aspect-[16/9] object-cover"
                 loading="lazy"
               />
+              <div
+                :if={
+                  @uploads.cover.entries == [] &&
+                    !(@store && @store.cover_image_url && @store.cover_image_url != "")
+                }
+                class="aspect-[16/9] flex flex-col items-center justify-center gap-2 bg-slate-50 text-center px-4"
+              >
+                <div class="w-14 h-14 rounded-control bg-info-soft flex items-center justify-center">
+                  <.icon name="hero-photo" class="size-7 text-info" />
+                </div>
+                <p class="text-sm font-semibold text-slate-700">Add a wide picture</p>
+                <p class="text-xs text-slate-500">Tap to take one or choose a photo</p>
+              </div>
+              <.live_file_input
+                upload={@uploads.cover}
+                class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </div>
+
+            <p :for={err <- upload_errors(@uploads.cover)} class="mt-1.5 text-xs text-red-600">
+              {upload_error_message(err)}
             </p>
+
+            <%!-- Kept as the secondary path: a merchant whose picture already
+                  lives on a CDN can still paste the link. --%>
+            <details class="mt-2">
+              <summary class="text-xs text-slate-500 cursor-pointer">Or paste a picture link</summary>
+              <input
+                type="url"
+                name="store[cover_image_url]"
+                value={@store && @store.cover_image_url}
+                placeholder="https://your-cdn.com/cover.jpg"
+                inputmode="url"
+                class="mt-2 w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              />
+            </details>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Store Logo</label>
-            <div class="flex items-center gap-4">
-              <div class="w-20 h-20 rounded-control bg-primary flex items-center justify-center">
-                <span class="text-2xl font-bold text-white">
-                  {logo_initials(@store)}
-                </span>
+          <%!-- What a buyer sees on the marketplace, from the same values the
+                fields above hold. A merchant editing a tagline should not have
+                to go and look at another page to see the result. --%>
+          <div id="store-card-preview" class="rounded-card border border-border bg-surface-subtle p-4">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+              How buyers see you
+            </p>
+            <div class="max-w-sm rounded-card border border-border bg-surface overflow-hidden">
+              <img
+                :if={@store && @store.cover_image_url && @store.cover_image_url != ""}
+                src={@store.cover_image_url}
+                alt=""
+                class="w-full aspect-[16/9] object-cover"
+                loading="lazy"
+              />
+              <div
+                :if={!(@store && @store.cover_image_url && @store.cover_image_url != "")}
+                class="w-full aspect-[16/9] bg-gradient-to-br from-primary-soft to-primary/30"
+              >
               </div>
-              <.admin_button variant={:secondary}>
-                <.icon name="hero-arrow-up-tray" class="size-4" /> Change Logo
-              </.admin_button>
+              <div class="p-4 flex gap-3 items-start">
+                <img
+                  :if={@store && @store.logo_url}
+                  src={@store.logo_url}
+                  alt=""
+                  class="w-11 h-11 rounded-control object-cover shrink-0"
+                />
+                <div
+                  :if={!(@store && @store.logo_url)}
+                  class="w-11 h-11 rounded-control bg-primary text-white flex items-center justify-center font-bold shrink-0"
+                >
+                  {logo_initials(@store)}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-slate-900 truncate">
+                    {(@store && @store.name) || "Your shop"}
+                  </p>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                    {(@store && @store.tagline) || "Your one line goes here"}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -291,7 +595,27 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             </div>
           </div>
 
-          <div class="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-control">
+          <%!-- A switch, not a tick-box: this decides whether a merchant's
+                money waits, and it should read as a lever you throw. The
+                checkbox is still the input — only its skin changed. --%>
+          <label
+            for="store-buyer-protection-enabled"
+            class="flex items-center justify-between gap-6 p-5 rounded-card border border-border bg-gradient-to-br from-success-soft to-surface cursor-pointer"
+          >
+            <div class="flex items-start gap-4 min-w-0">
+              <div class="w-13 h-13 shrink-0 rounded-control bg-success flex items-center justify-center">
+                <.icon name="hero-shield-check" class="size-7 text-white" />
+              </div>
+              <div class="min-w-0">
+                <span class="block text-base font-bold text-slate-900">
+                  Hold money until it arrives
+                </span>
+                <span class="block text-sm text-slate-600 mt-1">
+                  Buyers trust you more. You wait a little longer for your money.
+                </span>
+              </div>
+            </div>
+
             <input type="hidden" name="store[buyer_protection_enabled]" value="false" />
             <input
               type="checkbox"
@@ -299,40 +623,70 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               name="store[buyer_protection_enabled]"
               value="true"
               checked={@store && @store.buyer_protection_enabled == true}
-              class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+              class="peer sr-only"
             />
-            <label for="store-buyer-protection-enabled" class="cursor-pointer">
-              <span class="block text-sm font-medium text-slate-700">Buyer Protection</span>
-              <span class="block text-xs text-slate-500 mt-0.5">
-                Hold payments until delivery is confirmed. Slower cash-out, stronger buyer trust.
-              </span>
-            </label>
-          </div>
+            <span class="relative shrink-0 w-16 h-9 rounded-full bg-slate-300 peer-checked:bg-success transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:w-7 after:h-7 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-7">
+            </span>
+          </label>
           
     <!-- What this shop is allowed to sell. The hidden input is load-bearing:
                an all-unticked checkbox group submits no key at all, and a store
                without :physical cannot edit its own existing catalogue, because
                ProductTypeAcceptedByStore runs on Product :update too. -->
           <div class="pt-2">
-            <span class="block text-sm font-medium text-slate-700 mb-1.5">What you sell</span>
+            <span class="block text-sm font-semibold text-slate-700 mb-1">What you sell</span>
+            <p class="text-xs text-slate-500 mb-3">Pick everything that fits your shop.</p>
             <input type="hidden" name="store[enabled_product_types][]" value="physical" />
-            <div
-              :for={type <- Emakola.Catalog.Product.sellable_types() -- [:physical]}
-              class="flex items-start gap-3"
-            >
-              <input
-                type="checkbox"
-                id={"store-product-type-#{type}"}
-                name="store[enabled_product_types][]"
-                value={to_string(type)}
-                checked={@store && Emakola.Stores.Store.accepts?(@store, type)}
-                class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-              <label for={"store-product-type-#{type}"} class="cursor-pointer">
-                <span class="block text-sm font-medium text-slate-700">Digital downloads</span>
-                <span class="block text-xs text-slate-500 mt-0.5">
-                  Sell files — ebooks, beats, presets, courses. No address, no delivery fee.
-                </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <%!-- Physical is always on: a store without it cannot edit its own
+                    existing catalogue, so it shows as a fact, not a choice. --%>
+              <div class="rounded-card border-2 border-primary bg-primary-soft p-4 flex gap-4">
+                <div class="w-12 h-12 shrink-0 rounded-control bg-primary flex items-center justify-center">
+                  <.icon name="hero-cube" class="size-6 text-white" />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">Things you post</span>
+                    <.icon name="hero-check-circle" class="size-5 text-primary shrink-0" />
+                  </div>
+                  <span class="block text-xs text-slate-600 mt-1">
+                    Cloth, food, phones — anything a rider carries.
+                  </span>
+                </div>
+              </div>
+
+              <label
+                :for={type <- Emakola.Catalog.Product.sellable_types() -- [:physical]}
+                for={"store-product-type-#{type}"}
+                class="group rounded-card border-2 border-border p-4 flex gap-4 cursor-pointer transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary-soft"
+              >
+                <input
+                  type="checkbox"
+                  id={"store-product-type-#{type}"}
+                  name="store[enabled_product_types][]"
+                  value={to_string(type)}
+                  checked={@store && Emakola.Stores.Store.accepts?(@store, type)}
+                  class="peer sr-only"
+                />
+                <div class="w-12 h-12 shrink-0 rounded-control bg-slate-100 peer-checked:bg-primary flex items-center justify-center transition-colors">
+                  <.icon
+                    name="hero-arrow-down-tray"
+                    class="size-6 text-slate-500 peer-checked:text-white"
+                  />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">Things they download</span>
+                    <.icon
+                      name="hero-check-circle"
+                      class="size-5 text-primary shrink-0 hidden peer-checked:block"
+                    />
+                  </div>
+                  <span class="block text-xs text-slate-600 mt-1">
+                    Beats, ebooks, courses. No rider needed.
+                  </span>
+                </div>
               </label>
             </div>
           </div>
@@ -580,6 +934,28 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
   # -- Delivery tab (links to dedicated page) --
 
+  defp domain_tab(assigns) do
+    ~H"""
+    <div class="bg-white rounded-card border border-slate-200 p-6">
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Your Own Domain</h3>
+          <p class="text-sm text-slate-500 mt-1">Show your shop on an address you own</p>
+        </div>
+        <.link
+          navigate={~p"/admin/settings/domain"}
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+        >
+          <.icon name="hero-globe-alt" class="size-4" /> Connect Domain
+        </.link>
+      </div>
+      <p class="text-sm text-slate-500">
+        Use a web address you bought, like yourshop.com, instead of your Makola address.
+      </p>
+    </div>
+    """
+  end
+
   defp delivery_tab(assigns) do
     ~H"""
     <div class="space-y-6">
@@ -605,16 +981,28 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     """
   end
 
-  # -- Notifications tab (placeholder) --
+  # -- Notifications tab --
 
   defp notifications_tab(assigns) do
     ~H"""
     <div class="space-y-6">
       <.admin_card>
-        <h3 class="text-base font-bold text-slate-900 mb-5">Notification Preferences</h3>
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Notification Preferences</h3>
+            <p class="text-sm text-slate-500 mt-1">Choose how Makola reaches you</p>
+          </div>
+          <.link
+            navigate={~p"/admin/settings/notifications"}
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+          >
+            <.icon name="hero-bell" class="size-4" /> Manage
+          </.link>
+        </div>
         <p class="text-sm text-slate-500">
-          Notification settings will be available soon. You will be able to configure
-          SMS, WhatsApp, and email notifications for orders and inventory alerts.
+          Pick which of WhatsApp, SMS and email reach you for each thing that happens,
+          and set quiet hours so nothing rings your phone at night. Payouts and new
+          orders always get through.
         </p>
       </.admin_card>
     </div>

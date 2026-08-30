@@ -1,0 +1,9 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Merchant Studio" }
+  ],
+  "annotations": [
+    { "id": "studio-notes", "x": 1520, "y": 40, "w": 300, "text": "The Merchants page in the Stores-Studio language:\n· emerald replaces the stray blue; impersonation is a quiet outline button, not the loudest thing on the page\n· one joined card: queue left, detail right, emerald edge on the active row\n· status = a dot in the list, one chip in the detail (was shown 3 times)\n· stat chips in the page header (total / confirmed / pending)\n· empty fields say 'Not added yet' instead of a bare dash\n· store rows match the Studio: tile, slug in mono, OWNER chip, Storefront link\n· people are fictional samples" }
+  ],
+  "launch": { "view": "canvas" }
+}

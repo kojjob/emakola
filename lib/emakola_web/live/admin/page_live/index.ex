@@ -78,21 +78,19 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
     ~H"""
     <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-6 py-6">
       <%!-- Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Pages</h1>
-          <p class="text-sm text-slate-500 mt-1">
-            Build custom pages with images, video, audio, FAQs, and more.
-          </p>
-        </div>
+      <.admin_page_header
+        icon="hero-document-text"
+        title="Pages"
+        subtitle="Build custom pages with images, video, audio, FAQs, and more."
+      >
         <a
           :if={@store_id}
           href={~p"/admin/pages/new"}
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors min-h-[44px]"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors min-h-[44px]"
         >
-          <span class="material-symbols-outlined text-base">add</span> New page
+          <.icon name="hero-plus" class="size-5" /> New page
         </a>
-      </div>
+      </.admin_page_header>
 
       <%!-- Pages list --%>
       <div :if={@pages == []} class="bg-white rounded-2xl p-12 text-center border border-slate-200">

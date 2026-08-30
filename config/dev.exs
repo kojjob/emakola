@@ -13,6 +13,10 @@ config :emakola, Emakola.Repo,
 # Use local filesystem storage in dev (no S3 needed)
 config :emakola, :storage, Emakola.Storage.Local
 
+# The whole Playwright suite logs in from one IP; the prod default (10/min)
+# rate-limits the later specs. Dev only — prod keeps the module default.
+config :emakola, :auth_login_rate_limit, 1_000
+
 # AshAuthentication token signing secret — dev-only value
 config :emakola,
   token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"

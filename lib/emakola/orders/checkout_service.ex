@@ -126,6 +126,9 @@ defmodule Emakola.Orders.CheckoutService do
             customer_id: customer_id,
             notes: Keyword.get(opts, :notes),
             shipping_address: shipping_address,
+            # Custom (pay-link) orders used to drop attribution entirely, so a
+            # sale that a shared link produced credited nobody.
+            attribution: Keyword.get(opts, :attribution, %{}),
             pay_link_id: Keyword.get(opts, :pay_link_id)
           })
           |> Ash.create!(authorize?: false)
@@ -317,12 +320,14 @@ defmodule Emakola.Orders.CheckoutService do
     raw = div(subtotal * coupon.discount_value, 10_000)
     capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
     # Never discount more than the subtotal, or the order total would go
-    # negative (defence in depth if a coupon slips past the 100% cap).
-    min(capped, subtotal)
+    # negative (defence in depth if a coupon slips past the 100% cap) — and
+    # never less than zero, or `total - discount` would CHARGE the customer
+    # extra (defence in depth behind the resource's min: 0 constraint).
+    capped |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
-    min(coupon.discount_value, subtotal)
+    coupon.discount_value |> min(subtotal) |> max(0)
   end
 
   def calculate_discount(%{discount_type: :free_shipping}, _subtotal, delivery_fee) do
@@ -512,6 +517,27 @@ defmodule Emakola.Orders.CheckoutService do
         %Ash.NotLoaded{} -> true
         nil -> true
         product -> Emakola.Catalog.Product.requires_shipping?(product)
+      end
+    end)
+  end
+
+  @doc """
+  True when any item in the cart is a digital download.
+
+  Distinct from `not requires_shipping?/1` on purpose: a mixed cart both
+  requires shipping AND contains a download, and the download half needs a
+  signed-in customer or its grant is minted with `customer_id: nil` and can
+  never be redeemed. An unknown or unloaded product counts as physical — the
+  failure mode of guessing "digital" is refusing a legitimate guest sale.
+  """
+  def has_digital?(variants) when map_size(variants) == 0, do: false
+
+  def has_digital?(variants) do
+    Enum.any?(variants, fn {_id, variant} ->
+      case variant.product do
+        %Ash.NotLoaded{} -> false
+        nil -> false
+        product -> product.product_type == :digital_download
       end
     end)
   end

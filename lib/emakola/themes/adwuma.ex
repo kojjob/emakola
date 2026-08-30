@@ -28,6 +28,8 @@ defmodule Emakola.Themes.Adwuma do
   - `Emakola.Themes.Adwuma.Shared` — nav, footer, cards, styles
   """
 
+  use Phoenix.Component
+
   @behaviour Emakola.Themes.ThemeBehaviour
 
   alias Emakola.Themes.Adwuma.Shared
@@ -154,20 +156,26 @@ defmodule Emakola.Themes.Adwuma do
     to: Emakola.Themes.Adwuma.ProductDetail,
     as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Without these two, cart / account / tracking / category / wishlist silently
   # wear Atelier's chrome mid-funnel (DefaultRenderers.Chrome dispatches on
   # function_exported?/3).
   @impl true
   def storefront_nav(assigns) do
-    Shared.adwuma_nav(%{
+    # Shared pages (cart, checkout, …) render this chrome via Chrome without
+    # the theme's page wrapper, so the theme_styles block must ride with the
+    # nav — otherwise var(--adw-*)-styled chrome silently loses its styling.
+    assigns = %{
       __changed__: nil,
+      theme: Map.get(assigns, :theme) || %{},
       store: assigns.store,
       categories: Map.get(assigns, :categories) || [],
       cart_count: Map.get(assigns, :cart_count) || 0
-    })
+    }
+
+    ~H"""
+    <Shared.theme_styles theme={@theme} />
+    <Shared.adwuma_nav store={@store} categories={@categories} cart_count={@cart_count} />
+    """
   end
 
   @impl true
@@ -176,6 +184,15 @@ defmodule Emakola.Themes.Adwuma do
       __changed__: nil,
       store: assigns.store,
       categories: Map.get(assigns, :categories) || []
+    })
+  end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Shared.bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
     })
   end
 end

@@ -43,7 +43,7 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
           </p>
         </div>
         <div class="space-y-3">
-          <details :for={item <- faq_items(@theme)} class="beauty-card group">
+          <details :for={item <- faq_items(@theme)} name="faq" class="beauty-card group">
             <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
               <span class="text-base font-semibold text-[#3D2F25] pr-4">
                 {Item.field(item, :question)}

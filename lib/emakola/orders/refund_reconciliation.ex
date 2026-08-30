@@ -23,7 +23,12 @@ defmodule Emakola.Orders.RefundReconciliation do
   alias Emakola.Repo
 
   @active_order_statuses [:pending, :confirmed, :processing]
-  @active_fulfillment_statuses [:pending, :notified]
+  # :declined belongs here, and Fulfillment.:cancel's `from:` had to widen to
+  # match: a declined group is still active work the merchant owes the buyer,
+  # so a full refund must cancel it. If the two lists ever drift apart, the
+  # Ash.update! below raises inside the transaction and reconciliation fails
+  # for the entire order.
+  @active_fulfillment_statuses [:pending, :notified, :declined]
   @dispatched_statuses [:shipped, :delivered]
 
   @doc "Reconciles the order attached to a fully refunded payment."

@@ -57,7 +57,9 @@ test.describe("Orders list windowing", () => {
 
     // Filtering must re-window: keeping an expanded limit across a filter
     // change would quietly show a different number of rows per filter.
-    await page.getByRole("button", { name: "Pending", exact: true }).first().click();
+    // The tab's accessible name now includes its count chip ("Pending 12"),
+    // so target the tab by its filter value instead of exact text.
+    await page.locator("#orders-filter-tabs button[phx-value-status='pending']").click();
 
     // Poll: waitForLiveView returns immediately when the socket is already
     // connected, so it does not wait for the filtered re-render to land.

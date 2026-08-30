@@ -132,9 +132,6 @@ defmodule Emakola.Themes.Depot do
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Depot.ProductDetail, as: :render
 
-  @impl true
-  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
-
   # Depot keeps its own chrome on the fallback pages (cart, checkout,
   # account, ...) instead of swapping to Atelier's mid-funnel.
   @impl true
@@ -156,4 +153,20 @@ defmodule Emakola.Themes.Depot do
       theme: %{}
     })
   end
+
+  @impl true
+  def storefront_bottom_nav(assigns) do
+    Emakola.Themes.Depot.Shared.depot_bottom_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      active: bottom_nav_active(Map.get(assigns, :active_tab))
+    })
+  end
+
+  # Fallback pages speak :cart | :search | :account; Depot's bar speaks
+  # :home | :catalogue | :cart.
+  defp bottom_nav_active(:cart), do: :cart
+  defp bottom_nav_active(:search), do: :catalogue
+  defp bottom_nav_active(_), do: :home
 end

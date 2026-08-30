@@ -35,7 +35,9 @@ test.describe("Merchant Authentication", () => {
     await page.getByRole("button", { name: "Sign In" }).click();
 
     await expect(page).toHaveURL("/dashboard", { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    // The dashboard's h1 is a time-of-day greeting, so pin the element rather
+    // than its text.
+    await expect(page.locator("#dashboard-greeting")).toBeVisible();
   });
 
   test("shows register page with form elements", async ({ page }) => {

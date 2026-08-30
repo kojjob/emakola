@@ -37,7 +37,12 @@ defmodule EmakolaWeb.Storefront.PdpParityTest do
 
     create_variant!(product, store, %{price: 45_000, stock_quantity: 4})
 
-    %{store: store, product: product}
+    # Every assertion in this file should run against the page a shopper
+    # actually meets. Without a photo each theme renders its empty-state
+    # gallery instead, and these capabilities get asserted about a placeholder.
+    image = create_image!(product, store)
+
+    %{store: store, product: product, image: image}
   end
 
   describe "every theme's product page shows the store's reviews" do

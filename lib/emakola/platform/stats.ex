@@ -174,4 +174,61 @@ defmodule Emakola.Platform.Stats do
         []
     end
   end
+
+  # ── Time series for the platform overview charts ────────────────────
+  # Fetched rows are bucketed in Elixir — fine at current volume; move to
+  # a grouped SQL aggregate when payment counts warrant it.
+
+  @doc "Successful-payment GMV (minor units) per day, oldest first, gaps filled."
+  def gmv_by_day(days \\ 30) do
+    today = Date.utc_today()
+    start_date = Date.add(today, -(days - 1))
+    {:ok, start_dt} = DateTime.new(start_date, ~T[00:00:00], "Etc/UTC")
+
+    payments =
+      case Emakola.Payments.Payment
+           |> Ash.Query.filter(status == :success and inserted_at >= ^start_dt)
+           |> Ash.read(authorize?: false) do
+        {:ok, list} -> list
+        _ -> []
+      end
+
+    by_day = Enum.group_by(payments, &DateTime.to_date(&1.inserted_at))
+
+    buckets =
+      Enum.map(Date.range(start_date, today), fn date ->
+        total = by_day |> Map.get(date, []) |> Enum.map(& &1.amount) |> Enum.sum()
+        {Calendar.strftime(date, "%b %d"), total}
+      end)
+
+    %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
+  end
+
+  @doc "New stores per calendar week, oldest first, gaps filled."
+  def new_stores_by_week(weeks \\ 8) do
+    this_week = Date.beginning_of_week(Date.utc_today())
+    start_week = Date.add(this_week, -7 * (weeks - 1))
+    {:ok, start_dt} = DateTime.new(start_week, ~T[00:00:00], "Etc/UTC")
+
+    stores =
+      case Emakola.Stores.Store
+           |> Ash.Query.filter(inserted_at >= ^start_dt)
+           |> Ash.read(authorize?: false) do
+        {:ok, list} -> list
+        _ -> []
+      end
+
+    by_week =
+      Enum.group_by(stores, fn store ->
+        store.inserted_at |> DateTime.to_date() |> Date.beginning_of_week()
+      end)
+
+    buckets =
+      Enum.map(0..(weeks - 1), fn offset ->
+        week = Date.add(start_week, offset * 7)
+        {Calendar.strftime(week, "%b %d"), length(Map.get(by_week, week, []))}
+      end)
+
+    %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
+  end
 end

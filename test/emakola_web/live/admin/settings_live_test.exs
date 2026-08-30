@@ -11,6 +11,27 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
     end
   end
 
+  describe "SettingsLive (merchant with no store yet)" do
+    test "renders instead of raising on the store QR", %{conn: _conn} do
+      # RequireActiveStore lets an onboarding merchant with no store through,
+      # and this tab renders QR.store_svg(@store), whose head needs %{slug: _}.
+      # On production that was (FunctionClauseError) no function clause
+      # matching in EmakolaWeb.QR.store_svg/2 — 2026-08-24.
+      merchant = Factory.create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        build_conn()
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/settings")
+
+      assert html =~ "Settings"
+      refute html =~ "Something broke"
+    end
+  end
+
   describe "SettingsLive (authenticated)" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)
@@ -22,6 +43,29 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
 
       assert html =~ "Settings"
       assert html =~ store.name
+    end
+
+    test "shows the store's own QR code on the General tab", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      # The merchant's permanent "my shop" code — for a sticker on the stall, the
+      # packaging, or just their phone screen. It lives on the first tab because
+      # a merchant who reads poorly should not have to navigate to find it.
+      assert has_element?(view, "#store-qr svg")
+    end
+
+    test "the store QR encodes the store's canonical home", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      # The visible URL beside the code is built from the same helper that builds
+      # the QR payload, so what the merchant reads and what a phone scans agree.
+      assert has_element?(view, "#store-qr-url[value='#{EmakolaWeb.QR.store_url(store)}']")
+    end
+
+    test "the store QR can be printed as a stall sign", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      assert has_element?(view, "#store-qr-print")
     end
 
     test "renders tab navigation", %{conn: conn} do
@@ -62,10 +106,99 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
       assert html =~ "https://cdn.example.com/cover.jpg"
     end
 
+    # The logo tile rendered initials and "Change Logo" was a dead button —
+    # no allow_upload, no live_file_input anywhere in the page. A merchant who
+    # cannot read a URL had no way to put a picture on their shop.
+    test "a logo photo uploads to platform storage and lands on the store", %{
+      conn: conn,
+      store: store
+    } do
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "https://cdn.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photo =
+        file_input(view, "#general-form", :logo, [
+          %{name: "shop.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        ])
+
+      render_upload(photo, "shop.png")
+
+      view |> form("#general-form", %{store: %{name: store.name}}) |> render_submit()
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.logo_url =~ "https://cdn.example.com/stores/#{store.id}/branding/"
+    end
+
+    test "a cover photo uploads and lands on the store", %{conn: conn, store: store} do
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "https://cdn.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photo =
+        file_input(view, "#general-form", :cover, [
+          %{name: "banner.jpg", content: <<255, 216, 255, 224>>, type: "image/jpeg"}
+        ])
+
+      render_upload(photo, "banner.jpg")
+
+      view |> form("#general-form", %{store: %{name: store.name}}) |> render_submit()
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.cover_image_url =~ "https://cdn.example.com/stores/#{store.id}/branding/"
+    end
+
+    # Every failure used to surface as one flash reading "Could not save
+    # settings", with nothing pointing at the field that was wrong.
+    test "an empty shop name is refused at the field, before saving", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html = view |> form("#general-form", %{store: %{name: ""}}) |> render_change()
+
+      assert html =~ "Your shop needs a name"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.name == store.name
+    end
+
+    test "a tagline over the limit is refused at the field", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view
+        |> form("#general-form", %{store: %{name: "Shop", tagline: String.duplicate("a", 141)}})
+        |> render_change()
+
+      assert html =~ "Keep it under 140 letters"
+    end
+
+    test "saving with an invalid field shows the field error, not a flash", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html = view |> form("#general-form", %{store: %{name: ""}}) |> render_submit()
+
+      assert html =~ "Your shop needs a name"
+      refute html =~ "Settings saved"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.name == store.name
+    end
+
     test "can enable buyer protection from the General tab", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, ~p"/admin/settings")
 
-      assert html =~ "Buyer Protection"
+      # Copy is deliberately plainer than "Buyer Protection" — these
+      # merchants read slowly; the control still writes the same field.
+      assert html =~ "Hold money until it arrives"
 
       view
       |> form("#general-form", %{store: %{buyer_protection_enabled: "true"}})
@@ -78,7 +211,7 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
     test "can enable digital downloads from the General tab", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, ~p"/admin/settings")
 
-      assert html =~ "Digital downloads"
+      assert html =~ "Things they download"
 
       assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).enabled_product_types ==
                [:physical]

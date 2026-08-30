@@ -8,7 +8,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   rest of the money surfaces (Billing/Finance/Payments/Refunds). No DB
   queries in disconnected mount.
 
-  Two actions per row, both re-checking :manage_billing against a freshly
+  Studio layout: a queue of frozen + stale holds on the left, the selected
+  hold's case panel on the right. Two decisions per selected hold, both
+  re-checking :manage_billing against a freshly
   reloaded user before acting and writing a `Emakola.Accounts.PlatformAudit`
   entry on success:
 
@@ -52,14 +54,50 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, false)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:unverified_holds_count, 0)
+      |> assign(:frozen_holds_total, money(0, "GHS"))
+      |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:unverified_holds_total, money(0, "GHS"))
+      |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
+      |> assign(:holds_by_id, %{})
+      |> assign(:selected_hold, nil)
+      |> assign(:selected_section, nil)
       |> stream(:frozen_holds, [])
       |> stream(:stale_holds, [])
+      |> stream(:unverified_holds, [])
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
 
   @impl true
+  def handle_event("select_hold", %{"id" => id}, socket) do
+    # Selection is read-only UI state; membership in the mounted queues is
+    # the guard — a forged id simply no-ops.
+    case Map.get(socket.assigns.holds_by_id, id) do
+      nil ->
+        {:noreply, socket}
+
+      {section, hold} ->
+        previously_selected = socket.assigns.selected_hold
+
+        socket =
+          socket
+          |> assign(:selected_hold, hold)
+          |> assign(:selected_section, section)
+          |> refresh_queue_row(hold)
+
+        socket =
+          if previously_selected && previously_selected.id != hold.id do
+            refresh_queue_row(socket, previously_selected)
+          else
+            socket
+          end
+
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("force_release", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
       case find_hold(socket, id) do
@@ -223,17 +261,53 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
     frozen_holds = ProtectionHolds.list_frozen()
     stale_holds = ProtectionHolds.list_stale()
 
-    hold_tenants =
-      (frozen_holds ++ stale_holds)
-      |> Map.new(&{&1.id, &1.store_id})
+    # A delivery only the merchant vouched for. Neither of the lists above can
+    # catch it: no complaint means not frozen, and the release timer DID start,
+    # so not stale. Held only — once the money is out there is nothing left to
+    # review. Deduped against the other two so one hold cannot occupy two rows.
+    already_queued = MapSet.new(frozen_holds ++ stale_holds, & &1.id)
+
+    unverified_holds =
+      ProtectionHolds.list_unverified_delivery()
+      |> Enum.reject(&MapSet.member?(already_queued, &1.id))
+
+    all_holds = frozen_holds ++ stale_holds ++ unverified_holds
+
+    hold_tenants = Map.new(all_holds, &{&1.id, &1.store_id})
+
+    holds_by_id =
+      Map.new(
+        Enum.map(frozen_holds, &{&1.id, {:frozen, &1}}) ++
+          Enum.map(stale_holds, &{&1.id, {:stale, &1}}) ++
+          Enum.map(unverified_holds, &{&1.id, {:unverified, &1}})
+      )
+
+    # Keep the current selection when its hold is still queued (a refund
+    # leaves the hold in place); otherwise fall back to the first hold.
+    previously_selected_id = socket.assigns.selected_hold && socket.assigns.selected_hold.id
+
+    {selected_section, selected_hold} =
+      case Map.get(holds_by_id, previously_selected_id) do
+        {section, hold} -> {section, hold}
+        nil -> first_queued_hold(frozen_holds, stale_holds, unverified_holds)
+      end
 
     socket
     |> assign(:holds_loaded?, true)
     |> assign(:frozen_holds_count, length(frozen_holds))
     |> assign(:stale_holds_count, length(stale_holds))
+    |> assign(:unverified_holds_count, length(unverified_holds))
+    |> assign(:frozen_holds_total, total_held(frozen_holds))
+    |> assign(:stale_holds_total, total_held(stale_holds))
+    |> assign(:unverified_holds_total, total_held(unverified_holds))
+    |> assign(:oldest_hold_days, oldest_days(all_holds))
     |> assign(:hold_tenants, hold_tenants)
+    |> assign(:holds_by_id, holds_by_id)
+    |> assign(:selected_hold, selected_hold)
+    |> assign(:selected_section, selected_section)
     |> stream(:frozen_holds, frozen_holds, reset: true)
     |> stream(:stale_holds, stale_holds, reset: true)
+    |> stream(:unverified_holds, unverified_holds, reset: true)
   rescue
     exception ->
       Logger.error("[platform.protection_live] load raised: #{Exception.message(exception)}")
@@ -242,155 +316,396 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       |> assign(:holds_loaded?, true)
       |> assign(:frozen_holds_count, 0)
       |> assign(:stale_holds_count, 0)
+      |> assign(:unverified_holds_count, 0)
+      |> assign(:frozen_holds_total, money(0, "GHS"))
+      |> assign(:stale_holds_total, money(0, "GHS"))
+      |> assign(:unverified_holds_total, money(0, "GHS"))
+      |> assign(:oldest_hold_days, nil)
       |> assign(:hold_tenants, %{})
+      |> assign(:holds_by_id, %{})
+      |> assign(:selected_hold, nil)
+      |> assign(:selected_section, nil)
       |> stream(:frozen_holds, [], reset: true)
       |> stream(:stale_holds, [], reset: true)
+  end
+
+  # Frozen first: a buyer has actually complained. Then stale, then deliveries
+  # nobody but the merchant vouched for.
+  defp first_queued_hold([first | _], _stale, _unverified), do: {:frozen, first}
+  defp first_queued_hold([], [first | _], _unverified), do: {:stale, first}
+  defp first_queued_hold([], [], [first | _]), do: {:unverified, first}
+  defp first_queued_hold([], [], []), do: {nil, nil}
+
+  # Re-render one already-streamed queue row so its data-selected state
+  # follows the selection (stream rows don't re-render on assign changes).
+  defp refresh_queue_row(socket, hold) do
+    case Map.get(socket.assigns.holds_by_id, hold.id) do
+      {:frozen, queued_hold} -> stream_insert(socket, :frozen_holds, queued_hold)
+      {:stale, queued_hold} -> stream_insert(socket, :stale_holds, queued_hold)
+      {:unverified, queued_hold} -> stream_insert(socket, :unverified_holds, queued_hold)
+      nil -> socket
+    end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 lg:p-8 max-w-6xl mx-auto">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Buyer Protection</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          Frozen holds (open complaints) and stale holds (30+ days, no auto-release timer) across all stores.
-        </p>
+    <div class="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div class="flex items-center gap-4">
+          <div class="w-13 h-13 rounded-card bg-primary flex items-center justify-center shrink-0 shadow-sm">
+            <.icon name="hero-shield-check" class="size-7 text-white" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Buyer Protection</h1>
+            <p class="text-sm text-gray-500 mt-1">
+              Frozen holds (open complaints) and stale holds (30+ days, no auto-release timer) across all stores.
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <.severity_pill label={"#{@frozen_holds_count} frozen"} tone="rose" />
+          <.severity_pill label={"#{@stale_holds_count} stale"} tone="amber" />
+          <.severity_pill label={"#{@unverified_holds_count} unproven"} tone="rose" />
+        </div>
       </div>
 
-      <section class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Frozen — open complaints</h2>
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <table class="w-full">
-            <thead>
-              <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                <th class="px-6 py-3">Order</th>
-                <th class="px-6 py-3">Store</th>
-                <th class="px-6 py-3">Buyer</th>
-                <th class="px-6 py-3">Complaint</th>
-                <th class="px-6 py-3">Amount</th>
-                <th class="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody id="frozen-protection-holds" phx-update="stream" class="divide-y divide-gray-100">
-              <tr :if={!@holds_loaded?} id="frozen-protection-holds-loading">
-                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
-              </tr>
-              <tr
-                :if={@holds_loaded? and @frozen_holds_count == 0}
-                id="frozen-protection-holds-empty"
-              >
-                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
-                  No open complaints.
-                </td>
-              </tr>
-              <tr
-                :for={{id, hold} <- @streams.frozen_holds}
-                id={id}
-                class="hover:bg-gray-50 transition-colors"
-              >
-                <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                  {(hold.order && hold.order.order_number) || "—"}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600">
-                  {(hold.store && hold.store.name) || "—"}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600 font-mono">{buyer_phone(hold)}</td>
-                <td class="px-6 py-4 text-sm text-gray-700 max-w-xs">
-                  <p class="font-medium">{complaint_label(hold.complaint_reason)}</p>
-                  <p :if={hold.complaint_text} class="text-xs text-gray-500 truncate">
-                    {hold.complaint_text}
-                  </p>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">
-                  {money(hold.amount, hold_currency(hold))}
-                </td>
-                <td class="px-6 py-4 text-right whitespace-nowrap">
-                  <.hold_actions hold={hold} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <%!-- What the queue is actually sitting on. Counts alone never said how
+            much money was stuck. Same tiles as /platform, so the two pages
+            read as one product. --%>
+      <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <.stat_tile
+          id="protection-frozen-total"
+          label="Frozen by a complaint"
+          value={@frozen_holds_total}
+          icon="error"
+          color="rose"
+        />
+        <.stat_tile
+          id="protection-stale-total"
+          label="Stale, no timer"
+          value={@stale_holds_total}
+          icon="hourglass_empty"
+          color="amber"
+        />
+        <.stat_tile
+          id="protection-oldest"
+          label="Oldest waiting"
+          value={oldest_label(@oldest_hold_days)}
+          icon="flag"
+          color="slate"
+        />
+      </div>
 
-      <section>
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Stale — 30+ days, no release timer</h2>
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <table class="w-full">
-            <thead>
-              <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                <th class="px-6 py-3">Order</th>
-                <th class="px-6 py-3">Store</th>
-                <th class="px-6 py-3">Buyer</th>
-                <th class="px-6 py-3">Held since</th>
-                <th class="px-6 py-3">Amount</th>
-                <th class="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody id="stale-protection-holds" phx-update="stream" class="divide-y divide-gray-100">
-              <tr :if={!@holds_loaded?} id="stale-protection-holds-loading">
-                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
-              </tr>
-              <tr
-                :if={@holds_loaded? and @stale_holds_count == 0}
-                id="stale-protection-holds-empty"
+      <div class="flex flex-col lg:flex-row gap-5 items-start">
+        <%!-- Queue --%>
+        <div class="w-full lg:w-[360px] shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-4 pt-4 pb-1">
+            <h2 class="text-[11px] font-bold uppercase tracking-wider text-rose-600">
+              {"Frozen — open complaints · #{@frozen_holds_count}"}
+            </h2>
+          </div>
+          <div id="frozen-protection-holds" phx-update="stream" class="px-2 pb-2">
+            <div
+              :if={!@holds_loaded?}
+              id="frozen-protection-holds-loading"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Loading…
+            </div>
+            <div
+              :if={@holds_loaded? and @frozen_holds_count == 0}
+              id="frozen-protection-holds-empty"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              No open complaints.
+            </div>
+            <div
+              :for={{id, hold} <- @streams.frozen_holds}
+              id={id}
+              data-selected={@selected_hold && @selected_hold.id == hold.id}
+              class={[
+                "rounded-[10px] transition-colors",
+                if(@selected_hold && @selected_hold.id == hold.id,
+                  do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                  else: "hover:bg-slate-50"
+                )
+              ]}
+            >
+              <button
+                type="button"
+                phx-click="select_hold"
+                phx-value-id={hold.id}
+                class="w-full text-left px-3 py-2.5 flex items-start justify-between gap-3"
               >
-                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
-                  Nothing stale right now.
-                </td>
-              </tr>
-              <tr
-                :for={{id, hold} <- @streams.stale_holds}
-                id={id}
-                class="hover:bg-gray-50 transition-colors"
-              >
-                <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                  {(hold.order && hold.order.order_number) || "—"}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600">
-                  {(hold.store && hold.store.name) || "—"}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600 font-mono">{buyer_phone(hold)}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">{date_str(hold.inserted_at)}</td>
-                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-semibold text-gray-900 leading-tight truncate">
+                    {"#{order_number(hold)} · #{store_name(hold)}"}
+                  </span>
+                  <span class="block text-[11.5px] font-medium text-rose-600 leading-tight mt-0.5 truncate">
+                    {complaint_label(hold.complaint_reason)}
+                  </span>
+                </span>
+                <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">
                   {money(hold.amount, hold_currency(hold))}
-                </td>
-                <td class="px-6 py-4 text-right whitespace-nowrap">
-                  <.hold_actions hold={hold} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="px-4 pt-3 pb-1 border-t border-gray-100">
+            <h2 class="text-[11px] font-bold uppercase tracking-wider text-amber-600">
+              {"Stale — 30+ days · #{@stale_holds_count}"}
+            </h2>
+          </div>
+          <div id="stale-protection-holds" phx-update="stream" class="px-2 pb-2">
+            <div
+              :if={!@holds_loaded?}
+              id="stale-protection-holds-loading"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Loading…
+            </div>
+            <div
+              :if={@holds_loaded? and @stale_holds_count == 0}
+              id="stale-protection-holds-empty"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Nothing stale right now.
+            </div>
+            <div
+              :for={{id, hold} <- @streams.stale_holds}
+              id={id}
+              data-selected={@selected_hold && @selected_hold.id == hold.id}
+              class={[
+                "rounded-[10px] transition-colors",
+                if(@selected_hold && @selected_hold.id == hold.id,
+                  do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                  else: "hover:bg-slate-50"
+                )
+              ]}
+            >
+              <button
+                type="button"
+                phx-click="select_hold"
+                phx-value-id={hold.id}
+                class="w-full text-left px-3 py-2.5 flex items-start justify-between gap-3"
+              >
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-semibold text-gray-900 leading-tight truncate">
+                    {"#{order_number(hold)} · #{store_name(hold)}"}
+                  </span>
+                  <span class="block text-[11.5px] font-medium text-amber-600 leading-tight mt-0.5 truncate">
+                    {"Held #{days_held(hold)} days · no release timer"}
+                  </span>
+                </span>
+                <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">
+                  {money(hold.amount, hold_currency(hold))}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <%!-- Deliveries only the merchant vouched for. Neither list above
+                catches these: no complaint means not frozen, and the release
+                timer DID start, so not stale. Held only — once the money is
+                out there is nothing left to review. --%>
+          <div class="px-4 pt-3 pb-1 border-t border-gray-100">
+            <h2 class="text-[11px] font-bold uppercase tracking-wider text-rose-600">
+              {"Delivered without proof · #{@unverified_holds_count}"}
+            </h2>
+          </div>
+          <div id="unverified-protection-holds" phx-update="stream" class="px-2 pb-2">
+            <div
+              :if={!@holds_loaded?}
+              id="unverified-protection-holds-loading"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Loading…
+            </div>
+            <div
+              :if={@holds_loaded? and @unverified_holds_count == 0}
+              id="unverified-protection-holds-empty"
+              class="px-3 py-6 text-center text-sm text-gray-400"
+            >
+              Every delivery was confirmed by its buyer.
+            </div>
+            <div
+              :for={{id, hold} <- @streams.unverified_holds}
+              id={id}
+              data-selected={@selected_hold && @selected_hold.id == hold.id}
+              class={[
+                "rounded-[10px] transition-colors",
+                if(@selected_hold && @selected_hold.id == hold.id,
+                  do: "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+                  else: "hover:bg-slate-50"
+                )
+              ]}
+            >
+              <button
+                type="button"
+                phx-click="select_hold"
+                phx-value-id={hold.id}
+                class="w-full text-left px-3 py-2.5 flex items-start justify-between gap-3"
+              >
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-semibold text-gray-900 leading-tight truncate">
+                    {"#{order_number(hold)} · #{store_name(hold)}"}
+                  </span>
+                  <span class="block text-[11.5px] font-medium text-rose-600 leading-tight mt-0.5 truncate">
+                    Merchant marked delivered, no buyer code
+                  </span>
+                </span>
+                <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">
+                  {money(hold.amount, hold_currency(hold))}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
-      </section>
+
+        <%!-- Case panel --%>
+        <div id="protection-panel" class="flex-1 min-w-0 w-full">
+          <div
+            :if={!@holds_loaded?}
+            class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
+          >
+            Loading…
+          </div>
+
+          <.platform_empty_state
+            :if={@holds_loaded? and is_nil(@selected_hold)}
+            icon="hero-shield-check"
+            title="All money is moving"
+            description="No frozen or stale protection holds need a staff decision right now."
+          />
+
+          <div
+            :if={@selected_hold}
+            class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+          >
+            <div class="flex flex-wrap items-center gap-3">
+              <p class="text-[26px] font-bold text-gray-900 tracking-tight tabular-nums leading-none">
+                {money(@selected_hold.amount, hold_currency(@selected_hold))}
+              </p>
+              <.severity_pill
+                :if={@selected_section == :frozen}
+                label="Frozen — open complaint"
+                tone="rose"
+              />
+              <.severity_pill
+                :if={@selected_section == :stale}
+                label="Stale — no release timer"
+                tone="amber"
+              />
+            </div>
+
+            <p class="text-[13px] text-gray-500 mt-2">
+              {"Order #{order_number(@selected_hold)} · #{store_name(@selected_hold)} · Buyer #{buyer_phone(@selected_hold)} · Held since #{date_str(@selected_hold.inserted_at)}"}
+            </p>
+
+            <.link
+              :if={PlatformPermissions.allowed?(@current_user, :manage_stores)}
+              navigate={~p"/platform/stores/#{@selected_hold.store_id}"}
+              class="inline-block mt-2 text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+            >
+              Open store &rarr;
+            </.link>
+
+            <%!-- The whole hold, accounted for. The headline is `amount` and
+                  the release button pays `net`; without the fee on screen those
+                  read as two unexplained numbers for the same order. --%>
+            <div class="mt-4 grid grid-cols-3 rounded-xl border border-gray-200 overflow-hidden">
+              <div class="p-3.5 border-r border-gray-200">
+                <p class="text-[12px] font-semibold text-gray-500">Buyer paid</p>
+                <p class="text-[15px] font-bold text-gray-900 tabular-nums mt-1">
+                  {money(@selected_hold.amount, hold_currency(@selected_hold))}
+                </p>
+              </div>
+              <div class="p-3.5 border-r border-gray-200 bg-gray-50">
+                <p class="text-[12px] font-semibold text-gray-500">Makola's share</p>
+                <p class="text-[15px] font-bold text-gray-600 tabular-nums mt-1">
+                  {money(@selected_hold.fee, hold_currency(@selected_hold))}
+                </p>
+              </div>
+              <div class="p-3.5">
+                <p class="text-[12px] font-semibold text-gray-500">Merchant would get</p>
+                <p class="text-[15px] font-bold text-emerald-700 tabular-nums mt-1">
+                  {money(@selected_hold.net, hold_currency(@selected_hold))}
+                </p>
+              </div>
+            </div>
+
+            <div
+              :if={@selected_section == :frozen}
+              class="mt-4 rounded-xl border border-rose-100 bg-rose-50 p-4"
+            >
+              <p class="text-[13px] font-bold text-rose-700">
+                {complaint_label(@selected_hold.complaint_reason)}
+              </p>
+              <p :if={@selected_hold.complaint_text} class="text-[13px] text-rose-900/80 mt-1">
+                {@selected_hold.complaint_text}
+              </p>
+            </div>
+
+            <div
+              :if={@selected_section == :stale}
+              class="mt-4 rounded-xl border border-amber-100 bg-amber-50 p-4"
+            >
+              <p class="text-[13px] text-amber-800">
+                {"Held #{days_held(@selected_hold)} days with no auto-release timer — the money is stuck until a staff decision."}
+              </p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-3 mt-5">
+              <div class="rounded-xl border border-gray-200 p-4">
+                <h3 class="text-[13.5px] font-bold text-gray-900">Refund the buyer</h3>
+                <p class="text-[12.5px] text-gray-500 mt-1">
+                  {"Returns #{money(@selected_hold.amount, hold_currency(@selected_hold))} to the buyer's mobile money. The merchant is notified."}
+                </p>
+                <button
+                  type="button"
+                  phx-click="refund_buyer"
+                  phx-value-id={@selected_hold.id}
+                  data-confirm={"Refund #{money(@selected_hold.amount, hold_currency(@selected_hold))} to the buyer now? This cannot be undone."}
+                  class="mt-3 px-4 py-2 rounded-lg text-[13px] font-semibold bg-rose-600 text-white hover:bg-rose-700"
+                >
+                  Refund buyer
+                </button>
+              </div>
+              <div class="rounded-xl border border-gray-200 p-4">
+                <h3 class="text-[13.5px] font-bold text-gray-900">Release to the merchant</h3>
+                <p class="text-[12.5px] text-gray-500 mt-1">
+                  {"Pays #{money(@selected_hold.net, hold_currency(@selected_hold))} to the merchant now and closes the hold."}
+                </p>
+                <button
+                  type="button"
+                  phx-click="force_release"
+                  phx-value-id={@selected_hold.id}
+                  data-confirm={"Release #{money(@selected_hold.net, hold_currency(@selected_hold))} to the merchant now? This cannot be undone."}
+                  class="mt-3 px-4 py-2 rounded-lg text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  Force release
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[12px] text-gray-400 mt-4">
+              Both decisions are recorded in the platform audit log.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
     """
   end
 
-  attr :hold, :map, required: true
+  defp order_number(hold), do: (hold.order && hold.order.order_number) || "—"
 
-  defp hold_actions(assigns) do
-    ~H"""
-    <button
-      type="button"
-      phx-click="force_release"
-      phx-value-id={@hold.id}
-      data-confirm={"Release #{money(@hold.net, hold_currency(@hold))} to the merchant now? This cannot be undone."}
-      class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-    >
-      Force release
-    </button>
-    <button
-      type="button"
-      phx-click="refund_buyer"
-      phx-value-id={@hold.id}
-      data-confirm={"Refund #{money(@hold.amount, hold_currency(@hold))} to the buyer now? This cannot be undone."}
-      class="ml-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200"
-    >
-      Refund buyer
-    </button>
-    """
+  defp store_name(hold), do: (hold.store && hold.store.name) || "—"
+
+  defp days_held(hold) do
+    Date.diff(Date.utc_today(), DateTime.to_date(hold.inserted_at))
   end
 
   defp complaint_label(:not_received), do: "Not received"
@@ -423,6 +738,31 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       _ -> "GHS"
     end
   end
+
+  # Held money, summed PER CURRENCY. Adding GHS to NGN and labelling the
+  # result "GHS" is the bug this page's own currency test guards against;
+  # a mixed queue reads "GHS 400.00 · NGN 250.00".
+  defp total_held([]), do: money(0, "GHS")
+
+  defp total_held(holds) do
+    holds
+    |> Enum.group_by(&hold_currency/1, &(&1.amount || 0))
+    |> Enum.map(fn {currency, amounts} -> money(Enum.sum(amounts), currency) end)
+    |> Enum.sort()
+    |> Enum.join(" · ")
+  end
+
+  defp oldest_days([]), do: nil
+
+  defp oldest_days(holds) do
+    holds
+    |> Enum.map(&days_held/1)
+    |> Enum.max(fn -> nil end)
+  end
+
+  defp oldest_label(nil), do: "—"
+  defp oldest_label(1), do: "1 day"
+  defp oldest_label(days), do: "#{days} days"
 
   defp money(nil, currency), do: "#{currency} 0.00"
 

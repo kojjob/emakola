@@ -29,9 +29,12 @@ defmodule EmakolaWeb.DashboardLive do
         page_title: "Dashboard",
         store_id: store_id,
         period: "week",
-        periods: @periods
+        periods: @periods,
+        greeting: DashboardHelpers.greeting_for_hour(DateTime.utc_now().hour),
+        merchant_name: merchant_first_name(socket)
       )
       |> assign_setup_checklist()
+      |> assign_featuring_checklist()
 
     socket =
       if connected?(socket) do
@@ -65,6 +68,19 @@ defmodule EmakolaWeb.DashboardLive do
     do: {:noreply, load_dashboard_data(socket)}
 
   def handle_info(_, socket), do: {:noreply, socket}
+
+  def handle_event("dismiss_setup_celebration", _params, socket) do
+    merchant = socket.assigns.current_merchant
+
+    preferences = Map.put(merchant.preferences || %{}, "setup_celebrated", true)
+
+    {:ok, merchant} =
+      merchant
+      |> Ash.Changeset.for_update(:update_profile, %{preferences: preferences})
+      |> Ash.update(authorize?: false)
+
+    {:noreply, assign(socket, current_merchant: merchant, setup_celebrated?: true)}
+  end
 
   def handle_event("change_period", %{"period" => period}, socket) when period in @periods do
     socket = socket |> assign(period: period) |> load_dashboard_data() |> push_chart_events()
@@ -112,6 +128,17 @@ defmodule EmakolaWeb.DashboardLive do
     |> push_event("chart-data:top-products-chart", %{data: socket.assigns.top_products_chart})
   end
 
+  # First name only — the greeting is a hello, not an address label.
+  defp merchant_first_name(socket) do
+    case socket.assigns[:current_merchant] do
+      %{name: name} when is_binary(name) ->
+        name |> to_string() |> String.split(" ", parts: 2) |> List.first()
+
+      _ ->
+        nil
+    end
+  end
+
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do
       %{id: id} -> id
@@ -122,10 +149,58 @@ defmodule EmakolaWeb.DashboardLive do
   # Computes the merchant setup checklist and assigns it for the
   # dashboard widget. Cheap (two count queries + struct introspection)
   # so we can recompute on every mount without dedicated invalidation.
+  # The featuring floor as a to-do list — shown once basic setup is done,
+  # so a brand-new merchant sees one list at a time. One store read with
+  # the aggregates; the same 90-day quiet rule (with the creation-date
+  # grace) the nightly worker applies.
+  defp assign_featuring_checklist(socket) do
+    case socket.assigns[:current_store] do
+      nil ->
+        assign(socket, featuring_items: [], featuring_eligible?: false)
+
+      store ->
+        loaded =
+          Ash.get!(Emakola.Stores.Store, store.id,
+            load: [:product_count, :payout_verified, :last_product_published_at, :last_order_at],
+            authorize?: false
+          )
+
+        active_recently? =
+          [loaded.last_product_published_at, loaded.last_order_at, loaded.inserted_at]
+          |> Enum.reject(&is_nil/1)
+          |> Enum.max(DateTime)
+          |> DateTime.diff(DateTime.utc_now(), :day)
+          |> Kernel.>=(-90)
+
+        items =
+          Emakola.Stores.FeaturingChecklist.items(loaded,
+            product_count: loaded.product_count,
+            payout_verified?: loaded.payout_verified,
+            active_recently?: active_recently?
+          )
+
+        assign(socket,
+          featuring_items: items,
+          featuring_eligible?: Emakola.Stores.FeaturingChecklist.eligible?(items)
+        )
+    end
+  rescue
+    exception ->
+      Logger.error("[dashboard] featuring checklist raised: #{Exception.message(exception)}")
+      assign(socket, featuring_items: [], featuring_eligible?: false)
+  end
+
+  defp setup_celebrated?(socket) do
+    case socket.assigns[:current_merchant] do
+      %{preferences: %{"setup_celebrated" => true}} -> true
+      _ -> false
+    end
+  end
+
   defp assign_setup_checklist(socket) do
     case socket.assigns[:current_store] do
       nil ->
-        assign(socket, setup_steps: [], setup_complete?: true)
+        assign(socket, setup_steps: [], setup_complete?: true, setup_celebrated?: true)
 
       store ->
         product_count = count_products(store.id)
@@ -139,7 +214,8 @@ defmodule EmakolaWeb.DashboardLive do
 
         assign(socket,
           setup_steps: steps,
-          setup_complete?: Enum.all?(steps, & &1.done?)
+          setup_complete?: Enum.all?(steps, & &1.done?),
+          setup_celebrated?: setup_celebrated?(socket)
         )
     end
   end
@@ -170,62 +246,157 @@ defmodule EmakolaWeb.DashboardLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6 pb-8">
-      <.dashboard_header period={@period} periods={@periods} />
+      <.dashboard_header
+        period={@period}
+        periods={@periods}
+        greeting={@greeting}
+        merchant_name={@merchant_name}
+      />
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
-      <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
+      <.setup_checklist
+        :if={@setup_steps != []}
+        steps={@setup_steps}
+        celebrated?={@setup_celebrated?}
+        shop_path={@current_store && "/s/#{@current_store.slug}"}
+      />
 
-      <.kpi_cards
+      <section
+        :if={@featuring_items != [] && @setup_complete?}
+        id="featuring-checklist"
+        class="rounded-card border border-border bg-surface p-5 sm:p-6"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">
+              Get featured
+            </p>
+            <h2 class="mt-1 text-lg font-black tracking-tight text-slate-900">
+              <%= if @featuring_eligible? do %>
+                Your shop can be featured
+              <% else %>
+                What featuring needs
+              <% end %>
+            </h2>
+          </div>
+          <span
+            :if={@featuring_eligible?}
+            class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700"
+          >
+            <.icon name="hero-check-badge-solid" class="size-4" /> Ready
+          </span>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span
+            :for={item <- @featuring_items}
+            :if={item.done?}
+            class="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3.5 py-2 text-xs font-semibold text-emerald-700 line-through"
+          >
+            <.icon name="hero-check" class="size-3.5" />
+            {item.label}
+          </span>
+          <span
+            :for={item <- @featuring_items}
+            :if={!item.done?}
+            class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-slate-700"
+          >
+            <span class="size-3.5 shrink-0 rounded-full border-2 border-slate-300"></span>
+            {item.label}
+          </span>
+        </div>
+
+        <p class="mt-3 text-xs text-slate-400">
+          Featured shops are picked automatically every night from shops that tick every box.
+        </p>
+      </section>
+
+      <%!-- What needs doing, before any chart --%>
+      <.work_queue
+        pending_orders={@pending_orders}
+        sold_out_count={@sold_out_count}
+        open_returns={@open_returns}
+        suppliers_to_chase={@suppliers_to_chase}
+      />
+
+      <.money_row
         loading={@loading}
+        period={@period}
         total_revenue={@total_revenue}
         revenue_change={@revenue_change}
         order_count={@order_count}
         orders_change={@orders_change}
         customer_count={@customer_count}
         customers_change={@customers_change}
-        avg_order_value={@avg_order_value}
-        aov_change={@aov_change}
       />
 
-      <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-8 space-y-6">
-          <.chart_card
-            id="revenue-chart"
-            title="Revenue"
-            chart_type="revenue-bar"
-            chart_data={@revenue_chart}
-          />
-          <.chart_card
-            id="orders-chart"
-            title="Orders"
-            chart_type="orders-line"
-            chart_data={@orders_chart}
-          />
-        </div>
-        <div class="lg:col-span-4 space-y-6">
-          <.alerts_panel
-            pending_orders={@pending_orders}
-            low_stock_count={@low_stock_count}
-            failed_payments={@failed_payments}
-          />
-          <.chart_card
-            id="top-products-chart"
-            title="Top Products"
-            chart_type="top-products-horizontal"
-            chart_data={@top_products_chart}
-            height="h-48"
-          />
-          <.chart_card
-            id="customers-chart"
-            title="New Customers"
-            chart_type="customers-line"
-            chart_data={@customers_chart}
-            height="h-48"
-          />
-        </div>
+      <section class={[
+        "grid grid-cols-1 gap-6",
+        @best_sellers != [] && "lg:grid-cols-[1.6fr_1fr]"
+      ]}>
+        <.money_bars chart={@revenue_chart} loading={@loading} />
+        <.best_sellers_panel best_sellers={@best_sellers} />
       </section>
 
       <.recent_orders_table recent_orders={@recent_orders} />
+
+      <%!-- The analyst's view, one tap away instead of first --%>
+      <div class="flex justify-center">
+        <button
+          id="more-numbers-toggle"
+          type="button"
+          phx-click={Phoenix.LiveView.JS.toggle_class("hidden", to: "#more-numbers")}
+          class="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300 transition-colors cursor-pointer"
+        >
+          <.icon name="hero-chart-bar" class="size-4 text-slate-400" /> See more numbers
+        </button>
+      </div>
+
+      <section id="more-numbers" class="hidden space-y-6">
+        <.kpi_cards
+          loading={@loading}
+          total_revenue={@total_revenue}
+          revenue_change={@revenue_change}
+          order_count={@order_count}
+          orders_change={@orders_change}
+          customer_count={@customer_count}
+          customers_change={@customers_change}
+          avg_order_value={@avg_order_value}
+          aov_change={@aov_change}
+        />
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8">
+            <.chart_card
+              id="orders-chart"
+              title="Orders"
+              chart_type="orders-line"
+              chart_data={@orders_chart}
+            />
+          </div>
+          <div class="lg:col-span-4 space-y-6">
+            <.alerts_panel
+              pending_orders={@pending_orders}
+              low_stock_count={@low_stock_count}
+              failed_payments={@failed_payments}
+            />
+            <.chart_card
+              id="top-products-chart"
+              title="Top Products"
+              chart_type="top-products-horizontal"
+              chart_data={@top_products_chart}
+              height="h-48"
+            />
+            <.chart_card
+              id="customers-chart"
+              title="New Customers"
+              chart_type="customers-line"
+              chart_data={@customers_chart}
+              height="h-48"
+            />
+          </div>
+        </div>
+      </section>
     </div>
     """
   end

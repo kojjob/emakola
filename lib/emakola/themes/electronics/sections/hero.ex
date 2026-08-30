@@ -136,7 +136,7 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
 
   # Splits the hero title at the first comma so the headline can be
   # "Upgrade Your Gear" then sky-blue "Upgrade Yourself" on a second line.
-  defp title_first(nil), do: "Upgrade Your Gear"
+  defp title_first(nil), do: "Shop the latest"
 
   defp title_first(title) when is_binary(title) do
     case String.split(title, ",", parts: 2) do

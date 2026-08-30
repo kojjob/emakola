@@ -36,10 +36,31 @@ defmodule Emakola.Analytics.SearchConsoleData do
     create_timestamp(:inserted_at)
   end
 
+  identities do
+    # Search Console is queried for a ROLLING 28-day window aggregated by
+    # (query, page) — there is no date dimension in the response. Each nightly
+    # run therefore returns the same rows with a fresh `fetched_at`, and
+    # creating them blindly stacks one copy per night.
+    #
+    # `nils_distinct?: false` matters: `page` and `organisation_id` are both
+    # nullable, and Postgres treats every NULL as distinct by default, so a
+    # plain unique index would let NULL-page rows duplicate forever.
+    identity(:unique_keyword_page, [:keyword, :page, :organisation_id], nils_distinct?: false)
+  end
+
   actions do
     defaults([:read])
 
     create :create do
+      # One row per keyword+page, always carrying the latest window. This is a
+      # current-state table, not a time series: consecutive 28-day windows
+      # overlap by 27 days, so differencing snapshots would not yield a trend
+      # anyway.
+      upsert?(true)
+      upsert_identity(:unique_keyword_page)
+
+      upsert_fields([:clicks, :impressions, :position, :ctr, :fetched_at])
+
       accept([
         :keyword,
         :page,
