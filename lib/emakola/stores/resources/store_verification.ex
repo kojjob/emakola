@@ -1,13 +1,29 @@
 defmodule Emakola.Stores.StoreVerification do
   @moduledoc """
-  A store's KYC submission and its review state. One row per store, created the
-  first time a merchant submits identity/business details.
+  A store's business verification submission and its review state. One row per
+  store, created the first time a merchant submits business details.
 
-  Approval is the real path to the `Store.verified` trust badge (which a
-  platform admin could previously only toggle by hand). Submission carries the
-  structured fields plus private document storage keys (`id_document_key`,
-  `business_doc_key`) — the documents are uploaded with a `private` ACL and
-  shown to reviewers via short-lived presigned URLs, never public.
+  **This resource does not establish identity.** L.I. 2523 (National Identity
+  Register (Amendment) Regulations, 2026, in force 9 June 2026) makes it an
+  offence for an organisation to request, retain, reproduce or visually inspect
+  a Ghana Card for identity verification. Only biometric authentication against
+  the National Identity Register, or match-on-card with an NIA-approved device,
+  is permitted — and Makola is not a Regulation 7 service, so no such check is
+  required of it.
+
+  Identity therefore comes from proving control of the payout wallet
+  (`StorePayoutAccount`), which the telco has already KYC'd against a Ghana Card
+  under Bank of Ghana rules.
+
+  What survives here is *business* verification: a trading name plus an optional
+  supporting document (`business_doc_key` — an MMDA licence, tax receipt or
+  certificate of incorporation). Those are not national identity cards and remain
+  lawful to collect; they are also what the BoG merchant-tier ladder asks for.
+
+  The `id_type` / `id_number` / `id_document_key` columns are retained, unwritable
+  and never rendered, solely as the audit trail for submissions made under the
+  retired flow. `quarantined_at` records when the stored document was moved to
+  the private vault pending deletion.
 
   Kept off the (publicly-readable) `Store` resource so it carries merchant-only
   write policies — same split as `StorePayoutAccount` / `StorePageContent`. The
@@ -19,7 +35,7 @@ defmodule Emakola.Stores.StoreVerification do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
-  @submission_fields [:business_name, :id_type, :id_number, :id_document_key, :business_doc_key]
+  @submission_fields [:business_name, :business_doc_key]
 
   multitenancy do
     strategy(:attribute)
@@ -53,25 +69,31 @@ defmodule Emakola.Stores.StoreVerification do
       constraints(max_length: 255)
     end
 
+    # ── Retired national-ID fields ───────────────────────────────────────
+    # Unlawful to request under L.I. 2523. Kept nullable and out of every
+    # action's accept list so historic rows stay auditable while no new value
+    # can ever be written. Never rendered to staff or merchants.
     attribute :id_type, :atom do
-      allow_nil?(false)
-      public?(true)
       constraints(one_of: [:ghana_card, :passport, :drivers_license, :voter_id])
     end
 
     attribute :id_number, :string do
-      allow_nil?(false)
       sensitive?(true)
       constraints(max_length: 100)
     end
 
-    # Private storage keys (ACL: private) — viewed by reviewers via presigned
-    # URLs. Required: id_document_key. Optional: business_doc_key.
     attribute :id_document_key, :string do
-      allow_nil?(false)
       sensitive?(true)
     end
 
+    # When the retired ID document was moved to the private vault pending
+    # deletion. Nil for rows that never carried one.
+    attribute :quarantined_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    # Optional supporting business document (ACL: private) — an MMDA licence,
+    # tax receipt or certificate of incorporation. Not a national identity card.
     attribute :business_doc_key, :string do
       sensitive?(true)
     end
@@ -119,6 +141,11 @@ defmodule Emakola.Stores.StoreVerification do
       forbid_if(always())
     end
 
+    # Quarantine is a platform data-retention action, never merchant-callable.
+    policy action(:quarantine_id_document) do
+      forbid_if(always())
+    end
+
     # Merchant submit/resubmit/read: must have access to the owning store.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -158,6 +185,14 @@ defmodule Emakola.Stores.StoreVerification do
       change(set_attribute(:reviewed_at, &DateTime.utc_now/0))
     end
 
+    # Records that the retired ID document has been moved to the private vault.
+    # The storage key is kept so the pending deletion has something to target.
+    update :quarantine_id_document do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:quarantined_at, &DateTime.utc_now/0))
+    end
+
     read :get_by_store do
       get?(true)
       argument(:store_id, :uuid, allow_nil?: false)
@@ -168,6 +203,12 @@ defmodule Emakola.Stores.StoreVerification do
       argument(:status, :atom, allow_nil?: true)
       filter(expr(is_nil(^arg(:status)) or status == ^arg(:status)))
       prepare(build(sort: [submitted_at: :asc]))
+    end
+
+    # Rows still holding a retired ID document that has not yet been vaulted.
+    read :list_unquarantined_id_documents do
+      filter(expr(not is_nil(id_document_key) and is_nil(quarantined_at)))
+      prepare(build(sort: [inserted_at: :asc]))
     end
   end
 end

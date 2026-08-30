@@ -1,7 +1,10 @@
 defmodule EmakolaWeb.Admin.VerificationLiveTest do
   @moduledoc """
-  Merchant KYC page: submit (with a private ID upload) → pending; a rejected
-  submission shows the reason + a resubmit form.
+  Merchant business-details page: submit (shop name + optional private business
+  document) → pending; a rejected submission shows the reason + a resubmit form.
+
+  The national-ID fields and upload are gone — L.I. 2523 makes requesting them
+  an offence. These tests pin that they cannot come back.
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
@@ -23,14 +26,47 @@ defmodule EmakolaWeb.Admin.VerificationLiveTest do
 
   test "a store with no submission sees the form", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/admin/verification")
-    assert html =~ "Submit for review"
+    assert html =~ "Send for review"
   end
 
-  test "submitting with an ID document creates a pending verification", %{
+  test "the page never asks for a national ID", %{conn: conn} do
+    {:ok, view, html} = live(conn, ~p"/admin/verification")
+
+    refute html =~ "Ghana Card"
+    refute html =~ "ID number"
+    refute html =~ "ID type"
+    refute has_element?(view, "#verification-form input[name='verification[id_number]']")
+    refute has_element?(view, "#verification-form select[name='verification[id_type]']")
+  end
+
+  test "points the merchant at the wallet proof instead", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/admin/verification")
+    assert has_element?(view, ~s{a[href="/admin/payouts"]})
+  end
+
+  test "submitting a shop name alone creates a pending verification", %{
     conn: conn,
     store: store
   } do
-    stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->
+    {:ok, view, _html} = live(conn, ~p"/admin/verification")
+
+    html =
+      view
+      |> element("#verification-form")
+      |> render_submit(%{"verification" => %{"business_name" => "Ama Trades"}})
+
+    assert html =~ "checking your details"
+
+    assert {:ok, v} = Stores.get_store_verification(store.id, authorize?: false)
+    assert v.status == :pending
+    assert v.business_name == "Ama Trades"
+    assert is_nil(v.id_document_key)
+    assert is_nil(v.id_number)
+  end
+
+  test "an optional business document is stored privately", %{conn: conn, store: store} do
+    stub(Emakola.StorageMock, :upload, fn _binary, _path, opts ->
+      assert Keyword.get(opts, :acl) == "private"
       {:ok, "https://s3.example/key"}
     end)
 
@@ -38,65 +74,43 @@ defmodule EmakolaWeb.Admin.VerificationLiveTest do
     Mox.allow(Emakola.StorageMock, self(), view.pid)
 
     upload =
-      file_input(view, "#verification-form", :id_document, [
-        %{name: "id.png", content: @small_png, type: "image/png"}
+      file_input(view, "#verification-form", :business_doc, [
+        %{name: "licence.png", content: @small_png, type: "image/png"}
       ])
 
-    render_upload(upload, "id.png")
+    render_upload(upload, "licence.png")
 
-    html =
-      view
-      |> element("#verification-form")
-      |> render_submit(%{
-        "verification" => %{
-          "business_name" => "Ama Trades",
-          "id_type" => "ghana_card",
-          "id_number" => "GHA-123"
-        }
-      })
-
-    assert html =~ "under review"
+    view
+    |> element("#verification-form")
+    |> render_submit(%{"verification" => %{"business_name" => "Ama Trades"}})
 
     assert {:ok, v} = Stores.get_store_verification(store.id, authorize?: false)
-    assert v.status == :pending
-    assert v.business_name == "Ama Trades"
-    assert v.id_document_key
+    assert v.business_doc_key =~ "business-"
   end
 
-  test "requires an ID document", %{conn: conn} do
+  test "requires a shop name", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/admin/verification")
 
     html =
       view
       |> element("#verification-form")
-      |> render_submit(%{
-        "verification" => %{
-          "business_name" => "Ama",
-          "id_type" => "ghana_card",
-          "id_number" => "X"
-        }
-      })
+      |> render_submit(%{"verification" => %{"business_name" => ""}})
 
-    assert html =~ "attach a photo or PDF"
+    assert html =~ "enter your shop name"
   end
 
   test "a rejected submission shows the reason and a resubmit form", %{conn: conn, store: store} do
     {:ok, v} =
       Stores.submit_store_verification(
-        %{
-          store_id: store.id,
-          business_name: "A",
-          id_type: :ghana_card,
-          id_number: "X",
-          id_document_key: "k"
-        },
+        %{store_id: store.id, business_name: "A"},
         authorize?: false
       )
 
-    {:ok, _} = Stores.reject_store_verification(v, %{reason: "Blurry photo"}, authorize?: false)
+    {:ok, _} =
+      Stores.reject_store_verification(v, %{reason: "Name unreadable"}, authorize?: false)
 
     {:ok, _view, html} = live(conn, ~p"/admin/verification")
-    assert html =~ "Blurry photo"
-    assert html =~ "Resubmit for review"
+    assert html =~ "Name unreadable"
+    assert html =~ "Send again"
   end
 end

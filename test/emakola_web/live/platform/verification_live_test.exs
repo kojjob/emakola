@@ -2,7 +2,9 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
   @moduledoc """
   Platform KYC review: the queue lists submissions (gated by :manage_merchants);
   the detail page approves (awards verified + audits + notifies) or rejects
-  (requires a reason), and shows documents via presigned URLs.
+  (requires a reason), and shows the optional business document via a presigned
+  URL. National-ID documents are never shown — L.I. 2523 makes even visual
+  inspection of a Ghana Card an offence.
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
@@ -30,9 +32,7 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
         %{
           store_id: store.id,
           business_name: "Kente Trades Ltd",
-          id_type: :ghana_card,
-          id_number: "GHA-1",
-          id_document_key: "verifications/#{store.id}/id.png"
+          business_doc_key: "verifications/#{store.id}/business-licence.png"
         },
         authorize?: false
       )
@@ -84,8 +84,11 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
 
       assert has_element?(view, "#verification-#{verification.id}[data-selected]")
       assert has_element?(view, "#verification-panel", "Kente Trades Ltd")
-      assert has_element?(view, "#verification-panel", "Ghana Card")
+      refute has_element?(view, "#verification-panel", "Ghana Card")
+
+      # The business document still renders; the national-ID tile is gone.
       assert has_element?(view, ~s(#verification-panel img[src="https://signed.example/doc"]))
+      refute has_element?(view, ~s(#verification-panel a[aria-label="Open ID document"]))
     end
 
     test "clicking a row switches the panel", %{conn: conn, verification: verification} do
@@ -95,10 +98,7 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
         Stores.submit_store_verification(
           %{
             store_id: other_store.id,
-            business_name: "Ayine Weaving Co",
-            id_type: :passport,
-            id_number: "G-2",
-            id_document_key: "verifications/#{other_store.id}/id.png"
+            business_name: "Ayine Weaving Co"
           },
           authorize?: false
         )
@@ -176,10 +176,7 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
         Stores.submit_store_verification(
           %{
             store_id: other_store.id,
-            business_name: "Newer Ventures",
-            id_type: :voter_id,
-            id_number: "V-3",
-            id_document_key: "verifications/#{other_store.id}/id.png"
+            business_name: "Newer Ventures"
           },
           authorize?: false
         )
@@ -206,11 +203,16 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
   end
 
   describe "Show" do
-    test "renders fields and a presigned document link", %{conn: conn, verification: v} do
+    test "renders fields and a presigned business-document link", %{conn: conn, verification: v} do
       {:ok, _view, html} = live(conn, ~p"/platform/verifications/#{v.id}")
       assert html =~ "Kente Trades Ltd"
-      assert html =~ "Ghana Card"
+      assert html =~ "View business document"
       assert html =~ "signed.example"
+
+      # Never the national ID — visual inspection is itself the offence.
+      refute html =~ "Ghana Card"
+      refute html =~ "View ID document"
+      refute html =~ "ID number"
     end
 
     test "approve marks approved, awards verified, audits, and enqueues a notification", %{

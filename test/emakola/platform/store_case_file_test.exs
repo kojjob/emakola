@@ -93,10 +93,7 @@ defmodule Emakola.Platform.StoreCaseFileTest do
       Emakola.Stores.submit_store_verification(
         %{
           store_id: store.id,
-          business_name: "Verified Stall Ltd",
-          id_type: :ghana_card,
-          id_number: "GHA-123",
-          id_document_key: "docs/ghana-card.jpg"
+          business_name: "Verified Stall Ltd"
         },
         authorize?: false
       )
