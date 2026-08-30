@@ -4,6 +4,17 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
       /admin/payouts
 
+  This is also where a merchant proves who they are. L.I. 2523 retired the
+  Ghana Card flow, so identity now comes from proving control of the payout
+  wallet: saving a mobile money destination sends a one-time code **to that
+  number**, and answering it stamps `payout_proven_at`. The telco already KYC'd
+  the wallet against a Ghana Card, so control of it inherits that check without
+  Makola ever handling a card.
+
+  The proof step only appears when `PhoneAuth.enabled?/0` is true. Delivery is
+  still dark in production (no WhatsApp Business account yet), and a code the
+  merchant can never receive would be a dead end rather than a gate.
+
   Captures the merchant's payout destination (mobile money or bank) onto their
   `StorePayoutAccount`. The save records the details as `:unverified`, then
   enqueues `SubaccountCreationWorker` to create the matching Paystack subaccount
@@ -19,6 +30,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Accounts.PhoneAuth
   alias Emakola.Payments
   alias Emakola.Payments.PaymentSplit
   alias Emakola.Payments.PayoutService
@@ -45,6 +57,8 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> assign(:account, account)
          |> assign(:method, current_method(account))
          |> assign(:payout_form, payout_form(account))
+         |> assign(:wallet_proof, proof_state(account))
+         |> assign(:proof_form, to_form(%{"code" => ""}, as: :proof))
          |> assign(:currency, store.currency || "GHS")
          |> assign_async(:money, fn -> load_money(store_id) end)}
 
@@ -141,7 +155,8 @@ defmodule EmakolaWeb.Admin.PayoutLive do
              |> assign(:account, account)
              |> assign(:method, method)
              |> assign(:payout_form, payout_form(account))
-             |> put_flash(:info, "Payout details saved.")}
+             |> assign(:proof_form, to_form(%{"code" => ""}, as: :proof))
+             |> request_wallet_code(account)}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Could not save. Please try again.")}
@@ -154,6 +169,78 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> put_flash(:error, message)}
     end
   end
+
+  def handle_event("verify_wallet", %{"proof" => %{"code" => code}}, socket) do
+    account = socket.assigns.account
+
+    case verify_wallet_code(wallet_number(account), code) do
+      :ok ->
+        {:ok, proven} = Stores.record_payout_proof(account, %{}, authorize?: false)
+
+        {:noreply,
+         socket
+         |> assign(:account, proven)
+         |> assign(:wallet_proof, :proven)
+         |> put_flash(:info, "This number is yours. Thank you.")}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:proof_form, to_form(%{"code" => ""}, as: :proof))
+         |> put_flash(:error, proof_error(reason))}
+    end
+  end
+
+  def handle_event("resend_wallet_code", _params, socket) do
+    {:noreply, request_wallet_code(socket, socket.assigns.account)}
+  end
+
+  # ── Wallet proof ────────────────────────────────────────────────
+
+  # There is no wallet to check against on a bank destination. The proof form
+  # is not rendered there, but events dispatch regardless of what was rendered,
+  # so this refuses rather than handing nil to PhoneAuth.normalize/1.
+  defp verify_wallet_code(nil, _code), do: {:error, :no_wallet}
+  defp verify_wallet_code(number, code), do: PhoneAuth.verify_code(number, code, :payout)
+
+  # Only mobile money, and only while codes can actually be delivered. A bank
+  # account has no channel to send a code to, and an undeliverable code would
+  # strand the merchant instead of proving anything.
+  defp request_wallet_code(socket, account) do
+    number = wallet_number(account)
+
+    cond do
+      is_nil(number) or not PhoneAuth.enabled?() ->
+        socket
+        |> assign(:wallet_proof, proof_state(account))
+        |> put_flash(:info, "Payout details saved.")
+
+      PhoneAuth.request_code(number, :payout) == :ok ->
+        socket
+        |> assign(:wallet_proof, :sent)
+        |> put_flash(:info, "We sent a code to #{number}. Enter it below.")
+
+      true ->
+        socket
+        |> assign(:wallet_proof, :none)
+        |> put_flash(:error, "We could not send the code. Please try again.")
+    end
+  end
+
+  defp wallet_number(%{payout_destination: %{"method" => "mobile_money", "number" => number}})
+       when is_binary(number) and number != "",
+       do: number
+
+  defp wallet_number(_account), do: nil
+
+  defp proof_state(%{payout_proven_at: %DateTime{}}), do: :proven
+  defp proof_state(_account), do: :none
+
+  defp proof_error(:no_wallet), do: "Add a mobile money number first."
+  defp proof_error(:rate_limited), do: "Too many tries. Please wait a few minutes."
+  defp proof_error(:expired), do: "That code has expired. Ask for a new one."
+  defp proof_error(:too_many_attempts), do: "Too many wrong codes. Ask for a new one."
+  defp proof_error(_invalid), do: "That code is not right. Check it and try again."
 
   # ── Persistence ─────────────────────────────────────────────────
 
@@ -201,16 +288,42 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   end
 
   defp validate_destination(%{"method" => "mobile_money"} = d) do
-    if blank?(d["number"]) or blank?(d["account_name"]),
-      do: {:error, "Please fill in every field."},
-      else: :ok
+    cond do
+      blank?(d["number"]) or blank?(d["account_name"]) ->
+        {:error, "Please fill in every field."}
+
+      is_nil(d["provider"]) ->
+        {:error, "Please choose your mobile money network."}
+
+      not ghana_msisdn?(d["number"]) ->
+        {:error, "Check the number. It should be 10 digits, like 0244123456."}
+
+      true ->
+        :ok
+    end
+  end
+
+  # Format only. Deliberately NOT a prefix-to-network check: Ghana has mobile
+  # number portability, so a 024 number can legitimately sit on Telecel or
+  # AirtelTigo. Matching prefix against the chosen provider would reject
+  # merchants who ported, and the OTP proves the number regardless.
+  defp ghana_msisdn?(number) do
+    case PhoneAuth.normalize(number) do
+      "+233" <> national ->
+        String.length(national) == 9 and String.first(national) in ["2", "5"]
+
+      _other ->
+        false
+    end
   end
 
   defp normalize_method("bank"), do: "bank"
   defp normalize_method(_), do: "mobile_money"
 
+  # nil, not a silent "mtn" default: quietly filing an unrecognised network as
+  # MTN sends the merchant's money to a bank code that was never chosen.
   defp normalize_provider(p) when p in ["mtn", "vodafone", "airteltigo"], do: p
-  defp normalize_provider(_), do: "mtn"
+  defp normalize_provider(_), do: nil
 
   defp trim(nil), do: ""
   defp trim(value) when is_binary(value), do: String.trim(value)
@@ -417,6 +530,11 @@ defmodule EmakolaWeb.Admin.PayoutLive do
 
         <div class="space-y-6 lg:sticky lg:top-6">
           <.destination_notice account={@account} />
+          <.wallet_proof_card
+            state={@wallet_proof}
+            number={wallet_number(@account)}
+            form={@proof_form}
+          />
 
           <.form
             for={@payout_form}
@@ -521,6 +639,75 @@ defmodule EmakolaWeb.Admin.PayoutLive do
     """
   end
 
+  # ── Wallet proof: the identity step, in pictures and short words ─────────
+  #
+  # Deliberately picture-first and under an eight-word line: these merchants
+  # read poorly, but they answer mobile money codes every week. The flow is
+  # the one they already know.
+
+  attr :state, :atom, required: true
+  attr :number, :any, default: nil
+  attr :form, :any, required: true
+
+  defp wallet_proof_card(%{state: :sent} = assigns) do
+    ~H"""
+    <div class="mb-6 rounded-lg border border-sky-200 bg-sky-50 p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-control bg-sky-600 flex items-center justify-center shrink-0">
+          <.icon name="hero-device-phone-mobile" class="size-6 text-white" />
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-sky-900">Check your phone</p>
+          <p class="text-xs text-sky-800 mt-0.5">We sent a code to {@number}</p>
+        </div>
+      </div>
+
+      <.form for={@form} id="wallet-proof-form" phx-submit="verify_wallet" class="mt-4 space-y-3">
+        <.input
+          field={@form[:code]}
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          placeholder="000000"
+          class="w-full rounded-lg border border-sky-300 px-3 py-3 text-center text-2xl font-bold tracking-[0.4em] focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+        />
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            phx-click="resend_wallet_code"
+            class="text-sm font-medium text-sky-700 underline hover:text-sky-900"
+          >
+            Send again
+          </button>
+        </div>
+      </.form>
+    </div>
+    """
+  end
+
+  defp wallet_proof_card(%{state: :proven} = assigns) do
+    ~H"""
+    <div class="mb-6 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+      <div class="w-10 h-10 rounded-control bg-emerald-600 flex items-center justify-center shrink-0">
+        <.icon name="hero-check" class="size-5 text-white" />
+      </div>
+      <div class="min-w-0">
+        <p class="text-sm font-bold text-emerald-900">This number is yours</p>
+        <p class="text-xs text-emerald-800 mt-0.5">You answered the code we sent</p>
+      </div>
+    </div>
+    """
+  end
+
+  defp wallet_proof_card(assigns), do: ~H""
+
   # ── Destination notice: state-driven copy, no fixed amber string ─────────
 
   attr :account, :any, default: nil
@@ -533,10 +720,13 @@ defmodule EmakolaWeb.Admin.PayoutLive do
     """
   end
 
+  # "Verified" here means the gateway accepted a subaccount, which says nothing
+  # about who owns the wallet. The wording stays narrow on purpose; ownership
+  # is what wallet_proof_card reports.
   defp destination_notice(%{account: %{verification_status: :verified}} = assigns) do
     ~H"""
     <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-      Your payout destination is verified. You'll receive payouts here once Makola enables payouts in your region.
+      Your payout destination is set up. You'll receive payouts here once Makola enables payouts in your region.
     </div>
     """
   end

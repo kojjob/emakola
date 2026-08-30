@@ -60,4 +60,70 @@ defmodule Emakola.Accounts.PhoneAuthTest do
       assert PhoneAuth.to_e164("+233", "050 123 4567") == "+233501234567"
     end
   end
+
+  describe ":payout purpose (wallet proof)" do
+    # Distinct numbers per test: the limiter buckets per phone, so sharing one
+    # across tests makes them interfere.
+
+    test "a payout code is issued and verified on the wallet number" do
+      test_pid = self()
+
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn _to,
+                                                             "auth_code",
+                                                             %{code: code},
+                                                             _opts ->
+        send(test_pid, {:code, code})
+        {:ok, %{}}
+      end)
+
+      assert :ok = PhoneAuth.request_code("0244000001", :payout)
+      assert_received {:code, code}
+      assert :ok = PhoneAuth.verify_code("0244000001", code, :payout)
+    end
+
+    test "the SMS says money is involved and warns against sharing" do
+      test_pid = self()
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn _, _, _, _ -> {:error, :boom} end)
+
+      expect(Emakola.SMSProviderMock, :send_sms, fn _to, body, _opts ->
+        send(test_pid, {:sms, body})
+        {:ok, %{}}
+      end)
+
+      assert :ok = PhoneAuth.request_code("0244000002", :payout)
+      assert_received {:sms, body}
+
+      assert body =~ "receive your money"
+      assert body =~ "Never share"
+      assert body =~ ~r/\d{6}/
+    end
+
+    test "a sign-in code cannot be replayed as a payout proof" do
+      test_pid = self()
+
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn _, _, %{code: code}, _ ->
+        send(test_pid, {:code, code})
+        {:ok, %{}}
+      end)
+
+      assert :ok = PhoneAuth.request_code("0244000003", :merchant)
+      assert_received {:code, code}
+
+      assert {:error, :invalid} = PhoneAuth.verify_code("0244000003", code, :payout)
+    end
+
+    test "a code proves the number it was sent to, not another one" do
+      test_pid = self()
+
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn _, _, %{code: code}, _ ->
+        send(test_pid, {:code, code})
+        {:ok, %{}}
+      end)
+
+      assert :ok = PhoneAuth.request_code("0244000004", :payout)
+      assert_received {:code, code}
+
+      assert {:error, :invalid} = PhoneAuth.verify_code("0244000005", code, :payout)
+    end
+  end
 end

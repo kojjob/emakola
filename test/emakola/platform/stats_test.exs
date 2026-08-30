@@ -17,6 +17,49 @@ defmodule Emakola.Platform.StatsTest do
       Factory.create_merchant!()
       assert Stats.total_merchants() >= 1
     end
+
+    test "active_stores/0 excludes an archived store" do
+      # `active` is the merchant's own open/closed switch; `status` is the
+      # platform's. Archiving leaves `active` true, so a count that reads only
+      # the merchant switch reported stores the marketplace no longer serves —
+      # the tile said 41 while /stores showed 39.
+      live = Factory.create_store!()
+      archived = Factory.create_store!()
+
+      before = Stats.active_stores()
+
+      archived
+      |> Ash.Changeset.for_update(:archive, %{reason: "test"}, authorize?: false)
+      |> Ash.update!()
+
+      assert Stats.active_stores() == before - 1
+      assert live.id != archived.id
+    end
+
+    test "active_stores/0 excludes a suspended store" do
+      store = Factory.create_store!()
+      before = Stats.active_stores()
+
+      store
+      |> Ash.Changeset.for_update(:suspend, %{reason: "test"}, authorize?: false)
+      |> Ash.update!()
+
+      assert Stats.active_stores() == before - 1
+    end
+
+    test "total_stores/0 still counts an archived store" do
+      # The platform view deliberately sees everything; only the active tile
+      # narrows. Otherwise archiving a store would make it vanish from the
+      # platform's own records.
+      store = Factory.create_store!()
+      before = Stats.total_stores()
+
+      store
+      |> Ash.Changeset.for_update(:archive, %{reason: "test"}, authorize?: false)
+      |> Ash.update!()
+
+      assert Stats.total_stores() == before
+    end
   end
 
   # ── payment aggregations ───────────────────────────────────────────

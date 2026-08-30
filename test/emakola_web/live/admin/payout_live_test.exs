@@ -3,10 +3,15 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
   Merchant payout onboarding page (SP1, path-independent slice): capture a
   mobile-money or bank payout destination. No subaccount/fee/money movement —
   saved details stay `verification_status: :unverified` behind an honest note.
+
+  Saving a mobile-money destination also sends a one-time code to that number:
+  proving control of the wallet is how a merchant establishes identity now that
+  L.I. 2523 has retired the Ghana Card flow.
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
   use Oban.Testing, repo: Emakola.Repo
+  import Mox
   import Phoenix.LiveViewTest
 
   alias Emakola.Payments.PaymentSplit
@@ -14,9 +19,44 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
   alias Emakola.Stores
   alias EmakolaWeb.Helpers.Currency
 
+  setup :set_mox_global
+
   setup %{conn: conn} do
+    # Saving mobile money now sends a wallet code; capture it so tests can
+    # answer it rather than stubbing verification away.
+    test_pid = self()
+
+    stub(Emakola.WhatsAppProviderMock, :send_message, fn _to, "auth_code", %{code: code}, _opts ->
+      send(test_pid, {:wallet_code, code})
+      {:ok, %{}}
+    end)
+
     {conn, _merchant, store} = setup_authenticated_merchant(conn)
     %{conn: conn, store: store}
+  end
+
+  # PhoneAuth rate-limits sends per phone number (3 per 10 minutes), and the
+  # bucket is global across the suite. Tests that share a number interfere,
+  # and the failure surfaces as a missing proof form rather than a rate-limit
+  # error — so every test gets its own wallet.
+  defp unique_momo_number do
+    suffix = System.unique_integer([:positive]) |> rem(100_000_000) |> Integer.to_string()
+    "02" <> String.pad_leading(suffix, 8, "0")
+  end
+
+  defp save_momo(view), do: save_momo(view, unique_momo_number())
+
+  defp save_momo(view, number) do
+    view
+    |> element("#payout-form")
+    |> render_submit(%{
+      "payout" => %{
+        "method" => "mobile_money",
+        "provider" => "mtn",
+        "number" => number,
+        "account_name" => "Ama Trades"
+      }
+    })
   end
 
   test "a store with no payout account sees an empty form", %{conn: conn} do
@@ -42,7 +82,7 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
         }
       })
 
-    assert html =~ "enables payouts in your region"
+    assert html =~ "We sent a code"
 
     assert {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
     assert account.verification_status == :unverified
@@ -255,6 +295,8 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
         method: "mobile_money",
         currency: "GHS",
         payout_form: Phoenix.Component.to_form(%{"method" => "mobile_money"}, as: :payout),
+        wallet_proof: :none,
+        proof_form: Phoenix.Component.to_form(%{"code" => ""}, as: :proof),
         money: Phoenix.LiveView.AsyncResult.failed(Phoenix.LiveView.AsyncResult.loading(), :boom)
       }
 
@@ -404,7 +446,10 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/payouts")
 
-      assert html =~ "Your payout destination is verified"
+      # Narrowed deliberately: "verified" here is only the gateway accepting a
+      # subaccount, which says nothing about who owns the wallet.
+      assert html =~ "Your payout destination is set up"
+      refute html =~ "destination is verified"
       refute html =~ "Payout details saved."
     end
   end
@@ -435,5 +480,174 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
     Emakola.Payments.ProtectionHold
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
     |> Ash.create!(authorize?: false)
+  end
+
+  describe "wallet proof — the identity step" do
+    test "saving mobile money sends a code to that number and shows the entry", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      html = save_momo(view, unique_momo_number())
+
+      assert_received {:wallet_code, _code}
+      assert html =~ "Check your phone"
+      assert has_element?(view, "#wallet-proof-form")
+    end
+
+    test "answering the code stamps the wallet as proven", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      save_momo(view)
+      assert_received {:wallet_code, code}
+
+      html =
+        view
+        |> element("#wallet-proof-form")
+        |> render_submit(%{"proof" => %{"code" => code}})
+
+      assert html =~ "This number is yours"
+
+      {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
+      assert %DateTime{} = account.payout_proven_at
+    end
+
+    test "a wrong code proves nothing", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      save_momo(view)
+      assert_received {:wallet_code, _code}
+
+      html =
+        view
+        |> element("#wallet-proof-form")
+        |> render_submit(%{"proof" => %{"code" => "000000"}})
+
+      assert html =~ "not right"
+
+      {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
+      assert is_nil(account.payout_proven_at)
+    end
+
+    test "swapping the number after proving voids the proof and re-asks", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      save_momo(view, unique_momo_number())
+      assert_received {:wallet_code, code}
+      view |> element("#wallet-proof-form") |> render_submit(%{"proof" => %{"code" => code}})
+
+      {:ok, proven} = Stores.get_payout_account(store.id, authorize?: false)
+      assert %DateTime{} = proven.payout_proven_at
+
+      save_momo(view, unique_momo_number())
+
+      {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
+
+      assert is_nil(account.payout_proven_at),
+             "a code answered on the old number says nothing about the new one"
+
+      assert account.verification_status == :unverified
+    end
+
+    test "a proof submitted against a bank destination is refused, not a crash", %{conn: conn} do
+      # Events dispatch regardless of what was rendered, so the handler must
+      # refuse a wallet code when there is no wallet.
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      view
+      |> element("#payout-form")
+      |> render_submit(%{
+        "payout" => %{
+          "method" => "bank",
+          "bank_name" => "GCB",
+          "account_number" => "1234567890",
+          "account_name" => "Ama Trades"
+        }
+      })
+
+      html = render_click(view, "verify_wallet", %{"proof" => %{"code" => "123456"}})
+      assert html =~ "Add a mobile money number first"
+    end
+
+    test "a bank destination gets no code — there is nowhere to send one", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      html =
+        view
+        |> element("#payout-form")
+        |> render_submit(%{
+          "payout" => %{
+            "method" => "bank",
+            "bank_name" => "GCB",
+            "account_number" => "1234567890",
+            "account_name" => "Ama Trades"
+          }
+        })
+
+      refute_received {:wallet_code, _code}
+      assert html =~ "Payout details saved"
+      refute has_element?(view, "#wallet-proof-form")
+    end
+  end
+
+  describe "destination validation" do
+    test "a malformed mobile money number is refused before anything is sent", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      html = save_momo(view, "12345")
+
+      assert html =~ "should be 10 digits"
+      refute_received {:wallet_code, _code}
+
+      assert {:ok, nil} =
+               Stores.get_payout_account(store.id, authorize?: false, not_found_error?: false)
+    end
+
+    test "an unrecognised network is refused rather than silently filed as MTN", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      html =
+        view
+        |> element("#payout-form")
+        |> render_submit(%{
+          "payout" => %{
+            "method" => "mobile_money",
+            "provider" => "glo",
+            "number" => "0244123456",
+            "account_name" => "Ama Trades"
+          }
+        })
+
+      assert html =~ "choose your mobile money network"
+
+      assert {:ok, nil} =
+               Stores.get_payout_account(store.id, authorize?: false, not_found_error?: false)
+    end
+
+    test "a ported number is accepted on any network — Ghana has portability", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+      # 024 is an MTN-issued prefix, but a ported number can sit on Telecel.
+      view
+      |> element("#payout-form")
+      |> render_submit(%{
+        "payout" => %{
+          "method" => "mobile_money",
+          "provider" => "vodafone",
+          "number" => "0244123456",
+          "account_name" => "Ama Trades"
+        }
+      })
+
+      {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
+      assert account.payout_destination["provider"] == "vodafone"
+    end
   end
 end

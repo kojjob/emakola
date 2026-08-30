@@ -38,6 +38,7 @@ defmodule Emakola.Stores do
       define(:create_payout_account, action: :create)
       define(:update_payout_account, action: :update)
       define(:record_payout_subaccount, action: :record_subaccount)
+      define(:record_payout_proof, action: :record_payout_proof)
     end
 
     resource Emakola.Stores.StorePageContent do
