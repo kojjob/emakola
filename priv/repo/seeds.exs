@@ -198,6 +198,13 @@ feature_flags = [
     required_plan: "starter"
   },
   %{
+    key: "directory_featuring_floor",
+    name: "Directory featuring floor",
+    description:
+      "ON: a shop must clear the merit floor to hold a featured slot on /stores. OFF: every active shop competes on score alone.",
+    enabled: false
+  },
+  %{
     key: "custom_domain",
     name: "Custom Domain",
     description: "Use a custom domain for the storefront",

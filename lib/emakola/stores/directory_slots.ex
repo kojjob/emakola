@@ -33,6 +33,20 @@ defmodule Emakola.Stores.DirectorySlots do
       eligibility check runs first and this function cannot be reached
       around it.
 
+  `partition_slots?: false` suspends rule 4's categories: staff picks and
+  young shops stop getting slots of their own and compete for the spotlight
+  like everyone else. It travels with the eligibility floor's platform switch
+  (`Emakola.Stores.featuring_floor_enforced?/0`), because a directory young
+  enough to need the floor suspended is one where `young?` is true of nearly
+  every shop — the growth rail swallows the population and the hero is left
+  with a handful of veterans. In production that meant 34 of 41 live shops
+  went to `:rising`, a slot /stores does not render, and one photo-bearing
+  shop was left to fill a five-shop spotlight. The categories return
+  untouched the day the floor does — which re-creates that starved hero
+  unless `:rising` and `:editors_pick` have somewhere to render by then.
+  Today /stores reads `:spotlight` alone, so those two slots are written to
+  a cache no page displays.
+
   Pure: entries in, `%{spotlight: [...], rising: [...], editors_pick:
   [...], promoted: [...]}` out. Ordering is deterministic — score
   descending, then name — so the page does not reshuffle between
@@ -57,8 +71,10 @@ defmodule Emakola.Stores.DirectorySlots do
           required(:paid_until) => DateTime.t() | nil
         }
 
-  @spec assign([entry()], DateTime.t()) :: %{atom() => [entry()]}
-  def assign(entries, %DateTime{} = now) do
+  @spec assign([entry()], DateTime.t(), keyword()) :: %{atom() => [entry()]}
+  def assign(entries, %DateTime{} = now, opts \\ []) do
+    partition? = Keyword.get(opts, :partition_slots?, true)
+
     admitted =
       entries
       |> Enum.filter(& &1.eligible?)
@@ -70,8 +86,8 @@ defmodule Emakola.Stores.DirectorySlots do
     {picks, rest} = Enum.split_with(unpinned, & &1.staff_pick?)
     {young, pool} = Enum.split_with(rest, & &1.young?)
 
-    editors = if length(picks) >= @editors_minimum, do: picks, else: []
-    rising = if length(young) >= @rising_minimum, do: young, else: []
+    editors = if partition? and length(picks) >= @editors_minimum, do: picks, else: []
+    rising = if partition? and length(young) >= @rising_minimum, do: young, else: []
 
     # Shops whose slot starved fall back into the spotlight pool — they are
     # eligible, so they compete on merit like everyone else.

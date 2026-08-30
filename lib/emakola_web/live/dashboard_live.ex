@@ -181,7 +181,12 @@ defmodule EmakolaWeb.DashboardLive do
 
         assign(socket,
           featuring_items: items,
-          featuring_eligible?: Emakola.Stores.FeaturingChecklist.eligible?(items)
+          # With the floor suspended every shop can be featured, so the card
+          # says so. The checklist itself stays — it is what the merchant
+          # will need the day the owner turns the floor back on.
+          featuring_eligible?:
+            Emakola.Stores.FeaturingChecklist.eligible?(items) or
+              not Emakola.Stores.featuring_floor_enforced?()
         )
     end
   rescue

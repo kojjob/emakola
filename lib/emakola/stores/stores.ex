@@ -99,4 +99,31 @@ defmodule Emakola.Stores do
     |> Emakola.Repo.all()
     |> Map.new()
   end
+
+  @featuring_floor_flag "directory_featuring_floor"
+
+  @doc """
+  Whether the merit floor under the directory's featured slots is being
+  enforced tonight.
+
+  A platform switch, not a deploy: it reads the `#{@featuring_floor_flag}`
+  feature flag, so the project owner turns the floor on and off from
+  /platform/settings and the next nightly featuring run obeys.
+
+  Off is the young-marketplace setting and the reason the switch exists. The
+  floor (`DirectoryEligibility`) asks for a verified payout account, and
+  payout verification runs on the payout rail — while that rail is dark no
+  shop can clear the bar. Production ran a nightly pass where 40 of 41 live
+  shops failed `:no_payout`, every featured slot emptied, and /stores lost
+  its hero: a floor enforcing a condition the platform has not shipped does
+  not protect buyers, it blanks the shop window. Turn it on once merchants
+  can actually clear it.
+
+  A missing flag row reads as off, which is the state a directory this young
+  wants. The verdicts are unaffected either way — `DirectoryStanding` still
+  records every disqualifier, so a merchant is told what to fix and the floor
+  can be switched back on knowing exactly who it would bar.
+  """
+  @spec featuring_floor_enforced?() :: boolean()
+  def featuring_floor_enforced?, do: Emakola.FeatureFlags.enabled?(@featuring_floor_flag)
 end

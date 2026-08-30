@@ -276,7 +276,17 @@ defmodule EmakolaWeb.StoresComponents do
           </a>
         </div>
 
-        <div class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <%!--
+          The companion panel needs shops to put in it. On a young directory
+          the day's spotlight can hold exactly one shop with a real photo, and
+          an empty "Also featured" box beside the hero reads as a broken page
+          — the same rule the rails follow, where a thin rail hides itself.
+          The hero takes the whole width instead.
+        --%>
+        <div class={[
+          "mt-7 grid gap-6",
+          @tiles != [] && "lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+        ]}>
           <a
             id="featured-hero"
             href={EmakolaWeb.Storefront.Path.public_path(@hero.slug)}
@@ -333,7 +343,10 @@ defmodule EmakolaWeb.StoresComponents do
             </div>
           </a>
 
-          <div class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6">
+          <div
+            :if={@tiles != []}
+            class="flex flex-col gap-3.5 rounded-[1.75rem] border border-slate-200 bg-white p-5 sm:p-6"
+          >
             <div class="flex items-center justify-between">
               <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                 Also featured

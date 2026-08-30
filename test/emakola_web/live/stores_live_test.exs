@@ -296,6 +296,25 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert has_element?(view, ~s(#featured-hero[href="/merit-shop"]))
     end
 
+    test "the companion panel hides when only one shop can fill the spotlight", %{conn: conn} do
+      # A young directory often has exactly one shop with a real photo. An
+      # "Also featured" box with nothing in it reads as a broken page, so the
+      # hero takes the whole width instead.
+      Factory.create_store!(%{
+        name: "Only Shop",
+        slug: "only-shop",
+        featured: true,
+        featured_rank: 1,
+        logo_url: "https://cdn.example/only.png"
+      })
+
+      {:ok, view, _html} = live(conn, "/stores")
+
+      assert has_element?(view, ~s(#featured-hero[href="/only-shop"]))
+      refute has_element?(view, "#featured-tiles")
+      refute render(view) =~ "Also featured"
+    end
+
     test "the spotlight hides entirely when nothing is featured", %{conn: conn} do
       Factory.create_store!(%{name: "Plain Shop", slug: "plain-shop"})
 
