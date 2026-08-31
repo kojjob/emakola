@@ -49,6 +49,20 @@ defmodule EmakolaWeb.Admin.StoreDomainLiveTest do
     end
   end
 
+  describe "copying a DNS record" do
+    # The whole point of the DNS table is that a merchant copies these values
+    # into their registrar. The control pushed a "copy" event this LiveView
+    # never handled, and an unmatched event takes the page down with it — so
+    # the button both failed to copy and killed the page a merchant was
+    # reading instructions from.
+    test "the copy control does not push an event nothing handles", %{conn: conn} do
+      html = conn |> claim!("kentekingdom.com") |> render()
+
+      refute html =~ ~s(phx-click="copy")
+      assert html =~ "copy-to-clipboard"
+    end
+  end
+
   describe "the DNS instructions" do
     test "an apex domain shows all three records, including AAAA", %{conn: conn} do
       html = conn |> claim!("kentekingdom.com") |> render()
