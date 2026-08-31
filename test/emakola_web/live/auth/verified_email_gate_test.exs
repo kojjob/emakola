@@ -80,6 +80,31 @@ defmodule EmakolaWeb.VerifiedEmailGateTest do
     end
   end
 
+  describe "the verify page" do
+    # Tapping Resend did nothing visible: get_connect_info/2 may only be read
+    # during mount, so asking for the caller's IP inside the handler crashed
+    # the LiveView, which remounted so fast the page looked untouched. And the
+    # auth live_session renders no flash container, so the put_flash that was
+    # supposed to reassure the merchant had nowhere to appear.
+    test "resending says so on the page", %{conn: conn} do
+      merchant = Factory.create_merchant!(confirmed_at: nil)
+
+      {:ok, view, html} = live(conn, ~p"/auth/verify?email=#{to_string(merchant.email)}")
+      refute html =~ "Sent."
+
+      assert view |> element("[phx-click=resend]") |> render_click() =~ "Sent."
+    end
+
+    test "the page survives the resend rather than remounting", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/auth/verify?email=nobody@example.com")
+
+      render_click(element(view, "[phx-click=resend]"))
+
+      # A crash would take the pid with it; the same view still answers.
+      assert render(view) =~ "Check your email"
+    end
+  end
+
   describe "an existing session" do
     test "an unverified merchant holding a session cannot reach the admin", %{conn: conn} do
       {conn, merchant, _store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
