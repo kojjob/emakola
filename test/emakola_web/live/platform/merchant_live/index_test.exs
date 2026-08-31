@@ -53,7 +53,15 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
           confirmed_at: ts
         })
 
-      yaw = Factory.create_merchant!(%{name: "Yaw Owusu", email: "yaw@example.com"})
+      # The unverified one, which is now a state a test asks for rather than
+      # the default a fresh merchant happens to be in.
+      yaw =
+        Factory.create_merchant!(%{
+          name: "Yaw Owusu",
+          email: "yaw@example.com",
+          confirmed_at: nil
+        })
+
       {conn, _user, _session} = setup_platform_staff(conn)
       {:ok, conn: conn, ama: ama, yaw: yaw}
     end

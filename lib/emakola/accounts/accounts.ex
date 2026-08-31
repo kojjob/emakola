@@ -137,4 +137,55 @@ defmodule Emakola.Accounts do
   end
 
   def session_live?(_merchant, _issued_at), do: false
+
+  @doc """
+  Whether a merchant may use the app at all.
+
+  Proving you own the address is the price of entry: an unverified account
+  can register and can verify, and nothing else. The check lives here rather
+  than in the login form because there are three doors — the form, an
+  existing session cookie, and the mobile API — and a rule enforced at one of
+  them is not a rule.
+  """
+  def access_allowed?(%{confirmed_at: nil}), do: false
+  def access_allowed?(%{confirmed_at: _confirmed}), do: true
+  def access_allowed?(_other), do: false
+
+  @doc """
+  Sends the confirmation email again.
+
+  Always returns `:ok`, whether or not the address belongs to anybody: the
+  verify page is reachable without a session, so a truthful answer here would
+  turn it into a list of who banks with us. Already-verified accounts are a
+  no-op for the same reason.
+  """
+  def resend_confirmation(email) when is_binary(email) do
+    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.Merchant, :confirm_new_merchant)
+
+    with {:ok, merchant} <- merchant_by_email(email),
+         false <- access_allowed?(merchant),
+         {:ok, token} <-
+           AshAuthentication.AddOn.Confirmation.confirmation_token_for_link(
+             strategy,
+             merchant,
+             %{}
+           ) do
+      Emakola.Accounts.Senders.ConfirmationSender.send(merchant, token, [])
+    end
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp merchant_by_email(email) do
+    Emakola.Accounts.Merchant
+    |> Ash.Query.filter(email == ^String.downcase(String.trim(email)))
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, nil} -> :error
+      {:ok, merchant} -> {:ok, merchant}
+      other -> other
+    end
+  end
 end

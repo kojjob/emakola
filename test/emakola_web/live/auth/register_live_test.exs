@@ -72,7 +72,23 @@ defmodule EmakolaWeb.Auth.RegisterLiveTest do
       merchant = find_by_email(all_merchants(), email)
       assert merchant
 
-      # 2. Complete onboarding as that merchant (creates Store + StoreMembership)
+      # 2. Registration alone buys nothing: until the address is verified the
+      # merchant cannot open a shop or reach the admin, only verify.
+      unverified_token =
+        EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      unverified_conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, unverified_token)
+
+      assert {:error, {:live_redirect, %{to: blocked}}} = live(unverified_conn, ~p"/onboarding")
+      assert blocked =~ "/auth/verify"
+
+      # 3. Verify the address, the way clicking the emailed link does.
+      merchant = Emakola.Factory.confirm!(merchant)
+
+      # 4. Complete onboarding as that merchant (creates Store + StoreMembership)
       token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       onboarding_conn =

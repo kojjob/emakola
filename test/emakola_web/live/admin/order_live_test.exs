@@ -947,6 +947,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
         password_confirmation: "Password123!"
       })
       |> Ash.create!(authorize?: false)
+      |> Emakola.Factory.confirm!()
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{

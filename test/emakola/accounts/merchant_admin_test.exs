@@ -90,7 +90,12 @@ defmodule Emakola.Accounts.MerchantAdminTest do
           confirmed_at: DateTime.utc_now()
         })
 
-      pending = Factory.create_merchant!(%{name: "Pend#{t}", email: "pend-#{t}@example.com"})
+      pending =
+        Factory.create_merchant!(%{
+          name: "Pend#{t}",
+          email: "pend-#{t}@example.com",
+          confirmed_at: nil
+        })
 
       assert {:ok, %{results: [only]}} =
                Accounts.page_merchants_for_admin("%#{t}%", :confirmed,

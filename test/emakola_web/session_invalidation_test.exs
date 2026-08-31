@@ -25,6 +25,7 @@ defmodule EmakolaWeb.SessionInvalidationTest do
         authorize?: false
       )
       |> Ash.create!()
+      |> Emakola.Factory.confirm!()
 
     {merchant, email}
   end
