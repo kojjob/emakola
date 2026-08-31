@@ -691,6 +691,31 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "stock_status_badge/1" do
+    # Same lie as the meter, in the pill beside it: a dropship variant carries
+    # track_inventory: false and a zero quantity on purpose, and shoppers can
+    # buy it. A red "Out of Stock" pill on the merchant's own inventory page
+    # says the opposite.
+    test "an untracked variant is not out of stock" do
+      html =
+        render_component(&EmakolaWeb.InventoryComponents.stock_status_badge/1, %{
+          quantity: 0,
+          tracked: false
+        })
+
+      refute html =~ "Out of Stock"
+      refute html =~ "bg-red-50"
+      assert html =~ "Supplier"
+    end
+
+    test "a tracked variant at zero is still out of stock" do
+      html =
+        render_component(&EmakolaWeb.InventoryComponents.stock_status_badge/1, %{quantity: 0})
+
+      assert html =~ "Out of Stock"
+    end
+  end
+
   describe "stock_meter/1" do
     test "renders Out in danger colors at zero stock" do
       html = render_component(&AdminComponents.stock_meter/1, %{quantity: 0})
