@@ -1,0 +1,335 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Chakra+Petch:wght@600;700&family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Marcellus&family=Nunito:wght@700;800&family=Outfit:wght@600;700;800&family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@600;700&family=Sora:wght@600;700&family=IBM+Plex+Sans:wght@600;700&family=Inter:wght@600;700;800&family=Manrope:wght@700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+    .sf-field { width: 100%; height: 54px; border: 2px solid #E2E8F0; border-radius: 13px; padding: 0 15px;
+                font-size: 17px; font-weight: 600; color: #0F172A; background: #FFFFFF; font-family: inherit; outline: none; }
+    .sf-field::placeholder { color: #94A3B8; font-weight: 500; }
+    .sf-field:focus { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,0.12); }
+    .sf-cta { height: 56px; border: 0; border-radius: 13px; background: #059669; color: #fff; padding: 0 24px;
+              font-size: 16.5px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex;
+              align-items: center; justify-content: center; gap: 9px; box-shadow: 0 5px 14px rgba(5,150,105,.28); }
+    .sf-cta:hover { background: #047857; }
+    .sf-cta:disabled { background: #E2E8F0; color: #94A3B8; box-shadow: none; cursor: not-allowed; }
+    .sf-swatch { appearance: none; border: 2px solid transparent; background: transparent; border-radius: 14px;
+                 cursor: pointer; font-family: inherit; padding: 5px; flex: 0 0 auto; }
+    .sf-strip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 18px 6px; scrollbar-width: thin; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0F172A; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- ══ Your shop, filling in as you answer ══ -->
+  <div style="{{ stageStyle }}">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px;">
+      <div style="font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.55);">Your shop so far</div>
+      <div style="display: flex; gap: 5px;">
+        <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+          <div style="{{ d.style }}"></div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin: 0 20px; border-radius: 18px; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,.4);">
+      <div aria-hidden="true" style="{{ shopBg }}">
+        <div style="{{ shopNav }}">
+          <div style="{{ shopMark }}"></div>
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <div style="{{ shopDim }}"></div><div style="{{ shopDim }}"></div><div style="{{ shopDot }}"></div>
+          </div>
+        </div>
+        <div style="padding: 16px 16px 12px;">
+          <div style="{{ shopSignStyle }}">{{ shopSign }}</div>
+          <div style="{{ shopRule }}"></div>
+          <div style="{{ shopChip }}"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px 16px;">
+          <div style="{{ heroCardWrap }}">
+            <div style="{{ heroCardPhoto }}">
+              <div style="{{ heroCamera }}">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 014.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0121 8.5v9A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5v-9z"/><circle cx="12" cy="12.5" r="3.4"/></svg>
+              </div>
+            </div>
+            <div style="padding: 7px 9px 9px;">
+              <div style="{{ heroCardName }}">{{ heroName }}</div>
+              <div style="{{ heroCardPrice }}">{{ heroPrice }}</div>
+            </div>
+          </div>
+          <sc-for list="{{ ghostCards }}" as="c" hint-placeholder-count="3">
+            <div style="{{ c.wrap }}">
+              <div style="{{ c.photo }}"></div>
+              <div style="padding: 7px 9px 9px;">
+                <div style="{{ c.line }}"></div>
+                <div style="{{ c.price }}">{{ c.text }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="{{ shopFoot }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ One control ══ -->
+  <div style="flex: 1 1 auto; background: #FFFFFF; border-top-left-radius: 26px; border-top-right-radius: 26px; margin-top: -18px; position: relative; z-index: 2; display: flex; flex-direction: column;">
+
+    <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px 20px 8px;">
+
+      <sc-if value="{{ isName }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <h1 style="margin: 0; font-size: 23px; font-weight: 800; color: #0F172A; line-height: 1.2;">Put your name on it</h1>
+            <p style="margin: 7px 0 0; font-size: 14.5px; color: #64748B;">Your sign goes up as you type.</p>
+          </div>
+          <input class="sf-field" type="text" placeholder="Kojo's Fashion" value="{{ shopName }}" onChange="{{ setName }}" />
+          <div style="{{ slugStyle }}">
+            <span style="font-size: 13px; color: #64748B;">makola.io/</span><span style="font-size: 13px; font-weight: 800; color: #047857;">{{ slug }}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px;">
+            <button onClick="{{ pick_GHS }}" style="{{ moneyStyle_GHS }}">
+              <div style="{{ moneySym_GHS }}">GH₵</div>
+              <div style="font-size: 11.5px; font-weight: 700; color: #64748B; margin-top: 3px;">Cedi</div>
+            </button>
+            <button onClick="{{ pick_NGN }}" style="{{ moneyStyle_NGN }}">
+              <div style="{{ moneySym_NGN }}">₦</div>
+              <div style="font-size: 11.5px; font-weight: 700; color: #64748B; margin-top: 3px;">Naira</div>
+            </button>
+            <button onClick="{{ pick_USD }}" style="{{ moneyStyle_USD }}">
+              <div style="{{ moneySym_USD }}">$</div>
+              <div style="font-size: 11.5px; font-weight: 700; color: #64748B; margin-top: 3px;">Dollar</div>
+            </button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isLook }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <h1 style="margin: 0; font-size: 23px; font-weight: 800; color: #0F172A; line-height: 1.2;">Swipe to dress it up</h1>
+            <p style="margin: 7px 0 0; font-size: 14.5px; color: #64748B;">{{ themeName }} — one of 22.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isProduct }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <h1 style="margin: 0; font-size: 23px; font-weight: 800; color: #0F172A; line-height: 1.2;">Put one thing on the shelf</h1>
+            <p style="margin: 7px 0 0; font-size: 14.5px; color: #64748B;">It appears above as you type.</p>
+          </div>
+          <input class="sf-field" type="text" placeholder="Ankara Dress" value="{{ productName }}" onChange="{{ setProduct }}" />
+          <div style="position: relative;">
+            <div style="position: absolute; left: 15px; top: 0; height: 54px; display: flex; align-items: center; font-size: 17px; font-weight: 800; color: #94A3B8;">{{ symbol }}</div>
+            <input class="sf-field" style="padding-left: 52px;" type="number" placeholder="150" value="{{ productPrice }}" onChange="{{ setPrice }}" />
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 13px;">
+            <div style="width: 52px; height: 52px; border-radius: 999px; flex: 0 0 auto; background: linear-gradient(135deg, #34D399, #059669); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(5,150,105,.32);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </div>
+            <div>
+              <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #0F172A; line-height: 1.2;">That is your shop</h1>
+              <p style="margin: 4px 0 0; font-size: 14px; color: #64748B;">Share the link and start selling.</p>
+            </div>
+          </div>
+          <button onClick="{{ toggleProtect }}" style="{{ protectStyle }}">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 14px 15px;">
+              <div style="{{ protectIcon }}">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ protectStroke }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6L12 3z"/><path d="M9 12l2 2 4-4"/></svg>
+              </div>
+              <div style="flex: 1; min-width: 0; text-align: left;">
+                <div style="font-size: 14.5px; font-weight: 800; color: #0F172A;">Hold money till delivery</div>
+                <div style="font-size: 12.5px; color: #64748B; margin-top: 2px; line-height: 1.35;">Safer for buyers. You are paid later.</div>
+              </div>
+              <div style="{{ switchTrack }}"><div style="{{ switchKnob }}"></div></div>
+            </div>
+          </button>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- theme filmstrip, only while dressing the shop -->
+    <div style="{{ stripWrap }}">
+      <div class="sf-strip">
+        <sc-for list="{{ swatches }}" as="w" hint-placeholder-count="22">
+          <button class="sf-swatch" onClick="{{ w.pick }}" style="{{ w.style }}">
+            <div style="{{ w.tile }}">
+              <div style="{{ w.band }}"></div>
+              <div style="{{ w.letter }}">{{ w.initial }}</div>
+              <div style="{{ w.dot }}"></div>
+            </div>
+            <div style="{{ w.name }}">{{ w.label }}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 11px; padding: 10px 20px 24px;">
+      <button onClick="{{ back }}" style="{{ backStyle }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button onClick="{{ skip }}" style="{{ skipStyle }}">Skip</button>
+      <button class="sf-cta" style="flex: 1;" onClick="{{ next }}" disabled="{{ blocked }}">
+        {{ ctaLabel }}
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 1, name: '', currency: 'GHS', theme: 'market', pname: '', price: '', protect: false };
+  }
+
+  themes() {
+    return [
+      { id: 'market',   name: 'Market',    primary: '#1C1917', accent: '#B45309', bg: '#FAFAF9', surface: '#FFFFFF', text: '#1C1917', font: "'DM Sans', system-ui, sans-serif" },
+      { id: 'ntoma',    name: 'Ntoma',     primary: '#9E3B14', accent: '#E0A32E', bg: '#FAF4EA', surface: '#FFFFFF', text: '#2B1708', font: "'Fraunces', Georgia, serif" },
+      { id: 'fashion',  name: 'Fashion',   primary: '#5B21B6', accent: '#D97706', bg: '#FAF6EE', surface: '#FFFFFF', text: '#1C1917', font: "'Playfair Display', Georgia, serif" },
+      { id: 'chale',    name: 'Chale',     primary: '#2547E8', accent: '#101114', bg: '#F7F5F1', surface: '#FFFFFF', text: '#101114', font: "'Anton', system-ui, sans-serif" },
+      { id: 'pace',     name: 'Pace',      primary: '#1D4ED8', accent: '#0F172A', bg: '#E6EFF6', surface: '#FFFFFF', text: '#0F172A', font: "'Chakra Petch', system-ui, sans-serif" },
+      { id: 'dede',     name: 'Dede',      primary: '#8C2F0D', accent: '#1B2E23', bg: '#FAF5EA', surface: '#FFFFFF', text: '#26211A', font: "'Anton', system-ui, sans-serif" },
+      { id: 'fresh',    name: 'Fresh',     primary: '#047857', accent: '#92400E', bg: '#FEFCE8', surface: '#FFFFFF', text: '#1C1917', font: "'Nunito', system-ui, sans-serif" },
+      { id: 'vibrant',  name: 'Vibrant',   primary: '#B45309', accent: '#7C2D12', bg: '#FFFBEB', surface: '#FFFFFF', text: '#1C1917', font: "'Manrope', system-ui, sans-serif" },
+      { id: 'beauty',   name: 'Beauty',    primary: '#6B4423', accent: '#C9925E', bg: '#F5EFE5', surface: '#FFFFFF', text: '#3D2F25', font: "'Cormorant Garamond', Georgia, serif" },
+      { id: 'pharmacy', name: 'Pharmacy',  primary: '#14543E', accent: '#A7E5C5', bg: '#F9F6F0', surface: '#FFFFFF', text: '#1F2937', font: "'Fraunces', Georgia, serif" },
+      { id: 'akwaaba',  name: 'Akwaaba',   primary: '#F0531F', accent: '#F5A524', bg: '#FFFFFF', surface: '#FFFFFF', text: '#101010', font: "'Playfair Display', Georgia, serif" },
+      { id: 'spotlight',name: 'Spotlight', primary: '#16130F', accent: '#7C3AED', bg: '#FBF9F5', surface: '#FFFFFF', text: '#16130F', font: "'Archivo', system-ui, sans-serif" },
+      { id: 'electronics', name: 'Electronics', primary: '#134E4A', accent: '#0EA5E9', bg: '#F5EFE5', surface: '#FFFFFF', text: '#1F2937', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'depot',    name: 'Depot',     primary: '#18181B', accent: '#C2410C', bg: '#FAFAFA', surface: '#FFFFFF', text: '#18181B', font: "'IBM Plex Sans', system-ui, sans-serif" },
+      { id: 'bold',     name: 'Bold',      primary: '#0F172A', accent: '#F59E0B', bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'starter',  name: 'Starter',   primary: '#6366F1', accent: '#1E293B', bg: '#FFFFFF', surface: '#FFFFFF', text: '#0F172A', font: "'Inter', system-ui, sans-serif" },
+      { id: 'fie',      name: 'Fie',       primary: '#211C1A', accent: '#8A5B4C', bg: '#FDFCFB', surface: '#FFFFFF', text: '#1C1917', font: "'Space Grotesk', system-ui, sans-serif" },
+      { id: 'home_living', name: 'Home',   primary: '#1F2937', accent: '#84CC16', bg: '#FAF7F2', surface: '#FFFFFF', text: '#1F2937', font: "'DM Sans', system-ui, sans-serif" },
+      { id: 'heirloom', name: 'Heirloom',  primary: '#1B1208', accent: '#E8983F', bg: '#EFEFEF', surface: '#FFFFFF', text: '#1B1208', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'sika',     name: 'Sika',      primary: '#1F332C', accent: '#C2A15B', bg: '#FAF9F7', surface: '#FFFFFF', text: '#211D16', font: "'Marcellus', Georgia, serif" },
+      { id: 'adwuma',   name: 'Adwuma',    primary: '#6E56CF', accent: '#F2B8A2', bg: '#FBFBFA', surface: '#FFFFFF', text: '#14131A', font: "'Sora', system-ui, sans-serif" },
+      { id: 'atelier',  name: 'Atelier',   primary: '#16A34A', accent: '#166534', bg: '#FFFFFF', surface: '#FFFFFF', text: '#16A34A', font: "system-ui, sans-serif" }
+    ];
+  }
+
+  symbolFor(code) { return { GHS: 'GH₵', NGN: '₦', USD: '$' }[code] || 'GH₵'; }
+  slugify(v) { return (v || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+  renderVals() {
+    const s = this.state;
+    const total = 4;
+    const t = this.themes().find((x) => x.id === s.theme) || this.themes()[0];
+    const sym = this.symbolFor(s.currency);
+    const slug = this.slugify(s.name);
+    const named = s.name.trim() !== '';
+    const stocked = s.pname.trim() !== '';
+
+    const ghostPrices = [85, 240, 65];
+
+    const money = {};
+    ['GHS', 'NGN', 'USD'].forEach((c) => {
+      money['pick_' + c] = () => this.setState({ currency: c });
+      money['moneyStyle_' + c] = 'appearance: none; cursor: pointer; font-family: inherit; padding: 12px 6px; '
+        + 'border-radius: 13px; background: #FFFFFF; border: 2px solid ' + (c === s.currency ? '#059669' : '#E2E8F0') + ';'
+        + (c === s.currency ? ' box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : '');
+      money['moneySym_' + c] = 'font-size: 18px; font-weight: 800; color: ' + (c === s.currency ? '#047857' : '#0F172A') + ';';
+    });
+
+    return {
+      stageStyle: 'flex: 0 0 auto; padding-bottom: 34px; background: linear-gradient(160deg, #14283C 0%, #0F172A 60%);',
+      dots: [1, 2, 3, 4].map((i) => ({
+        style: 'width: ' + (i === s.step ? '20px' : '7px') + '; height: 7px; border-radius: 999px; transition: width .2s, background .2s; background: ' + (i <= s.step ? '#34D399' : 'rgba(255,255,255,.22)') + ';'
+      })),
+
+      shopBg: 'background: ' + (t.bg) + '; transition: background .25s;',
+      shopNav: 'display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: ' + (t.surface) + '; border-bottom: 1px solid rgba(0,0,0,.05);',
+      shopMark: 'height: 8px; width: 44px; border-radius: 999px; background: ' + (t.primary) + ';',
+      shopDim: 'height: 5px; width: 17px; border-radius: 999px; opacity: .25; background: ' + (t.primary) + ';',
+      shopDot: 'height: 10px; width: 10px; border-radius: 999px; background: ' + (t.accent) + ';',
+      shopSignStyle: named
+        ? 'font-size: 21px; font-weight: 700; line-height: 1.15; color: ' + (t.text) + '; font-family: ' + (t.font) + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+        : 'height: 21px; width: 145px; border-radius: 6px; background: #E2E8F0;',
+      shopSign: named ? s.name : '',
+      shopRule: 'margin-top: 7px; height: 4px; width: 62px; border-radius: 999px; opacity: ' + ('.3') + '; background: ' + (t.text) + ';',
+      shopChip: 'margin-top: 11px; height: 20px; width: 76px; border-radius: 999px; background: ' + (t.accent) + ';',
+      shopFoot: 'height: 16px; width: 100%; background: ' + (t.primary) + ';',
+
+      heroCardWrap: 'border-radius: 9px; overflow: hidden; background: ' + (t.surface) + '; box-shadow: ' + (stocked ? '0 4px 12px rgba(0,0,0,.14)' : '0 1px 3px rgba(0,0,0,.08)') + '; outline: ' + (stocked ? '2px solid ' + t.accent : 'none') + '; transition: box-shadow .2s;',
+      heroCardPhoto: 'height: 62px; width: 100%; display: flex; align-items: center; justify-content: center; background: ' + (stocked ? t.accent : 'rgba(0,0,0,.06)') + '; opacity: ' + (stocked ? '1' : '.85') + ';',
+      heroCamera: 'display: ' + (stocked ? 'none' : 'flex') + '; align-items: center; justify-content: center; opacity: .5;',
+      heroCardName: stocked
+        ? 'font-size: 11px; font-weight: 700; line-height: 1.2; color: ' + t.text + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+        : 'height: 5px; width: 68%; border-radius: 999px; background: rgba(0,0,0,.14);',
+      heroName: stocked ? s.pname : '',
+      heroCardPrice: stocked
+        ? 'margin-top: 3px; font-size: 12px; font-weight: 800; line-height: 1; color: ' + t.primary + ';'
+        : 'margin-top: 6px; height: 7px; width: 40%; border-radius: 999px; background: rgba(0,0,0,.1);',
+      heroPrice: stocked ? sym + (s.price === '' ? '—' : s.price) : '',
+
+      ghostCards: ghostPrices.map((p, i) => ({
+        wrap: 'border-radius: 9px; overflow: hidden; background: ' + (t.surface) + '; box-shadow: 0 1px 3px rgba(0,0,0,.08); opacity: ' + ('1') + ';',
+        photo: 'height: 62px; width: 100%; opacity: ' + (i % 2 === 0 ? '.4' : '.7') + '; background: ' + (i === 1 ? t.accent : t.primary) + ';',
+        line: 'height: 5px; width: 68%; border-radius: 999px; background: rgba(0,0,0,.14);',
+        price: 'margin-top: 4px; font-size: 11px; font-weight: 800; line-height: 1; color: ' + t.text + ';',
+        text: sym + p
+      })),
+
+      isName: s.step === 1, isLook: s.step === 2, isProduct: s.step === 3, isDone: s.step === 4,
+      shopName: s.name,
+      slug: slug === '' ? 'your-shop' : slug,
+      slugStyle: 'display: flex; align-items: center; gap: 4px; opacity: ' + (slug === '' ? '0' : '1') + '; transition: opacity .2s;',
+      setName: (e) => this.setState({ name: e.target.value }),
+      ...money,
+      themeName: t.name,
+
+      stripWrap: 'flex: 0 0 auto; display: ' + (s.step === 2 ? 'block' : 'none') + '; padding-top: 4px;',
+      swatches: this.themes().map((x) => ({
+        label: x.name, initial: x.name.charAt(0),
+        pick: () => this.setState({ theme: x.id }),
+        style: x.id === s.theme ? 'border-color: #059669; background: #ECFDF5;' : '',
+        tile: 'position: relative; width: 52px; height: 52px; border-radius: 11px; overflow: hidden; background: ' + x.bg + '; border: 1px solid rgba(0,0,0,.08); display: flex; align-items: center; justify-content: center;',
+        band: 'position: absolute; left: 0; right: 0; bottom: 0; height: 11px; background: ' + x.primary + ';',
+        letter: 'font-size: 19px; font-weight: 700; line-height: 1; color: ' + x.text + '; font-family: ' + x.font + '; margin-bottom: 6px;',
+        dot: 'position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 999px; background: ' + x.accent + ';',
+        name: 'margin-top: 5px; font-size: 10.5px; font-weight: 700; text-align: center; color: ' + (x.id === s.theme ? '#047857' : '#64748B') + '; max-width: 54px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+      })),
+
+      productName: s.pname, productPrice: s.price, symbol: sym,
+      setProduct: (e) => this.setState({ pname: e.target.value }),
+      setPrice: (e) => this.setState({ price: e.target.value }),
+
+      toggleProtect: () => this.setState({ protect: !s.protect }),
+      protectStyle: 'width: 100%; appearance: none; cursor: pointer; font-family: inherit; border-radius: 15px; background: #FFFFFF; border: 2px solid ' + (s.protect ? '#059669' : '#E2E8F0') + '; padding: 0;' + (s.protect ? ' box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : ''),
+      protectIcon: 'width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (s.protect ? '#ECFDF5' : '#F1F5F9') + ';',
+      protectStroke: s.protect ? '#059669' : '#94A3B8',
+      switchTrack: 'width: 46px; height: 27px; border-radius: 999px; flex: 0 0 auto; padding: 3px; display: flex; justify-content: ' + (s.protect ? 'flex-end' : 'flex-start') + '; background: ' + (s.protect ? '#059669' : '#CBD5E1') + '; transition: background .15s;',
+      switchKnob: 'width: 21px; height: 21px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.2);',
+
+      ctaLabel: s.step === total ? 'Open my shop' : 'Next',
+      blocked: s.step === 1 && !named,
+      next: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      back: () => this.setState({ step: Math.max(1, s.step - 1) }),
+      skip: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      backStyle: 'width: 56px; height: 56px; border-radius: 13px; border: 1.5px solid #E2E8F0; background: #FFFFFF; cursor: pointer; display: ' + (s.step > 1 ? 'flex' : 'none') + '; align-items: center; justify-content: center; flex: 0 0 auto;',
+      skipStyle: 'height: 56px; padding: 0 13px; border: 0; background: transparent; color: #64748B; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; flex: 0 0 auto; display: ' + (s.step === 3 ? 'block' : 'none') + ';'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -27,6 +27,16 @@ defmodule EmakolaWeb.OnboardingBuyerProtectionTest do
     {:ok, conn: conn, merchant: merchant}
   end
 
+  defp store_for(merchant) do
+    Emakola.Stores.Store
+    |> Ash.read!(authorize?: false)
+    |> Enum.find(fn store ->
+      Emakola.Accounts.StoreMembership
+      |> Ash.read!(authorize?: false)
+      |> Enum.any?(&(&1.store_id == store.id and &1.merchant_id == merchant.id))
+    end)
+  end
+
   test "the final onboarding step asks about holding payment", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/onboarding")
 
@@ -37,7 +47,7 @@ defmodule EmakolaWeb.OnboardingBuyerProtectionTest do
     render_click(view, "skip_step", %{})
     html = render_click(view, "skip_step", %{})
 
-    assert html =~ "Hold payment until delivery"
+    assert html =~ "Hold money till delivery"
   end
 
   test "the question defaults to off, matching the store default", %{conn: conn} do
@@ -49,5 +59,29 @@ defmodule EmakolaWeb.OnboardingBuyerProtectionTest do
     html = render_click(view, "skip_step", %{})
 
     refute html =~ ~s(name="buyer_protection" checked)
+  end
+
+  test "the answer the merchant gives is the one the store is created with", %{
+    conn: conn,
+    merchant: merchant
+  } do
+    # The question is asked on the last screen, but the store is written on
+    # the way in to it. If the answer is not applied after it is given, the
+    # whole point of asking — 1 of 9 stores had protection on because
+    # nothing ever raised it — is lost, silently.
+    {:ok, view, _html} = live(conn, ~p"/onboarding")
+
+    render_change(view, "update_store_name", %{"store_name" => "Protected Shop"})
+    render_click(view, "next_step", %{})
+    render_click(view, "skip_step", %{})
+
+    render_click(view, "toggle_buyer_protection", %{})
+    render_click(view, "complete", %{})
+
+    store = store_for(merchant)
+    assert store, "onboarding did not create a store"
+
+    assert store.buyer_protection_enabled,
+           "the merchant switched buyer protection on and the store was saved without it"
   end
 end

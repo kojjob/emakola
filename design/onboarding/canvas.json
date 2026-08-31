@@ -1,0 +1,49 @@
+{
+  "pages": [
+    { "id": "page-chosen", "name": "The shop builds itself" },
+    { "id": "page-parked", "name": "Not chosen" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Phone", "page": "page-chosen", "is_interactive": true },
+    { "file": "Desktop.dc.html", "x": 490, "y": 0, "w": 1440, "h": 900, "title": "Desktop", "page": "page-chosen", "is_interactive": true },
+
+    { "file": "Today.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Today — what ships now", "page": "page-parked" },
+    { "file": "DirectionA.dc.html", "x": 490, "y": 0, "w": 390, "h": 844, "title": "A — One thing at a time", "page": "page-parked", "is_interactive": true },
+    { "file": "Road.dc.html", "x": 980, "y": 0, "w": 390, "h": 844, "title": "B — The road", "page": "page-parked", "is_interactive": true }
+  ],
+  "annotations": [
+    {
+      "id": "chosen-note",
+      "x": 0,
+      "y": 960,
+      "w": 440,
+      "page": "page-chosen",
+      "text": "CHOSEN 31 Aug — the shop is the progress bar.\n\nThere is no step counter and no progress strip. The merchant's own shop sits at the top, and it fills in as they answer: the sign goes up as they type, the whole shop restyles as they swipe a look, their product lands on the shelf as they name it. Nothing about where you are needs reading.\n\nFour steps: name and money, look, first product, open.\n\nEvery colour and heading font is the real one, read out of ThemeResolver. Prices are sample values."
+    },
+    {
+      "id": "changed-note",
+      "x": 490,
+      "y": 960,
+      "w": 440,
+      "page": "page-chosen",
+      "text": "TWO THINGS CHANGED SINCE THE PICK\n\n1 · Money is now asked. C skipped it — the preview showed GH₵ the merchant never chose, and a store cannot be created without a currency. It sits under the shop name on step 1, and picking it re-prices the shop above you.\n\n2 · The shop is dressed from the first screen. C used to open on an empty grey box, which was its weakest moment. It now opens wearing the default Market look with only the sign and the shelf unfinished — so it reads as a real shop waiting for its name, and swiping a look still visibly transforms it."
+    },
+    {
+      "id": "open-note",
+      "x": 980,
+      "y": 960,
+      "w": 440,
+      "page": "page-chosen",
+      "text": "STILL OPEN\n\n· Photo upload is drawn but not wired — the shelf fills from the product name and price only.\n\n· Currency shows as GH₵ / ₦ / $, replacing the flag emoji the live page ships today.\n\n· The buyer-protection question keeps the wording that is live now: asked, never defaulted on.\n\n· Nothing here is built in Elixir yet. This is the design, not a branch."
+    },
+    {
+      "id": "parked-note",
+      "x": 0,
+      "y": 900,
+      "w": 1370,
+      "page": "page-parked",
+      "text": "Parked, kept for the record.\n\nTODAY — the page that ships now, at phone width. Progress is four identical grey bars and the words \"Step 2 of 4\"; 22 themes in eleven rows of two, each explained by a line of text.\n\nA — ONE THING AT A TIME. One question per screen; asks what you sell first, then shows four looks for that trade. Cost: six screens instead of four. Still the best answer if the 22-theme grid ever needs to shrink further.\n\nB — THE ROAD. Four stops on a parcel-tracking road, the same tracker the dashboard setup strip uses. Cost: 150px of every screen, and it repeats a metaphor the merchant meets again on the dashboard.\n\nBoth are still clickable."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-chosen" }
+}

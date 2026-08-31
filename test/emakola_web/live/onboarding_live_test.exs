@@ -17,7 +17,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     test "renders step 1 for unauthenticated user", %{conn: conn} do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
       {:ok, _view, html} = live(conn, "/onboarding")
-      assert html =~ "Name Your Store"
+      assert html =~ "Put your name on it"
     end
 
     test "redirects to dashboard when merchant already has a store", %{conn: conn} do
@@ -40,7 +40,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       # Previously redirected to /dashboard via the legacy User path; that
       # auth path is retired, so the visitor is anonymous and step 1 renders.
       {:ok, _view, html} = live(conn, "/onboarding")
-      assert html =~ "Name Your Store"
+      assert html =~ "Put your name on it"
     end
 
     test "renders step 1 for authenticated merchant without store", %{conn: conn} do
@@ -48,7 +48,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       conn = auth_conn(conn, merchant)
 
       {:ok, _view, html} = live(conn, "/onboarding")
-      assert html =~ "Name Your Store"
+      assert html =~ "Put your name on it"
     end
   end
 
@@ -77,7 +77,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       render_change(view, "update_store_name", %{"store_name" => "My Store"})
       html = render_click(view, "next_step")
-      assert html =~ "Choose Your Theme"
+      assert html =~ "Dress your shop up"
     end
   end
 
@@ -101,15 +101,13 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       assert has_element?(view, "#store-slug-preview[data-slug='kojo-fashion']")
     end
 
-    test "currency select is inside a change form", %{conn: conn} do
+    test "each currency is a button, not a dropdown to read", %{conn: conn} do
       conn = Phoenix.ConnTest.init_test_session(conn, %{})
       {:ok, view, _html} = live(conn, "/onboarding")
 
-      view
-      |> element("#currency-form")
-      |> render_change(%{"currency" => "NGN"})
+      view |> element(~s{button[phx-value-currency="NGN"]}) |> render_click()
 
-      assert has_element?(view, "#currency option[value='NGN'][selected]")
+      assert has_element?(view, ~s{button[phx-value-currency="NGN"][aria-pressed="true"]})
     end
 
     test "product name and price inputs are inside change forms", %{conn: conn} do
@@ -155,8 +153,9 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_change(view, "update_store_name", %{"store_name" => "Theme Store"})
       render_click(view, "next_step")
 
-      html = render_click(view, "select_theme", %{"theme-id" => "atelier"})
-      assert html =~ "border-emerald-500"
+      render_click(view, "select_theme", %{"theme-id" => "atelier"})
+
+      assert has_element?(view, ~s{button[phx-value-theme-id="atelier"][aria-pressed="true"]})
     end
   end
 
@@ -176,7 +175,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       # Step 3: Skip
       html = render_click(view, "skip_step")
-      assert html =~ "Ready" or html =~ "ready"
+      assert html =~ "That is your shop"
     end
 
     test "can advance with product details", %{conn: conn} do
@@ -199,7 +198,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       })
 
       html = render_click(view, "next_step")
-      assert html =~ "Ready" or html =~ "ready"
+      assert html =~ "That is your shop"
     end
   end
 
@@ -320,7 +319,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       # Go back to step 1
       html = render_click(view, "prev_step")
-      assert html =~ "Name Your Store"
+      assert html =~ "Put your name on it"
     end
   end
 end

@@ -1,0 +1,393 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Chakra+Petch:wght@600;700&family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Marcellus&family=Nunito:wght@700;800&family=Outfit:wght@600;700;800&family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@600;700&family=Sora:wght@600;700&family=IBM+Plex+Sans:wght@600;700&family=Inter:wght@600;700;800&family=Manrope:wght@700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+    .rd-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .rd-field { width: 100%; height: 54px; border: 2px solid #E2E8F0; border-radius: 12px; padding: 0 14px;
+                font-size: 17px; font-weight: 600; color: #0F172A; background: #FFFFFF; font-family: inherit; outline: none; }
+    .rd-field::placeholder { color: #94A3B8; font-weight: 500; }
+    .rd-field:focus { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,0.12); }
+    .rd-card { appearance: none; border: 2px solid #E2E8F0; background: #FFFFFF; border-radius: 16px; cursor: pointer;
+               font-family: inherit; text-align: left; padding: 0; overflow: hidden; }
+    .rd-card:hover { border-color: #CBD5E1; }
+    .rd-chip { appearance: none; border: 1.5px solid #E2E8F0; background: #FFFFFF; border-radius: 999px; cursor: pointer;
+               font-family: inherit; font-size: 13.5px; font-weight: 700; padding: 9px 15px; white-space: nowrap; color: #475569; }
+    .rd-cta { height: 54px; border: 0; border-radius: 12px; background: #059669; color: #fff; padding: 0 26px;
+              font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex;
+              align-items: center; justify-content: center; gap: 9px; box-shadow: 0 5px 14px rgba(5,150,105,.28); }
+    .rd-cta:hover { background: #047857; }
+    .rd-cta:disabled { background: #E2E8F0; color: #94A3B8; box-shadow: none; cursor: not-allowed; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F8FAFC; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- ══ The road: where you are, what is left ══ -->
+  <div style="flex: 0 0 auto; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; padding: 18px 20px 16px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px;">
+      <div style="font-size: 16px; font-weight: 800; color: #0F172A;">Set up your shop</div>
+      <div style="display: flex; align-items: center; gap: 5px; background: #ECFDF5; color: #047857; font-size: 12px; font-weight: 800; padding: 5px 11px; border-radius: 999px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        {{ counter }}
+      </div>
+    </div>
+
+    <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));">
+      <div style="position: absolute; top: 23px; left: 12%; right: 12%; height: 4px; border-radius: 999px; background: #E2E8F0;"></div>
+      <div style="{{ roadFill }}"></div>
+
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="{{ stop1 }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ stroke1 }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ tick1 }}"/></svg>
+        </div>
+        <div style="{{ lab1 }}">Name it</div>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="{{ stop2 }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ stroke2 }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ tick2 }}"/></svg>
+        </div>
+        <div style="{{ lab2 }}">Pick a look</div>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="{{ stop3 }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ stroke3 }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ tick3 }}"/></svg>
+        </div>
+        <div style="{{ lab3 }}">Add a thing</div>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="{{ stop4 }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ stroke4 }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ tick4 }}"/></svg>
+        </div>
+        <div style="{{ lab4 }}">Open</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Step content ══ -->
+  <div class="rd-scroll" style="flex: 1 1 auto;">
+
+    <!-- 1 · name + money -->
+    <sc-if value="{{ isName }}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 24px 20px 20px; display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.2;">What is your shop called?</h1>
+          <p style="margin: 8px 0 0; font-size: 14.5px; color: #64748B;">Buyers will see this name.</p>
+        </div>
+        <div>
+          <input class="rd-field" type="text" placeholder="Kojo's Fashion" value="{{ shopName }}" onChange="{{ setName }}" />
+          <div style="{{ slugStyle }}">
+            <span style="font-size: 13px; color: #64748B;">makola.io/</span><span style="font-size: 13px; font-weight: 800; color: #047857;">{{ slug }}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748B; margin-bottom: 10px;">Your money</div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+            <button class="rd-card" onClick="{{ pick_GHS }}" style="{{ moneyStyle_GHS }}">
+              <div style="padding: 14px 8px; text-align: center;">
+                <div style="{{ moneySym_GHS }}">GH₵</div>
+                <div style="font-size: 12px; font-weight: 700; color: #64748B; margin-top: 5px;">Cedi</div>
+              </div>
+            </button>
+            <button class="rd-card" onClick="{{ pick_NGN }}" style="{{ moneyStyle_NGN }}">
+              <div style="padding: 14px 8px; text-align: center;">
+                <div style="{{ moneySym_NGN }}">₦</div>
+                <div style="font-size: 12px; font-weight: 700; color: #64748B; margin-top: 5px;">Naira</div>
+              </div>
+            </button>
+            <button class="rd-card" onClick="{{ pick_USD }}" style="{{ moneyStyle_USD }}">
+              <div style="padding: 14px 8px; text-align: center;">
+                <div style="{{ moneySym_USD }}">$</div>
+                <div style="font-size: 12px; font-weight: 700; color: #64748B; margin-top: 5px;">Dollar</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 2 · look, all 22, filtered by trade -->
+    <sc-if value="{{ isLook }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <div style="padding: 22px 20px 12px;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.2;">Pick your shop's look</h1>
+          <p style="margin: 8px 0 0; font-size: 14.5px; color: #64748B;">Change it any time.</p>
+        </div>
+        <div style="position: sticky; top: 0; z-index: 2; background: #F8FAFC; padding: 6px 0 12px;">
+          <div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 20px 4px;">
+            <button class="rd-chip" onClick="{{ filter_all }}" style="{{ chip_all }}">All 22</button>
+            <button class="rd-chip" onClick="{{ filter_clothes }}" style="{{ chip_clothes }}">Clothes</button>
+            <button class="rd-chip" onClick="{{ filter_food }}" style="{{ chip_food }}">Food</button>
+            <button class="rd-chip" onClick="{{ filter_beauty }}" style="{{ chip_beauty }}">Beauty</button>
+            <button class="rd-chip" onClick="{{ filter_phones }}" style="{{ chip_phones }}">Phones</button>
+            <button class="rd-chip" onClick="{{ filter_home }}" style="{{ chip_home }}">Home</button>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 20px 24px;">
+          <sc-for list="{{ looks }}" as="t" hint-placeholder-count="8">
+            <button class="rd-card" onClick="{{ t.pick }}" style="{{ t.style }}">
+              <div aria-hidden="true" style="{{ t.canvas }}">
+                <div style="{{ t.nav }}">
+                  <div style="{{ t.navMark }}"></div>
+                  <div style="display: flex; align-items: center; gap: 3px;">
+                    <div style="{{ t.navDim }}"></div><div style="{{ t.navDim }}"></div><div style="{{ t.navDot }}"></div>
+                  </div>
+                </div>
+                <div style="padding: 9px 9px 7px;">
+                  <div style="{{ t.sign }}">{{ shopSign }}</div>
+                  <div style="{{ t.rule }}"></div>
+                  <div style="{{ t.chip }}"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 0 9px 9px;">
+                  <sc-for list="{{ t.cards }}" as="c" hint-placeholder-count="4">
+                    <div style="{{ c.wrap }}">
+                      <div style="{{ c.photo }}"></div>
+                      <div style="padding: 4px 5px 5px;">
+                        <div style="{{ c.line }}"></div>
+                        <div style="{{ c.price }}">{{ c.text }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="{{ t.foot }}"></div>
+              </div>
+              <div style="{{ t.labelRow }}">
+                <div style="font-size: 13.5px; font-weight: 800; color: #0F172A;">{{ t.name }}</div>
+                <div style="{{ t.check }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+                </div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 3 · first product -->
+    <sc-if value="{{ isProduct }}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 24px 20px 20px; display: flex; flex-direction: column; gap: 18px;">
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.2;">Add one thing you sell</h1>
+          <p style="margin: 8px 0 0; font-size: 14.5px; color: #64748B;">Or do this later.</p>
+        </div>
+        <div style="height: 140px; border: 2px dashed #CBD5E1; border-radius: 16px; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;">
+          <div style="width: 52px; height: 52px; border-radius: 16px; background: #ECFDF5; display: flex; align-items: center; justify-content: center;">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 014.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0121 8.5v9A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5v-9z"/><circle cx="12" cy="12.5" r="3.4"/></svg>
+          </div>
+          <div style="font-size: 14.5px; font-weight: 700; color: #0F172A;">Take a photo</div>
+        </div>
+        <input class="rd-field" type="text" placeholder="Ankara Dress" value="{{ productName }}" onChange="{{ setProduct }}" />
+        <div style="position: relative;">
+          <div style="position: absolute; left: 14px; top: 0; height: 54px; display: flex; align-items: center; font-size: 17px; font-weight: 800; color: #94A3B8;">{{ symbol }}</div>
+          <input class="rd-field" style="padding-left: 50px;" type="number" placeholder="150" value="{{ productPrice }}" onChange="{{ setPrice }}" />
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 4 · open -->
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 26px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="width: 88px; height: 88px; border-radius: 999px; background: linear-gradient(135deg, #34D399, #059669); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(5,150,105,.32);">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 25px; font-weight: 800; color: #0F172A;">Your shop is open</h1>
+          <p style="margin: 8px 0 0; font-size: 14.5px; color: #64748B;">Send the link to your customers.</p>
+        </div>
+        <div style="width: 100%; display: flex; align-items: center; gap: 10px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px; padding: 14px 16px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+          <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 800; color: #065F46; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">makola.io/{{ slug }}</div>
+          <div style="font-size: 13px; font-weight: 800; color: #047857;">Copy</div>
+        </div>
+        <button class="rd-card" onClick="{{ toggleProtect }}" style="{{ protectStyle }}">
+          <div style="display: flex; align-items: center; gap: 13px; padding: 15px 16px;">
+            <div style="{{ protectIcon }}">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="{{ protectStroke }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6L12 3z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 14.5px; font-weight: 800; color: #0F172A;">Hold money till delivery</div>
+              <div style="font-size: 12.5px; color: #64748B; margin-top: 2px; line-height: 1.35;">Safer for buyers. You are paid later.</div>
+            </div>
+            <div style="{{ switchTrack }}"><div style="{{ switchKnob }}"></div></div>
+          </div>
+        </button>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ══ Footer ══ -->
+  <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #E2E8F0;">
+    <button onClick="{{ back }}" style="{{ backStyle }}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button onClick="{{ skip }}" style="{{ skipStyle }}">Skip</button>
+    <button class="rd-cta" style="flex: 1;" onClick="{{ next }}" disabled="{{ blocked }}">
+      {{ ctaLabel }}
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 1, name: '', currency: 'GHS', filter: 'all', theme: 'market', pname: '', price: '', protect: false };
+  }
+
+  themes() {
+    return [
+      { id: 'market',   trade: 'food',    name: 'Market',    primary: '#1C1917', accent: '#B45309', bg: '#FAFAF9', surface: '#FFFFFF', text: '#1C1917', font: "'DM Sans', system-ui, sans-serif" },
+      { id: 'ntoma',    trade: 'clothes', name: 'Ntoma',     primary: '#9E3B14', accent: '#E0A32E', bg: '#FAF4EA', surface: '#FFFFFF', text: '#2B1708', font: "'Fraunces', Georgia, serif" },
+      { id: 'fashion',  trade: 'clothes', name: 'Fashion',   primary: '#5B21B6', accent: '#D97706', bg: '#FAF6EE', surface: '#FFFFFF', text: '#1C1917', font: "'Playfair Display', Georgia, serif" },
+      { id: 'chale',    trade: 'clothes', name: 'Chale',     primary: '#2547E8', accent: '#101114', bg: '#F7F5F1', surface: '#FFFFFF', text: '#101114', font: "'Anton', system-ui, sans-serif" },
+      { id: 'pace',     trade: 'clothes', name: 'Pace',      primary: '#1D4ED8', accent: '#0F172A', bg: '#E6EFF6', surface: '#FFFFFF', text: '#0F172A', font: "'Chakra Petch', system-ui, sans-serif" },
+      { id: 'dede',     trade: 'food',    name: 'Dede',      primary: '#8C2F0D', accent: '#1B2E23', bg: '#FAF5EA', surface: '#FFFFFF', text: '#26211A', font: "'Anton', system-ui, sans-serif" },
+      { id: 'fresh',    trade: 'food',    name: 'Fresh',     primary: '#047857', accent: '#92400E', bg: '#FEFCE8', surface: '#FFFFFF', text: '#1C1917', font: "'Nunito', system-ui, sans-serif" },
+      { id: 'vibrant',  trade: 'food',    name: 'Vibrant',   primary: '#B45309', accent: '#7C2D12', bg: '#FFFBEB', surface: '#FFFFFF', text: '#1C1917', font: "'Manrope', system-ui, sans-serif" },
+      { id: 'beauty',   trade: 'beauty',  name: 'Beauty',    primary: '#6B4423', accent: '#C9925E', bg: '#F5EFE5', surface: '#FFFFFF', text: '#3D2F25', font: "'Cormorant Garamond', Georgia, serif" },
+      { id: 'pharmacy', trade: 'beauty',  name: 'Pharmacy',  primary: '#14543E', accent: '#A7E5C5', bg: '#F9F6F0', surface: '#FFFFFF', text: '#1F2937', font: "'Fraunces', Georgia, serif" },
+      { id: 'akwaaba',  trade: 'beauty',  name: 'Akwaaba',   primary: '#F0531F', accent: '#F5A524', bg: '#FFFFFF', surface: '#FFFFFF', text: '#101010', font: "'Playfair Display', Georgia, serif" },
+      { id: 'spotlight',trade: 'beauty',  name: 'Spotlight', primary: '#16130F', accent: '#7C3AED', bg: '#FBF9F5', surface: '#FFFFFF', text: '#16130F', font: "'Archivo', system-ui, sans-serif" },
+      { id: 'electronics', trade: 'phones', name: 'Electronics', primary: '#134E4A', accent: '#0EA5E9', bg: '#F5EFE5', surface: '#FFFFFF', text: '#1F2937', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'depot',    trade: 'phones',  name: 'Depot',     primary: '#18181B', accent: '#C2410C', bg: '#FAFAFA', surface: '#FFFFFF', text: '#18181B', font: "'IBM Plex Sans', system-ui, sans-serif" },
+      { id: 'bold',     trade: 'phones',  name: 'Bold',      primary: '#0F172A', accent: '#F59E0B', bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'starter',  trade: 'phones',  name: 'Starter',   primary: '#6366F1', accent: '#1E293B', bg: '#FFFFFF', surface: '#FFFFFF', text: '#0F172A', font: "'Inter', system-ui, sans-serif" },
+      { id: 'fie',      trade: 'home',    name: 'Fie',       primary: '#211C1A', accent: '#8A5B4C', bg: '#FDFCFB', surface: '#FFFFFF', text: '#1C1917', font: "'Space Grotesk', system-ui, sans-serif" },
+      { id: 'home_living', trade: 'home', name: 'Home Living', primary: '#1F2937', accent: '#84CC16', bg: '#FAF7F2', surface: '#FFFFFF', text: '#1F2937', font: "'DM Sans', system-ui, sans-serif" },
+      { id: 'heirloom', trade: 'home',    name: 'Heirloom',  primary: '#1B1208', accent: '#E8983F', bg: '#EFEFEF', surface: '#FFFFFF', text: '#1B1208', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'sika',     trade: 'home',    name: 'Sika',      primary: '#1F332C', accent: '#C2A15B', bg: '#FAF9F7', surface: '#FFFFFF', text: '#211D16', font: "'Marcellus', Georgia, serif" },
+      { id: 'adwuma',   trade: 'home',    name: 'Adwuma',    primary: '#6E56CF', accent: '#F2B8A2', bg: '#FBFBFA', surface: '#FFFFFF', text: '#14131A', font: "'Sora', system-ui, sans-serif" },
+      { id: 'atelier',  trade: 'home',    name: 'Atelier',   primary: '#16A34A', accent: '#166534', bg: '#FFFFFF', surface: '#FFFFFF', text: '#16A34A', font: "system-ui, sans-serif" }
+    ];
+  }
+
+  symbolFor(code) { return { GHS: 'GH₵', NGN: '₦', USD: '$' }[code] || 'GH₵'; }
+
+  slugify(v) { return (v || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+  miniature(t) {
+    const prices = [120, 85, 240, 65];
+    const sym = this.symbolFor(this.state.currency);
+    return {
+      name: t.name,
+      canvas: 'background: ' + t.bg + ';',
+      nav: 'display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; background: ' + t.surface + '; border-bottom: 1px solid rgba(0,0,0,.05);',
+      navMark: 'height: 5px; width: 26px; border-radius: 999px; background: ' + t.primary + ';',
+      navDim: 'height: 3px; width: 10px; border-radius: 999px; opacity: .25; background: ' + t.primary + ';',
+      navDot: 'height: 6px; width: 6px; border-radius: 999px; background: ' + t.accent + ';',
+      sign: 'font-size: 11.5px; font-weight: 700; line-height: 1.15; color: ' + t.text + '; font-family: ' + t.font + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
+      rule: 'margin-top: 4px; height: 3px; width: 34px; border-radius: 999px; opacity: .3; background: ' + t.text + ';',
+      chip: 'margin-top: 6px; height: 10px; width: 40px; border-radius: 999px; background: ' + t.accent + ';',
+      foot: 'height: 9px; width: 100%; background: ' + t.primary + ';',
+      cards: prices.map((p, i) => ({
+        wrap: 'border-radius: 6px; overflow: hidden; background: ' + t.surface + '; box-shadow: 0 1px 2px rgba(0,0,0,.07);',
+        photo: 'height: 24px; width: 100%; opacity: ' + (i % 2 === 0 ? '.75' : '.4') + '; background: ' + (i % 3 === 0 ? t.accent : t.primary) + ';',
+        line: 'height: 2px; width: 70%; border-radius: 999px; opacity: .25; background: ' + t.text + ';',
+        price: 'margin-top: 3px; font-size: 7.5px; font-weight: 700; line-height: 1; color: ' + t.text + ';',
+        text: sym + p
+      }))
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const total = 4;
+    const sym = this.symbolFor(s.currency);
+    const slug = this.slugify(s.name);
+    const TICK = 'M4 12.5l5 5L20 6.5';
+    const GLYPH = {
+      1: 'M3 9.5L4.6 4.8A1.5 1.5 0 016 3.8h12a1.5 1.5 0 011.4 1L21 9.5M3 9.5h18M5 12.5V20h14v-7.5',
+      2: 'M4.5 19.5a3.5 3.5 0 005-.2l6-6M6.5 21A3.5 3.5 0 013 17.5V4.6c0-.6.5-1.1 1.1-1.1h4.8c.6 0 1.1.5 1.1 1.1v3.8M10 8.4l2.7-2.7c.4-.4 1.1-.4 1.5 0l3.5 3.5c.4.4.4 1.1 0 1.5L15 13.4',
+      3: 'M20 7.5l-.6 10.1a2 2 0 01-2 1.9H6.6a2 2 0 01-2-1.9L4 7.5M10 11h4M3.5 7.5h17V4.5h-17v3z',
+      4: 'M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6L12 3z'
+    };
+
+    const stop = (i) => {
+      if (i < s.step) return 'display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #059669; border: 4px solid #FFFFFF; box-shadow: 0 0 0 1px #A7F3D0;';
+      if (i === s.step) return 'display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #ECFDF5; border: 4px solid #FFFFFF; box-shadow: 0 0 0 2.5px #059669, 0 6px 14px rgba(5,150,105,.28);';
+      return 'display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: #F1F5F9; border: 4px solid #FFFFFF; box-shadow: 0 0 0 1px #E2E8F0;';
+    };
+    const lab = (i) => 'font-size: 11.5px; font-weight: ' + (i <= s.step ? '800' : '600') + '; text-align: center; line-height: 1.2; color: ' + (i < s.step ? '#047857' : i === s.step ? '#0F172A' : '#94A3B8') + ';';
+    const stroke = (i) => (i < s.step ? '#FFFFFF' : i === s.step ? '#059669' : '#94A3B8');
+    const glyph = (i) => (i < s.step ? TICK : GLYPH[i]);
+
+    const filtered = s.filter === 'all' ? this.themes() : this.themes().filter((t) => t.trade === s.filter);
+
+    const money = {};
+    ['GHS', 'NGN', 'USD'].forEach((c) => {
+      money['pick_' + c] = () => this.setState({ currency: c });
+      money['moneyStyle_' + c] = c === s.currency ? 'border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : '';
+      money['moneySym_' + c] = 'font-size: 19px; font-weight: 800; color: ' + (c === s.currency ? '#047857' : '#0F172A') + ';';
+    });
+
+    const chips = {};
+    ['all', 'clothes', 'food', 'beauty', 'phones', 'home'].forEach((f) => {
+      chips['filter_' + f] = () => this.setState({ filter: f });
+      chips['chip_' + f] = f === s.filter
+        ? 'background: #0F172A; border-color: #0F172A; color: #FFFFFF;' : '';
+    });
+
+    return {
+      counter: s.step + ' of ' + total,
+      roadFill: 'position: absolute; top: 23px; left: 12%; width: ' + ((s.step - 1) / (total - 1)) * 76 + '%; height: 4px; border-radius: 999px; background: #059669; transition: width .25s;',
+      stop1: stop(1), stop2: stop(2), stop3: stop(3), stop4: stop(4),
+      lab1: lab(1), lab2: lab(2), lab3: lab(3), lab4: lab(4),
+      stroke1: stroke(1), stroke2: stroke(2), stroke3: stroke(3), stroke4: stroke(4),
+      tick1: glyph(1), tick2: glyph(2), tick3: glyph(3), tick4: glyph(4),
+
+      isName: s.step === 1, isLook: s.step === 2, isProduct: s.step === 3, isDone: s.step === 4,
+
+      shopName: s.name,
+      shopSign: s.name.trim() === '' ? 'Your Shop' : s.name,
+      slug: slug === '' ? 'your-shop' : slug,
+      slugStyle: 'margin-top: 10px; display: flex; align-items: center; gap: 4px; opacity: ' + (slug === '' ? '0' : '1') + '; transition: opacity .2s;',
+      setName: (e) => this.setState({ name: e.target.value }),
+      ...money,
+      ...chips,
+
+      looks: filtered.map((t) => {
+        const m = this.miniature(t);
+        m.pick = () => this.setState({ theme: t.id });
+        m.style = t.id === s.theme ? 'border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : '';
+        m.labelRow = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px; border-top: 1px solid ' + (t.id === s.theme ? '#A7F3D0' : '#F1F5F9') + '; background: ' + (t.id === s.theme ? '#ECFDF5' : '#FFFFFF') + ';';
+        m.check = 'width: 19px; height: 19px; border-radius: 999px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (t.id === s.theme ? '#059669' : '#FFFFFF') + '; border: 2px solid ' + (t.id === s.theme ? '#059669' : '#E2E8F0') + ';';
+        return m;
+      }),
+
+      productName: s.pname, productPrice: s.price, symbol: sym,
+      setProduct: (e) => this.setState({ pname: e.target.value }),
+      setPrice: (e) => this.setState({ price: e.target.value }),
+
+      toggleProtect: () => this.setState({ protect: !s.protect }),
+      protectStyle: 'width: 100%;' + (s.protect ? ' border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : ''),
+      protectIcon: 'width: 44px; height: 44px; border-radius: 14px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (s.protect ? '#ECFDF5' : '#F1F5F9') + ';',
+      protectStroke: s.protect ? '#059669' : '#94A3B8',
+      switchTrack: 'width: 46px; height: 27px; border-radius: 999px; flex: 0 0 auto; padding: 3px; display: flex; justify-content: ' + (s.protect ? 'flex-end' : 'flex-start') + '; background: ' + (s.protect ? '#059669' : '#CBD5E1') + '; transition: background .15s;',
+      switchKnob: 'width: 21px; height: 21px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.2);',
+
+      ctaLabel: s.step === total ? 'Open my shop' : 'Next',
+      blocked: s.step === 1 && s.name.trim() === '',
+      next: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      back: () => this.setState({ step: Math.max(1, s.step - 1) }),
+      skip: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      backStyle: 'width: 54px; height: 54px; border-radius: 12px; border: 1.5px solid #E2E8F0; background: #FFFFFF; cursor: pointer; display: ' + (s.step > 1 ? 'flex' : 'none') + '; align-items: center; justify-content: center; flex: 0 0 auto;',
+      skipStyle: 'height: 54px; padding: 0 14px; border: 0; background: transparent; color: #64748B; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; flex: 0 0 auto; display: ' + (s.step === 3 ? 'block' : 'none') + ';'
+    };
+  }
+}
+</script>
+</body>
+</html>
