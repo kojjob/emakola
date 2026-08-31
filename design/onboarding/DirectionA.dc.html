@@ -1,0 +1,456 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Chakra+Petch:wght@600;700&family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Marcellus&family=Nunito:wght@700;800&family=Outfit:wght@600;700;800&family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@600;700&family=Sora:wght@600;700&family=IBM+Plex+Sans:wght@600;700&family=Inter:wght@600;700;800&family=Manrope:wght@700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+    .ob-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+    .ob-field { width: 100%; height: 58px; border: 2px solid #E2E8F0; border-radius: 14px; padding: 0 16px;
+                font-size: 18px; font-weight: 600; color: #0F172A; background: #FFFFFF; font-family: inherit; outline: none; }
+    .ob-field::placeholder { color: #94A3B8; font-weight: 500; }
+    .ob-field:focus { border-color: #059669; box-shadow: 0 0 0 4px rgba(5,150,105,0.12); }
+    .ob-tile { appearance: none; border: 2px solid #E2E8F0; background: #FFFFFF; border-radius: 18px; cursor: pointer;
+               font-family: inherit; text-align: left; padding: 0; transition: border-color .15s, box-shadow .15s, transform .15s; }
+    .ob-tile:hover { border-color: #CBD5E1; }
+    .ob-cta { width: 100%; height: 58px; border: 0; border-radius: 14px; background: #059669; color: #fff;
+              font-size: 17px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex;
+              align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 16px rgba(5,150,105,.28); }
+    .ob-cta:hover { background: #047857; }
+    .ob-cta:disabled { background: #E2E8F0; color: #94A3B8; box-shadow: none; cursor: not-allowed; }
+    .ob-ghost { width: 100%; height: 44px; border: 0; background: transparent; color: #64748B;
+                font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F8FAFC; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- ══ Top bar: back · progress segments · count ══ -->
+  <div style="flex: 0 0 auto; height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0;">
+    <button onClick="{{ back }}" style="width: 44px; height: 44px; margin-left: -10px; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ backColor }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="flex: 1; display: flex; gap: 5px;">
+      <sc-for list="{{ segments }}" as="seg" hint-placeholder-count="6">
+        <div style="{{ seg.style }}"></div>
+      </sc-for>
+    </div>
+    <div style="font-size: 13px; font-weight: 800; color: #64748B; font-variant-numeric: tabular-nums; min-width: 30px; text-align: right;">{{ counter }}</div>
+  </div>
+
+  <!-- ══ One question, nothing else ══ -->
+  <div class="ob-scroll" style="flex: 1 1 auto; padding: 28px 24px 20px;">
+
+    <!-- Step 1 · shop name -->
+    <sc-if value="{{ isName }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="width: 88px; height: 88px; border-radius: 26px; background: #ECFDF5; display: flex; align-items: center; justify-content: center;">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L4.6 4.8A1.5 1.5 0 016 3.8h12a1.5 1.5 0 011.4 1L21 9.5M3 9.5h18M3 9.5a3 3 0 005 2 3 3 0 004 0 3 3 0 004 0 3 3 0 005-2M5 12.5V20h14v-7.5M9.5 20v-4.5h5V20"/></svg>
+        </div>
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A; text-wrap: balance;">What is your shop called?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">You can change this later.</p>
+        </div>
+        <div style="width: 100%; margin-top: 4px;">
+          <input class="ob-field" type="text" placeholder="Kojo's Fashion" value="{{ shopName }}" onChange="{{ setName }}" />
+          <div style="{{ slugStyle }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+            <span style="font-size: 13.5px; color: #64748B;">makola.io/</span><span style="font-size: 13.5px; font-weight: 800; color: #047857;">{{ slug }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Step 2 · money -->
+    <sc-if value="{{ isMoney }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="width: 88px; height: 88px; border-radius: 26px; background: #ECFDF5; display: flex; align-items: center; justify-content: center;">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M5.5 12h.01M18.5 12h.01"/></svg>
+        </div>
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A;">Which money do you take?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">Prices show in this money.</p>
+        </div>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+          <sc-for list="{{ monies }}" as="m" hint-placeholder-count="3">
+            <button class="ob-tile" onClick="{{ m.pick }}" style="{{ m.style }}">
+              <div style="display: flex; align-items: center; gap: 16px; padding: 16px 18px;">
+                <div style="{{ m.badge }}">{{ m.symbol }}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 16px; font-weight: 800; color: #0F172A;">{{ m.name }}</div>
+                  <div style="font-size: 13px; color: #64748B; margin-top: 1px;">{{ m.code }}</div>
+                </div>
+                <div style="{{ m.check }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+                </div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Step 3 · trade -->
+    <sc-if value="{{ isTrade }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A;">What do you sell?</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">Tap the closest one.</p>
+        </div>
+        <div style="width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <button class="ob-tile" onClick="{{ pick_clothes }}" style="{{ tradeStyle_clothes }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_clothes }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3l3.5 2.5L15.5 3l4.5 2.6-2.2 4L16 9v11H8V9l-1.8.6-2.2-4L8.5 3z"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Clothes & shoes</div>
+            </div>
+          </button>
+          <button class="ob-tile" onClick="{{ pick_food }}" style="{{ tradeStyle_food }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_food }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v7a3 3 0 003 3v6M7 4v6M10 4v6M17 4c-1.4 2-2 4-2 6.5 0 1.5.8 2.5 2 2.5v7"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Food & drink</div>
+            </div>
+          </button>
+          <button class="ob-tile" onClick="{{ pick_beauty }}" style="{{ tradeStyle_beauty }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_beauty }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3.5l2 3V20a1 1 0 01-1 1H8a1 1 0 01-1-1V9.5l2-3V3z"/><path d="M7 13h10"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Beauty &amp; health</div>
+            </div>
+          </button>
+          <button class="ob-tile" onClick="{{ pick_phones }}" style="{{ tradeStyle_phones }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_phones }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Phones &amp; gadgets</div>
+            </div>
+          </button>
+          <button class="ob-tile" onClick="{{ pick_home }}" style="{{ tradeStyle_home }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_home }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11v8M20 11v8M4 15h16M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"/><path d="M8 11V9h8v2"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Home &amp; furniture</div>
+            </div>
+          </button>
+          <button class="ob-tile" onClick="{{ pick_other }}" style="{{ tradeStyle_other }}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 10px; height: 128px;">
+              <div style="{{ tradeIcon_other }}">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0F172A; text-align: center; line-height: 1.25;">Something else</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Step 4 · look -->
+    <sc-if value="{{ isLook }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A;">Pick your shop's look</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">This is how buyers will see it.</p>
+        </div>
+        <div style="width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{ looks }}" as="t" hint-placeholder-count="4">
+            <button class="ob-tile" onClick="{{ t.pick }}" style="{{ t.style }}">
+              <div aria-hidden="true" style="{{ t.canvas }}">
+                <div style="{{ t.nav }}">
+                  <div style="{{ t.navMark }}"></div>
+                  <div style="display: flex; align-items: center; gap: 3px;">
+                    <div style="{{ t.navDim }}"></div><div style="{{ t.navDim }}"></div><div style="{{ t.navDot }}"></div>
+                  </div>
+                </div>
+                <div style="padding: 9px 9px 7px;">
+                  <div style="{{ t.sign }}">{{ shopSign }}</div>
+                  <div style="{{ t.rule }}"></div>
+                  <div style="{{ t.chip }}"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 0 9px 9px;">
+                  <sc-for list="{{ t.cards }}" as="c" hint-placeholder-count="4">
+                    <div style="{{ c.wrap }}">
+                      <div style="{{ c.photo }}"></div>
+                      <div style="padding: 4px 5px 5px;">
+                        <div style="{{ c.line }}"></div>
+                        <div style="{{ c.price }}">{{ c.text }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="{{ t.foot }}"></div>
+              </div>
+              <div style="{{ t.labelRow }}">
+                <div style="min-width: 0;">
+                  <div style="font-size: 14px; font-weight: 800; color: #0F172A;">{{ t.name }}</div>
+                </div>
+                <div style="{{ t.check }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+                </div>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Step 5 · first product -->
+    <sc-if value="{{ isProduct }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A;">Add one thing you sell</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">A photo sells it best.</p>
+        </div>
+        <div style="width: 100%; height: 150px; border: 2px dashed #CBD5E1; border-radius: 18px; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+          <div style="width: 56px; height: 56px; border-radius: 18px; background: #ECFDF5; display: flex; align-items: center; justify-content: center;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 014.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0121 8.5v9A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5v-9z"/><circle cx="12" cy="12.5" r="3.4"/></svg>
+          </div>
+          <div style="font-size: 15px; font-weight: 700; color: #0F172A;">Take a photo</div>
+        </div>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+          <input class="ob-field" type="text" placeholder="Ankara Dress" value="{{ productName }}" onChange="{{ setProduct }}" />
+          <div style="position: relative;">
+            <div style="position: absolute; left: 16px; top: 0; height: 58px; display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #94A3B8;">{{ symbol }}</div>
+            <input class="ob-field" style="padding-left: 54px;" type="number" placeholder="150" value="{{ productPrice }}" onChange="{{ setPrice }}" />
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Step 6 · open -->
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+        <div style="width: 96px; height: 96px; border-radius: 999px; background: linear-gradient(135deg, #34D399, #059669); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 26px rgba(5,150,105,.32);">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+        </div>
+        <div style="text-align: center;">
+          <h1 style="margin: 0; font-size: 27px; line-height: 1.15; font-weight: 800; color: #0F172A;">Your shop is open</h1>
+          <p style="margin: 10px 0 0; font-size: 15px; color: #64748B;">Share the link and start selling.</p>
+        </div>
+        <div style="width: 100%; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 18px; overflow: hidden;">
+          <sc-for list="{{ summary }}" as="s" hint-placeholder-count="3">
+            <div style="{{ s.row }}">
+              <div style="{{ s.dot }}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+              </div>
+              <div style="flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: #0F172A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.label }}</div>
+              <div style="font-size: 13px; color: #64748B; flex: 0 0 auto;">{{ s.meta }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <button class="ob-tile" onClick="{{ toggleProtect }}" style="{{ protectStyle }}">
+          <div style="display: flex; align-items: center; gap: 14px; padding: 16px 18px;">
+            <div style="{{ protectIcon }}">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ protectStroke }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6L12 3z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 15px; font-weight: 800; color: #0F172A;">Hold money till delivery</div>
+              <div style="font-size: 13px; color: #64748B; margin-top: 2px; line-height: 1.35;">Safer for buyers. You are paid later.</div>
+            </div>
+            <div style="{{ switchTrack }}"><div style="{{ switchKnob }}"></div></div>
+          </div>
+        </button>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ══ One button, in the thumb ══ -->
+  <div style="flex: 0 0 auto; padding: 14px 24px 26px; background: #FFFFFF; border-top: 1px solid #E2E8F0;">
+    <button class="ob-cta" onClick="{{ next }}" disabled="{{ blocked }}">
+      {{ ctaLabel }}
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+    </button>
+    <div style="{{ skipWrap }}">
+      <button class="ob-ghost" onClick="{{ skip }}">Skip for now</button>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 1, name: '', currency: 'GHS', trade: 'clothes', theme: 'ntoma', pname: '', price: '', protect: false };
+  }
+
+  themes() {
+    return {
+      ntoma:    { name: 'Ntoma',    primary: '#9E3B14', accent: '#E0A32E', bg: '#FAF4EA', surface: '#FFFFFF', text: '#2B1708', font: "'Fraunces', Georgia, serif" },
+      fashion:  { name: 'Fashion',  primary: '#5B21B6', accent: '#D97706', bg: '#FAF6EE', surface: '#FFFFFF', text: '#1C1917', font: "'Playfair Display', Georgia, serif" },
+      chale:    { name: 'Chale',    primary: '#2547E8', accent: '#101114', bg: '#F7F5F1', surface: '#FFFFFF', text: '#101114', font: "'Anton', system-ui, sans-serif" },
+      pace:     { name: 'Pace',     primary: '#1D4ED8', accent: '#0F172A', bg: '#E6EFF6', surface: '#FFFFFF', text: '#0F172A', font: "'Chakra Petch', system-ui, sans-serif" },
+      dede:     { name: 'Dede',     primary: '#8C2F0D', accent: '#1B2E23', bg: '#FAF5EA', surface: '#FFFFFF', text: '#26211A', font: "'Anton', system-ui, sans-serif" },
+      fresh:    { name: 'Fresh',    primary: '#047857', accent: '#92400E', bg: '#FEFCE8', surface: '#FFFFFF', text: '#1C1917', font: "'Nunito', system-ui, sans-serif" },
+      market:   { name: 'Market',   primary: '#1C1917', accent: '#B45309', bg: '#FAFAF9', surface: '#FFFFFF', text: '#1C1917', font: "'DM Sans', system-ui, sans-serif" },
+      vibrant:  { name: 'Vibrant',  primary: '#B45309', accent: '#7C2D12', bg: '#FFFBEB', surface: '#FFFFFF', text: '#1C1917', font: "'Manrope', system-ui, sans-serif" },
+      beauty:   { name: 'Beauty',   primary: '#6B4423', accent: '#C9925E', bg: '#F5EFE5', surface: '#FFFFFF', text: '#3D2F25', font: "'Cormorant Garamond', Georgia, serif" },
+      pharmacy: { name: 'Pharmacy', primary: '#14543E', accent: '#A7E5C5', bg: '#F9F6F0', surface: '#FFFFFF', text: '#1F2937', font: "'Fraunces', Georgia, serif" },
+      akwaaba:  { name: 'Akwaaba',  primary: '#F0531F', accent: '#F5A524', bg: '#FFFFFF', surface: '#FFFFFF', text: '#101010', font: "'Playfair Display', Georgia, serif" },
+      spotlight:{ name: 'Spotlight',primary: '#16130F', accent: '#7C3AED', bg: '#FBF9F5', surface: '#FFFFFF', text: '#16130F', font: "'Archivo', system-ui, sans-serif" },
+      electronics:{name:'Electronics',primary:'#134E4A',accent: '#0EA5E9', bg: '#F5EFE5', surface: '#FFFFFF', text: '#1F2937', font: "'Outfit', system-ui, sans-serif" },
+      depot:    { name: 'Depot',    primary: '#18181B', accent: '#C2410C', bg: '#FAFAFA', surface: '#FFFFFF', text: '#18181B', font: "'IBM Plex Sans', system-ui, sans-serif" },
+      bold:     { name: 'Bold',     primary: '#0F172A', accent: '#F59E0B', bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A', font: "'Outfit', system-ui, sans-serif" },
+      starter:  { name: 'Starter',  primary: '#6366F1', accent: '#1E293B', bg: '#FFFFFF', surface: '#FFFFFF', text: '#0F172A', font: "'Inter', system-ui, sans-serif" },
+      fie:      { name: 'Fie',      primary: '#211C1A', accent: '#8A5B4C', bg: '#FDFCFB', surface: '#FFFFFF', text: '#1C1917', font: "'Space Grotesk', system-ui, sans-serif" },
+      home_living:{name:'Home Living',primary:'#1F2937',accent: '#84CC16', bg: '#FAF7F2', surface: '#FFFFFF', text: '#1F2937', font: "'DM Sans', system-ui, sans-serif" },
+      heirloom: { name: 'Heirloom', primary: '#1B1208', accent: '#E8983F', bg: '#EFEFEF', surface: '#FFFFFF', text: '#1B1208', font: "'Outfit', system-ui, sans-serif" },
+      sika:     { name: 'Sika',     primary: '#1F332C', accent: '#C2A15B', bg: '#FAF9F7', surface: '#FFFFFF', text: '#211D16', font: "'Marcellus', Georgia, serif" },
+      adwuma:   { name: 'Adwuma',   primary: '#6E56CF', accent: '#F2B8A2', bg: '#FBFBFA', surface: '#FFFFFF', text: '#14131A', font: "'Sora', system-ui, sans-serif" },
+      atelier:  { name: 'Atelier',  primary: '#16A34A', accent: '#166534', bg: '#FFFFFF', surface: '#FFFFFF', text: '#16A34A', font: "system-ui, sans-serif" }
+    };
+  }
+
+  tradeDefs() {
+    return [
+      { id: 'clothes', label: 'Clothes & shoes', themes: ['ntoma', 'fashion', 'chale', 'pace'] },
+      { id: 'food', label: 'Food & drink', themes: ['dede', 'fresh', 'market', 'vibrant'] },
+      { id: 'beauty', label: 'Beauty & health', themes: ['beauty', 'pharmacy', 'akwaaba', 'spotlight'] },
+      { id: 'phones', label: 'Phones & gadgets', themes: ['electronics', 'depot', 'bold', 'starter'] },
+      { id: 'home', label: 'Home & furniture', themes: ['fie', 'home_living', 'heirloom', 'sika'] },
+      { id: 'other', label: 'Something else', themes: ['starter', 'market', 'spotlight', 'adwuma'] }
+    ];
+  }
+
+  moneyDefs() {
+    return [
+      { code: 'GHS', symbol: 'GH₵', name: 'Ghana Cedi' },
+      { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+      { code: 'USD', symbol: '$', name: 'US Dollar' }
+    ];
+  }
+
+  symbolFor(code) { const m = this.moneyDefs().find((x) => x.code === code); return m ? m.symbol : 'GH₵'; }
+
+  slugify(v) {
+    return (v || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  miniature(id) {
+    const t = this.themes()[id];
+    const prices = [120, 85, 240, 65];
+    const sym = this.symbolFor(this.state.currency);
+    return {
+      id: id, name: t.name,
+      canvas: 'background: ' + t.bg + '; border-top-left-radius: 16px; border-top-right-radius: 16px; overflow: hidden;',
+      nav: 'display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; background: ' + t.surface + '; border-bottom: 1px solid rgba(0,0,0,.05);',
+      navMark: 'height: 5px; width: 26px; border-radius: 999px; background: ' + t.primary + ';',
+      navDim: 'height: 3px; width: 10px; border-radius: 999px; opacity: .25; background: ' + t.primary + ';',
+      navDot: 'height: 6px; width: 6px; border-radius: 999px; background: ' + t.accent + ';',
+      sign: 'font-size: 12px; font-weight: 700; line-height: 1.15; color: ' + t.text + '; font-family: ' + t.font + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
+      rule: 'margin-top: 4px; height: 3px; width: 36px; border-radius: 999px; opacity: .3; background: ' + t.text + ';',
+      chip: 'margin-top: 6px; height: 11px; width: 42px; border-radius: 999px; background: ' + t.accent + ';',
+      foot: 'height: 9px; width: 100%; background: ' + t.primary + ';',
+      cards: prices.map((p, i) => ({
+        wrap: 'border-radius: 6px; overflow: hidden; background: ' + t.surface + '; box-shadow: 0 1px 2px rgba(0,0,0,.07);',
+        photo: 'height: 26px; width: 100%; opacity: ' + (i % 2 === 0 ? '.75' : '.4') + '; background: ' + (i % 3 === 0 ? t.accent : t.primary) + ';',
+        line: 'height: 2px; width: 70%; border-radius: 999px; opacity: .25; background: ' + t.text + ';',
+        price: 'margin-top: 3px; font-size: 7.5px; font-weight: 700; line-height: 1; color: ' + t.text + ';',
+        text: sym + p
+      }))
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const total = 6;
+    const trade = this.tradeDefs().find((t) => t.id === s.trade) || this.tradeDefs()[0];
+    const selectedTheme = this.themes()[s.theme];
+    const slug = this.slugify(s.name);
+    const sym = this.symbolFor(s.currency);
+
+    const tradeKeys = {};
+    this.tradeDefs().forEach((t) => {
+      tradeKeys['pick_' + t.id] = () => this.setState({ trade: t.id, theme: t.themes[0] });
+      tradeKeys['tradeStyle_' + t.id] = t.id === s.trade
+        ? 'border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : '';
+      tradeKeys['tradeIcon_' + t.id] = 'width: 58px; height: 58px; border-radius: 18px; display: flex; '
+        + 'align-items: center; justify-content: center; background: ' + (t.id === s.trade ? '#D1FAE5' : '#ECFDF5') + ';';
+    });
+
+    const seg = (on) => 'flex: 1; height: 5px; border-radius: 999px; background: ' + (on ? '#059669' : '#E2E8F0') + ';';
+
+    const cta = { 1: 'Next', 2: 'Next', 3: 'Next', 4: 'Next', 5: 'Next', 6: 'Open my shop' }[s.step];
+    const blocked = s.step === 1 && s.name.trim() === '';
+
+    return {
+      segments: [1, 2, 3, 4, 5, 6].map((i) => ({ style: seg(i <= s.step) })),
+      counter: s.step + '/' + total,
+      backColor: s.step > 1 ? '#0F172A' : '#E2E8F0',
+      isName: s.step === 1, isMoney: s.step === 2, isTrade: s.step === 3,
+      isLook: s.step === 4, isProduct: s.step === 5, isDone: s.step === 6,
+
+      shopName: s.name,
+      shopSign: s.name.trim() === '' ? 'Your Shop' : s.name,
+      slug: slug === '' ? 'your-shop' : slug,
+      slugStyle: 'margin-top: 12px; display: flex; align-items: center; gap: 7px; justify-content: center; opacity: ' + (slug === '' ? '0' : '1') + '; transition: opacity .2s;',
+      setName: (e) => this.setState({ name: e.target.value }),
+
+      monies: this.moneyDefs().map((m) => ({
+        code: m.code, symbol: m.symbol, name: m.name,
+        pick: () => this.setState({ currency: m.code }),
+        style: m.code === s.currency
+          ? 'border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);'
+          : '',
+        badge: 'width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; flex: 0 0 auto; background: ' + (m.code === s.currency ? '#ECFDF5' : '#F1F5F9') + '; color: ' + (m.code === s.currency ? '#047857' : '#64748B') + ';',
+        check: 'width: 24px; height: 24px; border-radius: 999px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (m.code === s.currency ? '#059669' : '#FFFFFF') + '; border: 2px solid ' + (m.code === s.currency ? '#059669' : '#E2E8F0') + ';'
+      })),
+
+      ...tradeKeys,
+
+      looks: trade.themes.map((id) => {
+        const m = this.miniature(id);
+        m.pick = () => this.setState({ theme: id });
+        m.style = id === s.theme ? 'border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12); overflow: hidden;' : 'overflow: hidden;';
+        m.labelRow = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-top: 1px solid ' + (id === s.theme ? '#A7F3D0' : '#F1F5F9') + '; background: ' + (id === s.theme ? '#ECFDF5' : '#FFFFFF') + ';';
+        m.check = 'width: 20px; height: 20px; border-radius: 999px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (id === s.theme ? '#059669' : '#FFFFFF') + '; border: 2px solid ' + (id === s.theme ? '#059669' : '#E2E8F0') + ';';
+        return m;
+      }),
+
+      productName: s.pname, productPrice: s.price, symbol: sym,
+      setProduct: (e) => this.setState({ pname: e.target.value }),
+      setPrice: (e) => this.setState({ price: e.target.value }),
+
+      summary: [
+        { label: s.name.trim() === '' ? 'Your Shop' : s.name, meta: s.currency },
+        { label: selectedTheme.name + ' look', meta: '' },
+        { label: s.pname.trim() === '' ? 'No products yet' : s.pname, meta: s.price === '' ? '' : sym + s.price }
+      ].map((r, i) => ({
+        label: r.label, meta: r.meta,
+        row: 'display: flex; align-items: center; gap: 12px; padding: 14px 16px;' + (i < 2 ? ' border-bottom: 1px solid #F1F5F9;' : ''),
+        dot: 'width: 24px; height: 24px; border-radius: 999px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (i === 2 && s.pname.trim() === '' ? '#CBD5E1' : '#059669') + ';'
+      })),
+
+      toggleProtect: () => this.setState({ protect: !s.protect }),
+      protectStyle: 'width: 100%;' + (s.protect ? ' border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.12);' : ''),
+      protectIcon: 'width: 46px; height: 46px; border-radius: 15px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (s.protect ? '#ECFDF5' : '#F1F5F9') + ';',
+      protectStroke: s.protect ? '#059669' : '#94A3B8',
+      switchTrack: 'width: 48px; height: 28px; border-radius: 999px; flex: 0 0 auto; padding: 3px; display: flex; justify-content: ' + (s.protect ? 'flex-end' : 'flex-start') + '; background: ' + (s.protect ? '#059669' : '#CBD5E1') + '; transition: background .15s;',
+      switchKnob: 'width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.2);',
+
+      ctaLabel: cta,
+      blocked: blocked,
+      next: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      back: () => this.setState({ step: Math.max(1, s.step - 1) }),
+      skip: () => this.setState({ step: Math.min(total, s.step + 1) }),
+      skipWrap: 'margin-top: 4px; height: 44px; display: ' + (s.step === 5 ? 'block' : 'none') + ';'
+    };
+  }
+}
+</script>
+</body>
+</html>
