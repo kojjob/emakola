@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@700;800&family=Playfair+Display:wght@600;700&family=Manrope:wght@700;800&family=Inter:wght@600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<!-- Reproduction of the live /onboarding step 2 at phone width.
+     Values lifted from lib/emakola_web/live/onboarding_live.ex. -->
+<div style="width: 390px; height: 844px; background: #F9FAFB; overflow-y: auto;">
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 32px;">
+
+    <!-- step indicator: four identical bars + a line of text -->
+    <div style="text-align: center;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <div style="height: 6px; flex: 1; border-radius: 999px; background: #10B981;"></div>
+        <div style="height: 6px; flex: 1; border-radius: 999px; background: #10B981;"></div>
+        <div style="height: 6px; flex: 1; border-radius: 999px; background: #E5E7EB;"></div>
+        <div style="height: 6px; flex: 1; border-radius: 999px; background: #E5E7EB;"></div>
+      </div>
+      <p style="margin: 0; font-size: 12px; font-weight: 500; color: #6B7280;">Step 2 of 4</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 24px; text-align: center;">
+      <div style="width: 64px; height: 64px; border-radius: 16px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.88 2.88"/></svg>
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #111827; line-height: 1.2;">Choose Your Theme</h1>
+      <p style="margin: -12px 0 0; font-size: 16px; color: #6B7280;">Pick a look for your storefront. You can customize it later.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; text-align: left;">
+        <sc-for list="{{ cards }}" as="t" hint-placeholder-count="8">
+          <div style="{{ t.style }}">
+            <div aria-hidden="true" style="{{ t.canvas }}">
+              <div style="{{ t.nav }}">
+                <div style="{{ t.navMark }}"></div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <div style="{{ t.navDim }}"></div><div style="{{ t.navDim }}"></div><div style="{{ t.navDot }}"></div>
+                </div>
+              </div>
+              <div style="padding: 10px 10px 8px;">
+                <div style="{{ t.sign }}">Your Store</div>
+                <div style="{{ t.rule }}"></div>
+                <div style="{{ t.chip }}"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 10px 10px;">
+                <sc-for list="{{ t.cells }}" as="c" hint-placeholder-count="4">
+                  <div style="{{ c.wrap }}">
+                    <div style="{{ c.photo }}"></div>
+                    <div style="padding: 4px 6px 4px;">
+                      <div style="{{ c.line }}"></div>
+                      <div style="{{ c.price }}">{{ c.text }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="{{ t.foot }}"></div>
+            </div>
+            <div style="{{ t.labelRow }}">
+              <div style="min-width: 0;">
+                <p style="margin: 0; font-size: 14px; font-weight: 600; color: #111827;">{{ t.name }}</p>
+                <p style="margin: 2px 0 0; font-size: 12px; line-height: 1.35; color: #6B7280;">{{ t.desc }}</p>
+              </div>
+              <div style="{{ t.radio }}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 12px; color: #9CA3AF;">14 more themes below</p>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 8px 16px; font-size: 14px; font-weight: 500; color: #6B7280;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        Back
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 8px; background: #059669; color: #FFFFFF; font-size: 14px; font-weight: 600;">
+        Continue
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const defs = [
+      { id: 'starter', name: 'Starter', desc: 'Clean & modern — fits any store', primary: '#6366F1', accent: '#1E293B', bg: '#FFFFFF', surface: '#FFFFFF', text: '#0F172A', font: "'Inter', system-ui, sans-serif" },
+      { id: 'market', name: 'Market', desc: 'Simple commerce for everyday stores', primary: '#1C1917', accent: '#B45309', bg: '#FAFAF9', surface: '#FFFFFF', text: '#1C1917', font: "'DM Sans', system-ui, sans-serif" },
+      { id: 'atelier', name: 'Atelier', desc: 'Premium editorial aesthetic', primary: '#16A34A', accent: '#166534', bg: '#FFFFFF', surface: '#FFFFFF', text: '#16A34A', font: 'system-ui, sans-serif' },
+      { id: 'vibrant', name: 'Vibrant', desc: 'Bold West African energy', primary: '#B45309', accent: '#7C2D12', bg: '#FFFBEB', surface: '#FFFFFF', text: '#1C1917', font: "'Manrope', system-ui, sans-serif" },
+      { id: 'bold', name: 'Bold', desc: 'Editorial & dramatic', primary: '#0F172A', accent: '#F59E0B', bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A', font: "'Outfit', system-ui, sans-serif" },
+      { id: 'fresh', name: 'Fresh', desc: 'Food & grocery', primary: '#047857', accent: '#92400E', bg: '#FEFCE8', surface: '#FFFFFF', text: '#1C1917', font: "'Nunito', system-ui, sans-serif" },
+      { id: 'fashion', name: 'Fashion', desc: 'Editorial boutique', primary: '#5B21B6', accent: '#D97706', bg: '#FAF6EE', surface: '#FFFFFF', text: '#1C1917', font: "'Playfair Display', Georgia, serif" },
+      { id: 'beauty', name: 'Beauty', desc: 'Skincare & cosmetics', primary: '#6B4423', accent: '#C9925E', bg: '#F5EFE5', surface: '#FFFFFF', text: '#3D2F25', font: "'Cormorant Garamond', Georgia, serif" }
+    ];
+    const selected = 'market';
+    const prices = [120, 85, 240, 65];
+
+    return {
+      cards: defs.map((t) => ({
+        name: t.name, desc: t.desc,
+        style: 'display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; border: 2px solid '
+          + (t.id === selected ? '#10B981' : '#E5E7EB') + '; background: #FFFFFF;'
+          + (t.id === selected ? ' box-shadow: 0 10px 15px -3px rgba(16,185,129,.1);' : ''),
+        canvas: 'background: ' + t.bg + ';',
+        nav: 'display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: ' + t.surface + '; border-bottom: 1px solid rgba(0,0,0,.05);',
+        navMark: 'height: 6px; width: 28px; border-radius: 999px; background: ' + t.primary + ';',
+        navDim: 'height: 4px; width: 12px; border-radius: 999px; opacity: .25; background: ' + t.primary + ';',
+        navDot: 'height: 6px; width: 6px; border-radius: 999px; background: ' + t.accent + ';',
+        sign: 'font-size: 11px; font-weight: 700; line-height: 1.15; color: ' + t.text + '; font-family: ' + t.font + '; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
+        rule: 'margin-top: 4px; height: 4px; width: 40px; border-radius: 999px; opacity: .3; background: ' + t.text + ';',
+        chip: 'margin-top: 6px; height: 12px; width: 44px; border-radius: 999px; background: ' + t.accent + ';',
+        foot: 'height: 10px; width: 100%; background: ' + t.primary + ';',
+        labelRow: 'display: flex; flex: 1; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 12px; border-top: 1px solid '
+          + (t.id === selected ? '#D1FAE5' : '#F3F4F6') + '; background: ' + (t.id === selected ? '#ECFDF5' : '#FFFFFF') + ';',
+        radio: 'margin-top: 2px; width: 16px; height: 16px; flex: 0 0 auto; border-radius: 999px; border: 2px solid '
+          + (t.id === selected ? '#10B981' : '#E5E7EB') + '; background: ' + (t.id === selected ? '#10B981' : 'transparent') + ';',
+        cells: prices.map((p, i) => ({
+          wrap: 'border-radius: 6px; overflow: hidden; background: ' + t.surface + '; box-shadow: 0 1px 2px rgba(0,0,0,.07);',
+          photo: 'height: 26px; width: 100%; opacity: ' + (i % 2 === 0 ? '.75' : '.4') + '; background: ' + (i % 3 === 0 ? t.accent : t.primary) + ';',
+          line: 'height: 2px; width: 75%; border-radius: 999px; opacity: .25; background: ' + t.text + ';',
+          price: 'margin-top: 3px; font-size: 7px; font-weight: 600; line-height: 1; color: ' + t.text + ';',
+          text: 'GH₵' + p
+        }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
