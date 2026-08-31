@@ -267,6 +267,15 @@ defmodule EmakolaWeb.SidebarComponents do
           icon="returns"
           active={@active_nav == :returns}
         />
+        <%!-- Delivery lived only inside Settings, so a merchant changing a
+             fee had to remember where it was. It is fulfilment, and it sits
+             with fulfilment. --%>
+        <.sidebar_link
+          href="/admin/settings/delivery"
+          title="Delivery"
+          icon="truck"
+          active={@active_nav == :delivery}
+        />
 
         <%!-- Marketplace --%>
         <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
@@ -931,7 +940,7 @@ defmodule EmakolaWeb.SidebarComponents do
                 Profile & Account
               </a>
               <a
-                href="/admin/settings"
+                href="/admin/settings/notifications"
                 class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <span class="material-symbols-outlined text-lg text-slate-400">
