@@ -88,15 +88,15 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       reseller: reseller
     } do
       connected = create_published_offer!(title: "Connected Soap", supplier_name: "Tema Traders")
-      _stranger = create_published_offer!(title: "Stranger Soap", supplier_name: "Kumasi Traders")
+      stranger = create_published_offer!(title: "Stranger Soap", supplier_name: "Kumasi Traders")
       connect!(reseller_actor, reseller, connected)
 
       {:ok, view, html} = live(conn, ~p"/admin/supply/catalog")
 
       # margin = 4_500 - 3_000 = 1_500 pesewas, shown only for the connection
       assert has_element?(view, "#offer-card-#{connected.offer.id} [data-role=card-margin]")
-      refute has_element?(view, "#offer-card-#{_stranger.offer.id} [data-role=card-margin]")
-      assert has_element?(view, "#offer-card-#{_stranger.offer.id} [data-role=card-locked]")
+      refute has_element?(view, "#offer-card-#{stranger.offer.id} [data-role=card-margin]")
+      assert has_element?(view, "#offer-card-#{stranger.offer.id} [data-role=card-locked]")
       # the supplier's own price stays off this page in both states
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
     end
@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       reseller: reseller
     } do
       mine = create_published_offer!(title: "Mine Soap", supplier_name: "Tema Traders")
-      other = create_published_offer!(title: "Other Soap", supplier_name: "Kumasi Traders")
+      _other = create_published_offer!(title: "Other Soap", supplier_name: "Kumasi Traders")
       connect!(reseller_actor, reseller, mine)
 
       {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
