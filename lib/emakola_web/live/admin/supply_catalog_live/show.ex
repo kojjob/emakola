@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
   alias Emakola.Suppliers.Offers
   alias EmakolaWeb.Live.Admin.SupplyStockStatus
 
+  import EmakolaWeb.Admin.SupplyCatalogLive.Glyphs
+  import EmakolaWeb.Admin.SupplyCatalogLive.ShowComponents
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1, format_price_range: 3]
 
   @impl true
@@ -107,8 +109,15 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     Float.round(margin(variant) * 100 / variant.supplier_price, 1)
   end
 
-  defp sorted_images(product) do
-    Enum.sort_by(product.images || [], &Map.get(&1, :position, 0))
+  defp primary_image_url(product) do
+    product.images
+    |> List.wrap()
+    |> Enum.sort_by(&Map.get(&1, :position, 0))
+    |> List.first()
+    |> case do
+      nil -> nil
+      image -> image.url
+    end
   end
 
   # Margin economics for the stat tiles above the variants table. A single
@@ -128,22 +137,20 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     {retail_min, retail_max} = Enum.min_max(retail_prices)
     {wholesale_min, wholesale_max} = Enum.min_max(wholesale_prices)
 
+    {min_margin, max_margin} = Enum.min_max(margins)
+
     %{
       retail: format_price_range(retail_min, retail_max, "GHS"),
       wholesale: format_price_range(wholesale_min, wholesale_max, "GHS"),
-      margin: margin_tile(margins, margin_pcts)
+      margin: format_price_range(min_margin, max_margin, "GHS"),
+      margin_pct: margin_pct_label(margin_pcts)
     }
   end
 
-  defp margin_tile(margins, margin_pcts) do
-    {min_margin, max_margin} = Enum.min_max(margins)
+  defp margin_pct_label(margin_pcts) do
     {min_pct, max_pct} = Enum.min_max(margin_pcts)
 
-    if min_margin == max_margin and min_pct == max_pct do
-      "#{format_price(min_margin)} (#{min_pct}%)"
-    else
-      "#{format_price_range(min_margin, max_margin, "GHS")} (#{min_pct}%–#{max_pct}%)"
-    end
+    if min_pct == max_pct, do: "#{min_pct}%", else: "#{min_pct}%–#{max_pct}%"
   end
 
   @impl true
@@ -152,199 +159,263 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
       <div :if={@loading} class="py-16 text-center text-sm text-slate-400">Loading offer…</div>
 
-      <div :if={!@loading and @offer} class="space-y-6">
+      <div :if={!@loading and @offer} class="space-y-4">
         <.link
           navigate={~p"/admin/supply/catalog"}
-          class="text-sm text-slate-500 hover:text-slate-700"
+          class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-slate-700"
         >
-          ← Browse Suppliers
+          <.glyph name={:back} class="w-4 h-4" stroke_width="2" /> Browse suppliers
         </.link>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <%!-- Gallery --%>
-          <div class="space-y-2">
-            <div class="aspect-square rounded-2xl bg-slate-100 overflow-hidden">
-              <img
-                :if={sorted_images(@offer.source_product) != []}
-                src={List.first(sorted_images(@offer.source_product)).url}
-                alt={@offer.source_product.title}
-                class="w-full h-full object-cover"
-              />
+        <%!-- Identity. A 96px square, never a half-page well: most suppliers
+              give us no photograph, and an empty frame that size was the
+              loudest thing on the page. --%>
+        <div class="rounded-card border border-border bg-surface shadow-sm p-6 flex items-start gap-5">
+          <.identity_slot
+            image_url={primary_image_url(@offer.source_product)}
+            alt={@offer.source_product.title}
+          />
+
+          <div class="flex flex-col gap-2 min-w-0 grow">
+            <div class="flex items-start justify-between gap-4">
+              <h1 class="text-2xl font-extrabold tracking-tight text-text leading-tight">
+                {@offer.source_product.title}
+              </h1>
+              <div class="flex items-center gap-2 shrink-0">
+                <div id="offer-stock-badge">
+                  <.supplier_stock_badge status={offer_stock_status(@offer)} />
+                </div>
+                <span
+                  :if={@connection_status == :connected}
+                  class="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-white"
+                >
+                  <.glyph name={:check} class="w-3 h-3" stroke_width="2.6" /> Connected
+                </span>
+              </div>
             </div>
-            <div :if={length(sorted_images(@offer.source_product)) > 1} class="flex gap-2">
-              <img
-                :for={img <- Enum.drop(sorted_images(@offer.source_product), 1)}
-                src={img.thumbnail_url || img.url}
-                alt=""
-                class="w-16 h-16 rounded-lg object-cover bg-slate-100"
-              />
+
+            <p class="flex items-center gap-2 text-sm text-text-muted">
+              <.glyph name={:supplier} class="w-4 h-4 text-slate-400" />
+              <span>
+                Supplied by
+                <span class="font-semibold text-slate-700">{@offer.wholesaler_store.name}</span>
+              </span>
+            </p>
+
+            <p :if={@offer.source_product.description} class="text-sm leading-relaxed text-slate-600">
+              {@offer.source_product.description}
+            </p>
+          </div>
+        </div>
+
+        <%!-- The money. Three tiles, the two a merchant cannot see yet drawn
+              as covered values rather than emptied cells. --%>
+        <% tiles = stat_tiles(@offer) %>
+        <% connected? = @connection_status == :connected %>
+        <div id="offer-money" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <.money_tile
+            label="Sells for"
+            sub="suggested"
+            value={tiles.retail}
+            icon={:tag}
+            tone={:info}
+          />
+          <.money_tile
+            label="You pay"
+            sub="wholesale"
+            value={if connected?, do: tiles.wholesale}
+            icon={:wallet}
+            tone={:accent}
+          />
+          <.money_tile
+            label="You keep"
+            sub="your margin"
+            value={if connected?, do: tiles.margin}
+            value_role="margin-value"
+            icon={:margin}
+            tone={:primary}
+          >
+            <:delta>
+              <span
+                :if={connected? and tiles.margin_pct}
+                data-role="margin-delta"
+                class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-primary-hover tabular-nums"
+              >
+                {tiles.margin_pct}
+              </span>
+            </:delta>
+          </.money_tile>
+        </div>
+
+        <%!-- The one action, in the same place in every state. --%>
+        <.action_band
+          :if={@connection_status == :none}
+          icon={:connect}
+          title="See your price and profit"
+          detail={"#{@offer.wholesaler_store.name} reviews your request, then wholesale prices open up."}
+          event="request_connection"
+          action_label="Request connection"
+        />
+        <.action_band
+          :if={connected?}
+          icon={:add_to_store}
+          title="Put it in your shop"
+          detail="Price, description and stock are copied. Photos follow on their own."
+          event="import_offer"
+          action_label="Add to my store"
+        />
+        <div
+          :if={@connection_status in [:pending, :unavailable]}
+          id="catalog-cta"
+          class="rounded-card border border-border bg-surface shadow-sm p-5 flex items-center gap-4"
+        >
+          <div class={[
+            "w-13 h-13 shrink-0 rounded-control flex items-center justify-center",
+            @connection_status == :pending && "bg-warning-soft text-warning",
+            @connection_status == :unavailable && "bg-danger-soft text-danger"
+          ]}>
+            <.glyph
+              name={if @connection_status == :pending, do: :waiting, else: :lock}
+              class="w-6 h-6"
+              stroke_width="1.9"
+            />
+          </div>
+          <div class="flex flex-col gap-1 grow min-w-0">
+            <span class="text-[17px] font-bold text-text">
+              {if @connection_status == :pending, do: "Request sent", else: "Connection unavailable"}
+            </span>
+            <span :if={@connection_status == :pending} class="text-[13px] text-text-muted">
+              {@offer.wholesaler_store.name} has not answered yet.
+            </span>
+            <.link
+              :if={@connection_status == :unavailable}
+              navigate={~p"/admin/settings/supply-network"}
+              class="text-[13px] font-medium text-primary-hover hover:text-emerald-800"
+            >
+              Manage it from your Partners page
+            </.link>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <%!-- Dispatch. Each area leads with the pin that identifies it, and
+                an unquoted fee is a chip, not a dash. --%>
+          <div class="rounded-card border border-border bg-surface shadow-sm overflow-hidden">
+            <p class="flex items-center gap-2.5 px-5 py-3 bg-surface-subtle border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span class="w-9 h-9 rounded-control bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
+                <.glyph name={:dispatch} class="w-[18px] h-[18px]" />
+              </span>
+              Dispatch cost by area
+            </p>
+            <div class="divide-y divide-slate-100">
+              <div
+                :for={area <- @offer.delivery_areas}
+                class="flex items-center gap-3 px-5 py-3.5"
+              >
+                <div class={[
+                  "w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0",
+                  @offer.dispatch_fees[area] && "bg-cyan-50 text-cyan-600",
+                  is_nil(@offer.dispatch_fees[area]) && "bg-slate-100 text-slate-400"
+                ]}>
+                  <.glyph name={:area} class="w-[17px] h-[17px]" stroke_width="1.9" />
+                </div>
+                <span class="text-sm text-slate-700 grow">{area}</span>
+                <span
+                  :if={@offer.dispatch_fees[area]}
+                  class="text-[15px] font-bold text-text tabular-nums"
+                >
+                  {format_price(@offer.dispatch_fees[area])}
+                </span>
+                <span
+                  :if={is_nil(@offer.dispatch_fees[area])}
+                  class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-text-muted"
+                >
+                  Ask supplier
+                </span>
+              </div>
             </div>
           </div>
 
-          <%!-- Summary + CTA --%>
-          <div class="space-y-4">
-            <div>
-              <h1 class="text-2xl font-bold text-slate-900">{@offer.source_product.title}</h1>
-              <p class="text-sm text-slate-500 mt-1">
-                Supplied by <span class="font-medium">{@offer.wholesaler_store.name}</span>
-                <span
-                  :if={@connection_status == :connected}
-                  class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5"
-                >
-                  Connected
-                </span>
-              </p>
-              <div id="offer-stock-badge" class="mt-2">
-                <.supplier_stock_badge status={offer_stock_status(@offer)} />
-              </div>
-            </div>
-
-            <p :if={@offer.source_product.description} class="text-sm text-slate-600">
-              {@offer.source_product.description}
+          <%!-- Terms. Two facts, each behind the icon that names it. --%>
+          <div class="rounded-card border border-border bg-surface shadow-sm overflow-hidden">
+            <p class="flex items-center gap-2.5 px-5 py-3 bg-surface-subtle border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span class="w-9 h-9 rounded-control bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                <.glyph name={:warranty} class="w-[18px] h-[18px]" />
+              </span>
+              Supplier terms
             </p>
-
-            <%!-- CTA block (buttons activated in later tasks: Task 6 wires
-            "Request connection", Task 7 wires "Add to my store") --%>
-            <div id="catalog-cta" class="rounded-2xl border border-slate-200 p-4 space-y-2">
-              <p
-                :if={@connection_status != :connected and @connection_status != :unavailable}
-                class="text-sm text-slate-600"
-              >
-                Connect to see wholesale pricing and add this product to your store.
-              </p>
-
-              <button
-                :if={@connection_status == :none}
-                phx-click="request_connection"
-                class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
-              >
-                Request connection
-              </button>
-              <button
-                :if={@connection_status == :pending}
-                disabled
-                class="w-full rounded-xl bg-slate-200 text-slate-500 text-sm font-semibold px-4 py-2.5"
-              >
-                Request sent
-              </button>
-              <div :if={@connection_status == :unavailable} class="space-y-1.5">
-                <button
-                  disabled
-                  class="w-full rounded-xl bg-slate-200 text-slate-500 text-sm font-semibold px-4 py-2.5"
-                >
-                  Connection unavailable
-                </button>
-                <p class="text-xs text-slate-500">
-                  <.link
-                    navigate={~p"/admin/settings/supply-network"}
-                    class="text-emerald-700 hover:text-emerald-800 font-medium"
-                  >
-                    Manage it from your Partners page
-                  </.link>
-                </p>
-              </div>
-              <button
-                :if={@connection_status == :connected}
-                phx-click="import_offer"
-                class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
-              >
-                Add to my store
-              </button>
-            </div>
-
-            <%!-- Dispatch fees --%>
-            <div class="rounded-2xl border border-slate-200 overflow-hidden">
-              <p class="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-500 bg-slate-50">
-                Dispatch cost by area
-              </p>
-              <div class="divide-y divide-slate-100">
-                <div
-                  :for={area <- @offer.delivery_areas}
-                  class="flex items-center justify-between px-4 py-2.5 text-sm"
-                >
-                  <span class="text-slate-700">{area}</span>
-                  <span :if={@offer.dispatch_fees[area]} class="font-medium text-slate-900">
-                    {format_price(@offer.dispatch_fees[area])}
+            <div class="divide-y divide-slate-100">
+              <div :if={@offer.returns_window_days} class="flex items-start gap-3 px-5 py-4">
+                <div class="w-9 h-9 rounded-[10px] bg-warning-soft text-warning flex items-center justify-center shrink-0">
+                  <.glyph name={:returns} class="w-[19px] h-[19px]" stroke_width="1.9" />
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-sm font-bold text-text">
+                    {@offer.returns_window_days} days to return
                   </span>
-                  <span :if={is_nil(@offer.dispatch_fees[area])} class="text-slate-400">
-                    — (ask supplier)
+                  <span :if={@offer.return_terms} class="text-[13px] leading-relaxed text-text-muted">
+                    {@offer.return_terms}
+                  </span>
+                </div>
+              </div>
+              <div :if={@offer.warranty_months} class="flex items-start gap-3 px-5 py-4">
+                <div class="w-9 h-9 rounded-[10px] bg-info-soft text-info flex items-center justify-center shrink-0">
+                  <.glyph name={:warranty} class="w-[19px] h-[19px]" stroke_width="1.9" />
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-sm font-bold text-text">
+                    {@offer.warranty_months} months warranty
+                  </span>
+                  <span
+                    :if={@offer.warranty_terms}
+                    class="text-[13px] leading-relaxed text-text-muted"
+                  >
+                    {@offer.warranty_terms}
                   </span>
                 </div>
               </div>
             </div>
-
-            <%!-- Supplier terms --%>
-            <div class="rounded-2xl border border-slate-200 p-4 space-y-2 text-sm">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Supplier terms
-              </p>
-              <p :if={@offer.returns_window_days} class="text-slate-700">
-                Returns window: {@offer.returns_window_days} days
-              </p>
-              <p :if={@offer.return_terms} class="text-slate-600">{@offer.return_terms}</p>
-              <p :if={@offer.warranty_months} class="text-slate-700">
-                Warranty: {@offer.warranty_months} months
-              </p>
-              <p :if={@offer.warranty_terms} class="text-slate-600">{@offer.warranty_terms}</p>
-            </div>
           </div>
         </div>
 
-        <%!-- Margin economics stat tiles (connected only) --%>
-        <div
-          :if={@connection_status == :connected}
-          id="margin-stat-tiles"
-          class="grid grid-cols-1 sm:grid-cols-3 gap-4"
-        >
-          <% tiles = stat_tiles(@offer) %>
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Suggested retail
-            </p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{tiles.retail}</p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Wholesale</p>
-            <p class="text-2xl font-bold text-slate-900 mt-1">{tiles.wholesale}</p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Your margin</p>
-            <p class="text-2xl font-bold text-emerald-700 mt-1">{tiles.margin}</p>
-          </div>
-        </div>
-
-        <%!-- Variants table --%>
-        <div class="rounded-2xl border border-slate-200 overflow-x-auto">
+        <%!-- Variants. The locked cells lose the padlock emoji: a drawn lock
+              and the same three words used everywhere else on the page. --%>
+        <div class="rounded-card border border-border bg-surface shadow-sm overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
-                <th class="px-4 py-2.5">Variant</th>
-                <th class="px-4 py-2.5 text-right">Suggested retail</th>
-                <th class="px-4 py-2.5 text-right">Wholesale</th>
-                <th class="px-4 py-2.5 text-right">
-                  {if @offer.earning_model == :fixed_commission, do: "Commission", else: "Your margin"}
+              <tr class="text-left text-xs font-bold uppercase tracking-wider text-text-muted bg-surface-subtle">
+                <th class="px-5 py-3">Variant</th>
+                <th class="px-5 py-3 text-right">Sells for</th>
+                <th class="px-5 py-3 text-right">You pay</th>
+                <th class="px-5 py-3 text-right">
+                  {if @offer.earning_model == :fixed_commission, do: "Commission", else: "You keep"}
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr :for={variant <- @offer.offer_variants}>
-                <td class="px-4 py-3 text-slate-700">
-                  {variant.source_variant.sku || "Default"}
+                <td class="px-5 py-4">
+                  <span class="flex items-center gap-2.5">
+                    <span class="w-[30px] h-[30px] rounded-[9px] bg-info-soft text-info flex items-center justify-center shrink-0">
+                      <.glyph name={:variant} class="w-4 h-4" />
+                    </span>
+                    <span class="text-slate-700">{variant.source_variant.sku || "Default"}</span>
+                  </span>
                 </td>
-                <td class="px-4 py-3 text-right font-medium text-slate-900">
+                <td class="px-5 py-4 text-right font-bold text-text tabular-nums">
                   {format_price(variant.suggested_retail_price)}
                   <span
-                    :if={@connection_status == :connected and variant.max_retail_price}
+                    :if={connected? and variant.max_retail_price}
                     class="block text-[11px] font-normal text-slate-400"
                   >
                     cap {format_price(variant.max_retail_price)}
                   </span>
                 </td>
-                <%= if @connection_status == :connected do %>
-                  <td class="px-4 py-3 text-right text-slate-900">
+                <%= if connected? do %>
+                  <td class="px-5 py-4 text-right text-slate-700 tabular-nums">
                     {format_price(variant.supplier_price)}
                   </td>
-                  <td class="px-4 py-3 text-right text-emerald-700 font-medium">
+                  <td class="px-5 py-4 text-right font-bold text-primary-hover tabular-nums">
                     <%= if @offer.earning_model == :fixed_commission do %>
                       {format_price(variant.fixed_commission_amount || 0)}
                     <% else %>
@@ -352,10 +423,12 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
                     <% end %>
                   </td>
                 <% else %>
-                  <td class="px-4 py-3 text-right text-slate-300">
-                    <span class="inline-flex items-center gap-1">🔒</span>
+                  <td :for={_ <- 1..2} class="px-5 py-4 text-right">
+                    <span class="inline-flex items-center justify-end gap-1.5 text-[13px] text-slate-400">
+                      <.glyph name={:lock} class="w-[15px] h-[15px] text-slate-300" stroke_width="2" />
+                      Connect to see
+                    </span>
                   </td>
-                  <td class="px-4 py-3 text-right text-slate-300">🔒</td>
                 <% end %>
               </tr>
             </tbody>

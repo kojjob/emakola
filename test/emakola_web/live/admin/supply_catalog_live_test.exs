@@ -81,6 +81,89 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
       assert render(view) =~ "Browse Suppliers"
     end
+
+    test "a connected supplier's card shows the margin; an unconnected one covers it", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      connected = create_published_offer!(title: "Connected Soap", supplier_name: "Tema Traders")
+      stranger = create_published_offer!(title: "Stranger Soap", supplier_name: "Kumasi Traders")
+      connect!(reseller_actor, reseller, connected)
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog")
+
+      # margin = 4_500 - 3_000 = 1_500 pesewas, shown only for the connection
+      assert has_element?(view, "#offer-card-#{connected.offer.id} [data-role=card-margin]")
+      refute has_element?(view, "#offer-card-#{stranger.offer.id} [data-role=card-margin]")
+      assert has_element?(view, "#offer-card-#{stranger.offer.id} [data-role=card-locked]")
+      # the supplier's own price stays off this page in both states
+      refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
+    end
+
+    test "an offer with no photo gets the product glyph, not an empty frame", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+
+      assert has_element?(view, "#offer-card-#{fixture.offer.id} [data-role=card-art] svg")
+      refute has_element?(view, "#offer-card-#{fixture.offer.id} [data-role=card-art] img")
+    end
+
+    test "the supplier reads as a coloured initial, ticked when connected", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!(supplier_name: "Tema Traders")
+      connect!(reseller_actor, reseller, fixture)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+
+      assert has_element?(
+               view,
+               "#offer-card-#{fixture.offer.id} [data-role=supplier-avatar]",
+               "T"
+             )
+
+      assert has_element?(view, "#offer-card-#{fixture.offer.id} [data-role=supplier-tick]")
+    end
+
+    test "stock reads as a bar, never as the supplier's raw quantity", %{conn: conn} do
+      # 7 is "low" but still available — an offer with NO available variant is
+      # not discoverable at all (Offers.discoverable?/1), so :out never renders
+      fixture = create_published_offer!(stock_quantity: 7)
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog")
+
+      assert has_element?(view, "#offer-card-#{fixture.offer.id} [data-role=stock-bar]")
+      # SupplyStockStatus is status-only: the wholesaler's count is not ours to show
+      refute html =~ ">7<"
+    end
+
+    test "the my-suppliers filter keeps only connected offers", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      mine = create_published_offer!(title: "Mine Soap", supplier_name: "Tema Traders")
+      _other = create_published_offer!(title: "Other Soap", supplier_name: "Kumasi Traders")
+      connect!(reseller_actor, reseller, mine)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+      html = view |> element("[phx-click=toggle_mine]") |> render_click()
+
+      assert html =~ "Mine Soap"
+      refute html =~ "Other Soap"
+    end
+
+    test "no emoji stands in for an icon on the catalogue", %{conn: conn} do
+      create_published_offer!()
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog")
+
+      refute html =~ "🔒"
+    end
   end
 
   describe "catalog show" do
@@ -115,8 +198,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       # wholesale price (3_000 pesewas) must NOT leak
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
       assert html =~ "Request connection"
-      assert html =~ "Connect to see wholesale pricing"
-      refute html =~ "margin-stat-tiles"
+      assert html =~ "See your price and profit"
+      assert html =~ "Connect to see"
     end
 
     test "connected: shows wholesale price and margin", %{
@@ -139,9 +222,91 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert html =~ "Add to my store"
       refute html =~ "Request connection"
       # stat tiles above the variants table — prove they're rendered
-      assert has_element?(view, "#margin-stat-tiles", "Suggested retail")
-      assert has_element?(view, "#margin-stat-tiles", "Wholesale")
-      assert has_element?(view, "#margin-stat-tiles", "Your margin")
+      assert has_element?(view, "#offer-money", "Sells for")
+      assert has_element?(view, "#offer-money", "You pay")
+      assert has_element?(view, "#offer-money", "You keep")
+    end
+
+    test "no emoji stands in for the lock", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      refute html =~ "🔒"
+    end
+
+    test "an offer with no photo fills the identity slot with a drawn glyph", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      assert has_element?(view, "#offer-identity svg")
+      refute has_element?(view, "#offer-identity img")
+    end
+
+    test "an offer with a photo puts it in the same identity slot", %{conn: conn} do
+      fixture = create_published_offer!()
+      Factory.create_image!(fixture.product, fixture.wholesaler, position: 0)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # The photo lies OVER the glyph rather than replacing it: app.js hides an
+      # image that fails to load, and hiding it has to reveal something. A
+      # supplier whose file was deleted gets the glyph, not an empty square.
+      assert has_element?(view, "#offer-identity img.absolute")
+      assert has_element?(view, "#offer-identity svg")
+    end
+
+    test "unconnected: the money row names all three numbers and covers the locked two", %{
+      conn: conn
+    } do
+      fixture = create_published_offer!()
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      assert has_element?(view, "#offer-money", "Sells for")
+      assert has_element?(view, "#offer-money", "You pay")
+      assert has_element?(view, "#offer-money", "You keep")
+      assert has_element?(view, "#offer-money", "Connect to see")
+      # the retail price is public and sits in the row
+      assert has_element?(view, "#offer-money", EmakolaWeb.Helpers.Currency.format_price(4_500))
+      # the wholesale price (3_000 pesewas) is still gated
+      refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
+    end
+
+    test "a locked tile keeps its own hue — the row reads as three numbers, not two greyed cells",
+         %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      [money_row] = Regex.run(~r{<div id="offer-money".*?(?=<div id="catalog-cta")}s, html)
+
+      # One hue per number, the way admin_components' stat_card row does it.
+      # The lock glyph and the covered bar carry "locked" — colour carries
+      # WHICH number, so a merchant can still tell the tiles apart.
+      assert money_row =~ "bg-info"
+      assert money_row =~ "bg-violet-600"
+      assert money_row =~ "bg-primary"
+    end
+
+    test "connected: the money row fills in and the margin carries its percentage", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!()
+      connect!(reseller_actor, reseller, fixture)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      assert has_element?(view, "#offer-money", EmakolaWeb.Helpers.Currency.format_price(3_000))
+      refute has_element?(view, "#offer-money", "Connect to see")
+
+      # The amount is the number being decided on; the percentage rides beside
+      # it as a chip rather than doubling the length of the headline figure.
+      assert has_element?(view, "[data-role=margin-delta]", "50.0%")
+      refute has_element?(view, "[data-role=margin-value]", "%")
     end
 
     test "a paused offer redirects back to the catalog", %{conn: conn} do
@@ -158,7 +323,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
 
       # "Ashanti" is a delivery area with no fee quoted
-      assert html =~ "ask supplier"
+      assert html =~ "Ask supplier"
     end
 
     test "request_connection creates a pending connection and flips the CTA", %{
@@ -328,7 +493,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
     variant =
       Factory.create_variant!(product, wholesaler,
         price: 5_000,
-        stock_quantity: 10
+        stock_quantity: Keyword.get(opts, :stock_quantity, 10)
       )
 
     {:ok, offer} =

@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #FFFFFF;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    * { box-sizing: border-box; }
+    .card { width: 286px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden; display: flex; flex-direction: column; }
+    .num { font-variant-numeric: tabular-nums; }
+    .micro { font-size: 10px; color: #94A3B8; }
+    .body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 11px; }
+    .art { position: relative; height: 156px; background: #0C1F17; }
+    .avatar { position: relative; width: 30px; height: 30px; border-radius: 10px; background: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #FFFFFF; flex-shrink: 0; }
+    .tick { position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; border-radius: 999px; background: #059669; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; }
+    .money { display: flex; align-items: center; gap: 9px; }
+    .keep { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 11px; background: #ECFDF5; border: 1px solid #A7F3D0; }
+    .meter { width: 54px; height: 6px; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+    .foot { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-top: 1px solid #F1F5F9; background: #F8FAFC; }
+    /* Every word on the card, replaced by the shape of a word. */
+    .blank { display: block; height: 10px; border-radius: 4px; background: #E2E8F0; }
+    .legend { display: flex; align-items: flex-start; gap: 12px; }
+    .lt { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .lname { font-size: 14px; font-weight: 700; }
+    .lwhat { font-size: 13px; color: #64748B; line-height: 1.5; }
+  </style>
+</helmet>
+
+<div style="padding: 28px 32px 34px; display: flex; flex-direction: column; gap: 22px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <span style="font-size: 21px; font-weight: 800; letter-spacing: -.01em;">The same card with the words taken out</span>
+    <span style="font-size: 13px; color: #64748B; line-height: 1.55; max-width: 96ch;">Most of these merchants do not read fluently. Cutting the copy shorter does not help a non-reader at all — the only thing that helps is putting the answer in a picture, a colour, a position or a digit. So: cover every word on the card and see what survives. If price, profit, stock, supplier and connection all still come through, the card works for someone who reads nothing.</span>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 34px;">
+
+    <!-- As designed -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B;">As designed</span>
+      <div class="card">
+        <div class="art">
+          <svg width="286" height="156" viewBox="0 0 286 156">
+            <defs><pattern id="nk1" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9h18M9 0v18" stroke="#134E3A" stroke-width="7"></path><path d="M0 0l18 18M18 0L0 18" stroke="#CA8A04" stroke-width="1.3" opacity=".5"></path></pattern></defs>
+            <rect width="286" height="156" fill="url(#nk1)"></rect>
+          </svg>
+        </div>
+        <div class="body">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="avatar">K<span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg></span></span>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 15px; font-weight: 700;">Adinkra Print Tote</span>
+              <span class="micro">Kumasi Textiles Ltd</span>
+            </div>
+          </div>
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 60</span>
+              <span class="micro">sells for</span>
+            </div>
+          </div>
+          <div class="keep">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 17px; font-weight: 800; color: #047857; line-height: 1.1;">GH₵ 22</span>
+              <span style="font-size: 10px; font-weight: 700; color: #059669;">you keep</span>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="meter"><span style="display: block; height: 100%; width: 82%; border-radius: 999px; background: #10B981;"></span></span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748B;">In stock</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+            <span class="num" style="font-size: 12px; font-weight: 700; color: #334155;">GH₵ 10</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Words removed -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #BE123C;">Every word covered</span>
+      <div class="card">
+        <div class="art">
+          <svg width="286" height="156" viewBox="0 0 286 156">
+            <defs><pattern id="nk2" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9h18M9 0v18" stroke="#134E3A" stroke-width="7"></path><path d="M0 0l18 18M18 0L0 18" stroke="#CA8A04" stroke-width="1.3" opacity=".5"></path></pattern></defs>
+            <rect width="286" height="156" fill="url(#nk2)"></rect>
+          </svg>
+        </div>
+        <div class="body">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="avatar">K<span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg></span></span>
+            <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
+              <span class="blank" style="width: 132px; height: 12px;"></span>
+              <span class="blank" style="width: 104px;"></span>
+            </div>
+          </div>
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 60</span>
+              <span class="blank" style="width: 46px; height: 8px;"></span>
+            </div>
+          </div>
+          <div class="keep">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span class="num" style="font-size: 17px; font-weight: 800; color: #047857; line-height: 1.1;">GH₵ 22</span>
+              <span class="blank" style="width: 42px; height: 8px; background: #BBF7D0;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="meter"><span style="display: block; height: 100%; width: 82%; border-radius: 999px; background: #10B981;"></span></span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748B;">In stock</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+            <span class="num" style="font-size: 12px; font-weight: 700; color: #334155;">GH₵ 10</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- What still comes through -->
+    <div style="display: flex; flex-direction: column; gap: 16px; width: 430px;">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #047857;">What survives, and how</span>
+
+      <div class="legend">
+        <span class="lt" style="background: #0C1F17;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5D07A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1.2 12.1a1.6 1.6 0 0 1-1.6 1.9H6.4a1.6 1.6 0 0 1-1.6-1.9Z"></path><path d="M9 7V5.5a3 3 0 0 1 6 0V7"></path></svg>
+        </span>
+        <div><span class="lname">Which product</span><br /><span class="lwhat">The photograph, at 156px. When the supplier has none, the tote glyph — never an empty grey box a merchant has to decode.</span></div>
+      </div>
+
+      <div class="legend">
+        <span class="lt" style="background: #7C3AED; color: #FFFFFF; font-size: 17px; font-weight: 800;">K</span>
+        <div><span class="lname">Which supplier</span><br /><span class="lwhat">One letter, one fixed colour per supplier. Recognised by shape and hue long before the name is read. The green tick on the corner means you already deal with them.</span></div>
+      </div>
+
+      <div class="legend">
+        <span class="lt" style="background: #F1F5F9;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+        </span>
+        <div><span class="lname">The price</span><br /><span class="lwhat">Tag, black, biggest number on the card. Digits are the one kind of text nearly every trader reads fluently — so the money is carried by digits, never by words.</span></div>
+      </div>
+
+      <div class="legend">
+        <span class="lt" style="background: #ECFDF5;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+        </span>
+        <div><span class="lname">What stays with you</span><br /><span class="lwhat">Coins, green, always in a green box under the price. A locked one shows the padlock and a covered amount in the same box — same place, so the difference is the thing you notice.</span></div>
+      </div>
+
+      <div class="legend">
+        <span class="lt" style="background: #F1F5F9; flex-direction: column; gap: 4px;">
+          <span style="width: 24px; height: 5px; border-radius: 999px; background: #E2E8F0; overflow: hidden;"><span style="display: block; height: 100%; width: 80%; background: #10B981; border-radius: 999px;"></span></span>
+          <span style="width: 24px; height: 5px; border-radius: 999px; background: #E2E8F0; overflow: hidden;"><span style="display: block; height: 100%; width: 15%; background: #F43F5E; border-radius: 999px;"></span></span>
+        </span>
+        <div><span class="lname">How much is left</span><br /><span class="lwhat">A bar you compare by length. Green or amber only: an offer with nothing left is not discoverable at all, so "out of stock" never reaches this page. The supplier's raw count is never shown — SupplyStockStatus is status-only.</span></div>
+      </div>
+
+      <div class="legend">
+        <span class="lt" style="background: #ECFEFF;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+        </span>
+        <div><span class="lname">What delivery costs</span><br /><span class="lwhat">Pin plus a number. Grey pin and a short chip when the supplier has not quoted one.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

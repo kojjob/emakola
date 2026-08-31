@@ -1,0 +1,69 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 950,
+      "title": "Offer — not connected yet"
+    },
+    {
+      "file": "Connected.dc.html",
+      "x": 1320,
+      "y": 0,
+      "w": 1200,
+      "h": 990,
+      "title": "Offer — connected"
+    },
+    {
+      "file": "Mobile.dc.html",
+      "x": 0,
+      "y": 1240,
+      "w": 390,
+      "h": 1170,
+      "title": "Phone — not connected yet"
+    },
+    {
+      "file": "Icons.dc.html",
+      "x": 520,
+      "y": 1240,
+      "w": 880,
+      "h": 840,
+      "title": "The icon set"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "main-note",
+      "x": 0,
+      "y": -190,
+      "w": 1200,
+      "text": "The state a merchant meets first: browsing a supplier they have no connection with.\n\nWhat changed. The empty half-page image well is gone — identity costs 96px now, and this offer has no photo, so the glyph fills it. The three numbers a reseller actually decides on sit in a row, and the two they cannot see yet read as covered values, not as a padlock character in a table cell. The grey sentence that used to explain the lock is now the loudest band on the page, directly under the numbers it opens.\n\nLabels are in plain words — Sells for / You pay / You keep — with the trade term underneath in small grey. Say the word if you want the formal labels back.\n\nCHOSEN 31 Aug over three alternatives — a ledger, a split bar and a dark deal card. Tiles won on fitting the admin's own stat_card vocabulary; the cost of that is that nothing on the row is loudest, so the margin tile carries the colour in the connected state to make up for it.\n\nBUILT 31 Aug into SupplyCatalogLive.Show. One hue per number, following admin_components' stat_card tones — blue, violet, emerald — and a locked chip keeps its colour: the lock and the covered bar say locked, colour says which number."
+    },
+    {
+      "id": "connected-note",
+      "x": 1320,
+      "y": -190,
+      "w": 1200,
+      "text": "Same page once the supplier approves. Nothing moves: the tiles fill in, the band keeps its place and only its verb changes.\n\nThe margin tile is the one that earns colour — it is the number being decided on. The identity slot here holds a supplier photo (drawn as a stand-in on this artboard).\n\nGH₵ 38 wholesale, GH₵ 22 margin and the GH₵ 70 cap are SAMPLE numbers — the offer in the database only carries the GH₵ 60 retail."
+    },
+    {
+      "id": "mobile-note",
+      "x": 0,
+      "y": 1050,
+      "w": 390,
+      "text": "Where merchants actually read this.\n\nThe one open number takes the full width; the two locked ones sit together underneath. The action is a 50px full-width button, and every tap target clears 44px.\n\nThe four-column table becomes one row — a phone cannot hold four money columns honestly."
+    },
+    {
+      "id": "icons-note",
+      "x": 520,
+      "y": 1050,
+      "w": 880,
+      "text": "Seventeen glyphs, one family: 24×24, 1.8–2.0 stroke, round caps, no fills, colour from the tile they sit in.\n\nThe lock is the one that matters — it replaces the 🔒 emoji the table ships today, which renders differently on every device and reads as decoration rather than as a state.\n\nBottom row is the identity slot rule you picked: glyph when the supplier has no photo, their photo when they do."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
