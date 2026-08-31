@@ -109,6 +109,15 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     Float.round(margin(variant) * 100 / variant.supplier_price, 1)
   end
 
+  # The wholesaler's own category name. Store-scoped, so it says what THEY
+  # call it and claims nothing about anybody else's catalogue.
+  defp offer_category(offer) do
+    case offer.source_product.category do
+      %{name: name} -> name
+      _ -> nil
+    end
+  end
+
   defp primary_image_url(product) do
     product.images
     |> List.wrap()
@@ -194,11 +203,18 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               </div>
             </div>
 
-            <p class="flex items-center gap-2 text-sm text-text-muted">
+            <p class="flex flex-wrap items-center gap-2 text-sm text-text-muted">
               <.glyph name={:supplier} class="w-4 h-4 text-slate-400" />
               <span>
                 Supplied by
                 <span class="font-semibold text-slate-700">{@offer.wholesaler_store.name}</span>
+              </span>
+              <span
+                :if={offer_category(@offer)}
+                data-role="offer-category"
+                class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-text-muted"
+              >
+                {offer_category(@offer)}
               </span>
             </p>
 
