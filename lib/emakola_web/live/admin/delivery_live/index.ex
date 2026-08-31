@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       socket
       |> assign(
         page_title: "Delivery Zones",
-        active_nav: :settings,
+        active_nav: :delivery,
         store: store,
         zones: [],
         editing_zone: nil,
