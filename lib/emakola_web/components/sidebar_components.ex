@@ -122,7 +122,7 @@ defmodule EmakolaWeb.SidebarComponents do
     <%!-- ═══════════════════════════════════════════ --%>
     <aside
       id="sidebar"
-      class="sidebar fixed lg:relative z-50 flex flex-col h-full bg-emakola-emerald overflow-hidden shrink-0 -translate-x-full lg:translate-x-0"
+      class="sidebar fixed lg:relative z-50 flex flex-col h-full bg-emakola-emerald overflow-hidden shrink-0"
     >
       <%!-- ── LOGO + COLLAPSE TOGGLE ── --%>
       <div class="sidebar-header flex items-center h-[72px] border-b border-white/[0.06] shrink-0 px-5">
