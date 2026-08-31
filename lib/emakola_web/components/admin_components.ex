@@ -367,7 +367,14 @@ defmodule EmakolaWeb.AdminComponents do
 
   def filter_tabs(assigns) do
     ~H"""
-    <div id={@id} class="flex gap-1 bg-slate-100 rounded-control p-1 overflow-x-auto">
+    <%!-- Wraps on a phone rather than scrolling sideways. Orders' strip ran
+          334px past a 390px screen, so "Delivered" and "Cancelled" existed
+          only for a merchant who thought to drag a bar with no affordance —
+          and a filter you cannot see is a filter you do not have. --%>
+    <div
+      id={@id}
+      class="flex flex-wrap sm:flex-nowrap gap-1 bg-slate-100 rounded-control p-1 sm:overflow-x-auto"
+    >
       <button
         :for={tab <- @tabs}
         phx-click={@event}

@@ -824,7 +824,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                     <% end %>
                   </td>
                   <td class="px-4 py-3.5">
-                    <.stock_status_badge quantity={variant.stock_quantity} />
+                    <.stock_status_badge
+                      quantity={variant.stock_quantity}
+                      tracked={variant.track_inventory}
+                    />
                   </td>
                   <td class="px-4 py-3.5">
                     <div class="flex items-center gap-1">
@@ -919,7 +922,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
                 </div>
               </div>
-              <.stock_status_badge quantity={variant.stock_quantity} />
+              <.stock_status_badge
+                quantity={variant.stock_quantity}
+                tracked={variant.track_inventory}
+              />
             </div>
             <div class="flex items-center justify-between">
               <div>
