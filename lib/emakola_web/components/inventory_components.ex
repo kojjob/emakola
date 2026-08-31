@@ -17,11 +17,21 @@ defmodule EmakolaWeb.InventoryComponents do
   - Green "In Stock" when quantity >= 10
   - Amber "Low Stock" when quantity 1-9
   - Red "Out of Stock" with pulse dot when quantity is 0
+  - Neutral "Supplier" when the variant does not track its own stock
   """
   attr :quantity, :integer, required: true
 
+  attr :tracked, :boolean,
+    default: true,
+    doc: """
+    `false` for a variant whose stock is somebody else's. A dropship listing
+    imported from a supplier carries `track_inventory: false` and a zero
+    quantity on purpose, and `Variant.in_stock?/2` still sells it — so the
+    red pill said sold out about a listing that was selling.
+    """
+
   def stock_status_badge(assigns) do
-    {label, color_classes, show_pulse} = stock_status(assigns.quantity)
+    {label, color_classes, show_pulse} = stock_status(assigns.quantity, assigns.tracked)
     assigns = assign(assigns, label: label, color_classes: color_classes, show_pulse: show_pulse)
 
     ~H"""
@@ -275,7 +285,13 @@ defmodule EmakolaWeb.InventoryComponents do
   defp variant_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp variant_title(_), do: "Unknown Product"
 
-  defp stock_status(qty) when qty >= 10, do: {"In Stock", "bg-emerald-50 text-emerald-700", false}
-  defp stock_status(qty) when qty >= 1, do: {"Low Stock", "bg-amber-50 text-amber-700", false}
-  defp stock_status(_qty), do: {"Out of Stock", "bg-red-50 text-red-700", true}
+  defp stock_status(_qty, false), do: {"Supplier", "bg-slate-100 text-slate-600", false}
+
+  defp stock_status(qty, _tracked) when qty >= 10,
+    do: {"In Stock", "bg-emerald-50 text-emerald-700", false}
+
+  defp stock_status(qty, _tracked) when qty >= 1,
+    do: {"Low Stock", "bg-amber-50 text-amber-700", false}
+
+  defp stock_status(_qty, _tracked), do: {"Out of Stock", "bg-red-50 text-red-700", true}
 end
