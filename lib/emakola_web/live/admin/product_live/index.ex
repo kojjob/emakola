@@ -29,6 +29,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         search_query: "",
         search_form: to_form(%{"search" => ""}),
         status_filter: :all,
+        category_filter: nil,
         products: [],
         products_limit: @admin_products_limit,
         more_products?: false,
@@ -95,6 +96,26 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
      |> assign(products_limit: socket.assigns.products_limit + @admin_products_limit)
      |> load_products()}
   end
+
+  # The value comes from a select, so it is user input. It is checked against
+  # the merchant's OWN categories rather than merely parsed: Ecto.UUID.cast/1
+  # accepts any 16-byte binary as a raw uuid, so "../../etc/passwd" casts
+  # cleanly to 2e2e2f2e-2e2f-6574-632f-706173737764 and would have filtered the
+  # catalogue down to nothing. An allowlist is the same shape SafeAtom uses.
+  @impl true
+  def handle_event("filter_category", %{"category_id" => category_id}, socket) do
+    filter =
+      Enum.find_value(socket.assigns.categories_list, fn category ->
+        if category.id == category_id, do: category.id
+      end)
+
+    {:noreply,
+     socket
+     |> assign(category_filter: filter, products_limit: @admin_products_limit)
+     |> load_products()}
+  end
+
+  def handle_event("filter_category", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("filter_status", %{"status" => status}, socket) do
@@ -524,6 +545,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               %{key: :archived, label: "Archived", count: @product_stats.archived}
             ]}
           />
+          <.category_filter_select
+            categories={@categories_list}
+            current={@category_filter}
+          />
         </:filters>
       </.table_toolbar>
 
@@ -533,6 +558,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         categories={@categories}
         search_query={@search_query}
         status_filter={@status_filter}
+        category_filter={@category_filter}
       />
 
       <%!-- The list is a window, not the whole catalogue. Without this the page
@@ -577,7 +603,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp load_products(socket) do
-    %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
+    %{
+      store_id: store_id,
+      search_query: query,
+      status_filter: status,
+      category_filter: category_id
+    } = socket.assigns
+
     limit = socket.assigns[:products_limit] || @admin_products_limit
 
     products =
@@ -589,7 +621,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         |> Ash.Query.for_read(:list_admin, %{
           store_id: store_id,
           search: search,
-          status: status_arg
+          status: status_arg,
+          category_id: category_id
         })
         |> Ash.Query.limit(limit + 1)
         |> Ash.read!(authorize?: false)
@@ -654,7 +687,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   defp load_categories(socket) do
     categories_list =
       try do
-        Emakola.Catalog.list_categories_by_store!(socket.assigns.store_id)
+        socket.assigns.store_id
+        |> Emakola.Catalog.list_categories_by_store!()
+        |> Ash.load!(:product_count, authorize?: false)
       rescue
         exception ->
           Logger.error(

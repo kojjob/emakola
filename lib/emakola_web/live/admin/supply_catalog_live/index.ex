@@ -101,6 +101,16 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
     end
   end
 
+  # The supplier's own category. Categories are store-scoped, so this is a
+  # label about THEIR shop — there is no shared taxonomy to filter on, and
+  # pretending otherwise would only work while every store runs the seeds.
+  defp category_name(offer) do
+    case offer.source_product.category do
+      %{name: name} -> name
+      _ -> nil
+    end
+  end
+
   defp card_price(offer) do
     prices = Enum.map(offer.offer_variants, & &1.suggested_retail_price)
     {min, max} = Enum.min_max(prices)
@@ -186,6 +196,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
           connected?={connected?}
           stock={stock(offer)}
           dispatch={card_dispatch(offer)}
+          category={category_name(offer)}
         />
       </div>
     </div>
