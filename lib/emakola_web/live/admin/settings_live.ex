@@ -217,7 +217,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
       <div class="flex flex-col md:flex-row gap-6">
         <%!-- Left tabs --%>
         <div class="md:w-56 shrink-0">
-          <div class="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+          <%!-- Wraps on a phone rather than scrolling sideways: the strip ran
+                343px past a 390px screen, so half the settings sections were
+                reachable only by dragging a bar with no affordance. --%>
+          <div class="flex flex-wrap md:flex-col md:flex-nowrap gap-1 md:overflow-x-visible pb-2 md:pb-0">
             <.tab_button tab="general" active_tab={@active_tab} icon="hero-cog-6-tooth">
               General
             </.tab_button>
