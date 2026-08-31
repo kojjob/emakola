@@ -499,12 +499,15 @@ defmodule Emakola.Catalog.Product do
         constraints: [one_of: [:draft, :active, :archived]]
       )
 
+      argument(:category_id, :uuid, allow_nil?: true)
+
       filter(
         expr(
           store_id == ^arg(:store_id) and
             (is_nil(^arg(:search)) or
                contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:search)))) and
-            (is_nil(^arg(:status)) or status == ^arg(:status))
+            (is_nil(^arg(:status)) or status == ^arg(:status)) and
+            (is_nil(^arg(:category_id)) or category_id == ^arg(:category_id))
         )
       )
 

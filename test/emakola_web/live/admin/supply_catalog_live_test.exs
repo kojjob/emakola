@@ -157,6 +157,23 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       refute html =~ "Other Soap"
     end
 
+    test "an offer wears the supplier's own category, and nothing when there is none", %{
+      conn: conn
+    } do
+      labelled = create_published_offer!(title: "Kente Stole", category_name: "Fashion")
+      bare = create_published_offer!(title: "Plain Soap", supplier_name: "Tema Traders")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+
+      assert has_element?(
+               view,
+               "#offer-card-#{labelled.offer.id} [data-role=card-category]",
+               "Fashion"
+             )
+
+      refute has_element?(view, "#offer-card-#{bare.offer.id} [data-role=card-category]")
+    end
+
     test "no emoji stands in for an icon on the catalogue", %{conn: conn} do
       create_published_offer!()
 
@@ -225,6 +242,16 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert has_element?(view, "#offer-money", "Sells for")
       assert has_element?(view, "#offer-money", "You pay")
       assert has_element?(view, "#offer-money", "You keep")
+    end
+
+    test "the offer page names the supplier's category when there is one", %{conn: conn} do
+      fixture = create_published_offer!(category_name: "Fashion")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # The supplier's own word for it — categories are store-scoped, so this
+      # is a label about THEIR shop, never a cross-store claim.
+      assert has_element?(view, "[data-role=offer-category]", "Fashion")
     end
 
     test "no emoji stands in for the lock", %{conn: conn} do
@@ -484,10 +511,16 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
     {wholesaler_actor, wholesaler} =
       Factory.create_merchant_with_store!(%{name: opts[:supplier_name] || "Accra Wholesale"})
 
+    category =
+      if name = opts[:category_name],
+        do: Factory.create_category!(wholesaler, name: name),
+        else: nil
+
     product =
       Factory.create_product!(wholesaler,
         status: :active,
-        title: opts[:title] || "Shea Butter 500g"
+        title: opts[:title] || "Shea Butter 500g",
+        category_id: category && category.id
       )
 
     variant =
