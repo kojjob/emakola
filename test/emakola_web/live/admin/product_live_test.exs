@@ -20,6 +20,23 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
+    # A product imported from a supplier keeps no stock of its own —
+    # ListingImporter sets track_inventory: false, stock_quantity: 0, and
+    # Variant.in_stock?/2 still lets shoppers buy it. The catalogue must not
+    # report the merchant's live dropship listing as sold out.
+    test "a supplier-stocked product is not reported as out of stock", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store, status: :active, title: "Dropship Tote")
+      Factory.create_variant!(product, store, track_inventory: false, stock_quantity: 0)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      refute has_element?(view, "tbody tr", "Out")
+      assert has_element?(view, "tbody tr", "Supplier")
+    end
+
     test "a store with no products is told what to do, not that nothing was found", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 

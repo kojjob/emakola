@@ -412,13 +412,24 @@ defmodule EmakolaWeb.AdminComponents do
 
       <.stock_meter quantity={14} />
       <.stock_meter quantity={0} />
+      <.stock_meter quantity={0} tracked={false} />
   """
   attr :quantity, :integer, required: true
   attr :max, :integer, default: 20
 
+  attr :tracked, :boolean,
+    default: true,
+    doc: """
+    `false` for a variant whose stock is somebody else's — a dropship listing
+    imported from a supplier carries `track_inventory: false` and a zero
+    quantity on purpose, and `Variant.in_stock?/2` still lets shoppers buy it.
+    Reading that zero as "Out" told merchants their live listing was dead.
+    """
+
   def stock_meter(assigns) do
     {fill, text} =
       cond do
+        not assigns.tracked -> {"bg-slate-300", "text-slate-500"}
         assigns.quantity == 0 -> {"bg-red-500", "text-red-600"}
         assigns.quantity < 10 -> {"bg-amber-500", "text-amber-700"}
         true -> {"bg-emerald-500", "text-slate-700"}
@@ -431,13 +442,20 @@ defmodule EmakolaWeb.AdminComponents do
     ~H"""
     <span class="inline-flex items-center gap-2">
       <span class="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden shrink-0">
-        <span class={["block h-full rounded-full", @fill_class]} style={"width: #{@pct}%"}></span>
+        <span
+          class={["block h-full rounded-full", @fill_class]}
+          style={"width: #{if @tracked, do: @pct, else: 100}%"}
+        >
+        </span>
       </span>
       <span class={["font-mono text-xs font-semibold tabular-nums", @text_class]}>
-        <%= if @quantity == 0 do %>
-          Out
-        <% else %>
-          {@quantity}
+        <%= cond do %>
+          <% not @tracked -> %>
+            Supplier
+          <% @quantity == 0 -> %>
+            Out
+          <% true -> %>
+            {@quantity}
         <% end %>
       </span>
     </span>

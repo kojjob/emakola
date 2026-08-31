@@ -193,6 +193,13 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    # Distinguishes "no stock left" from "stock is the supplier's to hold":
+    # a dropship listing has track_inventory false on every variant.
+    count :tracked_variant_count, :variants do
+      public?(true)
+      filter(expr(track_inventory == true))
+    end
+
     min :min_price, :variants, :price do
       public?(true)
     end
@@ -511,7 +518,14 @@ defmodule Emakola.Catalog.Product do
       prepare(
         build(
           sort: [inserted_at: :desc],
-          load: [:variant_count, :min_price, :max_price, :total_stock, :images]
+          load: [
+            :variant_count,
+            :min_price,
+            :max_price,
+            :total_stock,
+            :tracked_variant_count,
+            :images
+          ]
         )
       )
     end
