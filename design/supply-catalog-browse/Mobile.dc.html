@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    * { box-sizing: border-box; }
+    .num { font-variant-numeric: tabular-nums; }
+    .card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden; display: flex; }
+    .thumb { position: relative; width: 108px; flex-shrink: 0; background: #ECFDF5; display: flex; align-items: center; justify-content: center; }
+    .body { padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; min-width: 0; flex-grow: 1; }
+    .title { font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .supplier { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748B; }
+    .keep { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 5px 9px; border-radius: 9px; background: #ECFDF5; border: 1px solid #A7F3D0; }
+    .locked { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 5px 9px; border-radius: 9px; background: #F1F5F9; border: 1px solid #E2E8F0; }
+    .dot { width: 6px; height: 6px; border-radius: 999px; }
+    .avatar { position: relative; width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #FFFFFF; flex-shrink: 0; }
+    .tick { position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; border-radius: 999px; background: #059669; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; }
+    .meter { width: 48px; height: 6px; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+  </style>
+</helmet>
+
+<div style="min-height: 1120px; display: flex; flex-direction: column;">
+
+  <div style="height: 56px; flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; gap: 10px; padding: 0 16px;">
+    <div style="width: 34px; height: 34px; border-radius: 10px; background: #059669; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.4 4.6A1.4 1.4 0 0 1 6.8 3.6h10.4a1.4 1.4 0 0 1 1.4 1L20 9.5"></path><path d="M4 9.5h16v9.5a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V9.5Z"></path><path d="M9.4 20.4V15h5.2v5.4"></path></svg>
+    </div>
+    <span style="font-size: 17px; font-weight: 800;">Browse suppliers</span>
+  </div>
+
+  <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+
+    <!-- Search, then the two filters that decide what a merchant even wants
+         to look at. Both clear 44px. -->
+    <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E2E8F0;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+      <span style="font-size: 14px; color: #94A3B8;">Search products or suppliers</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <span style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 12px; background: #ECFDF5; border: 1px solid #A7F3D0; font-size: 13px; font-weight: 700; color: #047857;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.4 19.2a5.6 5.6 0 0 1 11.2 0"></path><circle cx="17.6" cy="9.6" r="2.5"></circle><path d="M15.4 19.2a5.1 5.1 0 0 1 5.9-4.4"></path></svg>
+        My suppliers
+      </span>
+    </div>
+
+    <!-- Landscape cards, not a 2-up grid: at 390px a two-column grid leaves
+         each price about 60px of room, and the price is the point. -->
+    <div class="card">
+      <div class="thumb" style="background: #0C1F17;">
+        <svg width="108" height="100%" viewBox="0 0 108 132" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="mk1" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 8h16M8 0v16" stroke="#134E3A" stroke-width="6"></path><path d="M0 0l16 16M16 0L0 16" stroke="#CA8A04" stroke-width="1.1" opacity=".5"></path></pattern></defs>
+          <rect width="108" height="132" fill="url(#mk1)"></rect>
+        </svg>
+        <span style="position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: #047857; font-size: 10px; font-weight: 700;">
+          <span class="dot" style="background: #10B981;"></span>In stock
+        </span>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+          <span class="title">Adinkra Print Tote</span>
+          <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; background: #059669; color: #FFFFFF; font-size: 10px; font-weight: 700;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+          </span>
+        </div>
+        <span class="supplier">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V9l7-5 7 5v11"></path><path d="M10 20v-5h4v5"></path></svg>
+          Kumasi Textiles Ltd
+        </span>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: auto;">
+          <span class="num" style="font-size: 19px; font-weight: 800;">GH₵ 60</span>
+          <span style="font-size: 11px; color: #94A3B8;">sells for</span>
+        </div>
+        <div class="keep">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+          <span class="num" style="font-size: 14px; font-weight: 800; color: #047857;">GH₵ 22</span>
+          <span style="font-size: 11px; font-weight: 700; color: #059669;">you keep</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="thumb" style="background: #0C1F17;">
+        <svg width="108" height="100%" viewBox="0 0 108 132" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="mk2" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="#12352A"></rect><path d="M0 9h18" stroke="#CA8A04" stroke-width="2" opacity=".6"></path><path d="M9 0v18" stroke="#0E4034" stroke-width="7"></path></pattern></defs>
+          <rect width="108" height="132" fill="url(#mk2)"></rect>
+        </svg>
+        <span style="position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: #047857; font-size: 10px; font-weight: 700;">
+          <span class="dot" style="background: #10B981;"></span>In stock
+        </span>
+      </div>
+      <div class="body">
+        <span class="title">Kente Stole</span>
+        <span class="supplier">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V9l7-5 7 5v11"></path><path d="M10 20v-5h4v5"></path></svg>
+          Makola Wholesale Hub
+        </span>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: auto;">
+          <span class="num" style="font-size: 19px; font-weight: 800;">GH₵ 120–180</span>
+        </div>
+        <div class="locked">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+          <span style="display: block; width: 70px; height: 14px; border-radius: 5px; background: #E2E8F0;"></span>
+          <span style="font-size: 10px; color: #94A3B8;">you keep</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="thumb">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1.2 12.1a1.6 1.6 0 0 1-1.6 1.9H6.4a1.6 1.6 0 0 1-1.6-1.9Z"></path><path d="M9 7V5.5a3 3 0 0 1 6 0V7"></path><path d="M9.5 12.5h5M10.6 15.4h2.8"></path></svg>
+        <span style="position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: #B45309; font-size: 10px; font-weight: 700;">
+          <span class="dot" style="background: #F59E0B;"></span>Low
+        </span>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+          <span class="title">Bolga Basket</span>
+          <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; background: #059669; color: #FFFFFF; font-size: 10px; font-weight: 700;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg>
+          </span>
+        </div>
+        <span class="supplier">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V9l7-5 7 5v11"></path><path d="M10 20v-5h4v5"></path></svg>
+          Kumasi Textiles Ltd
+        </span>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: auto;">
+          <span class="num" style="font-size: 19px; font-weight: 800;">GH₵ 95</span>
+          <span style="font-size: 11px; color: #94A3B8;">sells for</span>
+        </div>
+        <div class="keep">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+          <span class="num" style="font-size: 14px; font-weight: 800; color: #047857;">GH₵ 34</span>
+          <span style="font-size: 11px; font-weight: 700; color: #059669;">you keep</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="opacity: .72;">
+      <div class="thumb" style="background: #0C1F17;">
+        <svg width="108" height="100%" viewBox="0 0 108 132" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="mk3" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#132E24"></rect><circle cx="7" cy="7" r="2.6" fill="none" stroke="#CA8A04" stroke-width="1" opacity=".55"></circle></pattern></defs>
+          <rect width="108" height="132" fill="url(#mk3)"></rect>
+        </svg>
+        <span style="position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: #BE123C; font-size: 10px; font-weight: 700;">
+          <span class="dot" style="background: #F43F5E;"></span>Out
+        </span>
+      </div>
+      <div class="body">
+        <span class="title">Shea Butter 500g</span>
+        <span class="supplier">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V9l7-5 7 5v11"></path><path d="M10 20v-5h4v5"></path></svg>
+          Makola Wholesale Hub
+        </span>
+        <div style="display: flex; align-items: baseline; gap: 6px; margin-top: auto;">
+          <span class="num" style="font-size: 19px; font-weight: 800;">GH₵ 45</span>
+          <span style="font-size: 11px; color: #94A3B8;">sells for</span>
+        </div>
+        <div class="locked">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+          <span style="display: block; width: 70px; height: 14px; border-radius: 5px; background: #E2E8F0;"></span>
+          <span style="font-size: 10px; color: #94A3B8;">you keep</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
