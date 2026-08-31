@@ -309,7 +309,11 @@ defmodule EmakolaWeb.OnboardingLive do
           </div>
 
           <div class="flex flex-1 flex-col justify-center">
-            <%!-- Step 1: name and money --%>
+            <%!-- Step 1: name and money.
+               No autofocus: the question sits below the shop, so a keyboard
+               opening on load (Android honours it) scrolls the shop off
+               screen at the exact moment the merchant is meant to watch it
+               appear. One tap is cheaper than losing the point of the page. --%>
             <div :if={@step == 1} class="space-y-5">
               <div>
                 <h1 class="text-2xl font-extrabold leading-tight text-gray-900 lg:text-3xl">
@@ -324,7 +328,6 @@ defmodule EmakolaWeb.OnboardingLive do
                   type="text"
                   placeholder="Kojo's Fashion"
                   phx-debounce="300"
-                  autofocus
                   class="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-base font-semibold text-gray-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
                 />
               </.form>
@@ -737,6 +740,12 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   def handle_event("complete", _, socket) do
+    # The delivery question is asked on this screen, but the store was created
+    # on the way in to it — so the answer is written here, once it is actually
+    # known. Asking and then discarding the answer is the same failure as
+    # never asking, which is what left protection off almost everywhere.
+    save_buyer_protection(socket.assigns.created_store, socket.assigns.buyer_protection)
+
     {:noreply,
      socket
      |> put_flash(:info, "Welcome to Makola! Your store is ready.")
@@ -814,6 +823,23 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   defp apply_buyer_protection(store, _falsey), do: {:ok, store}
+
+  # A failed write must not strand the merchant on the last screen — they
+  # still have their store — but it is never silent: an answer that vanishes
+  # looks identical to a merchant who declined.
+  defp save_buyer_protection(nil, _enabled), do: :ok
+
+  defp save_buyer_protection(store, enabled) do
+    case apply_buyer_protection(store, enabled) do
+      {:ok, _store} ->
+        :ok
+
+      {:error, error} ->
+        Logger.error(
+          "Onboarding buyer-protection save failed for store #{store.id}: #{inspect(error)}"
+        )
+    end
+  end
 
   defp create_store(assigns) do
     user = assigns.current_user
