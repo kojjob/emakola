@@ -8,8 +8,11 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
   use EmakolaWeb, :live_view
 
   alias Emakola.Suppliers.Offers
+  alias EmakolaWeb.Live.Admin.SupplyStockStatus
 
-  import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
+  import EmakolaWeb.Admin.SupplyCatalogLive.Glyphs
+  import EmakolaWeb.Admin.SupplyCatalogLive.IndexComponents
+  import EmakolaWeb.Helpers.Currency, only: [format_price: 1, format_price_range: 3]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -18,7 +21,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
         page_title: "Browse Suppliers",
         active_nav: :supply_catalog,
         search: "",
-        search_form: to_form(%{"search" => ""})
+        search_form: to_form(%{"search" => ""}),
+        mine_only?: false
       )
 
     socket =
@@ -39,6 +43,11 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
 
   def handle_event("search", _params, socket), do: {:noreply, socket}
 
+  # Both filters are cuts over the list the merchant is already allowed to
+  # see, so there is nothing new to authorise: load_entries/1 did that.
+  def handle_event("toggle_mine", _params, socket),
+    do: {:noreply, assign(socket, mine_only?: !socket.assigns.mine_only?)}
+
   defp load_entries(socket) do
     with %{id: store_id} <- socket.assigns[:current_store],
          {:ok, entries} <- Offers.list_discoverable(socket.assigns.current_merchant, store_id) do
@@ -48,7 +57,13 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
     end
   end
 
-  defp filtered(entries, search) do
+  defp filtered(entries, assigns) do
+    entries
+    |> search_filter(assigns.search)
+    |> then(&if assigns.mine_only?, do: Enum.filter(&1, fn e -> e.connected? end), else: &1)
+  end
+
+  defp search_filter(entries, search) do
     case String.trim(String.downcase(search)) do
       "" ->
         entries
@@ -61,6 +76,37 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
     end
   end
 
+  defp stock(offer),
+    do: SupplyStockStatus.aggregate(Enum.map(offer.offer_variants, & &1.source_variant))
+
+  # The margin is the number a reseller decides on, and it is the reason to
+  # browse at all — but only a merchant the wholesaler has approved may see
+  # it. `connected?` is computed server-side in Offers.list_discoverable/2.
+  defp card_margin(_offer, false), do: nil
+
+  defp card_margin(offer, true) do
+    margins = Enum.map(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price))
+    {min, max} = Enum.min_max(margins)
+    format_price_range(min, max, "GHS")
+  end
+
+  defp card_dispatch(offer) do
+    case Map.values(offer.dispatch_fees) do
+      [] ->
+        nil
+
+      fees ->
+        {min, max} = Enum.min_max(fees)
+        if min == max, do: format_price(min), else: format_price_range(min, max, "GHS")
+    end
+  end
+
+  defp card_price(offer) do
+    prices = Enum.map(offer.offer_variants, & &1.suggested_retail_price)
+    {min, max} = Enum.min_max(prices)
+    format_price_range(min, max, "GHS")
+  end
+
   defp first_image_url(offer) do
     case offer.source_product.images do
       [_ | _] = images ->
@@ -69,25 +115,6 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
 
       _ ->
         nil
-    end
-  end
-
-  defp retail_range(offer) do
-    prices = Enum.map(offer.offer_variants, & &1.suggested_retail_price)
-    {Enum.min(prices), Enum.max(prices)}
-  end
-
-  defp dispatch_label(offer) do
-    case Map.values(offer.dispatch_fees) do
-      [] ->
-        "Dispatch —"
-
-      fees ->
-        {min, max} = {Enum.min(fees), Enum.max(fees)}
-
-        if min == max,
-          do: "#{format_price(min)} dispatch",
-          else: "#{format_price(min)}–#{format_price(max)} dispatch"
     end
   end
 
@@ -121,59 +148,45 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
         Loading catalog…
       </div>
 
+      <%!-- One cut, leading with its symbol; the word is the fallback, not the
+            channel. An "in stock" filter was drawn and then dropped: an offer
+            with no available variant is not discoverable in the first place
+            (Offers.discoverable?/1), so it would have filtered nothing. --%>
+      <div :if={!@loading} class="flex flex-wrap items-center gap-2.5 mb-4">
+        <button
+          phx-click="toggle_mine"
+          class={[
+            "inline-flex items-center gap-2 h-10 px-3.5 rounded-control text-[13px] font-bold",
+            "cursor-pointer transition-colors",
+            @mine_only? && "bg-primary-soft border border-emerald-200 text-primary-hover",
+            !@mine_only? && "bg-surface border border-border text-slate-600 hover:bg-surface-subtle"
+          ]}
+        >
+          <.glyph name={:connect} class="w-[19px] h-[19px]" stroke_width="1.9" /> My suppliers
+        </button>
+      </div>
+
       <div
-        :if={!@loading and filtered(@entries, @search) == []}
+        :if={!@loading and filtered(@entries, assigns) == []}
         class="py-16 text-center text-sm text-slate-500"
       >
         No supplier products match. Suppliers publish offers from their Partners page.
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <.link
-          :for={%{offer: offer, connected?: connected?} <- filtered(@entries, @search)}
-          navigate={~p"/admin/supply/catalog/#{offer.id}"}
-          class="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow"
-        >
-          <div class="aspect-[4/3] bg-slate-100 overflow-hidden">
-            <img
-              :if={first_image_url(offer)}
-              src={first_image_url(offer)}
-              alt={offer.source_product.title}
-              class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-            />
-          </div>
-          <div class="p-4 space-y-1.5">
-            <div class="flex items-start justify-between gap-2">
-              <p class="min-w-0 flex-1 font-semibold text-sm text-slate-900 truncate">
-                {offer.source_product.title}
-              </p>
-              <span
-                :if={connected?}
-                class="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5"
-              >
-                Connected
-              </span>
-            </div>
-            <p class="text-xs text-slate-500 truncate">{offer.wholesaler_store.name}</p>
-            <p class="text-sm font-medium text-slate-800">
-              {retail_range(offer)
-              |> then(fn {min, max} ->
-                if min == max,
-                  do: format_price(min),
-                  else: "#{format_price(min)} – #{format_price(max)}"
-              end)} <span class="text-xs text-slate-400">suggested retail</span>
-            </p>
-            <p class="text-xs text-slate-500">{dispatch_label(offer)}</p>
-            <div class="flex flex-wrap gap-1 pt-1">
-              <span
-                :for={area <- offer.delivery_areas}
-                class="text-[10px] text-slate-600 bg-slate-100 rounded-full px-2 py-0.5"
-              >
-                {area}
-              </span>
-            </div>
-          </div>
-        </.link>
+        <.offer_card
+          :for={%{offer: offer, connected?: connected?} <- filtered(@entries, assigns)}
+          id={"offer-card-#{offer.id}"}
+          href={~p"/admin/supply/catalog/#{offer.id}"}
+          title={offer.source_product.title}
+          supplier={offer.wholesaler_store.name}
+          image_url={first_image_url(offer)}
+          price={card_price(offer)}
+          margin={card_margin(offer, connected?)}
+          connected?={connected?}
+          stock={stock(offer)}
+          dispatch={card_dispatch(offer)}
+        />
       </div>
     </div>
     """

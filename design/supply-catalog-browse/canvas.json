@@ -1,0 +1,76 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 520,
+      "title": "Browse suppliers — the grid"
+    },
+    {
+      "file": "NoWords.dc.html",
+      "x": 0,
+      "y": 760,
+      "w": 1280,
+      "h": 790,
+      "title": "Read with the words removed"
+    },
+    {
+      "file": "OptionRows.dc.html",
+      "x": 0,
+      "y": 1790,
+      "w": 1280,
+      "h": 580,
+      "title": "Alternative — one row per offer"
+    },
+    {
+      "file": "Mobile.dc.html",
+      "x": 1400,
+      "y": 0,
+      "w": 390,
+      "h": 1160,
+      "title": "Phone"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "grid-note",
+      "x": 0,
+      "y": -250,
+      "w": 1280,
+      "text": "BROWSE SUPPLIERS — redrawn for merchants who do not read fluently.\n\nFour cards, four states: connected with a photo, not connected, no photo at all, out of stock.\n\nEvery card carries the same four symbols in the same four places — supplier letter, tag for the price, coins for what stays with you, bar for how much is left. Position and colour do the work that labels used to; the words are still there, at 10px, for whoever reads them.\n\nThree things the shipped page never showed: the margin (the number a reseller is actually deciding on), stock (a dead offer looked alive), and any fallback for an offer with no photo. The three identical area chips on every card became one dispatch number.\n\nBUILT 31 Aug. One filter shipped, not two: an \"In stock\" cut was drawn and then dropped, because Offers.discoverable?/1 already excludes any offer with no available variant — it would have filtered nothing, and an out-of-stock card can never render here. The stock bar stays, showing plenty vs nearly-gone, and never the wholesaler's raw count (SupplyStockStatus is status-only by contract)."
+    },
+    {
+      "id": "nowords-note",
+      "x": 0,
+      "y": 590,
+      "w": 1280,
+      "text": "THE TEST, not a decoration.\n\nCutting copy shorter helps a slow reader and does nothing at all for a non-reader — the only thing that helps is moving the answer into a picture, a colour, a position or a digit. So the middle card has every word covered.\n\nWhat still comes through: which product (the photo), which supplier (a letter in a fixed colour, ticked when you already deal with them), the price (tag, black, biggest number), what stays with you (coins, green, always in the green box under the price), how much is left (a bar you compare by length), and delivery (pin plus a number).\n\nDigits are the exception worth naming: a trader who cannot read a sentence still reads GH₵ 60. That is why every money value on this page is digits, never a word."
+    },
+    {
+      "id": "rows-note",
+      "x": 0,
+      "y": 1620,
+      "w": 1280,
+      "text": "THE ALTERNATIVE, if comparing beats browsing.\n\nSame facts, aligned in columns: every price on one vertical line, five suppliers compared in a single downward glance.\n\nAgainst, and it is the literacy argument: the photo shrinks to 56px, and for a merchant who reads slowly the picture IS the product name. It only starts paying at twenty-odd offers, which the catalogue does not have. The grid is what I would ship."
+    },
+    {
+      "id": "phone-note",
+      "x": 1400,
+      "y": -250,
+      "w": 390,
+      "text": "Landscape cards, not a 2-up grid.\n\nAt 390px two columns leave each price about 60px, and the price is the point. One card per row keeps the number at 19px.\n\nSearch and both filters clear 44px."
+    },
+    {
+      "id": "data-note",
+      "x": 1400,
+      "y": 1230,
+      "w": 390,
+      "text": "offers.ex already loads offer_variants in full here, so supplier_price is in memory — \"the index never renders wholesale\" is a rendering rule, not a data guarantee. The margin costs no new query, and renders only where connected? is true.\n\nOne correction this pass forced: the chain-link icon for \"connect\" is a developer's metaphor, exactly what the literacy note warns about. It is now the two-people mark the sidebar already uses for Partners — on this page AND on the offer page.\n\nGH₵ 22 on the tote is real. GH₵ 34 on the basket is a sample."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

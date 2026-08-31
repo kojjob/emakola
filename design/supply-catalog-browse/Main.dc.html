@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    * { box-sizing: border-box; }
+    .card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden; display: flex; flex-direction: column; }
+    .num { font-variant-numeric: tabular-nums; }
+    .title { font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .micro { font-size: 10px; color: #94A3B8; }
+    .body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 11px; flex-grow: 1; }
+    .art { position: relative; height: 156px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; }
+    /* One avatar per supplier: a letter in a fixed colour. A merchant who
+       cannot read the name still recognises the shape and the hue. */
+    .avatar { position: relative; width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #FFFFFF; flex-shrink: 0; }
+    .tick { position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; border-radius: 999px; background: #059669; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; }
+    .money { display: flex; align-items: center; gap: 9px; }
+    .keep { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 11px; background: #ECFDF5; border: 1px solid #A7F3D0; }
+    .locked { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 11px; background: #F1F5F9; border: 1px solid #E2E8F0; }
+    .meter { width: 54px; height: 6px; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+    .foot { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-top: 1px solid #F1F5F9; background: #F8FAFC; }
+    .filter { display: inline-flex; align-items: center; gap: 7px; height: 42px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+  </style>
+</helmet>
+
+<div style="padding: 26px 28px 34px; display: flex; flex-direction: column; gap: 18px;">
+
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="width: 48px; height: 48px; border-radius: 12px; background: #059669; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.4 4.6A1.4 1.4 0 0 1 6.8 3.6h10.4a1.4 1.4 0 0 1 1.4 1L20 9.5"></path><path d="M4 9.5h16v9.5a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V9.5Z"></path><path d="M9.4 20.4V15h5.2v5.4"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+      <span style="font-size: 24px; font-weight: 800; letter-spacing: -.01em;">Browse suppliers</span>
+      <span style="font-size: 13px; color: #64748B;">Products you can stock</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <!-- Filters lead with the picture. The word is there for whoever reads
+           it, at half the weight of the symbol. -->
+      <span class="filter" style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.4 19.2a5.6 5.6 0 0 1 11.2 0"></path><circle cx="17.6" cy="9.6" r="2.5"></circle><path d="M15.4 19.2a5.1 5.1 0 0 1 5.9-4.4"></path></svg>
+        My suppliers
+      </span>
+      <div style="display: inline-flex; align-items: center; gap: 8px; height: 42px; width: 240px; padding: 0 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E2E8F0;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+        <span style="font-size: 13px; color: #94A3B8;">Search</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ THE GRID ═══════════════════════════════════════════════
+       Every card carries the same four symbols in the same four places:
+       supplier letter, tag = the price, coins = what stays with you,
+       bar = how much stock. A merchant who reads nothing still gets all
+       four by shape, colour and position. -->
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+
+    <!-- 1 — connected, photo, in stock -->
+    <div class="card">
+      <div class="art" style="background: #0C1F17;">
+        <svg width="100%" height="156" viewBox="0 0 286 156" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="kente1" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9h18M9 0v18" stroke="#134E3A" stroke-width="7"></path><path d="M0 0l18 18M18 0L0 18" stroke="#CA8A04" stroke-width="1.3" opacity=".5"></path></pattern></defs>
+          <rect width="286" height="156" fill="url(#kente1)"></rect>
+        </svg>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="avatar" style="background: #7C3AED;">K<span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg></span></span>
+          <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+            <span class="title">Adinkra Print Tote</span>
+            <span class="micro">Kumasi Textiles Ltd</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 60</span>
+              <span class="micro">sells for</span>
+            </div>
+          </div>
+          <div class="keep">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 17px; font-weight: 800; color: #047857; line-height: 1.1;">GH₵ 22</span>
+              <span style="font-size: 10px; font-weight: 700; color: #059669;">you keep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="meter"><span style="display: block; height: 100%; width: 82%; border-radius: 999px; background: #10B981;"></span></span>
+        <span style="font-size: 11px; font-weight: 700; color: #64748B;">In stock</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          <span class="num" style="font-size: 12px; font-weight: 700; color: #334155;">GH₵ 10</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 2 — not connected: no sentence, just the lock and a covered amount -->
+    <div class="card">
+      <div class="art" style="background: #0C1F17;">
+        <svg width="100%" height="156" viewBox="0 0 286 156" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="kente2" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#12352A"></rect><path d="M0 11h22" stroke="#CA8A04" stroke-width="2.4" opacity=".65"></path><path d="M11 0v22" stroke="#0E4034" stroke-width="8"></path></pattern></defs>
+          <rect width="286" height="156" fill="url(#kente2)"></rect>
+        </svg>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="avatar" style="background: #0891B2;">M</span>
+          <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+            <span class="title">Kente Stole</span>
+            <span class="micro">Makola Wholesale Hub</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 120–180</span>
+              <span class="micro">sells for</span>
+            </div>
+          </div>
+          <div class="locked">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="display: block; width: 76px; height: 15px; border-radius: 5px; background: #E2E8F0;"></span>
+              <span class="micro">you keep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="meter"><span style="display: block; height: 100%; width: 64%; border-radius: 999px; background: #10B981;"></span></span>
+        <span style="font-size: 11px; font-weight: 700; color: #64748B;">In stock</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          <span style="font-size: 11px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 999px; padding: 3px 8px;">Ask</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 3 — no photo: the glyph is the product -->
+    <div class="card">
+      <div class="art">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1.2 12.1a1.6 1.6 0 0 1-1.6 1.9H6.4a1.6 1.6 0 0 1-1.6-1.9Z"></path><path d="M9 7V5.5a3 3 0 0 1 6 0V7"></path><path d="M9.5 12.5h5M10.6 15.4h2.8"></path></svg>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="avatar" style="background: #7C3AED;">K<span class="tick"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"></path></svg></span></span>
+          <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+            <span class="title">Bolga Basket</span>
+            <span class="micro">Kumasi Textiles Ltd</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 95</span>
+              <span class="micro">sells for</span>
+            </div>
+          </div>
+          <div class="keep">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"></ellipse><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"></path><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"></path></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 17px; font-weight: 800; color: #047857; line-height: 1.1;">GH₵ 34</span>
+              <span style="font-size: 10px; font-weight: 700; color: #059669;">you keep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="meter"><span style="display: block; height: 100%; width: 18%; border-radius: 999px; background: #F59E0B;"></span></span>
+        <span style="font-size: 11px; font-weight: 700; color: #B45309;">Low</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          <span class="num" style="font-size: 12px; font-weight: 700; color: #334155;">GH₵ 10</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 4 — not connected, and running low: the bar is the whole signal -->
+    <div class="card">
+      <div class="art" style="background: #0C1F17;">
+        <svg width="100%" height="156" viewBox="0 0 286 156" preserveAspectRatio="xMidYMid slice">
+          <defs><pattern id="kente3" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#132E24"></rect><circle cx="8" cy="8" r="3" fill="none" stroke="#CA8A04" stroke-width="1.1" opacity=".55"></circle></pattern></defs>
+          <rect width="286" height="156" fill="url(#kente3)"></rect>
+        </svg>
+      </div>
+      <div class="body">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="avatar" style="background: #0891B2;">M</span>
+          <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+            <span class="title">Shea Butter 500g</span>
+            <span class="micro">Makola Wholesale Hub</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+          <div class="money">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+            <div style="display: flex; flex-direction: column;">
+              <span class="num" style="font-size: 20px; font-weight: 800; line-height: 1.1;">GH₵ 45</span>
+              <span class="micro">sells for</span>
+            </div>
+          </div>
+          <div class="locked">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="display: block; width: 76px; height: 15px; border-radius: 5px; background: #E2E8F0;"></span>
+              <span class="micro">you keep</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="meter"><span style="display: block; height: 100%; width: 30%; border-radius: 999px; background: #F59E0B;"></span></span>
+        <span style="font-size: 11px; font-weight: 700; color: #B45309;">Low</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          <span class="num" style="font-size: 12px; font-weight: 700; color: #334155;">GH₵ 15</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

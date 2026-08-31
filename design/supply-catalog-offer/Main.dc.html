@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #047857; text-decoration: none; }
+    a:hover { color: #065F46; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; border: 0; cursor: pointer; }
+    .card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+    .label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 16px; background: #F8FAFC;">
+
+  <!-- Back -->
+  <div style="display: flex; align-items: center; gap: 6px; color: #64748B; font-size: 14px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+    <span>Browse suppliers</span>
+  </div>
+
+  <!-- ── HERO ─────────────────────────────────────────────────────
+       The old page gave half the width to an image well that is empty
+       whenever the supplier uploaded no photo — which is the common case.
+       Identity now costs 96px: a glyph tile, or the photo when there is one. -->
+  <div class="card" style="padding: 24px; display: flex; align-items: flex-start; gap: 20px;">
+    <div style="width: 96px; height: 96px; flex-shrink: 0; border-radius: 16px; background: #ECFDF5; border: 1px solid #D1FAE5; display: flex; align-items: center; justify-content: center;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l1.2 12.1a1.6 1.6 0 0 1-1.6 1.9H6.4a1.6 1.6 0 0 1-1.6-1.9Z"></path><path d="M9 7V5.5a3 3 0 0 1 6 0V7"></path><path d="M9.5 12.5h5M10.6 15.4h2.8"></path></svg>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0; flex-grow: 1;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2;">Adinkra Print Tote</h1>
+        <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: #ECFDF5; color: #047857; font-size: 11px; font-weight: 700;">
+          <span style="width: 6px; height: 6px; border-radius: 999px; background: #10B981;"></span>In stock
+        </span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #64748B;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18M5 20V9l7-5 7 5v11"></path><path d="M10 20v-5h4v5"></path></svg>
+        <span>Supplied by <span style="color: #334155; font-weight: 600;">Kumasi Textiles Ltd</span></span>
+      </div>
+
+      <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #475569; max-width: 62ch; text-wrap: pretty;">Authentic Adinkra Print Tote sourced directly from the maker.</p>
+    </div>
+  </div>
+
+  <!-- ── THE MONEY ────────────────────────────────────────────────
+       Three tiles carry the only three numbers a reseller decides on.
+       Two of them are locked, and locked reads as a covered value, not
+       as a padlock character in a table cell. -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+
+    <div class="card" style="padding: 20px; background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 60%); display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="label">Sells for</span>
+          <span style="font-size: 11px; color: #94A3B8;">suggested</span>
+        </div>
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #2563EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+        </div>
+      </div>
+      <span class="num" style="font-size: 30px; font-weight: 800; letter-spacing: -.02em;">GH₵ 60</span>
+    </div>
+
+    <div class="card" style="padding: 20px; background: linear-gradient(135deg, #F1F5F9 0%, #FFFFFF 60%); display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="label">You pay</span>
+          <span style="font-size: 11px; color: #94A3B8;">wholesale</span>
+        </div>
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #7C3AED; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+                <span style="display: block; width: 84px; height: 18px; border-radius: 6px; background: #E2E8F0;"></span>
+        <span style="font-size: 12px; color: #94A3B8;">Connect to see</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 20px; background: linear-gradient(135deg, #F1F5F9 0%, #FFFFFF 60%); display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="label">You keep</span>
+          <span style="font-size: 11px; color: #94A3B8;">your margin</span>
+        </div>
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #059669; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+                <span style="display: block; width: 84px; height: 18px; border-radius: 6px; background: #E2E8F0;"></span>
+        <span style="font-size: 12px; color: #94A3B8;">Connect to see</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── THE ONE ACTION ───────────────────────────────────────────
+       Was a grey sentence above a green button. It is now the loudest
+       thing under the numbers it unlocks, and it is the only primary
+       action on the page. -->
+  <div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; gap: 18px;">
+    <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px; background: #059669; display: flex; align-items: center; justify-content: center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 13.4a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.3 1.3"></path><path d="M13.4 10.6a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.3-1.3"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0;">
+      <span style="font-size: 17px; font-weight: 800; color: #064E3B;">See your price and profit</span>
+      <span style="font-size: 13px; color: #047857; line-height: 1.5;">Kumasi Textiles Ltd reviews your request, then wholesale prices open up.</span>
+    </div>
+    <button style="flex-shrink: 0; min-height: 48px; padding: 0 22px; border-radius: 12px; background: #059669; color: #FFFFFF; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+      Request connection
+    </button>
+  </div>
+
+  <!-- ── DISPATCH + TERMS ─────────────────────────────────────────
+       Both were text lists. Each fact now leads with the icon that
+       identifies it, so the card can be read without reading it. -->
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+
+    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: #F8FAFC; border-bottom: 1px solid #F1F5F9;">
+        <span style="width: 30px; height: 30px; border-radius: 10px; background: #ECFEFF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.6A1.6 1.6 0 0 1 4.6 5H14v10H4.6A1.6 1.6 0 0 1 3 13.4Z"></path><path d="M14 8.6h3.4L21 12.2V15h-7Z"></path><circle cx="7.4" cy="17.6" r="1.9"></circle><circle cx="17.2" cy="17.6" r="1.9"></circle></svg></span>
+        <span class="label">Dispatch cost by area</span>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #F1F5F9;">
+          <div style="width: 32px; height: 32px; border-radius: 10px; background: #ECFEFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          </div>
+          <span style="font-size: 14px; color: #334155; flex-grow: 1;">Greater Accra</span>
+          <span class="num" style="font-size: 15px; font-weight: 700;">GH₵ 10</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #F1F5F9;">
+          <div style="width: 32px; height: 32px; border-radius: 10px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          </div>
+          <span style="font-size: 14px; color: #334155; flex-grow: 1;">Ashanti</span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 999px; padding: 5px 10px;">Ask supplier</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 10px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.6 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21Z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+          </div>
+          <span style="font-size: 14px; color: #334155; flex-grow: 1;">Northern</span>
+          <span style="font-size: 11px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 999px; padding: 5px 10px;">Ask supplier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: #F8FAFC; border-bottom: 1px solid #F1F5F9;">
+        <span style="width: 30px; height: 30px; border-radius: 10px; background: #F5F3FF; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 5 6v5.4c0 4.2 2.9 7.6 7 9.4 4.1-1.8 7-5.2 7-9.4V6Z"></path></svg></span>
+        <span class="label">Supplier terms</span>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #F1F5F9;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4.5 9.5 9 5"></path><path d="M4.5 9.5h9A6 6 0 0 1 19.5 15.5v0A6 6 0 0 1 13.5 21.5H8"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 14px; font-weight: 700;">7 days to return</span>
+            <span style="font-size: 13px; color: #64748B; line-height: 1.5;">Unused and in the original wrap.</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #EFF6FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 5 6v5.4c0 4.2 2.9 7.6 7 9.4 4.1-1.8 7-5.2 7-9.4V6Z"></path><path d="m9.2 11.8 2 2 3.6-3.8"></path></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 14px; font-weight: 700;">6 months warranty</span>
+            <span style="font-size: 13px; color: #64748B; line-height: 1.5;">Craftsmanship defects replaced free.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VARIANTS ─────────────────────────────────────────────────
+       Same table the app already ships. The locked cells lose the
+       padlock emoji: a drawn lock, one word, aligned with the column. -->
+  <div class="card" style="overflow: hidden;">
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 12px 20px; background: #F8FAFC; border-bottom: 1px solid #F1F5F9;">
+      <span class="label">Variant</span>
+      <span class="label" style="text-align: right;">Sells for</span>
+      <span class="label" style="text-align: right;">You pay</span>
+      <span class="label" style="text-align: right;">You keep</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 16px 20px; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 30px; height: 30px; border-radius: 9px; background: #F1F5F9; display: flex; align-items: center; justify-content: center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.6 12 3.4l8 4.2v8.8L12 20.6 4 16.4Z"></path><path d="M4 7.6 12 12l8-4.4M12 12v8.6"></path></svg>
+        </div>
+        <span style="font-size: 14px; color: #334155;">ADK-TOTE</span>
+      </div>
+      <span class="num" style="text-align: right; font-size: 15px; font-weight: 700;">GH₵ 60</span>
+      <span style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; color: #94A3B8; font-size: 13px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+        Connect to see
+      </span>
+      <span style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; color: #94A3B8; font-size: 13px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"></rect><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"></path></svg>
+        Connect to see
+      </span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
