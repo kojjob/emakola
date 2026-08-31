@@ -806,7 +806,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         >
                           {variant.stock_quantity}
                         </button>
-                        <.stock_meter quantity={variant.stock_quantity} />
+                        <.stock_meter
+                          quantity={variant.stock_quantity}
+                          tracked={variant.track_inventory}
+                        />
                       </div>
                       <.location_breakdown
                         :if={@multi_location?}
@@ -922,7 +925,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               <div>
                 <div class="flex items-center gap-2 text-sm text-slate-600">
                   <span class="text-slate-400">Stock:</span>
-                  <.stock_meter quantity={variant.stock_quantity} />
+                  <.stock_meter quantity={variant.stock_quantity} tracked={variant.track_inventory} />
                 </div>
                 <.location_breakdown
                   :if={@multi_location?}
