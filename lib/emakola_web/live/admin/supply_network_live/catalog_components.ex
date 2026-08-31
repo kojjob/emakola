@@ -323,7 +323,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
         <article
           :for={{dom_id, listing} <- @streams.listings}
           id={dom_id}
-          class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          class="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
             <.icon name="hero-check" class="size-5" />

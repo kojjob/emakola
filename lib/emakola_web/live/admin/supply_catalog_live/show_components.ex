@@ -28,9 +28,9 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.ShowComponents do
     ~H"""
     <div
       id="offer-identity"
-      class="relative w-24 h-24 shrink-0 rounded-card overflow-hidden bg-primary-soft border border-emerald-100 flex items-center justify-center"
+      class="relative w-16 h-16 sm:w-24 sm:h-24 shrink-0 rounded-card overflow-hidden bg-primary-soft border border-emerald-100 flex items-center justify-center"
     >
-      <.glyph name={:product} class="w-11 h-11 text-primary" stroke_width="1.6" />
+      <.glyph name={:product} class="w-8 h-8 sm:w-11 sm:h-11 text-primary" stroke_width="1.6" />
       <img
         :if={@image_url}
         src={@image_url}
@@ -58,6 +58,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.ShowComponents do
   attr :icon, :atom, required: true
   attr :tone, :atom, default: :neutral, values: [:info, :accent, :neutral, :primary]
   attr :value_role, :string, default: nil, doc: "data-role on the amount, for tests to pin"
+  attr :class, :string, default: nil
   slot :delta
 
   def money_tile(assigns) do
@@ -65,7 +66,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.ShowComponents do
     <div class={[
       "rounded-card border p-5 flex flex-col gap-3.5",
       @value && tile_wash(@tone),
-      is_nil(@value) && "bg-gradient-to-br from-slate-100 to-surface border-border"
+      is_nil(@value) && "bg-gradient-to-br from-slate-100 to-surface border-border",
+      @class
     ]}>
       <div class="flex items-start justify-between gap-3">
         <div class="flex flex-col gap-0.5">

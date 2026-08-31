@@ -109,6 +109,15 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     Float.round(margin(variant) * 100 / variant.supplier_price, 1)
   end
 
+  # The wholesaler's own category name. Store-scoped, so it says what THEY
+  # call it and claims nothing about anybody else's catalogue.
+  defp offer_category(offer) do
+    case offer.source_product.category do
+      %{name: name} -> name
+      _ -> nil
+    end
+  end
+
   defp primary_image_url(product) do
     product.images
     |> List.wrap()
@@ -194,11 +203,18 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               </div>
             </div>
 
-            <p class="flex items-center gap-2 text-sm text-text-muted">
+            <p class="flex flex-wrap items-center gap-2 text-sm text-text-muted">
               <.glyph name={:supplier} class="w-4 h-4 text-slate-400" />
               <span>
                 Supplied by
                 <span class="font-semibold text-slate-700">{@offer.wholesaler_store.name}</span>
+              </span>
+              <span
+                :if={offer_category(@offer)}
+                data-role="offer-category"
+                class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-text-muted"
+              >
+                {offer_category(@offer)}
               </span>
             </p>
 
@@ -212,13 +228,16 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               as covered values rather than emptied cells. --%>
         <% tiles = stat_tiles(@offer) %>
         <% connected? = @connection_status == :connected %>
-        <div id="offer-money" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <%!-- On a phone the one open number takes the width and the two locked
+              ones share the row beneath it; from sm up all three sit level. --%>
+        <div id="offer-money" class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           <.money_tile
             label="Sells for"
             sub="suggested"
             value={tiles.retail}
             icon={:tag}
             tone={:info}
+            class="col-span-2 sm:col-span-1"
           />
           <.money_tile
             label="You pay"
@@ -380,7 +399,53 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
 
         <%!-- Variants. The locked cells lose the padlock emoji: a drawn lock
               and the same three words used everywhere else on the page. --%>
-        <div class="rounded-card border border-border bg-surface shadow-sm overflow-x-auto">
+        <div
+          :if={@offer.offer_variants != []}
+          data-role="variant-rows"
+          class="sm:hidden flex flex-col gap-3"
+        >
+          <div
+            :for={variant <- @offer.offer_variants}
+            class="rounded-card border border-border bg-surface shadow-sm p-4 flex flex-col gap-2.5"
+          >
+            <span class="flex items-center gap-2.5">
+              <span class="w-[30px] h-[30px] rounded-[9px] bg-info-soft text-info flex items-center justify-center shrink-0">
+                <.glyph name={:variant} class="w-4 h-4" />
+              </span>
+              <span class="text-sm font-bold text-text">
+                {variant.source_variant.sku || "Default"}
+              </span>
+              <span class="ml-auto text-[15px] font-bold text-text tabular-nums">
+                {format_price(variant.suggested_retail_price)}
+              </span>
+            </span>
+            <span :if={connected?} class="flex items-center justify-between gap-3 text-sm">
+              <span class="text-text-muted">You pay</span>
+              <span class="font-semibold text-slate-700 tabular-nums">
+                {format_price(variant.supplier_price)}
+              </span>
+            </span>
+            <span :if={connected?} class="flex items-center justify-between gap-3 text-sm">
+              <span class="text-text-muted">You keep</span>
+              <span class="font-bold text-primary-hover tabular-nums">
+                <%= if @offer.earning_model == :fixed_commission do %>
+                  {format_price(variant.fixed_commission_amount || 0)}
+                <% else %>
+                  {format_price(margin(variant))} ({margin_pct(variant)}%)
+                <% end %>
+              </span>
+            </span>
+            <span
+              :if={not connected?}
+              class="inline-flex items-center gap-1.5 text-[13px] text-slate-400"
+            >
+              <.glyph name={:lock} class="w-[15px] h-[15px] text-slate-300" stroke_width="2" />
+              Connect to see
+            </span>
+          </div>
+        </div>
+
+        <div class="hidden sm:block rounded-card border border-border bg-surface shadow-sm overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-xs font-bold uppercase tracking-wider text-text-muted bg-surface-subtle">

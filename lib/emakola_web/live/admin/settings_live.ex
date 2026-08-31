@@ -217,7 +217,10 @@ defmodule EmakolaWeb.Admin.SettingsLive do
       <div class="flex flex-col md:flex-row gap-6">
         <%!-- Left tabs --%>
         <div class="md:w-56 shrink-0">
-          <div class="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+          <%!-- Wraps on a phone rather than scrolling sideways: the strip ran
+                343px past a 390px screen, so half the settings sections were
+                reachable only by dragging a bar with no affordance. --%>
+          <div class="flex flex-wrap md:flex-col md:flex-nowrap gap-1 md:overflow-x-visible pb-2 md:pb-0">
             <.tab_button tab="general" active_tab={@active_tab} icon="hero-cog-6-tooth">
               General
             </.tab_button>
@@ -795,6 +798,26 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             </.admin_button>
           </div>
         </.form>
+      </.admin_card>
+
+      <%!-- The pickup address page existed with no link pointing at it from
+           anywhere in the app. It is contact detail, so it lives here. --%>
+      <.admin_card>
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Store Address</h3>
+            <p class="text-sm text-slate-500 mt-1">Where buyers collect, and where returns go</p>
+          </div>
+          <.link
+            navigate={~p"/admin/settings/address"}
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+          >
+            <.icon name="hero-map-pin" class="size-4" /> Set address
+          </.link>
+        </div>
+        <p class="text-sm text-slate-500">
+          Used for pickup orders and on the paperwork buyers receive.
+        </p>
       </.admin_card>
     </div>
     """

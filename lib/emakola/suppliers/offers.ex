@@ -158,7 +158,7 @@ defmodule Emakola.Suppliers.Offers do
         )
         |> Ash.Query.load([
           :wholesaler_store,
-          source_product: :images,
+          source_product: [:images, :category],
           offer_variants: :source_variant
         ])
 
@@ -210,7 +210,7 @@ defmodule Emakola.Suppliers.Offers do
          |> Ash.Query.sort(published_at: :desc)
          |> Ash.Query.load([
            :wholesaler_store,
-           source_product: :images,
+           source_product: [:images, :category],
            offer_variants: :source_variant
          ])
          |> Ash.read(authorize?: false) do
@@ -226,7 +226,7 @@ defmodule Emakola.Suppliers.Offers do
          |> Ash.Query.limit(200)
          |> Ash.Query.load([
            :wholesaler_store,
-           source_product: :images,
+           source_product: [:images, :category],
            offer_variants: :source_variant
          ])
          |> Ash.read(authorize?: false) do
