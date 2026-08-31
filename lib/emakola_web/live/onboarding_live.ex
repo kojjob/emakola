@@ -17,10 +17,12 @@ defmodule EmakolaWeb.OnboardingLive do
   @theme_save_flash "Your store is ready, but we couldn't apply your theme — " <>
                       "you can set it anytime from Admin → Theme."
 
+  # Short spoken names, not codes: the button already shows the symbol, and
+  # a merchant who does not read well recognises "Cedi" faster than "GHS".
   @currencies [
-    %{code: "GHS", label: "GHS — Ghana Cedi", flag: "\u{1F1EC}\u{1F1ED}"},
-    %{code: "NGN", label: "NGN — Nigerian Naira", flag: "\u{1F1F3}\u{1F1EC}"},
-    %{code: "USD", label: "USD — US Dollar", flag: "\u{1F1FA}\u{1F1F8}"}
+    %{code: "GHS", name: "Cedi"},
+    %{code: "NGN", name: "Naira"},
+    %{code: "USD", name: "Dollar"}
   ]
 
   # Editorial copy per theme, in the order the picker presents them.
@@ -64,6 +66,8 @@ defmodule EmakolaWeb.OnboardingLive do
        |> put_flash(:info, "You've already completed onboarding")
        |> push_navigate(to: "/dashboard")}
     else
+      themes = build_themes()
+
       {:ok,
        assign(socket,
          page_title: "Set Up Your Store",
@@ -76,11 +80,11 @@ defmodule EmakolaWeb.OnboardingLive do
          store_name_form: value_form("store_name", ""),
          store_slug: "",
          currency: "GHS",
-         currency_form: value_form("currency", "GHS"),
          currencies: @currencies,
-         themes: build_themes(),
+         themes: themes,
          preview_font_urls: preview_font_urls(),
          selected_theme: "market",
+         current_theme: current_theme(themes, "market"),
          product_name: "",
          product_name_form: value_form("product_name", ""),
          product_price: "",
@@ -94,42 +98,203 @@ defmodule EmakolaWeb.OnboardingLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} variant={:plain}>
-      <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <%!-- Webfonts for the theme previews. root.html.heex only loads the
-           admin fonts (Inter, Manrope, JetBrains Mono), so without these
-           links every serif/display preview silently renders in its
-           Georgia/system fallback — the merchant would not be seeing the
-           theme they are choosing. Loaded here (not globally) so admin
-           pages don't pay for fonts they never render; browsers honour
-           <link rel="stylesheet"> in the body. Rendered from step 1 so
-           the faces are warm before the picker appears. --%>
-        <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
-        <div class="w-full max-w-lg space-y-8">
-          <%!-- Step indicator --%>
-          <div class="text-center">
-            <div class="flex items-center gap-2 mb-2">
+      <%!-- Webfonts for the shop preview and the look swatches. root.html.heex
+         only loads the admin fonts (Inter, Manrope, JetBrains Mono), so
+         without these links every serif/display face silently renders in its
+         Georgia/system fallback — the merchant would not be seeing the look
+         they are choosing. Loaded here, not globally, so admin pages don't
+         pay for fonts they never render. --%>
+      <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
+
+      <div class="flex min-h-screen flex-col bg-slate-900 lg:flex-row-reverse">
+        <%!-- ── The shop being built ──
+           This is the progress indicator. There is no step counter and no
+           progress bar to read: the merchant's own shop sits here and fills
+           in as they answer — the sign goes up as they type, the whole shop
+           repaints when they pick a look, their product lands on the shelf. --%>
+        <div class="flex-none bg-gradient-to-br from-[#14283C] to-slate-900 px-5 pb-10 pt-6 lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-12">
+          <div class="mx-auto w-full max-w-3xl">
+            <div class="mb-3 flex items-center justify-between gap-4 lg:mb-4">
+              <p class="text-[11px] font-bold uppercase tracking-[0.08em] text-white/55">
+                Your shop so far
+              </p>
               <div
-                :for={i <- 1..@total_steps}
-                class={[
-                  "h-1.5 flex-1 rounded-full transition-all duration-300",
-                  if(i <= @step, do: "bg-emerald-500", else: "bg-gray-200")
-                ]}
+                id="onboarding-progress"
+                class="flex items-center gap-1.5"
+                aria-label={"Step #{@step} of #{@total_steps}"}
+              >
+                <span
+                  :for={i <- 1..@total_steps}
+                  data-onboarding-dot={i}
+                  aria-current={if i == @step, do: "step"}
+                  class={[
+                    "h-1.5 rounded-full transition-all duration-300 motion-reduce:transition-none",
+                    cond do
+                      i == @step -> "w-5 bg-emerald-400"
+                      i < @step -> "w-1.5 bg-emerald-400"
+                      true -> "w-1.5 bg-white/25"
+                    end
+                  ]}
+                >
+                </span>
+              </div>
+            </div>
+
+            <div
+              id="onboarding-shop-preview"
+              class="overflow-hidden rounded-2xl shadow-2xl shadow-black/50"
+              style={"background-color: #{@current_theme.colors.background};"}
+            >
+              <%!-- Shop nav --%>
+              <div
+                class="flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4"
+                style={"background-color: #{@current_theme.colors.surface};"}
+              >
+                <div
+                  class="h-2 w-16 rounded-full lg:h-3 lg:w-24"
+                  style={"background-color: #{@current_theme.colors.primary};"}
+                >
+                </div>
+                <div class="flex items-center gap-2 lg:gap-3.5">
+                  <div
+                    class="h-1.5 w-6 rounded-full opacity-25 lg:w-9"
+                    style={"background-color: #{@current_theme.colors.primary};"}
+                  >
+                  </div>
+                  <div
+                    class="h-1.5 w-6 rounded-full opacity-25 lg:w-9"
+                    style={"background-color: #{@current_theme.colors.primary};"}
+                  >
+                  </div>
+                  <div
+                    class="h-2.5 w-2.5 rounded-full lg:h-4 lg:w-4"
+                    style={"background-color: #{@current_theme.colors.accent};"}
+                  >
+                  </div>
+                </div>
+              </div>
+
+              <%!-- The shop sign: the merchant's own name, in the face of the
+                 look they picked. --%>
+              <div class="px-4 pb-4 pt-5 lg:px-8 lg:pb-6 lg:pt-8">
+                <p
+                  id="onboarding-shop-sign"
+                  class="truncate text-2xl font-bold leading-tight lg:text-4xl"
+                  style={"color: #{@current_theme.colors.text}; font-family: #{@current_theme.font_stack};"}
+                >
+                  {preview_store_name(@store_name)}
+                </p>
+                <div
+                  class="mt-2 h-1 w-16 rounded-full opacity-30 lg:mt-3.5 lg:h-1.5 lg:w-28"
+                  style={"background-color: #{@current_theme.colors.text};"}
+                >
+                </div>
+                <div
+                  class="mt-3 h-6 w-24 rounded-full lg:mt-5 lg:h-8 lg:w-36"
+                  style={"background-color: #{@current_theme.colors.accent};"}
+                >
+                </div>
+              </div>
+
+              <%!-- The shelf. The first slot is the merchant's own product
+                 once they name it; the rest stand in for a stocked shop. --%>
+              <div class="grid grid-cols-4 gap-2 px-4 pb-4 lg:gap-4 lg:px-8 lg:pb-8">
+                <div
+                  id="onboarding-shelf-hero"
+                  class="overflow-hidden rounded-lg shadow-sm"
+                  style={shelf_hero_style(@current_theme, @product_name)}
+                >
+                  <div
+                    class="flex h-14 w-full items-center justify-center lg:h-28"
+                    style={"background-color: #{shelf_hero_fill(@current_theme, @product_name)};"}
+                  >
+                    <svg
+                      :if={@product_name == ""}
+                      class="h-5 w-5 opacity-40 lg:h-8 lg:w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.6"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-9Z"
+                      />
+                      <circle cx="12" cy="12.5" r="3.4" />
+                    </svg>
+                  </div>
+                  <div class="px-1.5 py-1.5 lg:px-3 lg:py-3">
+                    <p
+                      :if={@product_name != ""}
+                      class="truncate text-[10px] font-semibold leading-tight lg:text-sm"
+                      style={"color: #{@current_theme.colors.text};"}
+                    >
+                      {@product_name}
+                    </p>
+                    <div
+                      :if={@product_name == ""}
+                      class="h-1 w-3/4 rounded-full opacity-20 lg:h-2"
+                      style={"background-color: #{@current_theme.colors.text};"}
+                    >
+                    </div>
+                    <p
+                      class="mt-1 text-[9px] font-bold leading-none lg:mt-2 lg:text-base"
+                      style={"color: #{@current_theme.colors.primary};"}
+                    >
+                      {shelf_hero_price(@product_name, @product_price, @currency)}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  :for={{minor, index} <- Enum.with_index(shelf_filler_prices())}
+                  class="overflow-hidden rounded-lg shadow-sm"
+                  style={"background-color: #{@current_theme.colors.surface};"}
+                >
+                  <div
+                    class={[
+                      "h-14 w-full lg:h-28",
+                      if(rem(index, 2) == 0, do: "opacity-40", else: "opacity-70")
+                    ]}
+                    style={"background-color: #{if index == 1, do: @current_theme.colors.accent, else: @current_theme.colors.primary};"}
+                  >
+                  </div>
+                  <div class="px-1.5 py-1.5 lg:px-3 lg:py-3">
+                    <div
+                      class="h-1 w-3/4 rounded-full opacity-20 lg:h-2"
+                      style={"background-color: #{@current_theme.colors.text};"}
+                    >
+                    </div>
+                    <p
+                      class="mt-1 text-[9px] font-bold leading-none lg:mt-2 lg:text-base"
+                      style={"color: #{@current_theme.colors.text};"}
+                    >
+                      {format_minor_price(minor, @currency)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="h-4 w-full lg:h-7"
+                style={"background-color: #{@current_theme.colors.primary};"}
               >
               </div>
             </div>
-            <p class="text-xs font-medium text-gray-500">
-              Step {@step} of {@total_steps}
-            </p>
           </div>
+        </div>
 
-          <%!-- Error display --%>
+        <%!-- ── One question at a time ── --%>
+        <div class="relative z-10 -mt-5 flex flex-1 flex-col rounded-t-3xl bg-white px-5 pb-7 pt-7 lg:mt-0 lg:w-[520px] lg:flex-none lg:rounded-none lg:px-12 lg:pb-10 lg:pt-10">
           <div
             :if={@error}
             id="onboarding-error"
-            class="flex items-center gap-2 bg-red-50 text-red-700 text-sm font-medium p-4 rounded-xl border border-red-200"
+            class="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
           >
             <svg
-              class="w-5 h-5 flex-shrink-0"
+              class="h-5 w-5 flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
               aria-hidden="true"
@@ -143,456 +308,329 @@ defmodule EmakolaWeb.OnboardingLive do
             {@error}
           </div>
 
-          <%!-- Step 1: Name Your Store --%>
-          <div :if={@step == 1} class="space-y-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-              <svg
-                class="w-8 h-8 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"
-                />
-              </svg>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Name Your Store
-            </h1>
-            <p class="text-gray-500">
-              What should we call your online store?
-            </p>
-
-            <div class="space-y-4 text-left">
+          <div class="flex flex-1 flex-col justify-center">
+            <%!-- Step 1: name and money --%>
+            <div :if={@step == 1} class="space-y-5">
               <div>
-                <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Store name
-                </label>
-                <.form for={@store_name_form} id="store-name-form" phx-change="update_store_name">
-                  <.input
-                    field={@store_name_form[:store_name]}
-                    type="text"
-                    placeholder="e.g. Kojo's Fashion"
-                    phx-debounce="300"
-                    autofocus
-                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </.form>
-                <p
-                  :if={@store_slug != ""}
-                  id="store-slug-preview"
-                  data-slug={@store_slug}
-                  class="mt-1.5 text-xs text-gray-400"
+                <h1 class="text-2xl font-extrabold leading-tight text-gray-900 lg:text-3xl">
+                  Put your name on it
+                </h1>
+                <p class="mt-2 text-base text-gray-500">Your sign goes up as you type.</p>
+              </div>
+
+              <.form for={@store_name_form} id="store-name-form" phx-change="update_store_name">
+                <.input
+                  field={@store_name_form[:store_name]}
+                  type="text"
+                  placeholder="Kojo's Fashion"
+                  phx-debounce="300"
+                  autofocus
+                  class="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-base font-semibold text-gray-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
+                />
+              </.form>
+
+              <p
+                :if={@store_slug != ""}
+                id="store-slug-preview"
+                data-slug={@store_slug}
+                class="-mt-2 text-sm text-gray-500"
+              >
+                makola.io/<span class="font-bold text-emerald-700">{@store_slug}</span>
+              </p>
+
+              <div class="grid grid-cols-3 gap-2.5">
+                <button
+                  :for={money <- @currencies}
+                  type="button"
+                  phx-click="update_currency"
+                  phx-value-currency={money.code}
+                  aria-pressed={to_string(money.code == @currency)}
+                  class={[
+                    "rounded-xl border-2 px-2 py-3 text-center transition-all",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
+                    if(money.code == @currency,
+                      do: "border-emerald-600 ring-4 ring-emerald-600/10",
+                      else: "border-gray-200 hover:border-gray-300"
+                    )
+                  ]}
                 >
-                  Your store URL: makola.io/s/<span class="font-mono text-emerald-600">{@store_slug}</span>
+                  <span class={[
+                    "block text-lg font-extrabold",
+                    if(money.code == @currency, do: "text-emerald-700", else: "text-gray-900")
+                  ]}>
+                    {currency_symbol(money.code)}
+                  </span>
+                  <span class="mt-0.5 block text-xs font-bold text-gray-500">{money.name}</span>
+                </button>
+              </div>
+            </div>
+
+            <%!-- Step 2: the look --%>
+            <div :if={@step == 2} class="space-y-5">
+              <div>
+                <h1 class="text-2xl font-extrabold leading-tight text-gray-900 lg:text-3xl">
+                  Dress your shop up
+                </h1>
+                <p class="mt-2 text-base text-gray-500">
+                  {@current_theme.name} — one of {length(@themes)}.
                 </p>
               </div>
 
-              <div>
-                <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
-                  Currency
-                </label>
-                <.form for={@currency_form} id="currency-form" phx-change="update_currency">
-                  <.input
-                    field={@currency_form[:currency]}
-                    type="select"
-                    options={currency_options(@currencies)}
-                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </.form>
-              </div>
-            </div>
-          </div>
-
-          <%!-- Step 2: Choose Your Theme --%>
-          <div :if={@step == 2} class="space-y-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-              <svg
-                class="w-8 h-8 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.88 2.88M6.75 17.25h.008v.008H6.75v-.008z"
-                />
-              </svg>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Choose Your Theme
-            </h1>
-            <p class="text-gray-500">
-              Pick a look for your storefront. You can customize it later.
-            </p>
-
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
-              <button
-                :for={theme <- @themes}
-                type="button"
-                phx-click="select_theme"
-                phx-value-theme-id={theme.id}
-                aria-pressed={to_string(theme.id == @selected_theme)}
-                class={[
-                  "flex w-full flex-col overflow-hidden rounded-2xl border-2 text-left",
-                  "transition-all duration-200 motion-reduce:transition-none",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
-                  if(theme.id == @selected_theme,
-                    do: "border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10",
-                    else:
-                      "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md motion-safe:hover:-translate-y-0.5"
-                  )
-                ]}
-              >
-                <%!-- Miniature storefront painted from the theme's own tokens.
-                   Decorative: the accessible name is the label row below. --%>
-                <div
-                  aria-hidden="true"
-                  class="pointer-events-none select-none"
-                  style={"background-color: #{theme.colors.background};"}
+              <div class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-2.5 lg:overflow-visible lg:px-0">
+                <button
+                  :for={theme <- @themes}
+                  type="button"
+                  phx-click="select_theme"
+                  phx-value-theme-id={theme.id}
+                  aria-pressed={to_string(theme.id == @selected_theme)}
+                  class={[
+                    "w-[76px] shrink-0 rounded-xl border-2 p-1.5 transition-all lg:w-auto",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
+                    if(theme.id == @selected_theme,
+                      do: "border-emerald-600 bg-emerald-50",
+                      else: "border-transparent hover:bg-gray-50"
+                    )
+                  ]}
                 >
-                  <%!-- Nav bar --%>
-                  <div
-                    class="flex items-center justify-between border-b border-black/5 px-2.5 py-1.5"
-                    style={"background-color: #{theme.colors.surface};"}
+                  <span
+                    class="relative flex h-14 w-full items-center justify-center overflow-hidden rounded-lg border border-black/10"
+                    style={"background-color: #{theme.colors.background};"}
                   >
-                    <div
-                      class="h-1.5 w-7 rounded-full"
+                    <span
+                      class="absolute inset-x-0 bottom-0 h-3"
                       style={"background-color: #{theme.colors.primary};"}
                     >
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <div
-                        class="h-1 w-3 rounded-full opacity-25"
-                        style={"background-color: #{theme.colors.primary};"}
-                      >
-                      </div>
-                      <div
-                        class="h-1 w-3 rounded-full opacity-25"
-                        style={"background-color: #{theme.colors.primary};"}
-                      >
-                      </div>
-                      <div
-                        class="h-1.5 w-1.5 rounded-full"
-                        style={"background-color: #{theme.colors.accent};"}
-                      >
-                      </div>
-                    </div>
-                  </div>
-                  <%!-- Hero: the merchant's shop sign in the theme's heading font --%>
-                  <div class="px-2.5 pb-2 pt-2.5">
-                    <p
-                      class="truncate text-[11px] font-bold leading-tight"
-                      style={"color: #{theme.colors.text}; font-family: #{theme.font_stack};"}
-                    >
-                      {preview_store_name(@store_name)}
-                    </p>
-                    <div
-                      class="mt-1 h-1 w-10 rounded-full opacity-30"
-                      style={"background-color: #{theme.colors.text};"}
-                    >
-                    </div>
-                    <div
-                      class="mt-1.5 h-3 w-11 rounded-full"
+                    </span>
+                    <span
+                      class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full"
                       style={"background-color: #{theme.colors.accent};"}
                     >
-                    </div>
-                  </div>
-                  <%!-- 2×2 product grid with price chips --%>
-                  <div class="grid grid-cols-2 gap-1.5 px-2.5 pb-2.5">
-                    <div
-                      :for={{minor, index} <- Enum.with_index(preview_prices())}
-                      class="overflow-hidden rounded-md shadow-sm"
-                      style={"background-color: #{theme.colors.surface};"}
+                    </span>
+                    <span
+                      class="relative -mt-1.5 text-xl font-bold leading-none"
+                      style={"color: #{theme.colors.text}; font-family: #{theme.font_stack};"}
                     >
-                      <div
-                        class={[
-                          "h-6 w-full sm:h-7",
-                          if(rem(index, 2) == 0, do: "opacity-75", else: "opacity-40")
-                        ]}
-                        style={"background-color: #{if rem(index, 3) == 0, do: theme.colors.accent, else: theme.colors.primary};"}
-                      >
-                      </div>
-                      <div class="space-y-1 px-1.5 py-1">
-                        <div
-                          class="h-0.5 w-3/4 rounded-full opacity-25"
-                          style={"background-color: #{theme.colors.text};"}
-                        >
-                        </div>
-                        <p
-                          class="text-[7px] font-semibold leading-none"
-                          style={"color: #{theme.colors.text};"}
-                        >
-                          {format_minor_price(minor, @currency)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <%!-- Footer band --%>
-                  <div class="h-2.5 w-full" style={"background-color: #{theme.colors.primary};"}>
-                  </div>
-                </div>
-
-                <%!-- Label row --%>
-                <div class={[
-                  "flex flex-1 items-start justify-between gap-2 border-t p-3",
-                  if(theme.id == @selected_theme,
-                    do: "border-emerald-100 bg-emerald-50",
-                    else: "border-gray-100 bg-white"
-                  )
-                ]}>
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
-                    <p class="mt-0.5 text-xs leading-snug text-gray-500">{theme.description}</p>
-                  </div>
-                  <div
-                    :if={theme.id == @selected_theme}
-                    class="mt-0.5 shrink-0 rounded-full bg-emerald-500 p-0.5 text-white"
-                  >
-                    <svg
-                      class="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="3"
-                      stroke="currentColor"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                    </svg>
-                  </div>
-                  <div
-                    :if={theme.id != @selected_theme}
-                    class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-gray-200"
-                  >
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <%!-- Step 3: Add Your First Product --%>
-          <div :if={@step == 3} class="space-y-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-              <svg
-                class="w-8 h-8 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
-                />
-              </svg>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Add Your First Product
-            </h1>
-            <p class="text-gray-500">
-              You can add products now or skip and do it later from your dashboard.
-            </p>
-
-            <div class="space-y-4 text-left">
-              <div>
-                <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
-                  Product name
-                </label>
-                <.form for={@product_name_form} id="product-name-form" phx-change="update_product">
-                  <.input
-                    field={@product_name_form[:product_name]}
-                    type="text"
-                    placeholder="e.g. Ankara Dress"
-                    phx-debounce="300"
-                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </.form>
-              </div>
-
-              <div>
-                <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
-                  Price ({@currency})
-                </label>
-                <.form for={@product_price_form} id="product-price-form" phx-change="update_product">
-                  <.input
-                    field={@product_price_form[:product_price]}
-                    type="number"
-                    placeholder="e.g. 150"
-                    min="0"
-                    step="0.01"
-                    phx-debounce="300"
-                    class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </.form>
-              </div>
-            </div>
-
-            <p class="text-xs text-gray-400">
-              Don't worry — you can add unlimited products later.
-            </p>
-          </div>
-
-          <%!-- Step 4: You're Ready! --%>
-          <div :if={@step == 4} class="space-y-6 text-center">
-            <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-              <svg
-                class="w-10 h-10 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              You're Ready!
-            </h1>
-            <p class="text-gray-500">
-              Your store is set up. Time to start selling!
-            </p>
-
-            <%!-- Asked, not assumed. Protection was opt-in and almost nobody
-                opted in — because nothing ever raised it. Defaulting it ON was
-                rejected deliberately: it makes Makola custodian of the
-                merchant's money between sale and delivery. So it is one short
-                question, in plain words, at the moment they are already
-                deciding how their shop works. --%>
-            <label class="flex items-start gap-3 bg-white rounded-xl p-5 text-left border border-gray-200 shadow-sm cursor-pointer">
-              <input
-                type="checkbox"
-                name="buyer_protection"
-                checked={@buyer_protection}
-                phx-click="toggle_buyer_protection"
-                class="mt-0.5 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-              <span>
-                <span class="block text-sm font-semibold text-gray-900">
-                  Hold payment until delivery
-                </span>
-                <span class="block text-xs text-gray-500 mt-1">
-                  The buyer's money waits with Makola until they confirm they got the item.
-                  Safer for the buyer. You are paid a little later.
-                </span>
-              </span>
-            </label>
-
-            <div class="bg-white rounded-xl p-5 space-y-3 text-sm text-left border border-gray-200 shadow-sm">
-              <div class="flex items-center gap-3">
-                <svg
-                  class="w-5 h-5 text-emerald-500 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <div>
-                  <span class="font-medium text-gray-900">{@store_name}</span>
-                  <span class="text-gray-400 text-xs ml-2">{@currency}</span>
-                </div>
-              </div>
-              <div :if={@product_name != ""} class="flex items-center gap-3">
-                <svg
-                  class="w-5 h-5 text-emerald-500 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <div>
-                  <span class="font-medium text-gray-900">{@product_name}</span>
-                  <span :if={@product_price != ""} class="text-gray-400 text-xs ml-2">
-                    {format_price(@product_price, @currency)}
+                      {theme_initial(theme.name)}
+                    </span>
                   </span>
-                </div>
-              </div>
-              <div :if={@product_name == ""} class="flex items-center gap-3">
-                <svg
-                  class="w-5 h-5 text-gray-300 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <span class="text-gray-400">No products yet — you can add them later</span>
+                  <span class={[
+                    "mt-1.5 block truncate text-[11px] font-bold",
+                    if(theme.id == @selected_theme, do: "text-emerald-700", else: "text-gray-500")
+                  ]}>
+                    {theme.name}
+                  </span>
+                </button>
               </div>
             </div>
-          </div>
 
-          <%!-- Navigation --%>
-          <div class="flex justify-between items-center">
-            <button
-              :if={@step > 1}
-              phx-click="prev_step"
-              class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-              Back
-            </button>
-            <div :if={@step == 1}></div>
+            <%!-- Step 3: the first product --%>
+            <div :if={@step == 3} class="space-y-5">
+              <div>
+                <h1 class="text-2xl font-extrabold leading-tight text-gray-900 lg:text-3xl">
+                  Put one thing on the shelf
+                </h1>
+                <p class="mt-2 text-base text-gray-500">It appears in your shop as you type.</p>
+              </div>
 
-            <div class="flex items-center gap-3">
-              <button
-                :if={@step == 3}
-                phx-click="skip_step"
-                class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                Skip for now
-              </button>
-              <button
-                id="onboarding-next-button"
-                phx-click={if @step < @total_steps, do: "next_step", else: "complete"}
-                disabled={@step == 1 and String.trim(@store_name) == ""}
-                class={[
-                  "font-semibold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-all",
-                  if(@step == 1 and String.trim(@store_name) == "",
-                    do: "bg-gray-100 text-gray-400 cursor-not-allowed",
-                    else: "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm"
-                  )
-                ]}
-              >
-                {step_button_label(@step, @total_steps)}
+              <div class="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50">
+                  <svg
+                    class="h-6 w-6 text-emerald-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.6"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-9Z"
+                    />
+                    <circle cx="12" cy="12.5" r="3.4" />
+                  </svg>
+                </span>
+                <span class="text-sm font-bold text-gray-900">Take a photo</span>
+                <span class="text-xs text-gray-400">You can add photos later</span>
+              </div>
+
+              <.form for={@product_name_form} id="product-name-form" phx-change="update_product">
+                <.input
+                  field={@product_name_form[:product_name]}
+                  type="text"
+                  placeholder="Ankara Dress"
+                  phx-debounce="300"
+                  class="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-base font-semibold text-gray-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
+                />
+              </.form>
+
+              <.form for={@product_price_form} id="product-price-form" phx-change="update_product">
+                <.input
+                  field={@product_price_form[:product_price]}
+                  type="number"
+                  placeholder={"#{currency_symbol(@currency)} 150"}
+                  min="0"
+                  step="0.01"
+                  phx-debounce="300"
+                  class="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-base font-semibold text-gray-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
+                />
+              </.form>
+            </div>
+
+            <%!-- Step 4: it is open --%>
+            <div :if={@step == 4} class="space-y-5">
+              <div class="flex items-center gap-4">
+                <span class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-600/30">
+                  <svg
+                    class="h-7 w-7 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="3"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4 12.5 5 5L20 6.5" />
+                  </svg>
+                </span>
+                <div>
+                  <h1 class="text-2xl font-extrabold leading-tight text-gray-900 lg:text-3xl">
+                    That is your shop
+                  </h1>
+                  <p class="mt-1 text-base text-gray-500">Share the link and start selling.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
                 <svg
-                  class="w-4 h-4"
+                  class="h-5 w-5 flex-shrink-0 text-emerald-700"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"
+                  />
                 </svg>
-              </button>
+                <span class="truncate text-sm font-bold text-emerald-900">
+                  makola.io/{@store_slug}
+                </span>
+              </div>
+
+              <%!-- Asked, not assumed. Protection was opt-in and almost nobody
+                 opted in — because nothing ever raised it. Defaulting it ON was
+                 rejected deliberately: it makes Makola custodian of the
+                 merchant's money between sale and delivery. So it is one short
+                 question, in plain words, at the moment they are already
+                 deciding how their shop works. --%>
+              <label class={[
+                "flex cursor-pointer items-center gap-3.5 rounded-2xl border-2 bg-white p-4 transition-all",
+                if(@buyer_protection,
+                  do: "border-emerald-600 ring-4 ring-emerald-600/10",
+                  else: "border-gray-200"
+                )
+              ]}>
+                <span class={[
+                  "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl",
+                  if(@buyer_protection, do: "bg-emerald-50", else: "bg-gray-100")
+                ]}>
+                  <svg
+                    class={[
+                      "h-6 w-6",
+                      if(@buyer_protection, do: "text-emerald-600", else: "text-gray-400")
+                    ]}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.8"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6L12 3Z"
+                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4" />
+                  </svg>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-extrabold text-gray-900">
+                    Hold money till delivery
+                  </span>
+                  <span class="mt-1 block text-xs leading-snug text-gray-500">
+                    Safer for buyers. You are paid later.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  name="buyer_protection"
+                  checked={@buyer_protection}
+                  phx-click="toggle_buyer_protection"
+                  class="h-6 w-6 flex-shrink-0 rounded-md border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+              </label>
             </div>
+          </div>
+
+          <%!-- Navigation. One loud button, in the thumb. --%>
+          <div class="mt-7 flex items-center gap-3">
+            <button
+              :if={@step > 1}
+              type="button"
+              phx-click="prev_step"
+              aria-label="Back"
+              class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border-2 border-gray-200 text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2.5"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.5 7.5 12 15 4.5" />
+              </svg>
+            </button>
+
+            <button
+              :if={@step == 3}
+              type="button"
+              phx-click="skip_step"
+              class="h-14 flex-shrink-0 px-3 text-base font-bold text-gray-500 transition-colors hover:text-gray-900"
+            >
+              Skip
+            </button>
+
+            <button
+              id="onboarding-next-button"
+              type="button"
+              phx-click={if @step < @total_steps, do: "next_step", else: "complete"}
+              disabled={@step == 1 and String.trim(@store_name) == ""}
+              class={[
+                "flex h-14 flex-1 items-center justify-center gap-2.5 rounded-xl text-base font-extrabold transition-all",
+                if(@step == 1 and String.trim(@store_name) == "",
+                  do: "cursor-not-allowed bg-gray-100 text-gray-400",
+                  else:
+                    "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700 active:scale-[.98]"
+                )
+              ]}
+            >
+              {step_button_label(@step, @total_steps)}
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2.5"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -615,18 +653,18 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   def handle_event("update_currency", %{"currency" => currency}, socket) do
-    {:noreply,
-     assign(socket,
-       currency: currency,
-       currency_form: value_form("currency", currency)
-     )}
+    {:noreply, assign(socket, currency: currency)}
   end
 
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
     # theme-id comes from the client — only ids the picker actually offers
     # may be selected (and later persisted). Crafted ids are ignored.
     if theme_id in offered_theme_ids() do
-      {:noreply, assign(socket, selected_theme: theme_id)}
+      {:noreply,
+       assign(socket,
+         selected_theme: theme_id,
+         current_theme: current_theme(socket.assigns.themes, theme_id)
+       )}
     else
       {:noreply, socket}
     end
@@ -712,10 +750,6 @@ defmodule EmakolaWeb.OnboardingLive do
   # ── Private helpers ──
 
   defp value_form(field, value), do: to_form(%{field => value})
-
-  defp currency_options(currencies) do
-    Enum.map(currencies, &{"#{&1.flag} #{&1.label}", &1.code})
-  end
 
   # Merchant-only resolution — legacy User subjects no longer authenticate
   # here (User accounts use the platform session flow exclusively).
@@ -892,25 +926,13 @@ defmodule EmakolaWeb.OnboardingLive do
 
   defp parse_price(_), do: 0
 
-  defp format_price(price_str, currency) do
-    # Preview through the same parser that will store the value, so the
-    # preview can never show a price the form would not save.
-    case Emakola.Money.parse_price(price_str) do
-      {:ok, pesewas} ->
-        "#{currency_symbol(currency)}#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
-
-      _ ->
-        ""
-    end
-  end
-
   defp currency_symbol("GHS"), do: "GH\u20B5"
   defp currency_symbol("NGN"), do: "\u20A6"
   defp currency_symbol("USD"), do: "$"
   defp currency_symbol(currency), do: currency
 
-  defp step_button_label(step, total_steps) when step < total_steps, do: "Continue"
-  defp step_button_label(_, _), do: "Go to Dashboard"
+  defp step_button_label(step, total_steps) when step < total_steps, do: "Next"
+  defp step_button_label(_, _), do: "Open my shop"
 
   @doc """
   Theme ids the picker offers — delegated to the single theme-offer
@@ -995,6 +1017,46 @@ defmodule EmakolaWeb.OnboardingLive do
       cents ->
         "#{currency_symbol(currency)}#{whole}." <>
           String.pad_leading(Integer.to_string(cents), 2, "0")
+    end
+  end
+
+  # The look currently painted on the shop preview. Resolved once per
+  # selection rather than searched on every render pass.
+  defp current_theme(themes, selected_theme) do
+    Enum.find(themes, hd(themes), &(&1.id == selected_theme))
+  end
+
+  defp theme_initial(name), do: name |> to_string() |> String.first()
+
+  # The shelf: slot one belongs to the merchant's own product, the rest
+  # stand in for a stocked shop.
+  defp shelf_filler_prices, do: tl(preview_prices())
+
+  defp shelf_hero_style(theme, "") do
+    "background-color: #{theme.colors.surface};"
+  end
+
+  defp shelf_hero_style(theme, _product_name) do
+    "background-color: #{theme.colors.surface}; " <>
+      "outline: 2px solid #{theme.colors.accent}; outline-offset: -2px;"
+  end
+
+  defp shelf_hero_fill(_theme, ""), do: "rgba(0, 0, 0, 0.06)"
+  defp shelf_hero_fill(theme, _product_name), do: theme.colors.accent
+
+  # An unpriced product still shows a price slot, so the card never looks
+  # broken while the merchant is still typing.
+  defp shelf_hero_price("", _price, currency) do
+    format_minor_price(hd(preview_prices()), currency)
+  end
+
+  defp shelf_hero_price(_product_name, price, currency) do
+    # Through the same parser that will store the value, then formatted like
+    # the chips beside it — a whole-cedi price must not read "GH\u20B5150.00"
+    # next to "GH\u20B585".
+    case parse_price(price) do
+      0 -> "#{currency_symbol(currency)}\u2014"
+      minor -> format_minor_price(minor, currency)
     end
   end
 

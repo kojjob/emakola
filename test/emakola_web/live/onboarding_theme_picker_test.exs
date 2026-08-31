@@ -108,7 +108,7 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
   end
 
   describe "storefront previews" do
-    test "each offered theme's mock is painted from its own tokens", %{conn: conn} do
+    test "each offered theme's swatch is painted from its own tokens", %{conn: conn} do
       {view, _merchant} = reach_theme_step(conn, "Kente House")
       html = render(view)
 
@@ -124,16 +124,27 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
                "theme #{inspect(id)}'s accent color is not painted in the picker"
 
         assert html =~ defaults.fonts.heading,
-               "theme #{inspect(id)}'s heading font is not used in its preview"
+               "theme #{inspect(id)}'s heading font is not used in its swatch"
       end
+    end
 
-      # The merchant's own store name is the shop sign in every mock —
-      # once per preview, so at least one occurrence per offered theme.
-      occurrences = length(String.split(html, "Kente House")) - 1
+    test "the merchant's name is the sign on the live shop, in the chosen face", %{conn: conn} do
+      # The name used to be repeated into all 22 thumbnails. It now sits once,
+      # large, on the shop the merchant is actually building — so this guards
+      # that it is still THEIR shop they are looking at, and that the sign is
+      # set in the heading face of the look they picked.
+      {view, _merchant} = reach_theme_step(conn, "Kente House")
 
-      assert occurrences >= length(offered),
-             "expected the store name in all #{length(offered)} previews, " <>
-               "found it #{occurrences} time(s)"
+      view |> element(~s{button[phx-value-theme-id="beauty"]}) |> render_click()
+
+      sign = view |> element("#onboarding-shop-sign") |> render()
+      heading = ThemeResolver.theme_module("beauty").defaults().fonts.heading
+
+      assert sign =~ "Kente House",
+             "the shop sign does not carry the merchant's own store name"
+
+      assert sign =~ "font-family: '#{heading}'" or sign =~ "font-family: &#39;#{heading}&#39;",
+             "the shop sign is not set in the picked theme's heading face"
     end
 
     test "price chips show money from integer minor units, never floats", %{conn: conn} do
@@ -225,8 +236,8 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
 
         assert card =~ "font-family: '#{heading}'" or
                  card =~ "font-family: &#39;#{heading}&#39;",
-               "theme #{inspect(id)}'s preview does not set its heading font " <>
-                 "#{inspect(heading)} on the shop sign"
+               "theme #{inspect(id)}'s swatch does not set its heading font " <>
+                 "#{inspect(heading)}"
       end
     end
   end

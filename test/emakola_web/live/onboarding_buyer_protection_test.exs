@@ -37,7 +37,7 @@ defmodule EmakolaWeb.OnboardingBuyerProtectionTest do
     render_click(view, "skip_step", %{})
     html = render_click(view, "skip_step", %{})
 
-    assert html =~ "Hold payment until delivery"
+    assert html =~ "Hold money till delivery"
   end
 
   test "the question defaults to off, matching the store default", %{conn: conn} do
