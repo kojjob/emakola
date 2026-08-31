@@ -254,6 +254,18 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert has_element?(view, "[data-role=offer-category]", "Fashion")
     end
 
+    test "the phone variant list gates wholesale exactly as the table does", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # The variants exist twice in the DOM — a table from sm up, a stacked
+      # list below it — so the gate has to hold in both or the phone leaks.
+      assert has_element?(view, "[data-role=variant-rows]")
+      refute has_element?(view, "[data-role=variant-rows]", "GH₵ 30")
+      assert has_element?(view, "[data-role=variant-rows]", "Connect to see")
+    end
+
     test "no emoji stands in for the lock", %{conn: conn} do
       fixture = create_published_offer!()
 
