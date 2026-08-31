@@ -796,6 +796,26 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
         </.form>
       </.admin_card>
+
+      <%!-- The pickup address page existed with no link pointing at it from
+           anywhere in the app. It is contact detail, so it lives here. --%>
+      <.admin_card>
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Store Address</h3>
+            <p class="text-sm text-slate-500 mt-1">Where buyers collect, and where returns go</p>
+          </div>
+          <.link
+            navigate={~p"/admin/settings/address"}
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
+          >
+            <.icon name="hero-map-pin" class="size-4" /> Set address
+          </.link>
+        </div>
+        <p class="text-sm text-slate-500">
+          Used for pickup orders and on the paperwork buyers receive.
+        </p>
+      </.admin_card>
     </div>
     """
   end
