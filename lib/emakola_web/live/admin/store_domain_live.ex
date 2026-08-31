@@ -158,9 +158,15 @@ defmodule EmakolaWeb.Admin.StoreDomainLive do
                 </td>
                 <td class="py-3 pr-4 font-mono text-slate-900">{record.name}</td>
                 <td class="py-3">
+                  <%!-- Copying is a browser job, and this pushed "copy" to a
+                        LiveView that never handled it: the value never reached
+                        the clipboard AND the unmatched event took down the page
+                        the merchant was reading their DNS instructions from.
+                        JS.dispatch + a window listener is how the rest of the
+                        app does client-side actions (see toggle-password). --%>
                   <button
                     type="button"
-                    phx-click="copy"
+                    phx-click={JS.dispatch("copy-to-clipboard")}
                     data-copy={record.value}
                     class="inline-flex items-center gap-2 font-mono text-slate-900 hover:text-primary"
                   >
