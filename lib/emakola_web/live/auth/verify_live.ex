@@ -84,13 +84,21 @@ defmodule EmakolaWeb.Auth.VerifyLive do
           </svg>
         </div>
 
-        <div class="flex flex-col gap-2">
-          <h1 class="text-2xl font-extrabold tracking-tight text-text">Verify your email</h1>
-          <p class="text-sm leading-relaxed text-text-muted">
-            We sent a link to
-            <span :if={@email != ""} class="font-semibold text-slate-700">{@email}</span>
-            <span :if={@email == ""}>your email address</span>. Open it to finish signing in.
-          </p>
+        <div class="flex flex-col gap-3">
+          <h1 class="text-2xl font-extrabold tracking-tight text-text">Check your email</h1>
+
+          <%!-- The address on its own line, not inside a sentence: interpolated
+                mid-sentence it produced "name@shop.com ." and broke mid-word on
+                a phone. It is also the one thing here worth reading closely —
+                a merchant who mistyped their address can only see it here. --%>
+          <span
+            :if={@email != ""}
+            class="rounded-control bg-surface-subtle border border-border px-3 py-2.5 text-sm font-semibold text-slate-700 break-all"
+          >
+            {@email}
+          </span>
+
+          <p class="text-sm leading-relaxed text-text-muted">Tap the link we sent you.</p>
         </div>
 
         <button
