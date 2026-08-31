@@ -21,7 +21,10 @@ defmodule Emakola.Notifications.AuthMailer do
   # The link lands on the interactive confirm page (require_interaction? — a GET
   # from an email-scanner bot must not be able to confirm; the page POSTs).
   def confirm_email(email, token) do
-    url = "#{EmakolaWeb.Endpoint.url()}/oauth/merchant/confirm_new_merchant?confirm=#{token}"
+    # Our page, not the strategy route: the framework's generated interaction
+    # page omits a CSRF token, so submitting it raises and the account is
+    # never confirmed. Ours posts to the same action with a valid token.
+    url = "#{EmakolaWeb.Endpoint.url()}/auth/confirm?confirm=#{token}"
 
     new()
     |> to(email)
