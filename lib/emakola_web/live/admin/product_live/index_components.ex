@@ -11,10 +11,58 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
   alias EmakolaWeb.Admin.ProductLive.Shared
 
+  @doc """
+  Narrows the list to one category.
+
+  A merchant with 82 categories and 272 products cannot answer "show me my
+  shoes" with a status tab and a search box. Counts ride along because an
+  empty category is information — "Shoes (0)" tells a merchant where their
+  stock is not.
+  """
+  attr :categories, :list, required: true
+  attr :current, :string, default: nil
+
+  def category_filter_select(assigns) do
+    assigns = assign(assigns, :form, to_form(%{"category_id" => assigns.current || ""}))
+
+    ~H"""
+    <.form :if={@categories != []} for={@form} phx-change="filter_category" class="shrink-0">
+      <select
+        id="product-category-filter"
+        name="category_id"
+        class="h-9 rounded-control border border-border bg-surface px-3 text-sm text-slate-700 cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary"
+      >
+        <option value="" selected={is_nil(@current)}>All categories</option>
+        <option
+          :for={category <- @categories}
+          value={category.id}
+          selected={@current == category.id}
+        >
+          {category.name}{category_count_suffix(category)}
+        </option>
+      </select>
+    </.form>
+    """
+  end
+
+  # A merchant looking at an empty CATEGORY has products — just not here. That
+  # is "no products found", not "add your first product".
+  defp filtering?(search_query, status_filter, category_filter) do
+    search_query != "" or status_filter != :all or not is_nil(category_filter)
+  end
+
+  defp category_count_suffix(category) do
+    case Map.get(category, :product_count) do
+      count when is_integer(count) -> " (#{count})"
+      _not_loaded_or_missing -> ""
+    end
+  end
+
   attr :products, :list, required: true
   attr :categories, :map, required: true
   attr :search_query, :string, required: true
   attr :status_filter, :atom, required: true
+  attr :category_filter, :string, default: nil
 
   def product_list(assigns) do
     ~H"""
@@ -23,7 +71,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             search that matched nothing gets told it was the search. --%>
       <div id="product-empty-state">
         <.empty_state
-          :if={@search_query != "" or @status_filter != :all}
+          :if={filtering?(@search_query, @status_filter, @category_filter)}
           icon="hero-cube"
           title="No products found"
           description="Try adjusting your search or filters"
@@ -32,7 +80,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
               before they can fill a form. The snap flow only exists when the
               AI key is set, so fall back to the form as the primary. --%>
         <.empty_state
-          :if={@search_query == "" and @status_filter == :all and EmakolaWeb.AiGate.enabled?()}
+          :if={
+            not filtering?(@search_query, @status_filter, @category_filter) and
+              EmakolaWeb.AiGate.enabled?()
+          }
           icon="hero-camera"
           tone={:warning}
           title="Add your first product"
@@ -42,7 +93,10 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           action_path="/admin/products/snap"
         />
         <.empty_state
-          :if={@search_query == "" and @status_filter == :all and not EmakolaWeb.AiGate.enabled?()}
+          :if={
+            not filtering?(@search_query, @status_filter, @category_filter) and
+              not EmakolaWeb.AiGate.enabled?()
+          }
           icon="hero-camera"
           tone={:warning}
           title="Add your first product"

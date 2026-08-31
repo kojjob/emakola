@@ -20,6 +20,58 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
+    test "products can be narrowed to one category, and it composes with search", %{
+      conn: conn,
+      store: store
+    } do
+      shoes = Factory.create_category!(store, name: "Shoes")
+      bags = Factory.create_category!(store, name: "Bags")
+      Factory.create_product!(store, status: :active, title: "Red Sandal", category_id: shoes.id)
+      Factory.create_product!(store, status: :active, title: "Blue Sandal", category_id: shoes.id)
+      Factory.create_product!(store, status: :active, title: "Tote Bag", category_id: bags.id)
+
+      {:ok, view, html} = live(conn, ~p"/admin/products")
+      assert html =~ "Tote Bag"
+
+      html = render_change(view, "filter_category", %{"category_id" => shoes.id})
+
+      assert html =~ "Red Sandal"
+      assert html =~ "Blue Sandal"
+      refute html =~ "Tote Bag"
+
+      # search narrows what the category already narrowed, rather than replacing it
+      html = render_change(view, "search", %{"search" => "red"})
+
+      assert html =~ "Red Sandal"
+      refute html =~ "Blue Sandal"
+    end
+
+    test "an empty category says so rather than showing the whole catalogue", %{
+      conn: conn,
+      store: store
+    } do
+      empty = Factory.create_category!(store, name: "Hats")
+      Factory.create_product!(store, status: :active, title: "Tote Bag")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      html = render_change(view, "filter_category", %{"category_id" => empty.id})
+
+      refute html =~ "Tote Bag"
+      assert html =~ "No products found"
+    end
+
+    test "a category filter that is not a uuid is ignored, not a crash", %{
+      conn: conn,
+      store: store
+    } do
+      Factory.create_product!(store, status: :active, title: "Tote Bag")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      html = render_change(view, "filter_category", %{"category_id" => "../../etc/passwd"})
+
+      assert html =~ "Tote Bag"
+    end
+
     test "a store with no products is told what to do, not that nothing was found", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 

@@ -33,6 +33,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.IndexComponents do
   attr :connected?, :boolean, default: false
   attr :stock, :atom, required: true, values: [:in_stock, :low, :out]
   attr :dispatch, :string, default: nil
+  attr :category, :string, default: nil
 
   def offer_card(assigns) do
     ~H"""
@@ -79,9 +80,19 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.IndexComponents do
               <.glyph name={:check} class="w-2 h-2 text-white" stroke_width="4" />
             </span>
           </span>
-          <span class="flex flex-col gap-px min-w-0">
+          <span class="flex flex-col gap-1 min-w-0">
             <span class="text-[15px] font-bold leading-tight truncate">{@title}</span>
             <span class="text-[10px] text-slate-400 truncate">{@supplier}</span>
+            <%!-- Its own line: beside the title it truncated to "Fashion & T…",
+                  and a half-word is worth less than the 18px it saves. --%>
+            <span
+              :if={@category}
+              data-role="card-category"
+              class="self-start rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-text-muted truncate max-w-full"
+              title={@category}
+            >
+              {@category}
+            </span>
           </span>
         </div>
 
