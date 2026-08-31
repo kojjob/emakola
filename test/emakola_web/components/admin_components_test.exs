@@ -712,6 +712,18 @@ defmodule EmakolaWeb.AdminComponentsTest do
       assert html =~ ~r|>\s*15\s*<|
       assert html =~ "bg-emerald-500"
     end
+
+    # A dropship listing holds no stock of its own on purpose:
+    # ListingImporter sets track_inventory: false, stock_quantity: 0, and
+    # Variant.in_stock?/2 lets shoppers buy it. Reading that zero as "Out"
+    # told merchants their new supplier product was dead when it was selling.
+    test "an untracked variant is the supplier's stock, not zero stock" do
+      html = render_component(&AdminComponents.stock_meter/1, %{quantity: 0, tracked: false})
+
+      refute html =~ "Out"
+      refute html =~ "bg-red-500"
+      assert html =~ "Supplier"
+    end
   end
 
   describe "product_thumb/1" do
