@@ -3,11 +3,15 @@ defmodule Emakola.Accounts.Senders.ConfirmationSender do
   Emails a merchant their email-confirmation link.
 
   Failure-tolerant on purpose: registration must NEVER fail because an email
-  could not be sent — production ran on placeholder mail credentials for
-  weeks, and a merchant locked out of signing up because Resend rejected a
-  dummy key would be strictly worse than an unconfirmed account. An
-  unconfirmed account is safe by construction: `prevent_hijacking?` refuses
-  OAuth upserts over it, and sign-in is not gated on confirmation.
+  could not be sent. That tolerance means something different now — sign-in
+  IS gated on confirmation, so a send that quietly fails leaves a merchant
+  registered and unable to get in, rather than merely unconfirmed.
+
+  Registration still succeeds, because the alternative is losing the account
+  entirely, and there are two ways back: the resend button on /auth/verify,
+  and `mix emakola.confirm_merchant` when mail delivery itself is the problem.
+  Production once ran three weeks on a deleted key without anyone noticing;
+  check the provider's own last-used timestamp, not this module's `:ok`.
   """
   use AshAuthentication.Sender
   alias Emakola.Privacy

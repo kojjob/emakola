@@ -239,25 +239,16 @@ defmodule EmakolaWeb.Auth.LoginLive do
     # via the platform session flow (/platform/login).
     case try_merchant_login(params) do
       {:ok, user} ->
-        token =
-          EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
-
-        # Log the login to audit trail (safely — connect_info may not be available)
-        try do
-          ua = Phoenix.LiveView.get_connect_info(socket, :user_agent) || "LiveView"
-
-          Emakola.Audit.log(:login, "User", to_string(user.id), user.id, nil,
-            user_agent: ua,
-            ip_address: ip
-          )
-        rescue
-          _ -> :ok
+        if Emakola.Accounts.access_allowed?(user) do
+          complete_login(user, socket, ip)
+        else
+          # The password was right. Saying "invalid email or password" here
+          # sends a merchant to reset a password that works.
+          {:noreply,
+           socket
+           |> put_flash(:info, "Check your email to verify your address before signing in.")
+           |> redirect(to: ~p"/auth/verify?email=#{to_string(user.email)}")}
         end
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "Welcome back!")
-         |> redirect(to: "/auth/session?token=#{URI.encode_www_form(token)}")}
 
       {:error, _} ->
         Emakola.Security.record(%{
@@ -272,6 +263,27 @@ defmodule EmakolaWeb.Auth.LoginLive do
          |> put_flash(:error, "Invalid email or password")
          |> assign(form: to_form(%{"email" => params["email"], "password" => ""}, as: :user))}
     end
+  end
+
+  defp complete_login(user, socket, ip) do
+    token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
+
+    # Log the login to audit trail (safely — connect_info may not be available)
+    try do
+      ua = Phoenix.LiveView.get_connect_info(socket, :user_agent) || "LiveView"
+
+      Emakola.Audit.log(:login, "User", to_string(user.id), user.id, nil,
+        user_agent: ua,
+        ip_address: ip
+      )
+    rescue
+      _ -> :ok
+    end
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Welcome back!")
+     |> redirect(to: "/auth/session?token=#{URI.encode_www_form(token)}")}
   end
 
   defp try_merchant_login(params) do

@@ -9,10 +9,19 @@ defmodule EmakolaWeb.Hooks.RequireAuth do
   import Phoenix.LiveView
 
   def on_mount(:default, _params, _session, socket) do
-    if socket.assigns[:current_merchant] do
-      {:cont, socket}
-    else
-      {:halt, push_navigate(socket, to: "/auth/login")}
+    merchant = socket.assigns[:current_merchant]
+
+    cond do
+      is_nil(merchant) ->
+        {:halt, push_navigate(socket, to: "/auth/login")}
+
+      # A session issued before the gate, or one whose verification was
+      # revoked, must not keep its run of the app.
+      not Emakola.Accounts.access_allowed?(merchant) ->
+        {:halt, push_navigate(socket, to: "/auth/verify?email=#{to_string(merchant.email)}")}
+
+      true ->
+        {:cont, socket}
     end
   end
 end

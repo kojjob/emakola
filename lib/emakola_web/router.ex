@@ -230,6 +230,9 @@ defmodule EmakolaWeb.Router do
       live "/forgot-password", ForgotPasswordLive
       live "/recover-phone", PhoneRecoveryLive
       live "/reset-password", ResetPasswordLive
+      # Where the login form sends a merchant whose address is not verified.
+      # Reachable without a session on purpose: they cannot get one yet.
+      live "/verify", VerifyLive
     end
   end
 
