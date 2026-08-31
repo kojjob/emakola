@@ -570,6 +570,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/earnings", Admin.EarningsLive
       live "/admin/settings/notifications", Admin.NotificationSettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
+      # Delivery's siblings in the sidebar are all /admin/<thing>, so that is
+      # where merchants look for it. Kept so the guess does not 404.
+      live "/admin/delivery", Admin.DeliveryRedirectLive
       live "/admin/settings/address", Admin.StoreAddressLive
       live "/admin/settings/domain", Admin.StoreDomainLive
 
