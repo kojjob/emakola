@@ -92,6 +92,23 @@ window.addEventListener(
   true,
 )
 
+// Copy-to-clipboard for the DNS records a merchant has to paste into their
+// registrar. The button used to push a "copy" event at a LiveView that never
+// handled it, which copied nothing and crashed the page. Same JS.dispatch
+// shape as the password toggle below.
+window.addEventListener("copy-to-clipboard", (e) => {
+  const el = e.target.closest("[data-copy]")
+  const value = el && el.dataset.copy
+  if (!value) return
+
+  navigator.clipboard?.writeText(value).then(() => {
+    // Feedback without a re-render: the merchant is mid-task in their registrar.
+    const previous = el.dataset.copied
+    el.dataset.copied = "1"
+    if (!previous) setTimeout(() => delete el.dataset.copied, 1500)
+  }).catch(() => {})
+})
+
 // Password visibility toggle (used by auth forms via JS.dispatch)
 window.addEventListener("toggle-password", (e) => {
   const input = e.target
