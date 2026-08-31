@@ -88,7 +88,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 <.status_badge status={product.status} variant={:product} />
               </td>
               <td class="px-4 py-3">
-                <.stock_meter quantity={total_stock(product)} />
+                <.stock_meter quantity={total_stock(product)} tracked={tracks_stock?(product)} />
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
                 {variant_count(product)} variants
@@ -165,7 +165,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             <.status_badge status={product.status} variant={:product} />
           </div>
           <div class="flex items-center justify-between text-sm">
-            <.stock_meter quantity={total_stock(product)} />
+            <.stock_meter quantity={total_stock(product)} tracked={tracks_stock?(product)} />
             <span class="font-mono font-medium">{price_range(product)}</span>
           </div>
           <div class="flex gap-2">
@@ -664,6 +664,15 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   # A product with no variants has a nil sum — read that as no stock.
   defp total_stock(product) do
     Map.get(product, :total_stock) || 0
+  end
+
+  # A product with no stock-tracking variant is stocked by somebody else —
+  # an imported supplier listing. Its zero is not an empty shelf.
+  defp tracks_stock?(product) do
+    case Map.get(product, :tracked_variant_count) do
+      nil -> true
+      count -> count > 0
+    end
   end
 
   defp price_range(product) do
