@@ -131,6 +131,53 @@ defmodule EmakolaWeb.Admin.DeliveryLiveTest do
     end
   end
 
+  describe "DeliveryLive.Index metrics" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "shows what the zones earned and where orders fell through", %{
+      conn: conn,
+      store: store
+    } do
+      accra = Factory.create_delivery_zone!(store, name: "Greater Accra", fee: 1500)
+
+      Factory.create_order!(store,
+        shipping_address: %{"region" => "greater_accra"},
+        delivery_fee: 1500,
+        status: :delivered
+      )
+
+      Factory.create_order!(store,
+        shipping_address: %{"region" => "Volta"},
+        delivery_fee: 3500,
+        status: :shipped
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      assert has_element?(view, "#delivery-metrics [data-metric='delivered']", "1")
+      assert has_element?(view, "#delivery-metrics [data-metric='fees']", "GH₵ 50")
+      assert has_element?(view, "#delivery-metrics [data-metric='unmatched']", "1")
+      assert has_element?(view, "#zone-orders-#{accra.id}", "1")
+      assert has_element?(view, "#zone-fees-#{accra.id}", "GH₵ 15")
+      assert has_element?(view, "#unmatched-zone-row", "Volta")
+    end
+
+    test "with no orders the numbers are zero and nothing fell through", %{
+      conn: conn,
+      store: store
+    } do
+      Factory.create_delivery_zone!(store, name: "Greater Accra", fee: 1500)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      assert has_element?(view, "#delivery-metrics [data-metric='fees']", "GH₵ 0")
+      refute has_element?(view, "#unmatched-zone-row")
+    end
+  end
+
   defp setup_authenticated_merchant(conn) do
     {merchant, store} = Factory.create_merchant_with_store!()
     token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
