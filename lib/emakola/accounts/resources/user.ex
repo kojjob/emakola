@@ -250,6 +250,28 @@ defmodule Emakola.Accounts.User do
       )
     end
 
+    # Leaves the platform team: no ownership, no permissions. The user row
+    # stays so audit entries keep resolving to a person.
+    update :remove_from_platform_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:is_owner, false))
+      change(set_attribute(:platform_permissions, []))
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_removed, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
+    end
+
     update :reactivate_staff do
       require_atomic?(false)
       accept([])
