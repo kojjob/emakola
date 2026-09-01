@@ -53,10 +53,17 @@ defmodule Emakola.Platform.Stats do
     end
   end
 
+  # One GMV rule for the whole platform: money that settled. A payment that
+  # was refunded later still transacted — the refund shows up in the refund
+  # figures, never as a GMV subtraction. StoreCaseFile follows the same list.
+  @gmv_statuses [:success, :refunded, :partially_refunded]
+
+  @doc "Payment statuses that count as GMV, shared with StoreCaseFile."
+  def gmv_statuses, do: @gmv_statuses
+
   def total_gmv do
-    # Sum of all successful payment amounts (in minor units)
     case Emakola.Payments.Payment
-         |> Ash.Query.filter(status == :success)
+         |> Ash.Query.filter(status in ^@gmv_statuses)
          |> Ash.sum(:amount, authorize?: false) do
       {:ok, sum} -> sum || 0
       _ -> 0
@@ -200,7 +207,7 @@ defmodule Emakola.Platform.Stats do
 
     payments =
       case Emakola.Payments.Payment
-           |> Ash.Query.filter(status == :success and inserted_at >= ^start_dt)
+           |> Ash.Query.filter(status in ^@gmv_statuses and inserted_at >= ^start_dt)
            |> Ash.read(authorize?: false) do
         {:ok, list} -> list
         _ -> []
@@ -279,12 +286,12 @@ defmodule Emakola.Platform.Stats do
     |> count()
   end
 
-  @doc "Successful payment volume inside the window — the same rule as total_gmv/0."
+  @doc "GMV inside the window — the same rule as total_gmv/0."
   def gmv_since(days) do
     since = since(days)
 
     case Emakola.Payments.Payment
-         |> Ash.Query.filter(status == :success and inserted_at >= ^since)
+         |> Ash.Query.filter(status in ^@gmv_statuses and inserted_at >= ^since)
          |> Ash.sum(:amount, authorize?: false) do
       {:ok, sum} -> sum || 0
       _ -> 0
