@@ -430,7 +430,13 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             <.severity_pill :if={@user.deactivated_at} label="Deactivated" tone="red" />
           </div>
           <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-            {"#{@user.email} · #{Emakola.Plural.count(Map.get(@session_counts, @user.id, 0), "active session")}"}
+            {"#{@user.email} · #{Emakola.Plural.count(Map.get(@session_counts, @user.id, 0), "active session")} · "}
+            <span
+              id="panel-presence"
+              class={if(@presence.state == :online, do: "font-semibold text-green-600")}
+            >
+              {last_seen_label(@presence)}
+            </span>
           </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
