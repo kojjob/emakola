@@ -82,7 +82,7 @@ defmodule Emakola.Themes.Fashion.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E7E5E4]/50")}
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <span
                 class={"material-symbols-outlined " <> if(@on_dark, do: "text-white", else: "text-[#1C1917]")}

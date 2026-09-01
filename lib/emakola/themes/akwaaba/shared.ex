@@ -111,7 +111,7 @@ defmodule Emakola.Themes.Akwaaba.Shared do
 
           <a
             href={store_path(@store.slug, "/cart")}
-            aria-label={"Shopping cart, #{@cart_count} items"}
+            aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             class="relative flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--akwaaba-ink)] text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--akwaaba-sun)] focus-visible:ring-offset-2 motion-safe:transition-opacity sm:h-11 sm:w-11"
           >
             <svg

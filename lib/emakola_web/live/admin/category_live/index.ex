@@ -307,7 +307,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             <:icon><.icon name="hero-star" class="size-7" /></:icon>
             <:delta>
               <p :if={@category_stats.top_count > 0} class="text-xs text-slate-400 mt-1">
-                {@category_stats.top_count} products
+                {Emakola.Plural.count(@category_stats.top_count, "product")}
               </p>
             </:delta>
           </.stat_card>
@@ -506,7 +506,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       <div class="flex items-center gap-2 mb-1">
         <h3 class="text-base font-bold text-slate-900">{@node.category.name}</h3>
         <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">
-          {@product_count} products
+          {Emakola.Plural.count(@product_count, "product")}
         </span>
       </div>
       <p

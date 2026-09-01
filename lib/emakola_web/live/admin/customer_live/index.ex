@@ -215,7 +215,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
               </div>
             </div>
             <div class="flex items-center justify-between text-xs text-slate-500">
-              <span>{customer.order_count || 0} orders</span>
+              <span>{Emakola.Plural.count(customer.order_count, "order")}</span>
               <span class="font-mono font-semibold text-slate-800">
                 {format_total_spent(customer)}
               </span>

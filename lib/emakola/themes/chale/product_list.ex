@@ -25,7 +25,7 @@ defmodule Emakola.Themes.Chale.ProductList do
         </h1>
         <p class="mt-3 text-sm font-medium text-zinc-600">
           <span class="inline-flex items-center rounded-xl border border-[#E3E0DA] bg-white px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-widest text-[#101114]">
-            {@products_count} items
+            {Emakola.Plural.count(@products_count, "item")}
           </span>
         </p>
       </div>

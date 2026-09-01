@@ -166,7 +166,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   def handle_event("force_logout", %{"id" => id}, socket) do
     staff_action(socket, id, &PlatformTeam.force_logout/2, fn count ->
-      "Signed out #{count} session(s)."
+      "Signed out #{Emakola.Plural.count(count, "session")}."
     end)
   end
 

@@ -564,7 +564,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       <%!-- The list is a window, not the whole catalogue. Without this the page
       stopped at the limit with no hint that more products existed. --%>
       <div :if={@more_products?} class="mt-4 flex flex-col items-center gap-2">
-        <p class="text-xs text-slate-500">Showing {length(@products)} products.</p>
+        <p class="text-xs text-slate-500">
+          Showing {Emakola.Plural.count(length(@products), "product")}.
+        </p>
         <.admin_button
           id="load-more-products"
           variant={:secondary}
@@ -803,8 +805,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     {map, socket}
   end
 
-  defp bulk_summary(imported, 0), do: "Imported #{imported} product(s)."
-  defp bulk_summary(imported, skipped), do: "Imported #{imported} product(s). #{skipped} skipped."
+  defp bulk_summary(imported, 0), do: "Imported #{Emakola.Plural.count(imported, "product")}."
+
+  defp bulk_summary(imported, skipped),
+    do: "Imported #{Emakola.Plural.count(imported, "product")}. #{skipped} skipped."
 
   # ── Form Helpers ──
 

@@ -145,7 +145,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 <.stock_meter quantity={total_stock(product)} tracked={tracks_stock?(product)} />
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
-                {variant_count(product)} variants
+                {Emakola.Plural.count(variant_count(product), "variant")}
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono font-medium">
                 {price_range(product)}
