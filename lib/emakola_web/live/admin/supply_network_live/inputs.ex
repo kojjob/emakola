@@ -8,6 +8,13 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Inputs do
     %{
       page_title: "Partners",
       active_nav: :supply_network,
+      connections: [],
+      partner_stats: %{},
+      inbound_preview: [],
+      sales_preview: [],
+      listing_preview: [],
+      low_stock_listing_count: 0,
+      reservation_count: 0,
       connection_count: 0,
       offer_count: 0,
       listing_count: 0,
