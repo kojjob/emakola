@@ -23,6 +23,10 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+// Hooks declared next to their markup (`<script :type={Phoenix.LiveView.ColocatedHook}>`).
+// LiveView extracts them into _build/phoenix-colocated at compile time; nothing
+// runs in the browser unless they are handed to the LiveSocket here.
+import {hooks as colocatedHooks} from "phoenix-colocated/emakola"
 import ThemeToggle from "./hooks/theme_toggle"
 import Analytics from "./hooks/analytics"
 import ScrollReveal, {bindScrollReveal} from "./hooks/scroll_reveal"
@@ -58,7 +62,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable, QueueKeys, QRScanner, GallerySwipe},
+  hooks: {...colocatedHooks, ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook, UnsavedChanges, SectionSortable, QueueKeys, QRScanner, GallerySwipe},
 })
 
 // Show progress bar on live navigation and form submits
