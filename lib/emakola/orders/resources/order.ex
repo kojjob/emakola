@@ -115,6 +115,11 @@ defmodule Emakola.Orders.Order do
       constraints(one_of: [:dhl, :ems_ghana, :speedaf, :jumia_express, :local_rider, :other])
     end
 
+    # Stamped by :mark_shipped and :mark_delivered. Orders from before these
+    # existed carry nil — delivery metrics count them as delivered, not timed.
+    attribute(:shipped_at, :utc_datetime_usec, public?: true)
+    attribute(:delivered_at, :utc_datetime_usec, public?: true)
+
     attribute :shipping_address, :map do
       public?(true)
       filterable?(false)
@@ -345,6 +350,7 @@ defmodule Emakola.Orders.Order do
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:processing]})
 
       change(set_attribute(:status, :shipped))
+      change(set_attribute(:shipped_at, &DateTime.utc_now/0))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_shipped})
     end
 
@@ -361,6 +367,7 @@ defmodule Emakola.Orders.Order do
       change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
 
       change(set_attribute(:status, :delivered))
+      change(set_attribute(:delivered_at, &DateTime.utc_now/0))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_delivered})
     end
 

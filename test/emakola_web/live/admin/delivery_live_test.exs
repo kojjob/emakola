@@ -165,6 +165,27 @@ defmodule EmakolaWeb.Admin.DeliveryLiveTest do
       assert has_element?(view, "#unmatched-zone-row", "Volta")
     end
 
+    test "on-time and average days show once deliveries carry times", %{
+      conn: conn,
+      store: store
+    } do
+      Factory.create_delivery_zone!(store, name: "Greater Accra", fee: 1500, estimated_days: 2)
+
+      order =
+        Factory.create_order!(store,
+          shipping_address: %{"region" => "greater_accra"},
+          status: :delivered
+        )
+
+      Ash.Seed.update!(order, %{delivered_at: DateTime.add(order.inserted_at, 1, :day)})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      assert has_element?(view, "#delivery-on-time", "100%")
+      assert has_element?(view, "#delivery-average-days", "1")
+      refute has_element?(view, "#delivery-metrics-footnote")
+    end
+
     test "with no orders the numbers are zero and nothing fell through", %{
       conn: conn,
       store: store
