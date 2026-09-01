@@ -120,6 +120,153 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
     """
   end
 
+  @doc "One tool's section on its own page, reached from a hub door."
+  def tool_page(assigns) do
+    ~H"""
+    <div id={"supply-tool-#{@tool}"} class="mx-auto max-w-6xl space-y-8 px-4 sm:px-6">
+      <.link
+        navigate={~p"/admin/settings/supply-network"}
+        class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Partners
+      </.link>
+
+      <GoalComponents.goal
+        :if={@tool == :income_plan}
+        goal_progress={@goal_progress}
+        hustle_listings={@hustle_listings}
+        hustle_opportunities={@hustle_opportunities}
+        hustle_plan={@hustle_plan}
+        hustle_shares={@hustle_shares}
+        income_goal={@income_goal}
+        income_goal_form={@income_goal_form}
+      />
+
+      <div :if={@tool == :opportunities} class="space-y-8">
+        <OpportunityComponents.opportunity_radar
+          business_command_form={@business_command_form}
+          pending_business_command={@pending_business_command}
+          starter_business_form={@starter_business_form}
+          streams={@streams}
+          supplier_demand_alert_count={@supplier_demand_alert_count}
+        />
+        <OpportunityComponents.business_in_a_box
+          business_command_form={@business_command_form}
+          pending_business_command={@pending_business_command}
+          starter_business_form={@starter_business_form}
+          streams={@streams}
+          supplier_demand_alert_count={@supplier_demand_alert_count}
+        />
+      </div>
+
+      <CatalogComponents.earn_content_studio
+        :if={@tool == :content_studio}
+        connection_count={@connection_count}
+        content_draft_count={@content_draft_count}
+        current_store={@current_store}
+        form={@form}
+        listing_count={@listing_count}
+        offer_count={@offer_count}
+        streams={@streams}
+      />
+
+      <CollaborationComponents.commerce_passport
+        :if={@tool == :commerce_passport}
+        collaboration_owned_offers={@collaboration_owned_offers}
+        commerce_passport={@commerce_passport}
+        current_store={@current_store}
+        franchise_form={@franchise_form}
+        group_buy_form={@group_buy_form}
+        hustle_listings={@hustle_listings}
+        inventory_policy_form={@inventory_policy_form}
+        inventory_reservation_forms={@inventory_reservation_forms}
+        passport_appeal_forms={@passport_appeal_forms}
+        sales_team_form={@sales_team_form}
+        streams={@streams}
+      />
+
+      <CollaborationComponents.collaborative_commerce
+        :if={@tool == :collaborate}
+        collaboration_owned_offers={@collaboration_owned_offers}
+        commerce_passport={@commerce_passport}
+        current_store={@current_store}
+        franchise_form={@franchise_form}
+        group_buy_form={@group_buy_form}
+        hustle_listings={@hustle_listings}
+        inventory_policy_form={@inventory_policy_form}
+        inventory_reservation_forms={@inventory_reservation_forms}
+        passport_appeal_forms={@passport_appeal_forms}
+        sales_team_form={@sales_team_form}
+        streams={@streams}
+      />
+
+      <CollaborationComponents.inventory_eligibility
+        :if={@tool == :stock_holds}
+        collaboration_owned_offers={@collaboration_owned_offers}
+        commerce_passport={@commerce_passport}
+        current_store={@current_store}
+        franchise_form={@franchise_form}
+        group_buy_form={@group_buy_form}
+        hustle_listings={@hustle_listings}
+        inventory_policy_form={@inventory_policy_form}
+        inventory_reservation_forms={@inventory_reservation_forms}
+        passport_appeal_forms={@passport_appeal_forms}
+        sales_team_form={@sales_team_form}
+        streams={@streams}
+      />
+
+      <div :if={@tool == :products} class="space-y-8">
+        <CatalogComponents.earn_catalog
+          connection_count={@connection_count}
+          content_draft_count={@content_draft_count}
+          current_store={@current_store}
+          form={@form}
+          listing_count={@listing_count}
+          offer_count={@offer_count}
+          streams={@streams}
+        />
+        <CatalogComponents.earned_listings
+          connection_count={@connection_count}
+          content_draft_count={@content_draft_count}
+          current_store={@current_store}
+          form={@form}
+          listing_count={@listing_count}
+          offer_count={@offer_count}
+          streams={@streams}
+        />
+      </div>
+
+      <ActivationComponents.earn_activation_grid
+        :if={@tool == :sales_kits}
+        delivery_form={@delivery_form}
+        delivery_fulfillment_id={@delivery_fulfillment_id}
+        first_money={@first_money}
+        inbound_count={@inbound_count}
+        sales_click_count={@sales_click_count}
+        sales_order_count={@sales_order_count}
+        sales_revenue={@sales_revenue}
+        shipping_form={@shipping_form}
+        shipping_fulfillment_id={@shipping_fulfillment_id}
+        streams={@streams}
+      />
+
+      <ActivationComponents.supplier_inbox
+        :if={@tool == :orders}
+        delivery_form={@delivery_form}
+        delivery_fulfillment_id={@delivery_fulfillment_id}
+        first_money={@first_money}
+        inbound_count={@inbound_count}
+        sales_click_count={@sales_click_count}
+        sales_order_count={@sales_order_count}
+        sales_revenue={@sales_revenue}
+        shipping_form={@shipping_form}
+        shipping_fulfillment_id={@shipping_fulfillment_id}
+        streams={@streams}
+      />
+    </div>
+    """
+  end
+
   @doc "Every tool section on one page, reached from the hub's doors."
   def workbench(assigns) do
     ~H"""
@@ -212,7 +359,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
               if(@incoming > 0, do: "text-amber-700", else: "text-slate-500")
             ]}>
               {if @incoming > 0,
-                do: "#{@incoming} invite#{plural(@incoming)} waiting for you",
+                do: "#{Emakola.Plural.count(@incoming, "invite")} waiting for you",
                 else: "Both stores must agree first"}
             </span>
           </:delta>
@@ -339,10 +486,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
   defp step_icon(_fulfilled), do: "hero-truck"
 
   defp next_anchor(:connected), do: "#supply-connection-form"
-  defp next_anchor(:listed), do: "#earn-catalog"
-  defp next_anchor(:shared), do: "#earned-listings"
-  defp next_anchor(:sold), do: "#sales-shares"
-  defp next_anchor(_fulfilled), do: "#supplier-inbox"
+  defp next_anchor(:listed), do: "/products"
+  defp next_anchor(:shared), do: "/products#earned-listings"
+  defp next_anchor(:sold), do: "/sales-kits"
+  defp next_anchor(_fulfilled), do: "/orders"
 
   defp next_action(:connected), do: "Invite a store"
   defp next_action(:listed), do: "Add a product"
@@ -377,7 +524,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
           :if={@incoming > 0}
           class="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800"
         >
-          {@incoming} invite{plural(@incoming)}
+          {Emakola.Plural.count(@incoming, "invite")}
         </span>
         <span class="ml-auto text-xs text-slate-500 hidden sm:block">
           Both stores must agree first
@@ -610,7 +757,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
           {@inbound_count}
         </span>
         <.link
-          navigate={@tools_path <> "#supplier-inbox"}
+          navigate={@tools_path <> "/orders"}
           class="ml-auto text-xs font-semibold text-emerald-700 hover:text-emerald-800"
         >
           All orders
@@ -653,7 +800,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
               {Enum.map_join(fulfillment.line_items, " · ", &"#{&1.product_title} × #{&1.quantity}")}
             </p>
             <.link
-              navigate={@tools_path <> "#supplier-inbox"}
+              navigate={@tools_path <> "/orders"}
               class={[
                 "mt-2.5 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13px] font-semibold transition",
                 if(fulfillment.status in [:pending, :notified],
@@ -688,7 +835,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
       <div class="flex items-center gap-2.5 px-5 pt-[18px] pb-3">
         <h2 class="text-base font-bold text-slate-900">Sales kits</h2>
         <.link
-          navigate={@tools_path <> "#sales-shares"}
+          navigate={@tools_path <> "/sales-kits"}
           class="ml-auto text-xs font-semibold text-emerald-700 hover:text-emerald-800"
         >
           All kits
@@ -797,7 +944,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
         <.door
           key="income-plan"
-          href={@tools_path <> "#hustle-autopilot"}
+          href={@tools_path <> "/income-plan"}
           icon="hero-flag"
           tint="bg-violet-50 text-violet-700"
           title="Income plan"
@@ -806,7 +953,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="opportunity-radar"
-          href={@tools_path <> "#opportunity-radar"}
+          href={@tools_path <> "/opportunities"}
           icon="hero-signal"
           tint="bg-sky-50 text-sky-700"
           title="Opportunity radar"
@@ -814,7 +961,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="content-studio"
-          href={@tools_path <> "#earn-content-studio"}
+          href={@tools_path <> "/content-studio"}
           icon="hero-sparkles"
           tint="bg-pink-50 text-pink-700"
           title="Content studio"
@@ -823,7 +970,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="commerce-passport"
-          href={@tools_path <> "#commerce-passport"}
+          href={@tools_path <> "/commerce-passport"}
           icon="hero-shield-check"
           tint="bg-emerald-50 text-emerald-700"
           title="Commerce passport"
@@ -831,7 +978,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="group-buys"
-          href={@tools_path <> "#group-buy-form"}
+          href={@tools_path <> "/collaborate#group-buy-form"}
           icon="hero-user-group"
           tint="bg-fuchsia-50 text-fuchsia-700"
           title="Group buys"
@@ -839,7 +986,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="sales-teams"
-          href={@tools_path <> "#sales-team-form"}
+          href={@tools_path <> "/collaborate#sales-team-form"}
           icon="hero-user-plus"
           tint="bg-blue-50 text-blue-700"
           title="Sales teams"
@@ -847,7 +994,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="micro-franchise"
-          href={@tools_path <> "#franchise-package-form"}
+          href={@tools_path <> "/collaborate#franchise-package-form"}
           icon="hero-cube"
           tint="bg-orange-50 text-orange-700"
           title="Micro-franchise"
@@ -856,7 +1003,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
         />
         <.door
           key="stock-holds"
-          href={@tools_path <> "#inventory-eligibility"}
+          href={@tools_path <> "/stock-holds"}
           icon="hero-lock-closed"
           tint="bg-amber-50 text-amber-700"
           title="Stock holds"
@@ -920,7 +1067,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
       [{owned, "package"}, {available, "to join"}]
       |> Enum.reject(fn {count, _word} -> count == 0 end)
       |> Enum.map(fn
-        {count, "package"} -> "#{count} package#{plural(count)}"
+        {count, "package"} -> Emakola.Plural.count(count, "package")
         {count, "to join"} -> "#{count} to join"
       end)
 
@@ -930,7 +1077,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
   defp count_line(0, word, _suffix), do: "No #{word}s yet"
 
   defp count_line(count, word, suffix),
-    do: String.trim("#{count} #{word}#{plural(count)} #{suffix}")
+    do: String.trim("#{Emakola.Plural.count(count, word)} #{suffix}")
 
   defp humanize(value) when is_atom(value), do: value |> to_string() |> String.capitalize()
   defp humanize(value), do: to_string(value)
@@ -999,7 +1146,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
       </div>
       <.link
         :if={@listing_count > length(@listing_preview)}
-        navigate={@tools_path <> "#earned-listings"}
+        navigate={@tools_path <> "/products#earned-listings"}
         class="block border-t border-slate-100 px-5 py-3 text-center text-xs font-semibold text-emerald-700 hover:text-emerald-800"
       >
         Show all {@listing_count}
@@ -1012,7 +1159,4 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
 
   defp incoming_count(_connections, nil), do: 0
   defp incoming_count(connections, store), do: Enum.count(connections, &incoming?(&1, store.id))
-
-  defp plural(1), do: ""
-  defp plural(_count), do: "s"
 end
