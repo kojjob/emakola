@@ -87,8 +87,11 @@ defmodule Emakola.Accounts.VerificationBackfillTest do
 
       result = VerificationBackfill.run()
 
-      assert %{trading: trading, dormant: dormant, verified: verified} = result
-      assert is_integer(trading) and is_integer(dormant) and is_integer(verified)
+      assert %{trading: trading, dormant: _dormant, verified: verified} = result
+
+      assert verified == trading,
+             "the count reported to the operator does not match what was written"
+
       assert verified >= 1
     end
 
@@ -100,6 +103,56 @@ defmodule Emakola.Accounts.VerificationBackfillTest do
 
       assert reload(merchant).confirmed_at == before,
              "the backfill rewrote a merchant who was already verified"
+    end
+  end
+
+  describe "the deploy-time migration agrees with the module" do
+    # The rule exists twice: in Elixir for the rpc/Mix face, and in SQL in the
+    # migration that runs inside fly.toml's release_command. If they drift, the
+    # deploy grandfathers a different set of people than the operator's dry run
+    # reported. This pins them to the same answer.
+    @migration_sql """
+    UPDATE merchants
+       SET confirmed_at = NOW(), updated_at = NOW()
+     WHERE confirmed_at IS NULL
+       AND id IN (
+         SELECT sm.merchant_id
+           FROM store_memberships sm
+          WHERE sm.store_id IN (SELECT DISTINCT store_id FROM products)
+             OR sm.store_id IN (SELECT DISTINCT store_id FROM orders)
+       )
+    """
+
+    test "the SQL verifies exactly the merchants the module would" do
+      {trader_with_product, product_store} = unverified_merchant_with_store()
+      Factory.create_product!(product_store)
+
+      {trader_with_order, order_store} = unverified_merchant_with_store()
+      Factory.create_order!(order_store)
+
+      {empty_store_merchant, _empty} = unverified_merchant_with_store()
+      storeless = Factory.create_merchant!(%{confirmed_at: nil})
+
+      # What the operator's dry run would report.
+      dry = VerificationBackfill.run(dry_run?: true)
+      would_verify = VerificationBackfill.trading_emails()
+
+      assert to_string(trader_with_product.email) in would_verify
+      assert to_string(trader_with_order.email) in would_verify
+      refute to_string(empty_store_merchant.email) in would_verify
+      refute to_string(storeless.email) in would_verify
+
+      # What the deploy actually does.
+      Ecto.Adapters.SQL.query!(Emakola.Repo, @migration_sql, [])
+
+      assert reload(trader_with_product).confirmed_at
+      assert reload(trader_with_order).confirmed_at
+      refute reload(empty_store_merchant).confirmed_at
+      refute reload(storeless).confirmed_at
+
+      # And the counts the operator read match what the deploy touched.
+      assert dry.trading >= 2
+      assert VerificationBackfill.run(dry_run?: true).trading == dry.trading - 2
     end
   end
 end
