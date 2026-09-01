@@ -115,7 +115,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.MetricsComponents do
           <div>
             <p class="text-sm font-bold text-amber-900">No zone matched</p>
             <p class="text-xs text-amber-700 mt-0.5">
-              {regions_line(@unmatched.regions)} · paid the default fee. Zones match by name only.
+              {regions_line(@unmatched.regions)} · paid the default fee. Mark one zone as the catch-all.
             </p>
           </div>
         </div>
