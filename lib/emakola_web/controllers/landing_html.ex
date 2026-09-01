@@ -403,17 +403,19 @@ defmodule EmakolaWeb.LandingHTML do
     ~H"""
     <section class="bg-[#0a1120] border-y border-[#1a2744] py-12 px-4">
       <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+        <%!-- Only claims that are true: no invented merchant counts, no payout
+             promises the rails don't keep yet. --%>
         <div>
-          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">500+</p>
-          <p class="text-sm text-[#8896ab] mt-1">merchants on Makola</p>
+          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">22</p>
+          <p class="text-sm text-[#8896ab] mt-1">storefront looks to choose from</p>
         </div>
         <div>
           <p class="text-4xl font-headline font-extrabold text-[#d4a843]">3</p>
           <p class="text-sm text-[#8896ab] mt-1">mobile money networks</p>
         </div>
         <div>
-          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">Seconds</p>
-          <p class="text-sm text-[#8896ab] mt-1">from checkout to payout</p>
+          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">Free</p>
+          <p class="text-sm text-[#8896ab] mt-1">to open your shop</p>
         </div>
       </div>
     </section>

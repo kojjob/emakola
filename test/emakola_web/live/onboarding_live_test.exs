@@ -240,6 +240,14 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       assert product.title == "Kente Scarf"
 
+      # A priced product goes LIVE. It used to be left a :draft with no
+      # signpost, so the merchant's first product never appeared on their shop
+      # while the storefront said "no products".
+      assert product.status == :active,
+             "the onboarding product stayed #{inspect(product.status)} — invisible on the storefront"
+
+      assert product.published_at
+
       variants =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(product_id: product.id)

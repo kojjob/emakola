@@ -54,7 +54,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
                   Authentic Growth
                 </p>
                 <p class="text-[#f1f5f9] text-sm leading-relaxed">
-                  Join over 500+ merchants building their businesses on Makola.
+                  Set up your shop, share your link, and get paid with mobile money.
                 </p>
               </div>
             </div>
@@ -206,8 +206,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
             <!-- Terms -->
             <p class="text-center text-xs text-[#8896ab] mt-6">
               By signing in, you agree to our
-              <a href="#" class="text-[#2563eb] hover:underline">Terms of Service</a>
-              and <a href="#" class="text-[#2563eb] hover:underline">Privacy Policy</a>.
+              <a href="/terms" class="text-[#2563eb] hover:underline">Terms of Service</a>
+              and <a href="/privacy" class="text-[#2563eb] hover:underline">Privacy Policy</a>.
             </p>
           </div>
         </div>

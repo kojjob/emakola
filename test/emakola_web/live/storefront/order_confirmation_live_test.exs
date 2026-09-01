@@ -79,8 +79,9 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
       {:ok, _view, html} =
         live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
 
-      # Order is pending by default
-      assert html =~ "pending" or html =~ "Pending" or html =~ "Awaiting"
+      # Order is pending by default; the badge says so without implying a
+      # payment problem (most orders here are pay-on-delivery).
+      assert html =~ "Order Received"
     end
   end
 
@@ -106,5 +107,21 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
       assert html =~ order.order_number
       assert html =~ "Custom kente dress"
     end
+  end
+
+  test "a pending order reads as received, not as a payment problem", %{
+    conn: conn,
+    store: store,
+    order: order
+  } do
+    # Pay-on-delivery orders sit at :pending until the merchant confirms.
+    # "Awaiting Payment" told that buyer something had gone wrong with money
+    # they intend to hand over at the door.
+    assert order.status == :pending
+
+    {:ok, _view, html} = live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+
+    assert html =~ "Order Received"
+    refute html =~ "Awaiting Payment"
   end
 end

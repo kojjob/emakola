@@ -908,15 +908,19 @@ defmodule EmakolaWeb.OnboardingLive do
       )
       |> case do
         {:ok, product} when price > 0 ->
-          # Create a default variant with the price
-          Emakola.Catalog.create_variant(
-            %{
-              price: price,
-              product_id: product.id,
-              store_id: store.id
-            },
-            authorize?: false
-          )
+          # Create a default variant with the price, then publish. A priced
+          # product used to be left a :draft — invisible on the storefront the
+          # merchant had just been promised, with nothing saying why.
+          with {:ok, _variant} <-
+                 Emakola.Catalog.create_variant(
+                   %{price: price, product_id: product.id, store_id: store.id},
+                   authorize?: false
+                 ),
+               {:error, error} <- Emakola.Catalog.activate_product(product, authorize?: false) do
+            Logger.error(
+              "Onboarding product activation failed for product #{product.id}: #{inspect(error)}"
+            )
+          end
 
         _ ->
           :ok
