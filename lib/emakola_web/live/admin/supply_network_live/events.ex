@@ -271,7 +271,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Events do
          |> Data.load_collaborative_commerce()
          |> put_flash(
            :info,
-           "Starter business ready: #{result.imported} products, tracked links, and reviewable content drafts."
+           "Starter business ready: #{Emakola.Plural.count(result.imported, "product")}, tracked links, and reviewable content drafts."
          )}
 
       {:error, :no_matching_offers} ->
