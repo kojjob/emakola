@@ -114,10 +114,20 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   def handle_event("toggle_verified", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
       mutate_store(socket, id, fn store ->
+        granting? = !Map.get(store, :verified, false)
+
+        # A badge with no recorded basis renders nothing (see
+        # `Emakola.Stores.TrustBadge`), so the manual switch has to say what it
+        # is attesting to. Staff turning this on are vouching for the shop's
+        # paperwork, which is what :business_review means.
         result =
           Emakola.Stores.update_store_directory_meta(
             store,
-            %{verified: !Map.get(store, :verified, false)},
+            %{
+              verified: granting?,
+              verified_basis: if(granting?, do: :business_review),
+              verified_basis_at: if(granting?, do: DateTime.utc_now())
+            },
             authorize?: false
           )
 

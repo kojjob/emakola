@@ -18,6 +18,14 @@ defmodule Emakola.Stores.DirectoryScore do
   and it is the one counter a motivated merchant could inflate. Behaviour
   scores; popularity does not.
 
+  **Identity is deliberately absent too.** A `verified_trust` component used
+  to award 100 points for an approved `StoreVerification`. That record can no
+  longer be earned lawfully — L.I. 2523 retired the national-ID flow it rested
+  on — so scoring it would freeze the field in favour of stores onboarded
+  before June 2026. Its 100 points went to the two fulfilment components,
+  which is where trust actually comes from now. A `wallet_trust` component
+  keyed on a proven payout wallet is the intended successor.
+
   Weights are expected to be tuned; the tests pin the invariants (ordering
   under the prior, zero-signal floor, breakdown self-consistency), not the
   exact point values.
@@ -46,7 +54,6 @@ defmodule Emakola.Stores.DirectoryScore do
       fulfilment_rate: fulfilment_rate(signals),
       review_quality: review_quality(signals),
       catalog_health: catalog_health(signals),
-      verified_trust: verified_trust(signals),
       penalties: penalties(signals)
     }
 
@@ -61,18 +68,18 @@ defmodule Emakola.Stores.DirectoryScore do
 
   # ── Components ─────────────────────────────────────────────────────────
 
-  # 0..250 — recent delivered volume, saturating so a giant cannot lap the field.
+  # 0..300 — recent delivered volume, saturating so a giant cannot lap the field.
   defp fulfilment_volume(%{delivered_orders_90d: delivered}) do
-    min(delivered * 15, 250)
+    min(delivered * 18, 300)
   end
 
-  # 0..200 — delivered over delivered + cancelled. A shop with no orders gets
+  # 0..250 — delivered over delivered + cancelled. A shop with no orders gets
   # zero, not a penalty: silence is not evidence of failure.
   defp fulfilment_rate(%{delivered_orders_90d: 0, cancelled_orders_90d: _}), do: 0
 
   defp fulfilment_rate(%{delivered_orders_90d: delivered, cancelled_orders_90d: cancelled}) do
     rate_bps = div(delivered * 10_000, delivered + cancelled)
-    div(rate_bps * 200, 10_000)
+    div(rate_bps * 250, 10_000)
   end
 
   # 0..200 — Bayesian mean in centi-stars, mapped so 3.0 stars is the floor
@@ -98,11 +105,6 @@ defmodule Emakola.Stores.DirectoryScore do
 
     stocked + freshness
   end
-
-  # 0 or 100 — a real approved StoreVerification, never the manual
-  # Store.verified boolean, which an admin can set with no KYC behind it.
-  defp verified_trust(%{kyc_approved?: true}), do: 100
-  defp verified_trust(%{kyc_approved?: false}), do: 0
 
   # ≤ 0 — money going backwards and platform interventions. Each term is
   # capped so one bad month wounds a score rather than erasing it; the floor

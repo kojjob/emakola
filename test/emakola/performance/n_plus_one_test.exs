@@ -529,8 +529,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       :verified_review_rating_sum,
       :merchant_fault_return_count_90d,
       :staff_refunded_hold_count_90d,
-      :payout_verified,
-      :kyc_approved
+      :payout_verified
     ]
 
     test "loading every signal for 50 stores stays a bounded query count" do

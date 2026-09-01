@@ -54,8 +54,7 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
     :verified_review_rating_sum,
     :merchant_fault_return_count_90d,
     :staff_refunded_hold_count_90d,
-    :payout_verified,
-    :kyc_approved
+    :payout_verified
   ]
 
   @impl Oban.Worker
@@ -151,7 +150,6 @@ defmodule Emakola.Stores.Workers.DirectoryRankingWorker do
         review_rating_sum_centi: (store.verified_review_rating_sum || 0) * 100,
         product_count: store.product_count,
         days_since_last_publish: days_since(store.last_product_published_at, now),
-        kyc_approved?: store.kyc_approved,
         taken_down_products_90d: store.taken_down_product_count_90d,
         merchant_fault_returns_90d: store.merchant_fault_return_count_90d,
         staff_refunded_holds_90d: store.staff_refunded_hold_count_90d

@@ -2,8 +2,8 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
   @moduledoc """
   Platform "Verification Studio": KYC review as a split view — the
   submission queue on the left (oldest first, status filters) and a case
-  panel on the right with both documents embedded via short-lived
-  presigned URLs, an inline decision (reject reason without a modal,
+  panel on the right with the shop's details — no document is ever shown;
+  reviewers check the shop and the wallet proof — an inline decision (reject reason without a modal,
   approve awards the Store.verified badge), and the store's review
   history from the platform audit log.
 
@@ -40,8 +40,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
       |> assign(:verifications_loaded?, false)
       |> assign(:selected, nil)
       |> assign(:queue_ids, [])
-      |> assign(:id_document_url, nil)
-      |> assign(:business_doc_url, nil)
       |> assign(:reject_form, to_form(%{"reason" => ""}))
       |> assign(:history, [])
       |> assign(:history_actors, %{})
@@ -143,7 +141,15 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
     event = Keyword.fetch!(opts, :event)
     reason = Keyword.get(opts, :reason)
 
-    Stores.update_store_directory_meta(store, %{verified: Keyword.fetch!(opts, :verified)},
+    verified? = Keyword.fetch!(opts, :verified)
+
+    Stores.update_store_directory_meta(
+      store,
+      %{
+        verified: verified?,
+        verified_basis: if(verified?, do: :business_review),
+        verified_basis_at: if(verified?, do: DateTime.utc_now())
+      },
       authorize?: false
     )
 
@@ -227,8 +233,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
     |> assign(:verifications_count, length(filtered))
     |> assign(:verifications_loaded?, true)
     |> assign(:selected, selected)
-    |> assign(:id_document_url, selected && doc_url(selected.id_document_key))
-    |> assign(:business_doc_url, selected && doc_url(selected.business_doc_key))
     |> assign_history(selected)
     |> stream(:verifications, Enum.map(filtered, &row(&1, selected)), reset: true)
   end
@@ -242,15 +246,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
       verification: verification,
       selected?: selected != nil && selected.id == verification.id
     }
-  end
-
-  defp doc_url(nil), do: nil
-
-  defp doc_url(key) do
-    case Emakola.Storage.presigned_url(key, expires_in: 900) do
-      {:ok, url} -> url
-      _ -> nil
-    end
   end
 
   defp assign_history(socket, nil), do: assign(socket, history: [], history_actors: %{})
@@ -315,12 +310,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
 
   defp history_icon(:verification_approved), do: "hero-check-circle"
   defp history_icon(_), do: "hero-x-mark"
-
-  defp id_type_label(:ghana_card), do: "Ghana Card"
-  defp id_type_label(:passport), do: "Passport"
-  defp id_type_label(:drivers_license), do: "Driver's License"
-  defp id_type_label(:voter_id), do: "Voter ID"
-  defp id_type_label(other), do: to_string(other)
 
   defp filter_chip_classes(active?) do
     [
@@ -468,7 +457,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
                   </span>
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-                  {"#{store_name(@selected)} · #{id_type_label(@selected.id_type)} · #{@selected.id_number || "—"}#{if @selected.submitted_at, do: " · Submitted #{Calendar.strftime(@selected.submitted_at, "%b %d, %Y")}"}"}
+                  {"#{store_name(@selected)}#{if @selected.submitted_at, do: " · Submitted #{Calendar.strftime(@selected.submitted_at, "%b %d, %Y")}"}"}
                 </p>
               </div>
               <.link
@@ -478,64 +467,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
               >
                 Open store <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
               </.link>
-            </div>
-
-            <%!-- Documents --%>
-            <div class="flex flex-col sm:flex-row gap-4 mt-5">
-              <div class="flex-1 min-w-0">
-                <div class="h-48 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 relative overflow-hidden flex items-center justify-center">
-                  <img
-                    :if={@id_document_url}
-                    src={@id_document_url}
-                    alt=""
-                    class="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <.icon
-                    :if={!@id_document_url}
-                    name="hero-identification"
-                    class="size-9 text-slate-300"
-                  />
-                  <span class="absolute bottom-2 left-2.5 text-[11px] font-semibold text-slate-600 bg-white/85 px-2 py-0.5 rounded-full">
-                    {id_type_label(@selected.id_type)}
-                  </span>
-                  <a
-                    :if={@id_document_url}
-                    href={@id_document_url}
-                    target="_blank"
-                    aria-label="Open ID document"
-                    class="absolute top-2 right-2 flex w-7 h-7 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow hover:bg-white transition-colors"
-                  >
-                    <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
-                  </a>
-                </div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="h-48 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 relative overflow-hidden flex items-center justify-center">
-                  <img
-                    :if={@business_doc_url}
-                    src={@business_doc_url}
-                    alt=""
-                    class="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <.icon
-                    :if={!@business_doc_url}
-                    name="hero-document-text"
-                    class="size-9 text-slate-300"
-                  />
-                  <span class="absolute bottom-2 left-2.5 text-[11px] font-semibold text-slate-600 bg-white/85 px-2 py-0.5 rounded-full">
-                    Business registration
-                  </span>
-                  <a
-                    :if={@business_doc_url}
-                    href={@business_doc_url}
-                    target="_blank"
-                    aria-label="Open business document"
-                    class="absolute top-2 right-2 flex w-7 h-7 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow hover:bg-white transition-colors"
-                  >
-                    <.icon name="hero-arrow-top-right-on-square" class="size-3.5" />
-                  </a>
-                </div>
-              </div>
             </div>
 
             <div class="h-px bg-gray-100 my-6"></div>
