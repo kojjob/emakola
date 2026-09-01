@@ -57,6 +57,7 @@ defmodule EmakolaWeb.Admin.MessageLiveTest do
     assert {:ok, messages} = Conversations.list_messages(thread.id)
     assert List.last(messages).body == "Ready tomorrow."
     assert List.last(messages).author_kind == :merchant
+    assert_push_event(view, "composer:clear", %{})
   end
 
   test "a sent message shows once, not twice", ctx do
