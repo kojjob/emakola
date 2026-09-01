@@ -1,0 +1,293 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: #F8FAFC; color: #111827; -webkit-font-smoothing: antialiased; }
+    a { color: #2563EB; text-decoration: none; } a:hover { color: #1D4ED8; }
+    * { box-sizing: border-box; }
+    .num { font-variant-numeric: tabular-nums; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .tile { position: relative; overflow: hidden; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 18px 20px; }
+    .tile .wash { position: absolute; inset: 0; }
+    .tile .ico { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; }
+    .tile .lbl { font-size: 13px; font-weight: 600; color: #475569; }
+    .tile .val { position: relative; font-size: 28px; font-weight: 800; color: #0F172A; margin-top: 10px; letter-spacing: -.01em; }
+    .tile .delta { position: relative; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #64748B; margin-top: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; font-weight: 500; color: #475569; background: #F8FAFC; box-shadow: inset 0 0 0 1px #E2E8F0; white-space: nowrap; }
+    .chip.on { background: #0F172A; color: #FFFFFF; font-weight: 600; box-shadow: none; }
+    .chip .n { opacity: .6; }
+    .row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
+    .row.sel { background: #EFF6FF; box-shadow: inset 3px 0 0 #3B82F6; }
+    .av { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .tpill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); white-space: nowrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .m { padding: 14px 16px; border-radius: 12px; box-shadow: inset 0 0 0 1px #E5E7EB; background: #FFFFFF; display: flex; flex-direction: column; gap: 6px; }
+    .m .k { font-size: 11px; font-weight: 600; color: #6B7280; }
+    .m .v { font-size: 22px; font-weight: 800; color: #111827; line-height: 1.1; }
+    .m .s { font-size: 11px; color: #9CA3AF; }
+    .meta { font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+    .mini { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 999px; font-size: 8.5px; font-weight: 700; box-shadow: 0 0 0 2px #FFFFFF; }
+    .sec { font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+    .pres { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+    .sw { position: relative; width: 44px; height: 24px; border-radius: 999px; flex-shrink: 0; }
+    .sw span { position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  </style>
+</helmet>
+
+<div style="width: 1280px; min-height: 980px; padding: 32px; background: #F8FAFC;">
+
+  <!-- Page header (unchanged) -->
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px;">
+    <div>
+      <div style="font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -.02em; line-height: 1.25;">Stores</div>
+      <div style="font-size: 14px; color: #6B7280; margin-top: 4px;">Curate how stores appear on the Makola directory</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="tpill" style="background: #EFF6FF; color: #1D4ED8;">41 stores</span>
+      <span class="tpill" style="background: #FFFBEB; color: #B45309;">6 featured</span>
+    </div>
+  </div>
+
+  <!-- NEW: platform totals (Emakola.Platform.Stats, not the 200-row page) -->
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px;">
+    <div class="tile">
+      <div class="wash" style="background: linear-gradient(120deg, rgba(239,246,255,.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="lbl">Stores</span>
+        <span class="ico" style="background: linear-gradient(135deg, #60A5FA, #2563EB); box-shadow: 0 5px 12px rgba(37,99,235,.3);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.4 4.6A1.4 1.4 0 0 1 6.8 3.6h10.4a1.4 1.4 0 0 1 1.4 1L20 9.5"/><path d="M4 9.5h16v9.5a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V9.5Z"/><path d="M9.4 20.4V15h5.2v5.4"/></svg></span>
+      </div>
+      <div class="val num">41</div>
+      <div class="delta"><span style="width: 7px; height: 7px; border-radius: 999px; background: #22C55E;"></span> 36 live · 5 hidden</div>
+    </div>
+    <div class="tile">
+      <div class="wash" style="background: linear-gradient(120deg, rgba(236,253,245,.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="lbl">Merchants</span>
+        <span class="ico" style="background: linear-gradient(135deg, #34D399, #059669); box-shadow: 0 5px 12px rgba(5,150,105,.3);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 00-8 0v1M12 11a3 3 0 100-6 3 3 0 000 6zM20 19v-1a3 3 0 00-2-2.8M16 5.3a3 3 0 010 5.4"/></svg></span>
+      </div>
+      <div class="val num">58</div>
+      <div class="delta">9 run more than one store · 4 joined this week</div>
+    </div>
+    <div class="tile">
+      <div class="wash" style="background: linear-gradient(120deg, rgba(245,243,255,.9), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="lbl">Orders · 30 days</span>
+        <span class="ico" style="background: linear-gradient(135deg, #A78BFA, #7C3AED); box-shadow: 0 5px 12px rgba(124,58,237,.3);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a2 2 0 002 1.6h8.6a2 2 0 002-1.5L21.5 8H6.2"/><circle cx="9.5" cy="20" r="1.2"/><circle cx="17.5" cy="20" r="1.2"/></svg></span>
+      </div>
+      <div class="val num">312</div>
+      <div class="delta"><span style="color: #047857; font-weight: 600;">GH₵ 24,800 paid</span> · 23 stores sold something</div>
+    </div>
+    <div class="tile">
+      <div class="wash" style="background: linear-gradient(120deg, rgba(254,243,199,.7), rgba(255,255,255,0) 60%);"></div>
+      <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="lbl">Featured</span>
+        <span class="ico" style="background: linear-gradient(135deg, #FBBF24, #D97706); box-shadow: 0 5px 12px rgba(217,119,6,.3);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z"/></svg></span>
+      </div>
+      <div class="val num">6</div>
+      <div class="delta">12 eligible · 7 barred for no payout</div>
+    </div>
+  </div>
+
+  <!-- Split view -->
+  <div style="display: flex; background: #FFFFFF; border-radius: 16px; border: 1px solid #E5E7EB; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden; height: 700px;">
+
+    <!-- Store list -->
+    <div style="width: 380px; flex-shrink: 0; border-right: 1px solid #F3F4F6; display: flex; flex-direction: column; min-height: 0;">
+      <div style="padding: 16px; border-bottom: 1px solid #F3F4F6;">
+        <div style="position: relative;">
+          <svg style="position: absolute; left: 12px; top: 10px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <div style="height: 36px; padding: 0 12px 0 36px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 13px; color: #9CA3AF; display: flex; align-items: center;">Search by name or slug...</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">
+          <span class="chip on">All <span class="n num">41</span></span>
+          <span class="chip">Featured <span class="n num">6</span></span>
+          <span class="chip">Suspended <span class="n num">5</span></span>
+          <span class="chip">No payout <span class="n num">7</span></span>
+          <span class="chip">Quiet 30d <span class="n num">18</span></span>
+        </div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 8px; min-height: 0;">
+        <!-- selected -->
+        <div class="row sel">
+          <span class="av" style="background: #D1FAE5; color: #059669;">K</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #111827; line-height: 1.2;">Kente Kingdom</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">kente-kingdom</div>
+            <div class="meta"><span style="display: inline-flex;"><span class="mini" style="background: #FEF3C7; color: #B45309;">A</span><span class="mini" style="background: #DBEAFE; color: #2563EB; margin-left: -5px;">K</span></span> 2 merchants · 14 products · sold 2d ago</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z"/></svg>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #FEE2E2; color: #E11D48;">D</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Darko Beads</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">darko-beads</div>
+            <div class="meta"><span class="mini" style="background: #EDE9FE; color: #7C3AED;">A</span> 1 merchant · 6 products · sold 9d ago</div>
+          </div>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #DBEAFE; color: #2563EB;">S</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Serwaa Textiles</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">serwaa-textiles</div>
+            <div class="meta"><span style="display: inline-flex;"><span class="mini" style="background: #D1FAE5; color: #059669;">A</span><span class="mini" style="background: #FCE7F3; color: #BE185D; margin-left: -5px;">E</span><span class="mini" style="background: #E0E7FF; color: #4338CA; margin-left: -5px;">Y</span></span> 3 merchants · 41 products · sold today</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z"/></svg>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #FEF3C7; color: #D97706;">B</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Bolga Baskets Co.</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">bolga-baskets</div>
+            <div class="meta"><span class="mini" style="background: #CFFAFE; color: #0E7490;">Y</span> 1 merchant · 9 products · <span style="color: #B45309; font-weight: 600;">no payout</span></div>
+          </div>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #E0E7FF; color: #4338CA;">A</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Accra Phone Hub</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">accra-phone-hub</div>
+            <div class="meta"><span class="mini" style="background: #FEE2E2; color: #E11D48;">K</span> 1 merchant · 0 products · <span style="color: #9CA3AF;">never sold</span></div>
+          </div>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #F87171; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #FCE7F3; color: #BE185D;">E</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Efua's Kitchen</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">efuas-kitchen</div>
+            <div class="meta"><span class="mini" style="background: #FCE7F3; color: #BE185D;">E</span> 1 merchant · 12 products · sold 1d ago</div>
+          </div>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+
+        <div class="row">
+          <span class="av" style="background: #CFFAFE; color: #0E7490;">M</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Mama Esi Fruits</div>
+            <div class="mono" style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">mama-esi-fruits</div>
+            <div class="meta"><span class="mini" style="background: #D1FAE5; color: #059669;">E</span> 1 merchant · 8 products · sold 4d ago</div>
+          </div>
+          <span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E; flex-shrink: 0;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Curation panel -->
+    <div style="flex: 1; min-width: 0; padding: 28px; overflow-y: auto;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #D1FAE5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0;">K</div>
+        <div style="min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -.02em;">Kente Kingdom</div>
+            <span class="tpill" style="background: #F0FDF4; color: #15803D;">Live</span>
+            <span class="tpill" style="background: #ECFDF5; color: #047857;">Payout verified</span>
+          </div>
+          <div style="font-size: 13px; color: #6B7280; margin-top: 2px;">Kumasi · <span class="mono">kente-kingdom</span> · GHS · Since Jun 12, 2026</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="btn" style="background: #FFFFFF; color: #2563EB; box-shadow: inset 0 0 0 1px #E5E7EB;">Storefront <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+          <span class="btn" style="background: #0F172A; color: #FFFFFF;">Manage store</span>
+        </div>
+      </div>
+
+      <div style="height: 1px; background: #F3F4F6; margin: 24px 0;"></div>
+
+      <!-- NEW: store metrics, all from Store aggregates + memberships -->
+      <div class="sec">Store at a glance</div>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;">
+        <div class="m">
+          <span class="k">Merchants</span>
+          <span class="v num">2</span>
+          <span style="display: flex; align-items: center; gap: 6px;"><span class="mini" style="background: #FEF3C7; color: #B45309; width: 20px; height: 20px; font-size: 9px;">A</span><span class="mini" style="background: #DBEAFE; color: #2563EB; width: 20px; height: 20px; font-size: 9px; margin-left: -8px;">K</span><span class="s">Ama · owner</span></span>
+        </div>
+        <div class="m">
+          <span class="k">Products</span>
+          <span class="v num">14</span>
+          <span class="s">last published 3d ago</span>
+        </div>
+        <div class="m">
+          <span class="k">Delivered · 90d</span>
+          <span class="v num">27</span>
+          <span class="s">2 cancelled</span>
+        </div>
+        <div class="m">
+          <span class="k">Last order</span>
+          <span class="v num">2d</span>
+          <span class="s">Aug 30 · 31 paid in 90d</span>
+        </div>
+        <div class="m">
+          <span class="k">Directory views</span>
+          <span class="v num">1,240</span>
+          <span class="s">4.6 from 12 reviews</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; margin-top: 28px;">
+        <div>
+          <div class="sec">Directory presence</div>
+          <div style="border: 1px solid #E5E7EB; border-radius: 12px;">
+            <div class="pres">
+              <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #FEF3C7; color: #D97706; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z"/></svg></span>
+              <div style="flex: 1;"><div style="font-size: 14px; font-weight: 600; color: #111827;">Featured</div><div style="font-size: 12px; color: #9CA3AF; margin-top: 2px;">Shown in the featured strip on the directory</div></div>
+              <span class="sw" style="background: #3B82F6;"><span style="right: 2px;"></span></span>
+            </div>
+            <div class="pres" style="border-top: 1px solid #F3F4F6;">
+              <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #E0F2FE; color: #0284C7; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.2 1.6 2.7-.3 1 2.5 2.5 1-.3 2.7 1.6 2.2-1.6 2.2.3 2.7-2.5 1-1 2.5-2.7-.3L12 21.5l-2.2-1.6-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l1.6-2.2-.3-2.7 2.5-1 1-2.5 2.7.3L12 2.5z"/><path d="M9 12l2 2 4-4"/></svg></span>
+              <div style="flex: 1;"><div style="font-size: 14px; font-weight: 600; color: #111827;">Verified</div><div style="font-size: 12px; color: #9CA3AF; margin-top: 2px;">Verified badge on the directory card and storefront</div></div>
+              <span class="sw" style="background: #3B82F6;"><span style="right: 2px;"></span></span>
+            </div>
+            <div class="pres" style="border-top: 1px solid #F3F4F6;">
+              <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #F1F5F9; color: #64748B; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 3L8 21M16 3l-2 18"/></svg></span>
+              <div style="flex: 1;"><div style="font-size: 14px; font-weight: 600; color: #111827;">Featured order</div><div style="font-size: 12px; color: #9CA3AF; margin-top: 2px;">Position in the featured strip</div></div>
+              <span class="num" style="font-size: 14px; font-weight: 600; color: #111827;">#2 of 6</span>
+              <span style="display: flex; box-shadow: inset 0 0 0 1px #E5E7EB; border-radius: 10px; overflow: hidden;"><span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></span><span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #F3F4F6;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #9CA3AF; margin-top: 12px;">Changes apply to the public directory immediately.</div>
+
+          <div class="sec" style="margin-top: 28px;">Featuring standing</div>
+          <div style="border: 1px solid #E5E7EB; border-radius: 16px;">
+            <div class="pres">
+              <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #F1F5F9; color: #64748B; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5m5.5 14V9M15 19v-6m5.5 6V7"/></svg></span>
+              <div style="flex: 1;"><div style="font-size: 14px; font-weight: 600; color: #111827;">Score <span class="num">820</span> / 1000</div><div style="font-size: 12px; color: #9CA3AF; margin-top: 2px;">Eligible for every featured slot</div></div>
+              <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #ECFDF5; color: #047857; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;">Spotlight</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec">Directory preview</div>
+          <div style="border: 1px solid #E5E7EB; border-radius: 16px; overflow: hidden; background: #FFFFFF;">
+            <div style="height: 120px; background: #0C1F17;"><svg width="100%" height="120" viewBox="0 0 280 120" preserveAspectRatio="xMidYMid slice"><defs><pattern id="kp" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9h18M9 0v18" stroke="#134E3A" stroke-width="7"/><path d="M0 0l18 18M18 0L0 18" stroke="#CA8A04" stroke-width="1.3" opacity=".5"/></pattern></defs><rect width="280" height="120" fill="url(#kp)"/></svg></div>
+            <div style="padding: 14px 16px;">
+              <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px; font-weight: 700; color: #111827;">Kente Kingdom</span><svg width="14" height="14" viewBox="0 0 24 24" fill="#0284C7"><path d="M12 2.5l2.2 1.6 2.7-.3 1 2.5 2.5 1-.3 2.7 1.6 2.2-1.6 2.2.3 2.7-2.5 1-1 2.5-2.7-.3L12 21.5l-2.2-1.6-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l1.6-2.2-.3-2.7 2.5-1 1-2.5 2.7.3L12 2.5z"/><path d="M9 12l2 2 4-4" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Kumasi · 14 products</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #9CA3AF; margin-top: 10px;">How this store appears on the public directory.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

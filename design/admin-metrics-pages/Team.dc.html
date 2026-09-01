@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: #F8FAFC; color: #111827; -webkit-font-smoothing: antialiased; }
+    a { color: #2563EB; text-decoration: none; } a:hover { color: #1D4ED8; }
+    * { box-sizing: border-box; }
+    .num { font-variant-numeric: tabular-nums; }
+    .chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; font-weight: 500; color: #475569; background: #F8FAFC; box-shadow: inset 0 0 0 1px #E2E8F0; white-space: nowrap; }
+    .chip.on { background: #0F172A; color: #FFFFFF; font-weight: 600; box-shadow: none; }
+    .chip .n { opacity: .6; }
+    .perm { display: inline-flex; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; background: #F1F5F9; color: #64748B; }
+    .row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; }
+    .row.sel { background: #EFF6FF; box-shadow: inset 3px 0 0 #3B82F6; }
+    .avatar { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .tpill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; box-shadow: inset 0 0 0 1px #E5E7EB; background: #FFFFFF; }
+    .card.on { background: rgba(239,246,255,.7); box-shadow: inset 0 0 0 1px #BFDBFE; }
+    .cb { width: 16px; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px #CBD5E1; background: #FFFFFF; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .cb.on { background: #2563EB; box-shadow: none; }
+    .sec { font-size: 10px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: .1em; padding: 8px 12px 4px; display: flex; align-items: center; gap: 8px; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; min-height: 780px; padding: 32px; background: #F8FAFC;">
+
+  <!-- Page header (unchanged from the shipped page) -->
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
+    <div>
+      <div style="font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -.02em; line-height: 1.25;">Team</div>
+      <div style="font-size: 14px; color: #6B7280; margin-top: 4px;">Platform staff, permissions, and invites</div>
+    </div>
+    <div class="btn" style="background: #0F172A; color: #FFFFFF; font-size: 13px; height: 36px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Invite staff
+    </div>
+  </div>
+
+  <!-- Studio -->
+  <div style="display: flex; background: #FFFFFF; border-radius: 16px; border: 1px solid #E5E7EB; box-shadow: 0 1px 2px rgba(15,23,42,.05); overflow: hidden; height: 668px;">
+
+    <!-- ── Roster ── -->
+    <div style="width: 360px; flex-shrink: 0; border-right: 1px solid #F3F4F6; display: flex; flex-direction: column; min-height: 0;">
+
+      <!-- NEW: search + permission select + status chips -->
+      <div style="padding: 16px; border-bottom: 1px solid #F3F4F6; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 8px;">
+          <div style="position: relative; flex: 1; min-width: 0;">
+            <svg style="position: absolute; left: 12px; top: 10px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <div style="height: 36px; padding: 0 12px 0 36px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 13px; color: #9CA3AF; display: flex; align-items: center;">Search staff…</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px 0 12px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 12.5px; font-weight: 500; color: #374151; white-space: nowrap;">
+            Any permission
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <span class="chip">All <span class="n num">7</span></span>
+          <span class="chip">Owners <span class="n num">2</span></span>
+          <span class="chip on">2FA off <span class="n num">3</span></span>
+          <span class="chip">Deactivated <span class="n num">1</span></span>
+          <span class="chip">Invites <span class="n num">2</span></span>
+        </div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 8px; min-height: 0;">
+        <div class="sec">
+          <span>Staff · <span class="num">3 of 7</span></span>
+          <span style="margin-left: auto; font-size: 10.5px; font-weight: 600; color: #2563EB; text-transform: none; letter-spacing: 0;">Clear filter</span>
+        </div>
+
+        <!-- Row: selected -->
+        <div class="row sel">
+          <span style="position: relative; flex-shrink: 0;"><span class="avatar" style="background: #FEF3C7; color: #D97706;">A</span><span style="position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 999px; background: #22C55E; box-shadow: 0 0 0 2px #FFFFFF;"></span></span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #111827; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Abena Serwaa</div>
+            <div style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">abena@makola.io</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+              <span class="perm">manage_merchants</span><span class="perm">manage_stores</span>
+            </div>
+          </div>
+          <span class="pill" style="background: #FFF1F2; color: #E11D48; box-shadow: inset 0 0 0 1px rgba(225,29,72,.2);">2FA OFF</span>
+        </div>
+
+        <div class="row">
+          <span style="position: relative; flex-shrink: 0;"><span class="avatar" style="background: #DBEAFE; color: #2563EB;">K</span><span style="position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 999px; background: #CBD5E1; box-shadow: 0 0 0 2px #FFFFFF;"></span></span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Kofi Boateng</div>
+            <div style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">kofi@makola.io</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+              <span class="perm">manage_billing</span><span class="perm">view_audit_log</span>
+            </div>
+          </div>
+          <span class="pill" style="background: #FFF1F2; color: #E11D48; box-shadow: inset 0 0 0 1px rgba(225,29,72,.2);">2FA OFF</span>
+        </div>
+
+        <div class="row" style="opacity: .6;">
+          <span class="avatar" style="background: #EDE9FE; color: #7C3AED;">Y</span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13.5px; font-weight: 600; color: #334155; line-height: 1.2;">Yaw Ofori</div>
+            <div style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">yaw@makola.io</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+              <span class="perm">manage_announcements</span>
+            </div>
+          </div>
+          <span class="pill" style="background: #FFE4E6; color: #BE123C;">Deactivated</span>
+          <span class="pill" style="background: #FFF1F2; color: #E11D48; box-shadow: inset 0 0 0 1px rgba(225,29,72,.2);">2FA OFF</span>
+        </div>
+
+        <!-- Hidden by the filter: shown collapsed so the count stays honest -->
+        <div style="margin: 10px 12px 0; padding: 10px 12px; border-radius: 10px; background: #F8FAFC; font-size: 11.5px; color: #6B7280; display: flex; align-items: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A9.8 9.8 0 0112 5c5 0 9 4 10 7-.4 1.2-1.2 2.5-2.3 3.6M6.2 6.2C4 7.7 2.6 9.8 2 12c1 3 5 7 10 7 1.5 0 2.9-.3 4.1-.9"/></svg>
+          4 staff with 2FA on are hidden
+        </div>
+
+        <div style="margin: 10px 12px 0; padding: 8px 12px; border-radius: 10px; font-size: 11px; color: #6B7280; display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #22C55E;"></span>Online now</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #CBD5E1;"></span>Seen earlier</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px;">No dot · never signed in</span>
+        </div>
+        <div class="sec" style="margin-top: 8px;">Invites · <span class="num">2</span></div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;">
+          <span class="avatar" style="background: #F8FAFC; box-shadow: inset 0 0 0 1px #E2E8F0; color: #9CA3AF;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          </span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; color: #334155; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">efua@makola.io</div>
+            <div style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">Invited Aug 29</div>
+          </div>
+          <span class="pill" style="background: #FFFBEB; color: #B45309; box-shadow: inset 0 0 0 1px rgba(217,119,6,.2);">Expires in 4d</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;">
+          <span class="avatar" style="background: #F8FAFC; box-shadow: inset 0 0 0 1px #E2E8F0; color: #9CA3AF;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          </span>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 13px; font-weight: 600; color: #334155; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">kwame@makola.io</div>
+            <div style="font-size: 11px; color: #9CA3AF; line-height: 1.2; margin-top: 2px;">Invited Aug 31</div>
+          </div>
+          <span class="pill" style="background: #FFF1F2; color: #E11D48; box-shadow: inset 0 0 0 1px rgba(225,29,72,.2);">Expires in 1d</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Member panel (unchanged) ── -->
+    <div style="flex: 1; min-width: 0; padding: 28px; overflow-y: auto;">
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <span class="avatar" style="width: 56px; height: 56px; font-size: 22px; background: #FEF3C7; color: #D97706;">A</span>
+        <div style="min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="font-size: 20px; font-weight: 700; color: #111827; letter-spacing: -.02em;">Abena Serwaa</div>
+            <span class="tpill" style="background: #F1F5F9; color: #475569;">2FA off</span>
+          </div>
+          <div style="font-size: 13px; color: #6B7280; margin-top: 2px;">abena@makola.io · 2 active sessions · <span style="font-weight: 600; color: #16A34A;">Online now</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="btn" style="background: #FFFFFF; color: #475569; box-shadow: inset 0 0 0 1px #E5E7EB;">Force logout</span>
+          <span class="btn" style="background: #FFFBEB; color: #B45309; box-shadow: inset 0 0 0 1px rgba(217,119,6,.2);">Reset 2FA</span>
+          <span class="btn" style="background: #FFF1F2; color: #BE123C; box-shadow: inset 0 0 0 1px rgba(225,29,72,.2);">Deactivate</span>
+        </div>
+      </div>
+
+      <div style="height: 1px; background: #F3F4F6; margin: 24px 0;"></div>
+
+      <div style="font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px;">Permissions</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div class="card on"><span class="cb on"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage stores</div><div style="font-size: 11.5px; color: #9CA3AF;">Directory, moderation, lifecycle</div></div></div>
+        <div class="card on"><span class="cb on"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage merchants</div><div style="font-size: 11.5px; color: #9CA3AF;">Onboarding and verifications</div></div></div>
+        <div class="card"><span class="cb"></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage team</div><div style="font-size: 11.5px; color: #9CA3AF;">Invite and manage staff</div></div></div>
+        <div class="card"><span class="cb"></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">View audit log</div><div style="font-size: 11.5px; color: #9CA3AF;">Read audit and security events</div></div></div>
+        <div class="card"><span class="cb"></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage billing</div><div style="font-size: 11.5px; color: #9CA3AF;">Finance, payments, refunds</div></div></div>
+        <div class="card"><span class="cb"></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage settings</div><div style="font-size: 11.5px; color: #9CA3AF;">Feature flags and platform config</div></div></div>
+        <div class="card"><span class="cb"></span><div><div style="font-size: 13.5px; font-weight: 600; color: #111827;">Manage announcements</div><div style="font-size: 11.5px; color: #9CA3AF;">Broadcasts to merchants</div></div></div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151;">
+          <span class="cb" style="box-shadow: inset 0 0 0 1px #D1D5DB;"></span> Owner (full access, can manage owners)
+        </div>
+        <span class="btn" style="background: #0F172A; color: #FFFFFF; font-size: 13px;">Save changes</span>
+      </div>
+      <div style="font-size: 12px; color: #9CA3AF; margin-top: 12px;">Changes apply on the member's next request. Owner-only controls stay with owners.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
