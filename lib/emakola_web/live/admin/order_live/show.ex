@@ -976,7 +976,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           <.form
             for={@tracking_form}
             id="shipped-order-form"
-            phx-submit="submit_shipped"
+            phx-submit={JS.push("submit_shipped") |> hide_modal("shipped-order-modal")}
             class="space-y-4"
           >
             <p class="text-sm text-slate-600">
