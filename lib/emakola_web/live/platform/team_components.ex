@@ -481,6 +481,17 @@ defmodule EmakolaWeb.Platform.TeamComponents do
           >
             Reactivate
           </button>
+          <button
+            :if={@owner_actor}
+            type="button"
+            id={"remove-staff-#{@user.id}"}
+            phx-click="remove"
+            phx-value-id={@user.id}
+            data-confirm={"Remove #{@user.email} from the team? They lose every platform permission and are signed out everywhere."}
+            class="inline-flex items-center px-3.5 py-2 rounded-[10px] text-[12.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer"
+          >
+            Remove from team
+          </button>
         </div>
       </div>
 

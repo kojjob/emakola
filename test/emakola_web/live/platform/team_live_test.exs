@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
   import Swoosh.TestAssertions
 
+  require Ash.Query
+
   alias Emakola.Accounts.PlatformInvite
   alias Emakola.Accounts.Sessions
   alias Emakola.Accounts.TOTP
@@ -318,6 +320,62 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
       view |> element("#reactivate-staff-#{staff.id}") |> render_click()
       assert is_nil(reload_user!(staff).deactivated_at)
+    end
+  end
+
+  describe "remove from team" do
+    test "owner removes a member: off the roster, no permissions, no sessions, audited",
+         %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+      Factory.create_user_session!(staff)
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+      view |> element("#remove-staff-#{staff.id}") |> render_click()
+
+      refute has_element?(view, "#staff-#{staff.id}")
+      removed = reload_user!(staff)
+      assert removed.platform_permissions == []
+      refute removed.is_owner
+      assert {:ok, []} = Sessions.list_active_for_user(staff.id)
+
+      removed_ids =
+        Emakola.Accounts.PlatformAuditLog
+        |> Ash.Query.for_read(:list)
+        |> Ash.Query.filter(action == :staff_removed)
+        |> Ash.read!(authorize?: false)
+        |> Map.fetch!(:results)
+        |> Enum.map(& &1.metadata["user_id"])
+
+      assert staff.id in removed_ids
+    end
+
+    test "a non-owner sees no remove button and a crafted event is rejected", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_team])
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#edit-staff-#{staff.id}") |> render_click()
+      refute has_element?(view, "#remove-staff-#{staff.id}")
+
+      html = render_click(view, "remove", %{"id" => staff.id})
+
+      assert html =~ "Only platform owners"
+      assert reload_user!(staff).platform_permissions == [:manage_stores]
+    end
+
+    test "an owner cannot remove themselves", %{conn: conn} do
+      {conn, owner, _session} = setup_platform_staff(conn)
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      html = render_click(view, "remove", %{"id" => owner.id})
+
+      assert html =~ "cannot remove yourself"
+      assert reload_user!(owner).is_owner
     end
   end
 

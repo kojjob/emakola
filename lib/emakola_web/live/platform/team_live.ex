@@ -184,6 +184,10 @@ defmodule EmakolaWeb.Platform.TeamLive do
     staff_action(socket, id, &PlatformTeam.reactivate/2, fn _ -> "Staff member reactivated." end)
   end
 
+  def handle_event("remove", %{"id" => id}, socket) do
+    staff_action(socket, id, &PlatformTeam.remove/2, fn _ -> "Removed from the team." end)
+  end
+
   def handle_event("revoke_invite", %{"id" => id}, socket) do
     invite_action(socket, id, &PlatformTeam.revoke_invite/2, "Invite revoked.")
   end
@@ -358,6 +362,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   defp error_message(:unauthorized), do: "You don't have permission to manage the team."
   defp error_message(:owner_required), do: "Only platform owners can do that."
+  defp error_message(:cannot_remove_self), do: "You cannot remove yourself from the team."
 
   defp error_message(:email_delivery_failed), do: "Could not send the invite email."
 
