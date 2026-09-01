@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F8FAFC; color: #0F172A; -webkit-font-smoothing: antialiased; }
+    a { color: #047857; text-decoration: none; } a:hover { color: #065F46; }
+    * { box-sizing: border-box; }
+    .num { font-variant-numeric: tabular-nums; }
+    .card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+    .tile { padding: 14px; border-radius: 14px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 8px; }
+    .tile .lbl { font-size: 12px; font-weight: 500; color: #64748B; }
+    .tile .ico { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .tile .val { font-size: 24px; font-weight: 700; line-height: 1.1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .primary { background: #059669; color: #FFFFFF; }
+    .secondary { background: #FFFFFF; color: #334155; box-shadow: inset 0 0 0 1px #E2E8F0; }
+    .h2 { font-size: 15px; font-weight: 700; }
+    .sub { font-size: 12px; color: #64748B; }
+    .row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid #F1F5F9; min-height: 64px; }
+    .photo { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+    .letter { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; color: #FFFFFF; flex-shrink: 0; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tool { display: flex; align-items: center; gap: 12px; padding: 14px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; min-height: 72px; }
+    .tool .ti { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dot { width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  </style>
+</helmet>
+
+<div style="width: 390px; min-height: 1560px; padding: 16px; background: #F8FAFC; display: flex; flex-direction: column; gap: 16px;">
+
+  <!-- Header -->
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 44px; height: 44px; border-radius: 12px; background: #059669; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.4 19.2a5.6 5.6 0 0 1 11.2 0"/><circle cx="17.6" cy="9.6" r="2.5"/><path d="M15.4 19.2a5.1 5.1 0 0 1 5.9-4.4"/></svg>
+    </div>
+    <div style="flex: 1;">
+      <div style="font-size: 22px; font-weight: 700; line-height: 1.15;">Partners</div>
+      <div class="sub" style="margin-top: 2px;">Earn without buying stock</div>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+    <span class="btn secondary">Browse suppliers</span>
+    <span class="btn primary">Invite a store</span>
+  </div>
+
+  <!-- KPI 2×2 -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+    <div class="tile" style="background: linear-gradient(135deg, #ECFDF5, #FFFFFF);">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span class="lbl">Partners</span><span class="ico" style="background: #059669;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.4 19.2a5.6 5.6 0 0 1 11.2 0"/><circle cx="17.6" cy="9.6" r="2.5"/><path d="M15.4 19.2a5.1 5.1 0 0 1 5.9-4.4"/></svg></span></div>
+      <div class="val num">3</div>
+      <div style="font-size: 11px; font-weight: 600; color: #B45309;">1 invite waiting</div>
+    </div>
+    <div class="tile" style="background: linear-gradient(135deg, #F5F3FF, #FFFFFF);">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span class="lbl">Products</span><span class="ico" style="background: #7C3AED;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13 21a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 2.6 12.6V4a1.4 1.4 0 0 1 1.4-1.4h8.6a2 2 0 0 1 1.4.6l6.6 6.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg></span></div>
+      <div class="val num">5</div>
+      <div style="font-size: 11px; font-weight: 600; color: #B45309;">2 running low</div>
+    </div>
+    <div class="tile" style="background: linear-gradient(135deg, #EFF6FF, #FFFFFF);">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span class="lbl">Sales · 30d</span><span class="ico" style="background: #2563EB;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.6" ry="2.8"/><path d="M5.4 6.6v4.8c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8V6.6"/><path d="M5.4 11.4v5c0 1.6 3 2.8 6.6 2.8s6.6-1.2 6.6-2.8v-5"/></svg></span></div>
+      <div class="val num" style="font-size: 20px;">GH₵ 1,240</div>
+      <div style="font-size: 11px; font-weight: 600; color: #047857;">GH₵ 310 you keep</div>
+    </div>
+    <div class="tile" style="background: linear-gradient(135deg, #FEF3C7, #FFFFFF);">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><span class="lbl">To fulfil</span><span class="ico" style="background: #D97706;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-3V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6M17 7l4 5v5h-2"/></svg></span></div>
+      <div class="val num">2</div>
+      <div style="font-size: 11px; font-weight: 600; color: #B45309;">Oldest 2 days</div>
+    </div>
+  </div>
+
+  <!-- Journey strip: icons only, words under -->
+  <div class="card" style="padding: 14px 16px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span class="dot" style="background: #059669;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg></span><span style="font-size: 10px; font-weight: 600;">Connect</span></div>
+      <span style="height: 2px; flex: 1; background: #059669; margin: 0 4px 16px;"></span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span class="dot" style="background: #059669;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg></span><span style="font-size: 10px; font-weight: 600;">List</span></div>
+      <span style="height: 2px; flex: 1; background: #059669; margin: 0 4px 16px;"></span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span class="dot" style="background: #059669;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg></span><span style="font-size: 10px; font-weight: 600;">Share</span></div>
+      <span style="height: 2px; flex: 1; background: #059669; margin: 0 4px 16px;"></span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span class="dot" style="background: #059669;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 12.75 6 6 9-13.5"/></svg></span><span style="font-size: 10px; font-weight: 600;">Sell</span></div>
+      <span style="height: 2px; flex: 1; background: #E2E8F0; margin: 0 4px 16px;"></span>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><span class="dot" style="background: #FFFFFF; box-shadow: inset 0 0 0 2px #059669;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-3V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6M17 7l4 5v5h-2"/></svg></span><span style="font-size: 10px; font-weight: 700; color: #047857;">Fulfil</span></div>
+    </div>
+    <span class="btn primary" style="width: 100%; margin-top: 12px;">Ship an order</span>
+  </div>
+
+  <!-- Orders to fulfil first: it is the next step -->
+  <div class="card" style="overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px;"><span class="h2">Orders to fulfil</span><span class="pill num" style="background: #FEF3C7; color: #92400E;">2</span></div>
+    <div class="row" style="align-items: flex-start;">
+      <img class="photo" src="product.jpg" alt="">
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px; font-weight: 700;">Order #1042</span><span class="pill" style="background: #FEF3C7; color: #92400E;">Pending</span></div>
+        <div class="sub" style="margin-top: 2px;">Kente Stole × 2 · Bolga Basket × 1 · Kumasi</div>
+        <span class="btn primary" style="width: 100%; margin-top: 10px;">Mark shipped</span>
+      </div>
+    </div>
+    <div class="row" style="align-items: flex-start;">
+      <span class="letter" style="background: #0891B2;">M</span>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px; font-weight: 700;">Order #1039</span><span class="pill" style="background: #EFF6FF; color: #1D4ED8;">Shipped</span></div>
+        <div class="sub" style="margin-top: 2px;">Shea Butter 500g × 3 · Accra</div>
+        <span class="btn secondary" style="width: 100%; margin-top: 10px;">Send delivery code</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partners -->
+  <div class="card" style="overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px;"><span class="h2">Your partners</span><span class="pill num" style="background: #F1F5F9; color: #475569;">3</span></div>
+    <div class="row" style="background: #FFFBEB; border-left: 4px solid #F59E0B; padding-left: 12px; flex-wrap: wrap;">
+      <span class="letter" style="background: #0891B2;">B</span>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700;">Bolga Baskets Co.</div>
+        <div class="sub" style="color: #92400E; margin-top: 2px;">Wants to sell your products</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
+        <span class="btn secondary">Decline</span>
+        <span class="btn primary">Accept</span>
+      </div>
+    </div>
+    <div class="row">
+      <img class="photo" src="shop-eggs.jpg" alt="">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700;">Adjei Eggs Depot</div>
+        <div class="sub" style="margin-top: 2px;">You sell theirs · 3 products · 7 orders</div>
+      </div>
+      <span class="pill" style="background: #ECFDF5; color: #047857;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #10B981;"></span>Active</span>
+    </div>
+    <div class="row">
+      <img class="photo" src="shop-fruit.jpg" alt="">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700;">Mama Esi Fruits</div>
+        <div class="sub" style="margin-top: 2px;">You sell theirs · 2 products · 2 orders</div>
+      </div>
+      <span class="pill" style="background: #ECFDF5; color: #047857;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #10B981;"></span>Active</span>
+    </div>
+    <div class="row">
+      <span class="letter" style="background: #7C3AED;">K</span>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 700;">Kente Kingdom</div>
+        <div class="sub" style="margin-top: 2px;">You supply them · 2 products · 3 orders</div>
+      </div>
+      <span class="pill" style="background: #ECFDF5; color: #047857;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #10B981;"></span>Active</span>
+    </div>
+  </div>
+
+  <!-- Earn tools -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <span class="h2">Earn tools</span>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      <div class="tool"><span class="ti" style="background: #F5F3FF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#7C3AED"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Income plan</div><div class="sub">GH₵ 800 target · 42% there</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #F0F9FF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12L19 5M4.5 12a7.5 7.5 0 1 0 15 0 7.5 7.5 0 0 0-15 0z"/><path d="M8.5 12a3.5 3.5 0 1 0 7 0"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Opportunity radar</div><div class="sub">3 products people want</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #FDF2F8;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/><path d="M5 17l.8 1.7L7.5 19.5l-1.7.8L5 22l-.8-1.7-1.7-.8 1.7-.8L5 17z"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Content studio</div><div class="sub" style="color: #B45309; font-weight: 600;">2 drafts to approve</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #ECFDF5;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Commerce passport</div><div class="sub">Reliable · 720 points</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #FDF4FF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A21CAF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 19a5.5 5.5 0 0 1 11 0M10.5 19a5.5 5.5 0 0 1 11 0"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Group buys</div><div class="sub">1 open · 6 of 10 paid</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #EFF6FF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M12 10v10"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Sales teams</div><div class="sub">1 team · 60 / 40 split</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #FFF7ED;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3.3 8.3L12 13l8.7-4.7M12 13v8"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Micro-franchise</div><div class="sub" style="color: #B45309; font-weight: 600;">1 reseller to approve</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="tool"><span class="ti" style="background: #FEF3C7;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2"/><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/></svg></span><div style="flex: 1;"><div style="font-size: 14px; font-weight: 700;">Stock holds</div><div class="sub">1 hold · 8 of 10 left</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
