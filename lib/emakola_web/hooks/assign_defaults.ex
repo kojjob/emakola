@@ -65,9 +65,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   defp resolve_platform_session(socket, signed_token) do
     with {:ok, session_id} <- EmakolaWeb.AuthTokens.verify_platform_session(signed_token),
          {:ok, user, user_session} <- Emakola.Accounts.Sessions.verify_session_id(session_id) do
-      if Phoenix.LiveView.connected?(socket) do
-        Emakola.Accounts.Sessions.touch(user_session)
-      end
+      socket = keep_session_fresh(socket, user_session)
 
       {notifs, unread} = load_notifications(socket, user)
 
@@ -87,6 +85,43 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       _ -> :error
     end
   end
+
+  # Sessions.touch/1 only ran on a connected mount, so staff who kept one
+  # page open read as "seen 1h ago" on the Team page. While the LiveView
+  # lives, a timer touches the session every five minutes — touch's own
+  # write granularity — and stops the moment the session is revoked.
+  @heartbeat_ms :timer.minutes(5)
+
+  defp keep_session_fresh(socket, user_session) do
+    if Phoenix.LiveView.connected?(socket) do
+      Emakola.Accounts.Sessions.touch(user_session)
+      schedule_heartbeat(user_session.id)
+
+      Phoenix.LiveView.attach_hook(
+        socket,
+        :platform_session_heartbeat,
+        :handle_info,
+        &session_heartbeat/2
+      )
+    else
+      socket
+    end
+  end
+
+  defp schedule_heartbeat(session_id) do
+    Process.send_after(self(), {:platform_session_heartbeat, session_id}, @heartbeat_ms)
+  end
+
+  defp session_heartbeat({:platform_session_heartbeat, session_id}, socket) do
+    case Emakola.Accounts.Sessions.touch_by_id(session_id) do
+      {:ok, _session} -> schedule_heartbeat(session_id)
+      {:error, :not_found} -> :ok
+    end
+
+    {:halt, socket}
+  end
+
+  defp session_heartbeat(_message, socket), do: {:cont, socket}
 
   # The `:user_token` path also carries platform-staff impersonation: when the
   # session holds an active `:impersonation`, the resolved merchant is the

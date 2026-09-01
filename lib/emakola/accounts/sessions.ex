@@ -56,6 +56,17 @@ defmodule Emakola.Accounts.Sessions do
   end
 
   @doc """
+  `touch/1` by id, for timers that hold only the id. A revoked or unknown
+  session is `{:error, :not_found}` — the caller stops its timer.
+  """
+  def touch_by_id(session_id) when is_binary(session_id) do
+    case get_session(session_id) do
+      {:ok, %UserSession{revoked_at: nil} = session} -> touch(session)
+      _revoked_or_missing -> {:error, :not_found}
+    end
+  end
+
+  @doc """
   The pubsub topic a platform session's LiveView socket subscribes to
   (stored in the `:live_socket_id` session key at login).
   """
