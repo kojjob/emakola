@@ -507,6 +507,23 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ "Shipped"
     end
 
+    test "the shipped modal closes itself on submit", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      # Confirm, Processing and Delivered chain a hide onto their action. Shipped
+      # is a real form and was a bare phx-submit: the order shipped, the dialog
+      # stayed at full opacity, and its backdrop swallowed every click until the
+      # merchant reloaded. Reproduced on production 1 Sep 2026.
+      order = create_order!(store.id, customer.id, :processing)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, ~s(#shipped-order-form[phx-submit*="shipped-order-modal"])),
+             "submit_shipped does not hide #shipped-order-modal — the dialog stays open"
+    end
+
     test "marks delivered via modal confirmation", %{
       conn: conn,
       store: store,
