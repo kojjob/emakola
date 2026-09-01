@@ -354,4 +354,91 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
       assert_email_sent(fn sent -> assert {_, ^email} = hd(sent.to) end)
     end
   end
+
+  describe "roster filters" do
+    test "status chips narrow the roster and the header counts what is shown", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      secured = setup_totp!(create_staff!([:manage_stores]))
+      exposed = create_staff!([:manage_billing])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      assert has_element?(view, "#filter-twofa_off", "2FA off")
+
+      view |> element("#filter-twofa_off") |> render_click()
+
+      assert has_element?(view, "#staff-#{exposed.id}")
+      refute has_element?(view, "#staff-#{secured.id}")
+      assert has_element?(view, "#roster-count", "of 3")
+      assert has_element?(view, "#roster-hidden", "hidden")
+
+      view |> element("#clear-filters") |> render_click()
+
+      assert has_element?(view, "#staff-#{secured.id}")
+      refute has_element?(view, "#roster-hidden")
+    end
+
+    test "search and the permission select narrow by email and permission", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      billing = create_staff!([:manage_billing])
+      stores = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view
+      |> form("#roster-filter-form", %{"search" => to_string(billing.email), "permission" => ""})
+      |> render_change()
+
+      assert has_element?(view, "#staff-#{billing.id}")
+      refute has_element?(view, "#staff-#{stores.id}")
+
+      view
+      |> form("#roster-filter-form", %{"search" => "", "permission" => "manage_stores"})
+      |> render_change()
+
+      assert has_element?(view, "#staff-#{stores.id}")
+      refute has_element?(view, "#staff-#{billing.id}")
+    end
+
+    test "the invites chip shows only open invites", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      staff = create_staff!([:manage_stores])
+      invite = Factory.create_platform_invite!()
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      view |> element("#filter-invites") |> render_click()
+
+      refute has_element?(view, "#staff-#{staff.id}")
+      assert has_element?(view, "#invite-#{invite.id}")
+    end
+  end
+
+  describe "presence" do
+    test "rows say who is online, who was seen recently, and who never signed in",
+         %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      online = create_staff!([:manage_stores])
+      Factory.create_user_session!(online)
+      away = create_staff!([:manage_stores])
+
+      Factory.create_user_session!(away,
+        last_seen_at: DateTime.add(DateTime.utc_now(), -3, :hour)
+      )
+
+      never = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      assert has_element?(view, "#staff-#{online.id} [data-presence='online']")
+      assert has_element?(view, "#staff-#{away.id} [data-presence='away']")
+      assert has_element?(view, "#staff-#{never.id} [data-presence='offline']")
+
+      view |> element("#edit-staff-#{away.id}") |> render_click()
+      assert has_element?(view, "#team-panel", "Last seen")
+
+      view |> element("#edit-staff-#{online.id}") |> render_click()
+      assert has_element?(view, "#team-panel", "Online")
+    end
+  end
 end
