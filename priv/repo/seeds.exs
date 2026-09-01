@@ -303,6 +303,18 @@ Seeds.create!(Emakola.Accounts.StoreMembership, :create, %{
   role: :owner
 })
 
+# -- A note from Makola support, so the merchant inbox has a thread to answer
+#    (the messages e2e spec replies to it) --
+{:ok, support_thread} = Emakola.Conversations.open_platform_thread(merchant1.id)
+
+{:ok, _welcome} =
+  Emakola.Conversations.post_message(
+    support_thread,
+    :platform,
+    user1.id,
+    "Welcome to Makola. Reply here if you need anything."
+  )
+
 # -- Subscription --
 Seeds.create!(Emakola.Billing.Subscription, :create, %{
   stripe_subscription_id: "sub_kente_seed_001",
