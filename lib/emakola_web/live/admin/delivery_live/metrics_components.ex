@@ -3,8 +3,9 @@ defmodule EmakolaWeb.Admin.DeliveryLive.MetricsComponents do
   The numbers beside the Delivery Zones settings: four tiles, the
   per-zone order and fee cells, the row for orders no zone matched, and
   the two summary cards. Every figure comes from
-  `Emakola.Shipping.DeliveryMetrics`; nothing here estimates delivery
-  time, because orders carry no delivery timestamps.
+  `Emakola.Shipping.DeliveryMetrics`. On time and average days read
+  `delivered_at`, so orders delivered before it existed are counted as
+  delivered but never as timed.
   """
   use EmakolaWeb, :html
 
@@ -114,7 +115,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.MetricsComponents do
           <div>
             <p class="text-sm font-bold text-amber-900">No zone matched</p>
             <p class="text-xs text-amber-700 mt-0.5">
-              {regions_line(@unmatched.regions)} · paid the default fee. Zones match by name only.
+              {regions_line(@unmatched.regions)} · paid the default fee. Mark one zone as the catch-all.
             </p>
           </div>
         </div>
@@ -225,13 +226,40 @@ defmodule EmakolaWeb.Admin.DeliveryLive.MetricsComponents do
       >
         {if @slowest, do: "#{@slowest.estimated_days}d", else: "—"}
       </.cost_row>
-      <p class="flex items-start gap-2 text-xs text-slate-400 mt-auto">
+      <.cost_row
+        icon="hero-check-badge"
+        title="On time"
+        detail={on_time_detail(@metrics)}
+        highlight={@metrics.promised > 0}
+      >
+        <span id="delivery-on-time">{on_time_rate(@metrics)}</span>
+      </.cost_row>
+      <.cost_row
+        icon="hero-calendar-days"
+        title="Average days"
+        detail="from the order to the door"
+      >
+        <span id="delivery-average-days">{@metrics.average_days || "—"}</span>
+      </.cost_row>
+      <p
+        :if={@metrics.timed == 0}
+        id="delivery-metrics-footnote"
+        class="flex items-start gap-2 text-xs text-slate-400 mt-auto"
+      >
         <.icon name="hero-information-circle" class="size-3.5 shrink-0 mt-0.5" />
-        Delivery times are not tracked yet, so on-time rates cannot be shown.
+        Delivery times are recorded from now on. On time and average days fill in as orders are delivered.
       </p>
     </.admin_card>
     """
   end
+
+  defp on_time_rate(%{promised: 0}), do: "—"
+
+  defp on_time_rate(%{promised: promised, on_time: on_time}),
+    do: "#{round(on_time / promised * 100)}%"
+
+  defp on_time_detail(%{promised: 0}), do: "no timed deliveries yet"
+  defp on_time_detail(%{promised: promised}), do: "of #{promised} delivered against a promise"
 
   attr :icon, :string, required: true
   attr :title, :string, required: true
