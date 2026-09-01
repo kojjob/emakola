@@ -223,7 +223,7 @@ defmodule EmakolaWeb.SearchComponents do
                   href={store_path(@store.slug, "/products?q=#{URI.encode_www_form(@search_query)}")}
                   class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-stone-200 text-sm font-semibold text-stone-900 hover:bg-stone-50 hover:border-stone-300 transition-all"
                 >
-                  View all {@total_results} results
+                  View all {Emakola.Plural.count(@total_results, "result")}
                   <svg
                     class="w-4 h-4"
                     fill="none"

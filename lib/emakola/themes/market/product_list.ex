@@ -51,7 +51,7 @@ defmodule Emakola.Themes.Market.ProductList do
           <p class="text-base sm:text-lg text-[#64748B] max-w-2xl leading-relaxed">
             Browse our full collection of premium products and accessories.
             <span class="inline-flex items-center justify-center px-2.5 py-0.5 ml-1.5 text-[0.6875rem] font-bold uppercase tracking-wider bg-white border border-[#E2E8F0] shadow-sm rounded-full text-[#475569] align-middle">
-              {@products_count} items
+              {Emakola.Plural.count(@products_count, "item")}
             </span>
           </p>
         </div>

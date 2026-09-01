@@ -87,7 +87,10 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     {:noreply,
      socket
      |> load()
-     |> put_flash(:info, "Sending to #{socket.assigns.audience_count} customers.")}
+     |> put_flash(
+       :info,
+       "Sending to #{Emakola.Plural.count(socket.assigns.audience_count, "customer")}."
+     )}
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
@@ -166,7 +169,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
                 id={"send-campaign-#{campaign.id}"}
                 phx-click="send"
                 phx-value-id={campaign.id}
-                data-confirm={"Send this to #{@audience_count} customers? Each message costs money."}
+                data-confirm={"Send this to #{Emakola.Plural.count(@audience_count, "customer")}? Each message costs money."}
               >
                 <.icon name="hero-paper-airplane" class="size-5" /> Send
               </.admin_button>

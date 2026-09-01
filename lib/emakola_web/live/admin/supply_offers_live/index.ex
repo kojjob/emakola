@@ -179,11 +179,12 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
               {offer.source_product.title}
             </p>
             <p class="text-xs text-slate-500 mt-0.5">
-              {length(offer.offer_variants)} variant(s) · {price_summary(offer)} · {if offer.earning_model ==
-                                                                                         :markup,
-                                                                                       do: "Markup",
-                                                                                       else:
-                                                                                         "Fixed commission"}
+              {Emakola.Plural.count(length(offer.offer_variants), "variant")} · {price_summary(offer)} · {if offer.earning_model ==
+                                                                                                               :markup,
+                                                                                                             do:
+                                                                                                               "Markup",
+                                                                                                             else:
+                                                                                                               "Fixed commission"}
             </p>
           </div>
           <span class={[

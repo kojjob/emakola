@@ -123,7 +123,7 @@ defmodule EmakolaWeb.Platform.OnboardingLive do
 
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
           <h2 class="text-[15px] font-bold text-gray-900 mb-4">
-            {"Activation funnel · #{@overview.total_stores} stores"}
+            {"Activation funnel · #{Emakola.Plural.count(@overview.total_stores, "store")}"}
           </h2>
           <div class="space-y-3">
             <div

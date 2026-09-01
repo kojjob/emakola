@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
         <%!-- CSV Preview Table --%>
         <div :if={@csv_preview != []} class="space-y-2">
           <h3 class="text-sm font-semibold text-slate-700">
-            Preview ({length(@csv_preview)} products)
+            Preview ({Emakola.Plural.count(length(@csv_preview), "product")})
           </h3>
           <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg">
             <table class="min-w-full text-xs">

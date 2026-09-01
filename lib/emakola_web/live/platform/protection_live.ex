@@ -496,7 +496,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                     {"#{order_number(hold)} · #{store_name(hold)}"}
                   </span>
                   <span class="block text-[11.5px] font-medium text-amber-600 leading-tight mt-0.5 truncate">
-                    {"Held #{days_held(hold)} days · no release timer"}
+                    {"Held #{Emakola.Plural.count(days_held(hold), "day")} · no release timer"}
                   </span>
                 </span>
                 <span class="text-[12.5px] font-bold text-gray-900 tabular-nums shrink-0">
@@ -653,7 +653,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
               class="mt-4 rounded-xl border border-amber-100 bg-amber-50 p-4"
             >
               <p class="text-[13px] text-amber-800">
-                {"Held #{days_held(@selected_hold)} days with no auto-release timer — the money is stuck until a staff decision."}
+                {"Held #{Emakola.Plural.count(days_held(@selected_hold), "day")} with no auto-release timer — the money is stuck until a staff decision."}
               </p>
             </div>
 
@@ -761,8 +761,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   end
 
   defp oldest_label(nil), do: "—"
-  defp oldest_label(1), do: "1 day"
-  defp oldest_label(days), do: "#{days} days"
+  defp oldest_label(days), do: Emakola.Plural.count(days, "day")
 
   defp money(nil, currency), do: "#{currency} 0.00"
 

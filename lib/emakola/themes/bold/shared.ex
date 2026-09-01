@@ -91,7 +91,7 @@ defmodule Emakola.Themes.Bold.Shared do
               <a
                 href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 text-slate-400 hover:text-white transition-colors"
-                aria-label={"Shopping cart, #{@cart_count} items"}
+                aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               >
                 <svg
                   class="w-5 h-5"

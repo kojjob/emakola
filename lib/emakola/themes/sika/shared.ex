@@ -259,7 +259,7 @@ defmodule Emakola.Themes.Sika.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-[#6E675C] hover:text-[#211D16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16] motion-safe:transition-colors"
             >
               <svg
@@ -380,7 +380,7 @@ defmodule Emakola.Themes.Sika.Shared do
         </a>
         <a
           href={store_path(@store.slug, "/cart")}
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
           class="relative flex flex-col items-center gap-0.5 px-3 py-1 text-[#8C857A] hover:text-[#211D16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16]"
         >
           <span class="relative">

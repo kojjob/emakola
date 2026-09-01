@@ -137,7 +137,7 @@ defmodule Emakola.Themes.Dede.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center rounded-full text-[#6B6355] hover:bg-[#26211A]/5 hover:text-[#26211A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#26211A] motion-safe:transition-colors"
             >
               <svg
@@ -242,7 +242,7 @@ defmodule Emakola.Themes.Dede.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           class="relative flex flex-col items-center gap-0.5 rounded px-3 py-1 text-[#A8BAA5] hover:text-[#F3EDDF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EDDF]"
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           <span class="relative">
             <svg

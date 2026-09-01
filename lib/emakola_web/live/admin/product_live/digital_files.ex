@@ -89,7 +89,7 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
     flash =
       case Enum.count(saved) do
         0 -> {:info, "No files uploaded."}
-        n -> {:info, "Uploaded #{n} #{pluralize("file", n)}."}
+        n -> {:info, "Uploaded #{n} #{Emakola.Plural.noun(n, "file")}."}
       end
 
     {:noreply,
@@ -358,9 +358,6 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
 
   defp format_size(bytes) when bytes >= 1_024, do: "#{Float.round(bytes / 1_024, 1)} KB"
   defp format_size(bytes), do: "#{bytes} B"
-
-  defp pluralize(word, 1), do: word
-  defp pluralize(word, _), do: word <> "s"
 
   defp error_message(:too_large), do: "File is larger than 100 MB."
   defp error_message(:too_many_files), do: "Too many files (max 5)."

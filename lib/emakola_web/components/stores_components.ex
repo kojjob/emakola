@@ -1185,8 +1185,7 @@ defmodule EmakolaWeb.StoresComponents do
     Enum.map(GhanaMap.names(), fn name -> {name, Map.get(counts, name, 0)} end)
   end
 
-  defp count_label(1), do: "1 store"
-  defp count_label(n), do: "#{n} stores"
+  defp count_label(n), do: Emakola.Plural.count(n, "store")
 
   # Warmer where there is more to buy. The active region leaves the scale
   # entirely for the chrome's emerald so the choice is never ambiguous.

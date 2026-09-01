@@ -147,7 +147,7 @@ defmodule EmakolaWeb.ReviewComponents do
                   phx-click="set_review_rating"
                   phx-value-rating={i}
                   class="focus:outline-none"
-                  aria-label={"Rate #{i} star#{if i > 1, do: "s", else: ""}"}
+                  aria-label={"Rate #{Emakola.Plural.count(i, "star")}"}
                 >
                   <svg
                     class={[
@@ -378,9 +378,16 @@ defmodule EmakolaWeb.ReviewComponents do
 
   defp format_time_diff(diff) when diff < 60, do: "just now"
   defp format_time_diff(diff) when diff < 3600, do: "#{div(diff, 60)} min ago"
-  defp format_time_diff(diff) when diff < 86_400, do: "#{div(diff, 3600)} hours ago"
-  defp format_time_diff(diff) when diff < 604_800, do: "#{div(diff, 86_400)} days ago"
-  defp format_time_diff(diff) when diff < 2_592_000, do: "#{div(diff, 604_800)} weeks ago"
+
+  defp format_time_diff(diff) when diff < 86_400,
+    do: "#{Emakola.Plural.count(div(diff, 3600), "hour")} ago"
+
+  defp format_time_diff(diff) when diff < 604_800,
+    do: "#{Emakola.Plural.count(div(diff, 86_400), "day")} ago"
+
+  defp format_time_diff(diff) when diff < 2_592_000,
+    do: "#{Emakola.Plural.count(div(diff, 604_800), "week")} ago"
+
   defp format_time_diff(_diff), do: "over a month ago"
 
   # ── Image helpers ──────────────────────────────────────────────────
