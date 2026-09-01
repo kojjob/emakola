@@ -1,10 +1,13 @@
 defmodule EmakolaWeb.Admin.VerificationLiveTest do
   @moduledoc """
-  Merchant business-details page: submit (shop name + optional private business
-  document) → pending; a rejected submission shows the reason + a resubmit form.
+  Merchant business-details page: submit a shop name → pending; a rejected
+  submission shows the reason + a resubmit form.
 
-  The national-ID fields and upload are gone — L.I. 2523 makes requesting them
-  an offence. These tests pin that they cannot come back.
+  The page collects no documents at all. The national-ID fields went because
+  L.I. 2523 makes requesting them an offence; the "business paper" upload went
+  because it landed in the same public bucket as everything else, and a sole
+  trader's licence or tax receipt is their identity by another name. These
+  tests pin that neither can come back.
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
@@ -14,10 +17,6 @@ defmodule EmakolaWeb.Admin.VerificationLiveTest do
   alias Emakola.Stores
 
   setup :verify_on_exit!
-
-  @small_png Base.decode64!(
-               "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-             )
 
   setup %{conn: conn} do
     {conn, _merchant, store} = setup_authenticated_merchant(conn)
@@ -64,28 +63,15 @@ defmodule EmakolaWeb.Admin.VerificationLiveTest do
     assert is_nil(v.id_number)
   end
 
-  test "an optional business document is stored privately", %{conn: conn, store: store} do
-    stub(Emakola.StorageMock, :upload, fn _binary, _path, opts ->
-      assert Keyword.get(opts, :acl) == "private"
-      {:ok, "https://s3.example/key"}
-    end)
+  test "the page never asks for a document of any kind", %{conn: conn} do
+    # verify_on_exit! with no StorageMock stub: if this page touched storage
+    # in any way, the test would fail on exit.
+    {:ok, view, html} = live(conn, ~p"/admin/verification")
 
-    {:ok, view, _html} = live(conn, ~p"/admin/verification")
-    Mox.allow(Emakola.StorageMock, self(), view.pid)
-
-    upload =
-      file_input(view, "#verification-form", :business_doc, [
-        %{name: "licence.png", content: @small_png, type: "image/png"}
-      ])
-
-    render_upload(upload, "licence.png")
-
-    view
-    |> element("#verification-form")
-    |> render_submit(%{"verification" => %{"business_name" => "Ama Trades"}})
-
-    assert {:ok, v} = Stores.get_store_verification(store.id, authorize?: false)
-    assert v.business_doc_key =~ "business-"
+    refute has_element?(view, "#verification-form input[type='file']")
+    refute has_element?(view, "#verification-form [phx-drop-target]")
+    refute html =~ "Business paper"
+    refute html =~ "Take a photo"
   end
 
   test "requires a shop name", %{conn: conn} do

@@ -1,29 +1,20 @@
 defmodule Emakola.Stores.StoreVerification do
   @moduledoc """
-  A store's business verification submission and its review state. One row per
-  store, created the first time a merchant submits business details.
+  A store's business-details submission and its review state. One row per
+  store, created the first time a merchant sends their trading name for review.
 
-  **This resource does not establish identity.** L.I. 2523 (National Identity
-  Register (Amendment) Regulations, 2026, in force 9 June 2026) makes it an
-  offence for an organisation to request, retain, reproduce or visually inspect
-  a Ghana Card for identity verification. Only biometric authentication against
-  the National Identity Register, or match-on-card with an NIA-approved device,
-  is permitted — and Makola is not a Regulation 7 service, so no such check is
-  required of it.
+  **No documents are collected.** L.I. 2523 (in force 9 June 2026) makes it an
+  offence to request, retain or visually inspect a Ghana Card, so the ID fields
+  went first. The "business paper" upload (MMDA licence, tax receipt) went with
+  it: it landed in the same public bucket as every product photo, and a sole
+  trader's licence is their name, address and TIN — identity by another name.
+  Identity comes from proving control of the payout wallet on `/admin/payouts`,
+  which the telco has already KYC'd.
 
-  Identity therefore comes from proving control of the payout wallet
-  (`StorePayoutAccount`), which the telco has already KYC'd against a Ghana Card
-  under Bank of Ghana rules.
-
-  What survives here is *business* verification: a trading name plus an optional
-  supporting document (`business_doc_key` — an MMDA licence, tax receipt or
-  certificate of incorporation). Those are not national identity cards and remain
-  lawful to collect; they are also what the BoG merchant-tier ladder asks for.
-
-  The `id_type` / `id_number` / `id_document_key` columns are retained, unwritable
-  and never rendered, solely as the audit trail for submissions made under the
-  retired flow. `quarantined_at` records when the stored document was moved to
-  the private vault pending deletion.
+  The `id_type` / `id_number` / `id_document_key` / `business_doc_key` columns
+  are retained, unwritable and never rendered, solely as the audit trail for
+  submissions made under the retired flows. `documents_purged_at` records when
+  `Emakola.Stores.VerificationDocumentPurge` deleted the stored objects.
 
   Kept off the (publicly-readable) `Store` resource so it carries merchant-only
   write policies — same split as `StorePayoutAccount` / `StorePageContent`. The
@@ -35,7 +26,7 @@ defmodule Emakola.Stores.StoreVerification do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
-  @submission_fields [:business_name, :business_doc_key]
+  @submission_fields [:business_name]
 
   multitenancy do
     strategy(:attribute)
@@ -88,12 +79,13 @@ defmodule Emakola.Stores.StoreVerification do
 
     # When the retired ID document was moved to the private vault pending
     # deletion. Nil for rows that never carried one.
-    attribute :quarantined_at, :utc_datetime_usec do
+    attribute :documents_purged_at, :utc_datetime_usec do
       public?(true)
     end
 
-    # Optional supporting business document (ACL: private) — an MMDA licence,
-    # tax receipt or certificate of incorporation. Not a national identity card.
+    # Retired with the business-paper upload: unwritable, never rendered, kept
+    # only so the purge knows which object to delete and the audit trail stays
+    # whole.
     attribute :business_doc_key, :string do
       sensitive?(true)
     end
@@ -141,8 +133,8 @@ defmodule Emakola.Stores.StoreVerification do
       forbid_if(always())
     end
 
-    # Quarantine is a platform data-retention action, never merchant-callable.
-    policy action(:quarantine_id_document) do
+    # Purge bookkeeping is a platform data-retention action, never merchant-callable.
+    policy action(:mark_documents_purged) do
       forbid_if(always())
     end
 
@@ -185,12 +177,12 @@ defmodule Emakola.Stores.StoreVerification do
       change(set_attribute(:reviewed_at, &DateTime.utc_now/0))
     end
 
-    # Records that the retired ID document has been moved to the private vault.
-    # The storage key is kept so the pending deletion has something to target.
-    update :quarantine_id_document do
+    # Records that every stored document this row pointed at has been deleted.
+    # The keys stay as the audit trail; the objects do not.
+    update :mark_documents_purged do
       require_atomic?(false)
       accept([])
-      change(set_attribute(:quarantined_at, &DateTime.utc_now/0))
+      change(set_attribute(:documents_purged_at, &DateTime.utc_now/0))
     end
 
     read :get_by_store do
@@ -206,9 +198,15 @@ defmodule Emakola.Stores.StoreVerification do
     end
 
     # Rows still holding a retired ID document that has not yet been vaulted.
-    read :list_unquarantined_id_documents do
-      filter(expr(not is_nil(id_document_key) and is_nil(quarantined_at)))
-      prepare(build(sort: [inserted_at: :asc]))
+    # Rows that still point at a stored object of either kind. Sweeps every
+    # status: the old flow only cleaned up on merchant resubmit.
+    read :list_with_stored_documents do
+      filter(
+        expr(
+          (not is_nil(id_document_key) or not is_nil(business_doc_key)) and
+            is_nil(documents_purged_at)
+        )
+      )
     end
   end
 end

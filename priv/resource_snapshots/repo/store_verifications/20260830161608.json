@@ -114,7 +114,7 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "quarantined_at",
+      "source": "documents_purged_at",
       "type": "utc_datetime_usec"
     },
     {

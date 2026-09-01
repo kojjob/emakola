@@ -51,14 +51,14 @@ defmodule Emakola.Stores.StoreVerificationTest do
       end
     end
 
-    test "accepts an optional supporting business document" do
+    test "refuses a business document key too — no documents are collected" do
       store = Factory.create_store!()
 
       attrs =
         Map.put(valid_attrs(store), :business_doc_key, "verifications/#{store.id}/business-a.pdf")
 
-      assert {:ok, v} = Stores.submit_store_verification(attrs, authorize?: false)
-      assert v.business_doc_key =~ "business-"
+      assert {:error, _} = Stores.submit_store_verification(attrs, authorize?: false),
+             "business_doc_key must not be accepted by :submit — it lands in the public bucket"
     end
 
     test "requires a business name" do

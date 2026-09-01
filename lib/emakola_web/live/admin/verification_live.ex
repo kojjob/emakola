@@ -7,25 +7,19 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   Shows the current status (none → form, pending → under review, rejected →
   reason + resubmit form, approved → confirmation).
 
-  **This page does not collect identity.** L.I. 2523 (in force 9 June 2026)
-  makes requesting, retaining or visually inspecting a Ghana Card an offence,
-  so the ID-type, ID-number and ID-document fields are gone. Identity comes
-  from proving control of the payout wallet on `/admin/payouts`, which the
-  telco has already KYC'd against a Ghana Card.
+  **This page collects no documents.** L.I. 2523 (in force 9 June 2026) makes
+  requesting, retaining or visually inspecting a Ghana Card an offence, so the
+  ID fields went first. The "business paper" upload went with it: it landed in
+  the same public bucket as every product photo, and a sole trader's licence or
+  tax receipt is their name, address and TIN — identity by another name.
 
-  What remains is a trading name plus an optional supporting business document
-  (MMDA licence, tax receipt, certificate of incorporation) — lawful to collect,
-  and what the BoG merchant-tier ladder actually asks for. It uploads with a
-  PRIVATE ACL; on resubmit the replaced key is cleaned up via
-  `StorageCleanupWorker`.
+  What remains is the trading name. Identity comes from proving control of the
+  payout wallet on `/admin/payouts`, which the telco has already KYC'd against
+  a Ghana Card.
   """
   use EmakolaWeb, :live_view
 
   alias Emakola.Stores
-
-  # 10 MB per document — streamed through the LiveView socket (see DigitalFiles
-  # moduledoc for why we cap socket uploads).
-  @max_bytes 10 * 1024 * 1024
 
   @impl true
   def mount(_params, _session, socket) do
@@ -35,12 +29,7 @@ defmodule EmakolaWeb.Admin.VerificationLive do
          socket
          |> assign(:page_title, "Business details")
          |> assign(:active_nav, :verification)
-         |> assign_verification(load_verification(store))
-         |> allow_upload(:business_doc,
-           accept: ~w(.jpg .jpeg .png .pdf),
-           max_entries: 1,
-           max_file_size: @max_bytes
-         )}
+         |> assign_verification(load_verification(store))}
 
       _ ->
         {:ok, push_navigate(socket, to: ~p"/dashboard")}
@@ -53,10 +42,6 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   end
 
   def handle_event("validate", _params, socket), do: {:noreply, socket}
-
-  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
-    {:noreply, cancel_upload(socket, :business_doc, ref)}
-  end
 
   def handle_event("submit", %{"verification" => params}, socket) do
     store = socket.assigns.current_store
@@ -74,10 +59,7 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   # ── Submission ──────────────────────────────────────────────────
 
   defp submit_verification(socket, store, params) do
-    attrs = %{
-      business_name: params["business_name"],
-      business_doc_key: consume_doc(socket, store.id)
-    }
+    attrs = %{business_name: params["business_name"]}
 
     case persist(socket.assigns.verification, store, attrs) do
       {:ok, verification} ->
@@ -91,42 +73,16 @@ defmodule EmakolaWeb.Admin.VerificationLive do
     end
   end
 
-  # Resubmit replaces a rejected submission (and cleans up its old business
-  # document); otherwise create a fresh one. The retired `id_document_key` is
-  # deliberately untouched here — vaulting and deleting those is the job of
-  # `mix emakola.quarantine_id_documents`, which sweeps every row regardless
-  # of status.
+  # Resubmit replaces a rejected submission; otherwise create a fresh one. Any
+  # document a row still points at from the retired flows is deliberately
+  # untouched here — deleting those is the job of
+  # `Emakola.Stores.VerificationDocumentPurge`, which sweeps every status.
   defp persist(%{status: :rejected} = existing, _store, attrs) do
-    cleanup_keys([existing.business_doc_key])
     Stores.resubmit_store_verification(existing, attrs, authorize?: false)
   end
 
   defp persist(_none, store, attrs) do
     Stores.submit_store_verification(Map.put(attrs, :store_id, store.id), authorize?: false)
-  end
-
-  defp consume_doc(socket, store_id) do
-    socket
-    |> consume_uploaded_entries(:business_doc, fn %{path: path}, entry ->
-      ext = Path.extname(entry.client_name)
-      key = "verifications/#{store_id}/business-#{Ecto.UUID.generate()}#{ext}"
-
-      case Emakola.Storage.upload(File.read!(path), key,
-             content_type: entry.client_type || "application/octet-stream",
-             acl: "private"
-           ) do
-        {:ok, _url} -> {:ok, key}
-        {:error, reason} -> {:postpone, reason}
-      end
-    end)
-    |> List.first()
-  end
-
-  defp cleanup_keys(keys) do
-    case Enum.reject(keys, &is_nil/1) do
-      [] -> :ok
-      keys -> %{"keys" => keys} |> Emakola.Workers.StorageCleanupWorker.new() |> Oban.insert()
-    end
   end
 
   defp load_verification(store) do
@@ -233,12 +189,6 @@ defmodule EmakolaWeb.Admin.VerificationLive do
           />
         </div>
 
-        <.doc_upload
-          label="Business paper (optional)"
-          hint="Licence or tax receipt. Stored privately."
-          upload={@uploads.business_doc}
-        />
-
         <button
           type="submit"
           class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -257,72 +207,6 @@ defmodule EmakolaWeb.Admin.VerificationLive do
       verification: verification,
       verification_form: to_form(params, as: :verification)
     )
-  end
-
-  attr :label, :string, required: true
-  attr :hint, :string, required: true
-  attr :upload, :any, required: true
-
-  defp doc_upload(assigns) do
-    ~H"""
-    <div>
-      <label class="block text-sm font-semibold text-slate-700 mb-2">{@label}</label>
-
-      <%!-- A picture-first dropzone rather than a bare file input: these
-            merchants are on phones, and `capture` opens the camera straight
-            at the document. The input is a full-size opacity-0 overlay —
-            an sr-only one will not open the picker on iOS Safari. --%>
-      <div
-        class="relative rounded-control border-2 border-dashed border-slate-300 bg-surface-subtle hover:border-primary transition-colors"
-        phx-drop-target={@upload.ref}
-      >
-        <div
-          :if={@upload.entries == []}
-          class="flex flex-col items-center gap-2 px-4 py-8 text-center"
-        >
-          <div class="w-14 h-14 rounded-control bg-info-soft flex items-center justify-center">
-            <.icon name="hero-camera" class="size-7 text-info" />
-          </div>
-          <p class="text-sm font-semibold text-slate-700">Take a photo or choose a file</p>
-          <p class="text-xs text-slate-500">{@hint}</p>
-        </div>
-
-        <div :for={entry <- @upload.entries} class="flex items-center gap-4 p-4">
-          <div class="w-16 h-16 rounded-control bg-primary-soft flex items-center justify-center shrink-0">
-            <.icon name="hero-document-check" class="size-7 text-primary" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-slate-900">{entry.client_name}</p>
-            <p class="text-xs text-slate-500 mt-0.5">Only we can see it</p>
-          </div>
-          <button
-            type="button"
-            phx-click="cancel_upload"
-            phx-value-ref={entry.ref}
-            class="relative z-10 inline-flex items-center gap-1 rounded-control border border-border px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-          >
-            <.icon name="hero-x-mark" class="size-4" /> Remove
-          </button>
-        </div>
-
-        <%!-- Always rendered: removing the input once an entry exists tears it
-              out of the DOM mid-upload and the transfer dies. It just stops
-              taking clicks while a file is attached. --%>
-        <.live_file_input
-          upload={@upload}
-          capture="environment"
-          class={[
-            "absolute inset-0 h-full w-full opacity-0",
-            if(@upload.entries == [], do: "cursor-pointer", else: "pointer-events-none")
-          ]}
-        />
-      </div>
-
-      <p :for={err <- upload_errors(@upload)} class="mt-1.5 text-sm text-rose-600">
-        {upload_error_message(err)}
-      </p>
-    </div>
-    """
   end
 
   attr :icon, :string, required: true
@@ -355,9 +239,4 @@ defmodule EmakolaWeb.Admin.VerificationLive do
   defp step_tile(:done), do: "bg-success"
   defp step_tile(:current), do: "bg-primary"
   defp step_tile(:todo), do: "bg-slate-300"
-
-  defp upload_error_message(:too_large), do: "File is larger than 10 MB."
-  defp upload_error_message(:not_accepted), do: "Use a JPG, PNG, or PDF."
-  defp upload_error_message(:too_many_files), do: "One file only."
-  defp upload_error_message(_), do: "Upload error."
 end

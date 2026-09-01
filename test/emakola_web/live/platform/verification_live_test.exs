@@ -2,9 +2,10 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
   @moduledoc """
   Platform KYC review: the queue lists submissions (gated by :manage_merchants);
   the detail page approves (awards verified + audits + notifies) or rejects
-  (requires a reason), and shows the optional business document via a presigned
-  URL. National-ID documents are never shown — L.I. 2523 makes even visual
-  inspection of a Ghana Card an offence.
+  (requires a reason). No document of any kind is shown: reviewers check the
+  shop and the wallet proof, never a paper. L.I. 2523 makes even visual
+  inspection of a Ghana Card an offence, and the business-paper upload went
+  with it.
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
@@ -20,10 +21,6 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
   setup :set_mox_global
 
   setup %{conn: conn} do
-    stub(Emakola.StorageMock, :presigned_url, fn _key, _opts ->
-      {:ok, "https://signed.example/doc"}
-    end)
-
     {conn, user, _session} = setup_platform_staff(conn)
     store = Factory.create_store!(%{name: "Kente Co"})
 
@@ -31,8 +28,7 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
       Stores.submit_store_verification(
         %{
           store_id: store.id,
-          business_name: "Kente Trades Ltd",
-          business_doc_key: "verifications/#{store.id}/business-licence.png"
+          business_name: "Kente Trades Ltd"
         },
         authorize?: false
       )
@@ -86,9 +82,31 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
       assert has_element?(view, "#verification-panel", "Kente Trades Ltd")
       refute has_element?(view, "#verification-panel", "Ghana Card")
 
-      # The business document still renders; the national-ID tile is gone.
-      assert has_element?(view, ~s(#verification-panel img[src="https://signed.example/doc"]))
+      # No document tile of any kind. verify_on_exit! with no presign stub means
+      # a page that asked storage for a URL would fail this test on exit.
+      refute has_element?(view, "#verification-panel img")
+      refute has_element?(view, ~s(#verification-panel a[aria-label="Open business document"]))
       refute has_element?(view, ~s(#verification-panel a[aria-label="Open ID document"]))
+    end
+
+    test "a legacy business paper already on file is never shown", %{
+      conn: conn,
+      verification: verification
+    } do
+      # Production still holds rows whose keys point at objects in the public
+      # bucket until the purge runs. Reviewers must not be handed those either:
+      # verify_on_exit! with no presign stub fails this test if the page asks
+      # storage for a URL.
+      Emakola.Repo.query!(
+        "UPDATE store_verifications SET business_doc_key = $1 WHERE id = $2",
+        ["verifications/legacy/business-licence.png", Ecto.UUID.dump!(verification.id)]
+      )
+
+      {:ok, view, html} = live(conn, ~p"/platform/verifications")
+
+      assert has_element?(view, "#verification-panel", "Kente Trades Ltd")
+      refute has_element?(view, "#verification-panel img")
+      refute html =~ "Open business document"
     end
 
     test "clicking a row switches the panel", %{conn: conn, verification: verification} do
@@ -203,13 +221,13 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
   end
 
   describe "Show" do
-    test "renders fields and a presigned business-document link", %{conn: conn, verification: v} do
+    test "renders fields and never a document link of any kind", %{conn: conn, verification: v} do
       {:ok, _view, html} = live(conn, ~p"/platform/verifications/#{v.id}")
       assert html =~ "Kente Trades Ltd"
-      assert html =~ "View business document"
-      assert html =~ "signed.example"
 
-      # Never the national ID — visual inspection is itself the offence.
+      # Never the national ID — visual inspection is itself the offence — and
+      # no business paper either: it lived in the same public bucket.
+      refute html =~ "View business document"
       refute html =~ "Ghana Card"
       refute html =~ "View ID document"
       refute html =~ "ID number"

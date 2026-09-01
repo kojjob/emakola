@@ -263,9 +263,9 @@ defmodule Emakola.Stores.Store do
     #
     #   :retired_document_flow — approved before L.I. 2523; a human looked at
     #                            a Ghana Card image. Never awarded again.
-    #   :business_review       — staff checked the shop's business paper (a
-    #                            licence or tax receipt). Says nothing about
-    #                            who the person is.
+    #   :business_review       — staff reviewed the shop's trading details and
+    #                            storefront. No paper is collected. Says
+    #                            nothing about who the person is.
     #   :wallet_proof          — the merchant proved control of the payout
     #                            wallet, which the telco KYC'd against a
     #                            Ghana Card.

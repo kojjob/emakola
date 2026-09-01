@@ -35,6 +35,24 @@ defmodule Emakola.Release do
   end
 
   @doc """
+  Deletes the documents the retired verification flows stored.
+
+  Every ID image and business paper went into the public bucket, which cannot
+  be made private per object on Tigris — and under L.I. 2523 retaining the ID
+  image is itself the offence. Dry run first; it lists counts and writes nothing:
+
+      bin/emakola rpc 'Emakola.Release.purge_verification_documents(true)'
+      bin/emakola rpc 'Emakola.Release.purge_verification_documents()'
+
+  Returns counts only — no keys — so it is safe in a deploy log.
+  """
+  @spec purge_verification_documents(boolean()) ::
+          Emakola.Stores.VerificationDocumentPurge.result()
+  def purge_verification_documents(dry_run? \\ false) do
+    Emakola.Stores.VerificationDocumentPurge.run(dry_run?: dry_run?)
+  end
+
+  @doc """
   Reconciles encrypted shadows after all old nodes have drained.
 
       bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
