@@ -153,6 +153,11 @@ defmodule Emakola.MixProject do
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind emakola", "esbuild emakola"],
       "assets.deploy": [
+        # Compile first: LiveView extracts colocated hooks into
+        # _build/<env>/phoenix-colocated at compile time, and app.js imports
+        # them. Without this, a fresh prod build (the Dockerfile) runs esbuild
+        # against a manifest that does not exist yet and the image fails.
+        "compile",
         "tailwind emakola --minify",
         "esbuild emakola --minify",
         "phx.digest"
