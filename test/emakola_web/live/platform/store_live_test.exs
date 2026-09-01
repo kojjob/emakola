@@ -518,4 +518,68 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert :store_verified_badge_granted in actions
     end
   end
+
+  describe "metrics" do
+    test "tiles show platform totals and rows carry their merchants", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      {_owner, store} = Factory.create_merchant_with_store!()
+      admin = Factory.create_merchant!()
+      Factory.create_store_membership!(admin, store, :admin)
+      Factory.create_product!(store, status: :active)
+      Factory.create_order!(store)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#platform-store-stats [data-stat='stores']")
+      assert has_element?(view, "#platform-store-stats [data-stat='merchants']")
+      assert has_element?(view, "#platform-store-stats [data-stat='orders']")
+      assert has_element?(view, "#platform-store-stats [data-stat='featured']")
+      assert has_element?(view, "#store-#{store.id}[data-merchants='2']")
+      assert has_element?(view, "#store-#{store.id}", "1 product")
+      assert has_element?(view, "#store-#{store.id}", "sold today")
+    end
+
+    test "the quiet chip keeps only stores with no order in 30 days", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      busy = Factory.create_store!()
+      Factory.create_order!(busy)
+      quiet = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#filter-quiet") |> render_click()
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{quiet.id}")
+      refute has_element?(view, "#store-#{busy.id}")
+    end
+
+    test "the no-payout chip lists stores without a verified payout account", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!()
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#filter-no_payout") |> render_click()
+
+      assert has_element?(view, "#platform-stores[data-count='1']")
+      assert has_element?(view, "#store-#{store.id}")
+    end
+
+    test "selecting a store shows it at a glance", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      {_owner, store} = Factory.create_merchant_with_store!()
+      Factory.create_product!(store, status: :active)
+      Factory.create_order!(store, status: :delivered)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      view |> element("#store-#{store.id}") |> render_click()
+
+      assert has_element?(view, "#store-glance [data-glance='merchants']", "1")
+      assert has_element?(view, "#store-glance [data-glance='products']", "1")
+      assert has_element?(view, "#store-glance [data-glance='delivered']", "1")
+      assert has_element?(view, "#store-glance [data-glance='last-order']", "today")
+    end
+  end
 end
