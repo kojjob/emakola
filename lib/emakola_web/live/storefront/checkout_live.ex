@@ -483,7 +483,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     shipping_address =
       %{
         "name" => fullname,
-        "phone" => "+233#{phone}",
+        # Whatever the buyer typed — 0244…, 244…, +233 24 4… — lands as E.164.
+        # This used to prepend "+233" verbatim, so a local number kept its trunk
+        # zero and no SMS or WhatsApp gateway could deliver to it.
+        "phone" => Emakola.Accounts.PhoneAuth.normalize(phone),
         "address" => address,
         "region" => region
       }

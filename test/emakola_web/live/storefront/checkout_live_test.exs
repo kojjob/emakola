@@ -226,6 +226,49 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   # -- GhanaPost digital address + landmark (TC-4 Task 2) --
 
+  describe "buyer phone" do
+    # Checkout used to write "+233#{phone}" verbatim, so the 0244… a Ghanaian
+    # types became +2330244… — a number no SMS or WhatsApp gateway can deliver
+    # to. 15 of the 35 orders in production carried it on 1 Sep 2026.
+    defp place_order_with_phone(conn, store, variant, phone) do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => phone,
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      Emakola.Orders.Order
+      |> Ash.Query.filter(store_id == ^store.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+      |> List.first()
+    end
+
+    test "a local number typed with its trunk zero is stored as E.164", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      order = place_order_with_phone(conn, store, variant, "0244123456")
+
+      assert order.shipping_address["phone"] == "+233244123456"
+    end
+
+    test "an international number keeps its country code and loses its spacing", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      order = place_order_with_phone(conn, store, variant, "+233 24 412 3456")
+
+      assert order.shipping_address["phone"] == "+233244123456"
+    end
+  end
+
   describe "GhanaPost digital address + landmark" do
     test "valid messy digital address normalizes and lands on the order with the landmark", %{
       conn: conn,
