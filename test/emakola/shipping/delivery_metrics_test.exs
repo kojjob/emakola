@@ -136,6 +136,21 @@ defmodule Emakola.Shipping.DeliveryMetricsTest do
     assert metrics.unmatched == %{orders: 0, fees: 0, regions: []}
   end
 
+  test "a region no zone names goes to the catch-all zone, not to unmatched" do
+    {_merchant, store} = Factory.create_merchant_with_store!()
+    accra = Factory.create_delivery_zone!(store, name: "Greater Accra", fee: 1500)
+    rest = Factory.create_delivery_zone!(store, name: "Other Regions", fee: 3500, fallback: true)
+
+    Factory.create_order!(store, shipping_address: address("Volta"), delivery_fee: 3500)
+    Factory.create_order!(store, shipping_address: address("greater_accra"), delivery_fee: 1500)
+
+    metrics = DeliveryMetrics.for_store(store.id, [accra, rest])
+
+    assert metrics.per_zone[rest.id] == %{orders: 1, fees: 3500}
+    assert metrics.per_zone[accra.id] == %{orders: 1, fees: 1500}
+    assert metrics.unmatched.orders == 0
+  end
+
   test "orders without a region count as unmatched under Not given" do
     {_merchant, store} = Factory.create_merchant_with_store!()
 

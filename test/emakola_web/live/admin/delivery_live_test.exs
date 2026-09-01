@@ -131,6 +131,45 @@ defmodule EmakolaWeb.Admin.DeliveryLiveTest do
     end
   end
 
+  describe "DeliveryLive.Index catch-all zone" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "the form saves a zone as the catch-all and the row says so", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      view |> element("[phx-click=\"show_form\"]") |> render_click()
+
+      view
+      |> form("#new-zone-form", %{
+        zone: %{name: "Everywhere Else", fee: "35.00", estimated_days: 4, fallback: "true"}
+      })
+      |> render_submit()
+
+      zone =
+        Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
+        |> Enum.find(&(&1.name == "Everywhere Else"))
+
+      assert zone.fallback
+      assert has_element?(view, "#zone-catch-all-#{zone.id}", "Catch-all")
+    end
+
+    test "Ghana defaults make Other Regions the catch-all", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      view |> element("[phx-click=\"add_defaults\"]") |> render_click()
+
+      zones = Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
+      assert Enum.find(zones, &(&1.name == "Other Regions")).fallback
+      refute Enum.find(zones, &(&1.name == "Greater Accra")).fallback
+    end
+  end
+
   describe "DeliveryLive.Index metrics" do
     setup %{conn: conn} do
       {conn, merchant, store} = setup_authenticated_merchant(conn)
