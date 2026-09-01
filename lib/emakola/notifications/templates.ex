@@ -62,7 +62,7 @@ defmodule Emakola.Notifications.Templates do
     release_days = Emakola.Payments.Workers.ProtectionSweepWorker.release_days()
 
     "Your order #{order.order_number} from #{store.name} has been delivered! " <>
-      "Please confirm receipt — the payment releases automatically in #{release_days} days if we " <>
+      "Please confirm receipt — the payment releases automatically in #{Emakola.Plural.count(release_days, "day")} if we " <>
       "don't hear from you. Confirm here: #{protection_tracking_url(store, order)}"
   end
 
@@ -240,12 +240,12 @@ defmodule Emakola.Notifications.Templates do
   def low_stock_realtime_sms(product_title, sku, stock_quantity, store_name) do
     sku_display = sku || "N/A"
 
-    "Low stock alert: #{product_title} (#{sku_display}) has only #{stock_quantity} units left. " <>
+    "Low stock alert: #{product_title} (#{sku_display}) has only #{Emakola.Plural.count(stock_quantity, "unit")} left. " <>
       "Restock soon! - #{store_name}"
   end
 
   def low_stock_digest_sms(count, store_name) do
-    "#{count} items are running low on stock at #{store_name}. " <>
+    "#{Emakola.Plural.count(count, "item")} #{if count == 1, do: "is", else: "are"} running low on stock at #{store_name}. " <>
       "Check your dashboard for details."
   end
 
@@ -340,7 +340,7 @@ defmodule Emakola.Notifications.Templates do
   end
 
   defp item_count_segment([_ | _] = items) do
-    "#{length(items)} item(s) | "
+    "#{Emakola.Plural.count(length(items), "item")} | "
   end
 
   defp item_count_segment(_), do: ""

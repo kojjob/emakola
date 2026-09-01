@@ -118,7 +118,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.OpportunityComponents do
             class="rounded-xl bg-white p-3 text-sm text-slate-700 shadow-sm"
           >
             <span class="font-bold">{alert.metadata["title"]}</span>
-            received {alert.metadata["views"]} views and {alert.metadata["matched_searches"]} matched searches but no orders in the {alert.metadata[
+            received {Emakola.Plural.count(alert.metadata["views"], "view")} and {Emakola.Plural.count(
+              alert.metadata["matched_searches"],
+              "matched search"
+            )} but no orders in the {alert.metadata[
               "window_days"
             ]}-day window. Review price, content, availability, or trust signals.
           </article>

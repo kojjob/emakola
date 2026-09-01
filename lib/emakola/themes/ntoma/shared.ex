@@ -152,7 +152,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-[#7A6248] hover:bg-[#F0E3CE] hover:text-[#2B1708] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] motion-safe:transition-colors"
             >
               <svg

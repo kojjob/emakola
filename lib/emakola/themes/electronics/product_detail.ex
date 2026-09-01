@@ -79,12 +79,12 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
 
               <%!-- Rating (real review data only) --%>
               <div
-                :if={Map.get(@product, :review_count, 0) > 0}
+                :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
                 class="flex items-center gap-3 mb-6"
               >
                 <span class="text-[#134E4A]" style="font-size: 16px;">{stars(@product)}</span>
                 <span class="text-xs text-[#6B7280]">
-                  ({format_rating(@product)} · {@product.review_count} reviews)
+                  ({format_rating(@product)} · {Emakola.Plural.count(@product.review_count, "review")})
                 </span>
               </div>
 

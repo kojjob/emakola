@@ -396,7 +396,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
           <p class="text-sm text-gray-500 mt-1">Curate how stores appear on the Makola directory</p>
         </div>
         <div :if={@stores_loaded?} class="flex items-center gap-2">
-          <.severity_pill label={"#{@total_count} stores"} tone="blue" />
+          <.severity_pill label={Emakola.Plural.count(@total_count, "store")} tone="blue" />
           <.severity_pill label={"#{@featured_count} featured"} tone="amber" />
         </div>
       </div>

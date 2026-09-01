@@ -123,7 +123,7 @@ defmodule Emakola.Themes.Pace.Shared do
           </a>
           <a
             href={store_path(@store.slug, "/cart")}
-            aria-label={"Shopping cart, #{@cart_count} items"}
+            aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             class="relative flex h-11 w-11 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 motion-safe:transition-colors"
           >
             <svg
@@ -238,7 +238,7 @@ defmodule Emakola.Themes.Pace.Shared do
           href={store_path(@store.slug, "/cart")}
           aria-current={@active_tab == :cart && "page"}
           class={["relative", tab_classes(@active_tab == :cart)]}
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           <span class="relative">
             <svg

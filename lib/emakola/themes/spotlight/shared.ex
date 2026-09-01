@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           class="relative inline-flex items-center gap-2 spot-cta rounded-full px-4 py-2 text-sm font-semibold"
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           Cart
           <span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white/25 text-[11px] font-bold">

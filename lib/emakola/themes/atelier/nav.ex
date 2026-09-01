@@ -170,7 +170,7 @@ defmodule Emakola.Themes.Atelier.Nav do
             <a
               href={store_path(@store.slug, "/cart")}
               class="atelier-nav-icon relative flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <svg
                 width="20"

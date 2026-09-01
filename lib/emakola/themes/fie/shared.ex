@@ -90,7 +90,7 @@ defmodule Emakola.Themes.Fie.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-stone-600 hover:bg-[#F7ECE7] hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 motion-safe:transition-colors"
             >
               <svg
@@ -212,7 +212,7 @@ defmodule Emakola.Themes.Fie.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           class="relative flex flex-col items-center gap-0.5 px-3 py-1 text-stone-400 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           <span class="relative">
             <svg

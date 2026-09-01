@@ -110,6 +110,6 @@ defmodule Emakola.Suppliers.OpportunityRadar do
   defp confidence(_total), do: :new
 
   defp explanation(views, searches, conversions, fulfilled, refunded, stock) do
-    "#{views} views, #{searches} matched searches, #{length(conversions)} orders, #{fulfilled} fulfilled, #{refunded} refunded, and #{stock} units available."
+    "#{Emakola.Plural.count(views, "view")}, #{Emakola.Plural.count(searches, "matched search")}, #{Emakola.Plural.count(length(conversions), "order")}, #{fulfilled} fulfilled, #{refunded} refunded, and #{Emakola.Plural.count(stock, "unit")} available."
   end
 end
