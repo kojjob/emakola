@@ -68,14 +68,18 @@ defmodule Emakola.Shipping do
   end
 
   @doc """
-  The zone whose name matches a buyer's region, or nil. The match is the
-  one checkout uses: case-insensitive, `_` and space are the same.
+  The zone whose name matches a buyer's region, else the store's catch-all
+  zone if one is among `zones`, else nil. The name match is the one
+  checkout uses: case-insensitive, `_` and space are the same. Pass only
+  active zones when the answer must be sellable.
   """
   @spec zone_for_region([Emakola.Shipping.DeliveryZone.t()], binary() | nil) ::
           Emakola.Shipping.DeliveryZone.t() | nil
   def zone_for_region(zones, region) when is_list(zones) and is_binary(region) do
     normalised_target = normalise_region(region)
-    Enum.find(zones, fn zone -> normalise_region(zone.name) == normalised_target end)
+
+    Enum.find(zones, fn zone -> normalise_region(zone.name) == normalised_target end) ||
+      Enum.find(zones, & &1.fallback)
   end
 
   def zone_for_region(_zones, _region), do: nil

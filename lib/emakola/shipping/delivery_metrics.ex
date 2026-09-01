@@ -28,11 +28,21 @@ defmodule Emakola.Shipping.DeliveryMetrics do
     unmatched = for {order, nil} <- attributed, do: order
     free = Enum.filter(matched, fn {order, zone} -> zone.fee > 0 and order.delivery_fee == 0 end)
 
+    # Only orders delivered since delivered_at existed carry a time; a
+    # promise needs a matched zone, so on-time is judged over those.
+    timed = for {order, zone} <- attributed, timed?(order), do: {order, zone}
+    promised = for {order, zone} <- timed, zone, do: {order, zone}
+
     %{
       total_orders: length(orders),
       delivered: count_status(orders, [:delivered]),
       on_the_way: count_status(orders, [:shipped]),
       to_pack: count_status(orders, @to_pack),
+      timed: length(timed),
+      promised: length(promised),
+      on_time:
+        Enum.count(promised, fn {order, zone} -> days_to_deliver(order) <= zone.estimated_days end),
+      average_days: average_days(timed),
       fees_collected: sum_fees(orders),
       free_deliveries: length(free),
       fees_waived: free |> Enum.map(fn {_order, zone} -> zone.fee end) |> Enum.sum(),
@@ -56,6 +66,19 @@ defmodule Emakola.Shipping.DeliveryMetrics do
   end
 
   defp count_status(orders, statuses), do: Enum.count(orders, &(&1.status in statuses))
+
+  defp timed?(%{status: :delivered, delivered_at: %DateTime{}}), do: true
+  defp timed?(_order), do: false
+
+  defp days_to_deliver(order),
+    do: DateTime.diff(order.delivered_at, order.inserted_at, :second) / 86_400
+
+  defp average_days([]), do: nil
+
+  defp average_days(timed) do
+    total = timed |> Enum.map(fn {order, _zone} -> days_to_deliver(order) end) |> Enum.sum()
+    Float.round(total / length(timed), 1)
+  end
 
   defp sum_fees(orders), do: orders |> Enum.map(&(&1.delivery_fee || 0)) |> Enum.sum()
 

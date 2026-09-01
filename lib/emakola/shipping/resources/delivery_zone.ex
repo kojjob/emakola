@@ -20,6 +20,16 @@ defmodule Emakola.Shipping.DeliveryZone do
   postgres do
     table("delivery_zones")
     repo(Emakola.Repo)
+
+    custom_indexes do
+      # Belt to OneCatchAllPerStore's braces: two concurrent saves cannot
+      # both become the catch-all.
+      index([:store_id],
+        unique: true,
+        where: "fallback = true",
+        name: "delivery_zones_one_catch_all_per_store_index"
+      )
+    end
   end
 
   attributes do
@@ -64,7 +74,21 @@ defmodule Emakola.Shipping.DeliveryZone do
       public?(true)
     end
 
+    # The zone that takes any region no other zone names. Zones match by
+    # name, so without one a buyer from an unnamed region falls to
+    # checkout's hard-coded default fee. One per store, and only while
+    # active.
+    attribute :fallback, :boolean do
+      default(false)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
+  end
+
+  validations do
+    validate(Emakola.Shipping.Validations.OneCatchAllPerStore, on: [:create, :update])
   end
 
   identities do
@@ -101,13 +125,24 @@ defmodule Emakola.Shipping.DeliveryZone do
         :fee,
         :estimated_days,
         :active,
+        :fallback,
         :free_above_pesewas,
         :per_kg_fee_pesewas
       ])
     end
 
     update :update do
-      accept([:name, :fee, :estimated_days, :active, :free_above_pesewas, :per_kg_fee_pesewas])
+      require_atomic?(false)
+
+      accept([
+        :name,
+        :fee,
+        :estimated_days,
+        :active,
+        :fallback,
+        :free_above_pesewas,
+        :per_kg_fee_pesewas
+      ])
     end
 
     read :list_by_store do
