@@ -280,7 +280,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
                     Approve and activate catalog
                   </button>
                   <span :if={enrollment.status == :approved} class="font-bold text-emerald-700">
-                    {length(enrollment.activated_listing_ids)} products active
+                    {Emakola.Plural.count(length(enrollment.activated_listing_ids), "product")} active
                   </span>
                 </div>
               </div>
@@ -455,7 +455,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
             >
               <p class="font-bold text-slate-950">{policy.reason_code}</p>
               <p class="mt-1 capitalize">
-                {policy.minimum_tier}+ · up to {policy.max_quantity_per_reseller} units · {policy.reservation_hours}h
+                {policy.minimum_tier}+ · up to {Emakola.Plural.count(
+                  policy.max_quantity_per_reseller,
+                  "unit"
+                )} · {policy.reservation_hours}h
               </p>
             </article>
           </div>

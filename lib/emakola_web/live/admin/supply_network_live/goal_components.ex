@@ -45,7 +45,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.GoalComponents do
               {money(@income_goal.target_amount)}
             </p>
             <p class="mt-1 text-sm text-slate-300">
-              over {@income_goal.timeframe_days} days · {@income_goal.daily_minutes} minutes/day
+              over {Emakola.Plural.count(@income_goal.timeframe_days, "day")} · {Emakola.Plural.count(
+                @income_goal.daily_minutes,
+                "minute"
+              )}/day
             </p>
             <div class="mt-5 grid grid-cols-2 gap-3">
               <div class="rounded-xl bg-white/10 p-3">
@@ -113,7 +116,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.GoalComponents do
                 </span>
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-semibold text-slate-800">{action.message}</p>
-                  <p class="text-xs text-slate-400">About {action.minutes} minutes</p>
+                  <p class="text-xs text-slate-400">
+                    About {Emakola.Plural.count(action.minutes, "minute")}
+                  </p>
                 </div>
               </li>
             </ol>

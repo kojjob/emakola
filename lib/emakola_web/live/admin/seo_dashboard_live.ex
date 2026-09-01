@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
      socket
      |> put_flash(
        :info,
-       "Queued AI descriptions for #{length(products)} product(s). Review them after processing."
+       "Queued AI descriptions for #{Emakola.Plural.count(length(products), "product")}. Review them after processing."
      )
      |> load_gaps()}
   end
@@ -61,7 +61,10 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, "Queued AI alt text for #{length(images)} image(s).")
+     |> put_flash(
+       :info,
+       "Queued AI alt text for #{Emakola.Plural.count(length(images), "image")}."
+     )
      |> load_gaps()}
   end
 

@@ -217,7 +217,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
                 </p>
                 <div class="mt-3 flex flex-wrap gap-1.5">
                   <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                    {plan.max_seats} seats
+                    {Emakola.Plural.count(plan.max_seats, "seat")}
                   </span>
                   <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                     {plan.max_agents} agents

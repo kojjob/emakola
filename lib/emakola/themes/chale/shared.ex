@@ -116,7 +116,7 @@ defmodule Emakola.Themes.Chale.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-[#F7F5F1] hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] motion-safe:transition-colors"
             >
               <svg
@@ -239,7 +239,7 @@ defmodule Emakola.Themes.Chale.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           aria-current={if @active == :cart, do: "page"}
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
           class={[
             "relative flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
             if(@active == :cart, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
