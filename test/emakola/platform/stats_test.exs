@@ -233,6 +233,38 @@ defmodule Emakola.Platform.StatsTest do
     end
   end
 
+  describe "one GMV rule" do
+    # StoreCaseFile.settled_gmv counts money that settled — a refund shows up
+    # as a refund, never as a GMV subtraction. The platform tiles follow the
+    # same rule so two numbers called GMV cannot disagree.
+    test "total_gmv, gmv_since and gmv_by_day count a payment that was later refunded" do
+      store = Factory.create_store!()
+      total_before = Stats.total_gmv()
+      since_before = Stats.gmv_since(30)
+
+      settled =
+        store
+        |> Factory.create_payment!(amount: 20_000)
+        |> Ash.Changeset.for_update(:mark_success, %{})
+        |> Ash.update!(authorize?: false)
+
+      settled
+      |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 20_000})
+      |> Ash.update!(authorize?: false)
+
+      # Never settled: not GMV.
+      store
+      |> Factory.create_payment!(amount: 9_000)
+      |> Ash.Changeset.for_update(:mark_failed, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert Stats.total_gmv() == total_before + 20_000
+      assert Stats.gmv_since(30) == since_before + 20_000
+      assert List.last(Stats.gmv_by_day(1).values) >= 20_000
+      assert Stats.gmv_statuses() == [:success, :refunded, :partially_refunded]
+    end
+  end
+
   describe "stores page tiles" do
     defp backdate!(record, days) do
       Ash.Seed.update!(record, %{
