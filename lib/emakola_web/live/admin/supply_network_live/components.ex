@@ -423,25 +423,28 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
     assigns = assign(assigns, steps: steps, current: current, done: done)
 
     ~H"""
-    <.admin_card id="first-money-journey" padding={:none} class="px-6 py-[18px]">
-      <div class="flex flex-col lg:flex-row lg:items-center gap-5">
-        <ol class="flex flex-1 items-center gap-2 overflow-x-auto">
+    <.admin_card id="first-money-journey" padding={:none} class="px-4 py-4 sm:px-6 sm:py-[18px]">
+      <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-5">
+        <%!-- On a phone each step is a column — dot over label — so five of
+              them fit 390px without the labels colliding. From sm: the label
+              moves beside its dot and the hint appears. --%>
+        <ol class="flex flex-1 items-start sm:items-center gap-1 sm:gap-2">
           <li
             :for={{step, index} <- Enum.with_index(@steps)}
             id={"first-money-step-#{step.key}"}
             data-complete={to_string(step.complete?)}
-            class="flex items-center gap-2 flex-1 min-w-0"
+            class="flex flex-col sm:flex-row items-center sm:gap-2 flex-1 min-w-0"
           >
             <span
               :if={index > 0}
               class={[
-                "h-0.5 w-6 lg:w-10 shrink-0 rounded",
+                "hidden sm:block h-0.5 w-4 lg:w-10 shrink-0 rounded",
                 if(step.complete? or step == @current, do: "bg-emerald-600", else: "bg-slate-200")
               ]}
             >
             </span>
             <span class={[
-              "flex size-10 shrink-0 items-center justify-center rounded-full",
+              "flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-full",
               step.complete? && "bg-emerald-600 text-white",
               !step.complete? && step == @current &&
                 "bg-white text-emerald-700 ring-2 ring-inset ring-emerald-600",
@@ -450,10 +453,15 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
               <.icon :if={step.complete?} name="hero-check" class="size-5" />
               <.icon :if={!step.complete?} name={step_icon(step.key)} class="size-5" />
             </span>
-            <span class="min-w-0">
-              <span class="block text-[13.5px] font-bold text-slate-900">{step.label}</span>
+            <span class="min-w-0 mt-1 sm:mt-0 text-center sm:text-left">
               <span class={[
-                "block text-[11px] truncate",
+                "block text-[11px] sm:text-[13.5px] font-bold",
+                if(step == @current, do: "text-emerald-700", else: "text-slate-900")
+              ]}>
+                {step.label}
+              </span>
+              <span class={[
+                "hidden sm:block text-[11px] truncate",
                 if(step == @current, do: "text-emerald-700 font-semibold", else: "text-slate-400")
               ]}>
                 {if step == @current, do: "#{step.hint} — next", else: step.hint}
@@ -462,14 +470,16 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Components do
           </li>
         </ol>
         <div class="flex items-center gap-3.5 shrink-0">
-          <div class="text-right">
+          <div class="text-left lg:text-right">
             <p class="text-[13px] font-bold text-slate-900">{@done} of {length(@steps)} done</p>
-            <p class="text-[11px] text-slate-400">First money journey</p>
+            <p class="text-[11px] text-slate-400">
+              {if @current, do: @current.hint, else: "First money journey"}
+            </p>
           </div>
           <.link
             :if={@current}
             navigate={@tools_path <> next_anchor(@current.key)}
-            class="inline-flex items-center px-3.5 py-2 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold transition-colors"
+            class="ml-auto lg:ml-0 inline-flex items-center px-3.5 py-2.5 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-semibold transition-colors"
           >
             {next_action(@current.key)}
           </.link>
