@@ -59,6 +59,21 @@ defmodule EmakolaWeb.OnboardingLive do
   def mount(_params, session, socket) do
     current_user = resolve_user(session)
 
+    cond do
+      # Opening a shop is using the app. This route sits outside the guarded
+      # live_session, so the gate has to be stated here too.
+      current_user && not Emakola.Accounts.access_allowed?(current_user) ->
+        {:ok,
+         socket
+         |> assign(current_user: current_user)
+         |> push_navigate(to: "/auth/verify?email=#{to_string(current_user.email)}")}
+
+      true ->
+        mount_onboarding(current_user, socket)
+    end
+  end
+
+  defp mount_onboarding(current_user, socket) do
     if current_user && has_store_membership?(current_user) do
       {:ok,
        socket

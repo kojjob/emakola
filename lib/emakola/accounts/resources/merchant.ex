@@ -117,6 +117,23 @@ defmodule Emakola.Accounts.Merchant do
     end
   end
 
+  validations do
+    # "Any email address" was literally true: the attribute was a ci_string
+    # with a length cap and nothing else, so `notanemail` registered as
+    # readily as a real address. Deliberately conservative — one @, a dot in
+    # the domain, no whitespace. Anything cleverer rejects valid addresses,
+    # and the confirmation link is what actually proves the mailbox exists.
+    # Only when the address is actually being set. Applied to every update it
+    # makes atomic actions non-atomic — Ash cannot run a match validation
+    # atomically against an attribute that is not changing, which broke
+    # session invalidation.
+    validate(match(:email, ~r/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/),
+      on: [:create, :update],
+      where: [changing(:email)],
+      message: "must be a valid email address"
+    )
+  end
+
   attributes do
     uuid_primary_key(:id)
 

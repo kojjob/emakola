@@ -109,7 +109,14 @@ defmodule Emakola.Factory do
       |> Ash.create!(authorize?: false)
 
     profile = Map.take(attrs, [:name, :business_name, :phone, :avatar_url])
-    confirmed_at = attrs[:confirmed_at]
+
+    # Verified is the normal state of a merchant now that access is gated on
+    # it. A test that wants the unverified case asks for it with
+    # `confirmed_at: nil` and gets an account that cannot sign in.
+    confirmed_at =
+      if Map.has_key?(attrs, :confirmed_at),
+        do: attrs[:confirmed_at],
+        else: DateTime.utc_now()
 
     if profile == %{} and is_nil(confirmed_at) do
       merchant
@@ -123,6 +130,22 @@ defmodule Emakola.Factory do
 
       Ash.update!(changeset, authorize?: false)
     end
+  end
+
+  @doc """
+  Marks a merchant's address verified.
+
+  For the tests that build a merchant by hand with `register_with_password`
+  rather than through this factory: registration leaves an account
+  unverified, exactly as production does, and access is gated on
+  verification — so a hand-built merchant needs this before it can reach the
+  admin, the same way a real one needs to click the link in their email.
+  """
+  def confirm!(merchant) do
+    merchant
+    |> Ash.Changeset.for_update(:update_profile, %{})
+    |> Ash.Changeset.force_change_attribute(:confirmed_at, DateTime.utc_now())
+    |> Ash.update!(authorize?: false)
   end
 
   # ── Store ─────────────────────────────────────────────────────
