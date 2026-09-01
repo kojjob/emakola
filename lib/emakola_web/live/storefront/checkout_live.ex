@@ -763,12 +763,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   # `Emakola.Shipping.DeliveryZone`. Kept as a fallback so onboarding stores
   # can take orders before configuring zones; merchants who configure zones
   # override this entirely.
-  @default_region_fees %{
-    "greater_accra" => 1500,
-    "ashanti" => 2500,
-    "central" => 2500
-  }
-  @default_region_fee 3500
 
   defp update_delivery_fee(%{assigns: %{requires_shipping: false}} = socket) do
     socket
@@ -786,7 +780,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
           {zone_fee(socket, zone), delivery_estimate(zone)}
 
         {:error, :no_zone} ->
-          {Map.get(@default_region_fees, region, @default_region_fee), nil}
+          # No zone covers this region and the store set no catch-all: charge
+          # nothing. The platform used to invent GH₵15–35 here — a fee the
+          # merchant never set and could not see anywhere in their admin.
+          {0, nil}
       end
 
     socket

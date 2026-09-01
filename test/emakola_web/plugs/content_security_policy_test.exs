@@ -94,4 +94,13 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicyTest do
       refute csp =~ ~r/style-src-elem [^;]*nonce-/
     end
   end
+
+  test "img-src allows blob: so LiveView upload previews render" do
+    # Every upload preview is a blob: object URL. Without it merchants stared
+    # at blank squares while their photos uploaded.
+    conn = conn(:get, "/") |> ContentSecurityPolicy.call([])
+
+    [csp] = get_resp_header(conn, "content-security-policy")
+    assert csp =~ ~r/img-src [^;]*blob:/
+  end
 end

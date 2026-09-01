@@ -30,6 +30,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
     <div class="min-h-screen flex flex-col bg-stone-50 text-stone-950 antialiased">
       <%!-- Minimal Navigation --%>
       <header class="border-b border-stone-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <h1 class="sr-only">Checkout — {@store.name}</h1>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-16">
             <a

@@ -58,6 +58,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   # -- Mount --
 
   describe "mount/3" do
+    test "the page has a heading", %{conn: conn, store: store, variant: variant} do
+      # Screen readers landed on the one page in the buying flow with no h1.
+      {conn, _} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert has_element?(view, "h1")
+    end
+
     test "renders checkout one step at a time", %{conn: conn, store: store} do
       {:ok, view, html} = live(conn, "/s/#{store.slug}/checkout")
 
@@ -225,6 +233,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   end
 
   # -- GhanaPost digital address + landmark (TC-4 Task 2) --
+
+  describe "delivery fee without zones" do
+    test "a store that configured no delivery zone charges no delivery fee", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      # The platform used to invent GH₵15 (or GH₵35 upcountry) for stores with
+      # no zones — a charge the merchant never set and could not see. A
+      # merchant who wants a flat fee now has catch-all zones for that.
+      order = place_order_with_phone(conn, store, variant, "0244123456")
+
+      assert order.delivery_fee == 0
+      assert order.total == order.subtotal
+    end
+  end
 
   describe "buyer phone" do
     # Checkout used to write "+233#{phone}" verbatim, so the 0244… a Ghanaian
@@ -564,8 +588,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert by_role[:wholesaler].amount == 1_600
       assert by_role[:wholesaler].subaccount_code == "ACCT_whole"
       assert by_role[:platform].amount == 840
-      # dropshipper margin 7560 + Greater Accra delivery 1500 = 9060
-      assert by_role[:dropshipper].amount == 9_060
+      # dropshipper margin 7560; no invented delivery fee — this store set no zone
+      assert by_role[:dropshipper].amount == 7_560
     end
   end
 
@@ -603,10 +627,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
         |> Ash.read(authorize?: false)
 
       by_role = Map.new(splits, &{&1.role, &1})
-      # subtotal 10000 + Greater Accra delivery 1500 = 11500 total; 2% fee = 230.
-      assert by_role[:merchant].amount == 11_270
+      # subtotal 10000, no invented delivery = 10000 total; 2% fee = 200.
+      assert by_role[:merchant].amount == 9_800
       assert by_role[:merchant].subaccount_code == "ACCT_own"
-      assert by_role[:platform].amount == 230
+      assert by_role[:platform].amount == 200
     end
   end
 
@@ -794,26 +818,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   # -- Delivery Fee --
 
   describe "delivery fee calculation" do
-    test "Greater Accra has lowest delivery fee", %{conn: conn, store: store} do
+    test "a store with no zones ships free in every region", %{conn: conn, store: store} do
+      # The platform used to invent GH₵15 for Greater Accra and GH₵25–35
+      # upcountry when the store had configured nothing — money the merchant
+      # never asked for. A flat fee is what catch-all zones are for.
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
 
-      html =
-        render_change(view, "update_details", %{
-          "region" => "greater_accra"
-        })
+      for region <- ["greater_accra", "ashanti"] do
+        html = render_change(view, "update_details", %{"region" => region})
 
-      assert html =~ "GH\u20B5 15"
-    end
-
-    test "Ashanti region has higher delivery fee", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
-
-      html =
-        render_change(view, "update_details", %{
-          "region" => "ashanti"
-        })
-
-      assert html =~ "GH\u20B5 25"
+        assert html =~ "Free", "#{region}: no-zone store did not ship free"
+        refute html =~ "GH\u20B5 15"
+        refute html =~ "GH\u20B5 25"
+      end
     end
 
     test "zone with per-kg pricing charges base fee plus weight surcharge",
@@ -883,16 +900,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       {:ok, view, html} = live(conn, "/s/#{reseller.slug}/checkout")
 
       # Buyers never see supply-chain vocabulary — dispatch folds into
-      # Shipping: Greater Accra fallback 1_500 + dispatch 1_500 = 3_000.
+      # Shipping: no zone means no delivery fee, so the line is dispatch
+      # alone: 1_500.
       refute html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(3_000)
+      assert html =~ Currency.format_price(1_500)
 
       html = render_change(view, "update_details", %{"region" => "ashanti"})
 
-      # Ashanti fallback 2_500 + Ashanti dispatch 2_700 = 5_200.
+      # Ashanti dispatch alone: 2_700 — the region change moves the line.
       refute html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(5_200)
-      refute html =~ Currency.format_price(3_000)
+      assert html =~ Currency.format_price(2_700)
+      refute html =~ Currency.format_price(1_500)
     end
 
     test "no dispatch line for merchant-only carts", %{conn: conn, store: store, variant: variant} do

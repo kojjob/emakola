@@ -66,6 +66,13 @@ defmodule EmakolaWeb.Admin.NoStoreMerchantTest do
     %{conn: conn}
   end
 
+  test "the dashboard sends a store-less merchant to onboarding", %{conn: conn} do
+    # Before this, their first screen after verifying was a full dashboard —
+    # "Your store at a glance · GHS 0.00 · Nothing to do — nice work" — for a
+    # store that does not exist, with nothing pointing at onboarding.
+    assert {:error, {:live_redirect, %{to: "/onboarding"}}} = live(conn, "/dashboard")
+  end
+
   test "no admin page crashes for a merchant with no store", %{conn: conn} do
     failures =
       Enum.flat_map(@routes, fn route ->

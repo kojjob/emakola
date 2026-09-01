@@ -78,7 +78,9 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "style-src-attr 'unsafe-inline'",
       "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: https:",
+      # blob: because every LiveView upload preview is a blob: object URL —
+      # without it merchants stare at blank squares while photos upload.
+      "img-src 'self' data: blob: https:",
       # blob: is required by the /how-it-works/tour scrub engine, which fetches
       # each clip and plays it from an in-memory object URL (always-seekable).
       # Only same-origin scripts (nonce-locked above) can mint blob URLs.
