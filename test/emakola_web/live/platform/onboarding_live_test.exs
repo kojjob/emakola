@@ -108,10 +108,7 @@ defmodule EmakolaWeb.Platform.OnboardingLiveTest do
         Stores.submit_store_verification(
           %{
             store_id: full.id,
-            business_name: "A",
-            id_type: :ghana_card,
-            id_number: "X",
-            id_document_key: "k"
+            business_name: "A"
           },
           authorize?: false
         )

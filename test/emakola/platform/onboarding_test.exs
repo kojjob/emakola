@@ -23,10 +23,7 @@ defmodule Emakola.Platform.OnboardingTest do
       Stores.submit_store_verification(
         %{
           store_id: store.id,
-          business_name: "Ama Trades",
-          id_type: :ghana_card,
-          id_number: "GHA-1",
-          id_document_key: "k"
+          business_name: "Ama Trades"
         },
         authorize?: false
       )

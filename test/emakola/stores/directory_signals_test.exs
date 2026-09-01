@@ -152,9 +152,6 @@ defmodule Emakola.Stores.DirectorySignalsTest do
     Ash.Seed.seed!(Emakola.Stores.StoreVerification, %{
       store_id: pending_store.id,
       business_name: "Pending Ventures",
-      id_type: :ghana_card,
-      id_number: "GHA-000000000-0",
-      id_document_key: "kyc/pending.pdf",
       status: :pending
     })
 
@@ -163,9 +160,6 @@ defmodule Emakola.Stores.DirectorySignalsTest do
     Ash.Seed.seed!(Emakola.Stores.StoreVerification, %{
       store_id: approved_store.id,
       business_name: "Approved Ventures",
-      id_type: :ghana_card,
-      id_number: "GHA-111111111-1",
-      id_document_key: "kyc/approved.pdf",
       status: :approved
     })
 
