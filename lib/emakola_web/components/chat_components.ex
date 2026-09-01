@@ -310,7 +310,9 @@ defmodule EmakolaWeb.ChatComponents do
             const input = this.el.querySelector("input[type='text']")
             if (!input) return
             input.value = ""
-            input.focus()
+            // Next frame: the Send button still owns focus while its click
+            // settles, and Chromium keeps it there if we focus synchronously.
+            requestAnimationFrame(() => input.focus())
           })
         }
       }
