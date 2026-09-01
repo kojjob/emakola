@@ -35,6 +35,26 @@ defmodule Emakola.Release do
   end
 
   @doc """
+  Grandfathers trading merchants past the verification gate.
+
+  Access is gated on a verified address, so the merchants who signed up while
+  production ran on a dead mail key — and have been selling ever since — are
+  locked out on deploy until this runs. It has to run HERE rather than as a
+  Mix task: production runs a release, and a release ships no Mix.
+
+  Dry run first; it writes nothing and prints the same split:
+
+      bin/emakola rpc 'Emakola.Release.backfill_verified_merchants(true)'
+      bin/emakola rpc 'Emakola.Release.backfill_verified_merchants()'
+
+  Returns counts only — no addresses, so it is safe in a deploy log.
+  """
+  @spec backfill_verified_merchants(boolean()) :: Emakola.Accounts.VerificationBackfill.result()
+  def backfill_verified_merchants(dry_run? \\ false) do
+    Emakola.Accounts.VerificationBackfill.run(dry_run?: dry_run?)
+  end
+
+  @doc """
   Reconciles encrypted shadows after all old nodes have drained.
 
       bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
