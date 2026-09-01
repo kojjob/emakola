@@ -224,7 +224,7 @@ defmodule EmakolaWeb.ChatComponents do
 
   def chat_composer(assigns) do
     ~H"""
-    <div class="px-4 pb-4 pt-2 shrink-0">
+    <div id="chat-composer" phx-hook=".ChatComposer" class="px-4 pb-4 pt-2 shrink-0">
       <div
         :if={@media && @media.entries != []}
         class="mb-2 flex flex-wrap gap-2"
@@ -265,7 +265,7 @@ defmodule EmakolaWeb.ChatComponents do
         {media_error(err)}
       </p>
 
-      <div class="flex items-center gap-2.5 bg-white rounded-xl p-2 pl-4 shadow-md shadow-slate-900/5 ring-1 ring-slate-200/60">
+      <div class="flex items-center gap-2.5 bg-white rounded-xl p-2 pl-4 shadow-md shadow-slate-900/5 ring-1 ring-slate-200/60 focus-within:ring-emerald-500/30 transition-shadow">
         <%!-- A div, not a label: an input nested in a label double-activates in
               Chrome and the second activation can swallow the picker dialog.
               The full-size transparent input is also the only shape iOS
@@ -288,7 +288,7 @@ defmodule EmakolaWeb.ChatComponents do
           placeholder="Type your message here…"
           autocomplete="off"
           aria-label="Your reply"
-          class="flex-1 min-w-0 border-0 bg-transparent p-0 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-0"
+          class="flex-1 min-w-0 border-0 bg-transparent p-0 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
         />
         <button
           type="submit"
@@ -298,6 +298,23 @@ defmodule EmakolaWeb.ChatComponents do
         </button>
       </div>
     </div>
+
+    <%!-- The server never holds the typed text (no phx-change on the body),
+          so after a send its re-render carries the same empty value and
+          LiveView leaves the box alone. The page pushes composer:clear and
+          the hook empties and refocuses the input. --%>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".ChatComposer">
+      export default {
+        mounted() {
+          this.handleEvent("composer:clear", () => {
+            const input = this.el.querySelector("input[type='text']")
+            if (!input) return
+            input.value = ""
+            input.focus()
+          })
+        }
+      }
+    </script>
     """
   end
 end
