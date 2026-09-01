@@ -18,6 +18,46 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.ActivationComponents do
 
   def activation(assigns) do
     ~H"""
+    <.earn_activation_grid
+      delivery_form={@delivery_form}
+      delivery_fulfillment_id={@delivery_fulfillment_id}
+      first_money={@first_money}
+      inbound_count={@inbound_count}
+      sales_click_count={@sales_click_count}
+      sales_order_count={@sales_order_count}
+      sales_revenue={@sales_revenue}
+      shipping_form={@shipping_form}
+      shipping_fulfillment_id={@shipping_fulfillment_id}
+      streams={@streams}
+    />
+    <.supplier_inbox
+      delivery_form={@delivery_form}
+      delivery_fulfillment_id={@delivery_fulfillment_id}
+      first_money={@first_money}
+      inbound_count={@inbound_count}
+      sales_click_count={@sales_click_count}
+      sales_order_count={@sales_order_count}
+      sales_revenue={@sales_revenue}
+      shipping_form={@shipping_form}
+      shipping_fulfillment_id={@shipping_fulfillment_id}
+      streams={@streams}
+    />
+    """
+  end
+
+  attr :delivery_form, :any, required: true
+  attr :delivery_fulfillment_id, :any, required: true
+  attr :first_money, :map, required: true
+  attr :inbound_count, :integer, required: true
+  attr :sales_click_count, :integer, required: true
+  attr :sales_order_count, :integer, required: true
+  attr :sales_revenue, :integer, required: true
+  attr :shipping_form, :any, required: true
+  attr :shipping_fulfillment_id, :any, required: true
+  attr :streams, :map, required: true
+
+  def earn_activation_grid(assigns) do
+    ~H"""
     <div
       id="earn-activation-grid"
       aria-labelledby="first-money-heading"
@@ -203,7 +243,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.ActivationComponents do
         }
       }
     </script>
+    """
+  end
 
+  attr :delivery_form, :any, required: true
+  attr :delivery_fulfillment_id, :any, required: true
+  attr :first_money, :map, required: true
+  attr :inbound_count, :integer, required: true
+  attr :sales_click_count, :integer, required: true
+  attr :sales_order_count, :integer, required: true
+  attr :sales_revenue, :integer, required: true
+  attr :shipping_form, :any, required: true
+  attr :shipping_fulfillment_id, :any, required: true
+  attr :streams, :map, required: true
+
+  def supplier_inbox(assigns) do
+    ~H"""
     <section id="supplier-inbox" aria-labelledby="supplier-inbox-heading" class="space-y-5">
       <div class="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 to-slate-800 px-6 py-7 text-white shadow-lg sm:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
