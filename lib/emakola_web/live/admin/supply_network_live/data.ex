@@ -25,7 +25,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
     SalesTeams
   }
 
-  alias EmakolaWeb.Admin.SupplyNetworkLive.Inputs
+  alias EmakolaWeb.Admin.SupplyNetworkLive.{Inputs, Presentation}
 
   # RequireActiveStore lets a merchant who has not created a store reach the
   # admin ("still onboarding … passes through untouched"), so current_store can
@@ -71,6 +71,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
       end
 
     socket
+    |> assign(:connections, connections)
     |> assign(:connection_count, length(connections))
     |> assign(:active_connection?, Enum.any?(connections, &(&1.status == :active)))
     |> Phoenix.LiveView.stream(:connections, connections, reset: true)
@@ -88,6 +89,11 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
     socket
     |> assign(:offer_count, length(available))
     |> assign(:listing_count, length(listings))
+    |> assign(:listing_preview, Enum.take(listings, 3))
+    |> assign(
+      :low_stock_listing_count,
+      Enum.count(listings, &(Presentation.listing_stock_status(&1) == :low))
+    )
     |> assign(:radar_offers, offers)
     |> assign(:hustle_opportunities, Enum.map(offers, &hustle_opportunity/1))
     |> assign(:hustle_listings, listings)
@@ -103,6 +109,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
 
     socket
     |> assign(:inbound_count, length(fulfillments))
+    |> assign(:inbound_preview, Enum.take(fulfillments, 2))
     |> Phoenix.LiveView.stream(:inbound_fulfillments, fulfillments, reset: true)
   end
 
@@ -135,9 +142,35 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
     |> assign(:sales_click_count, click_count)
     |> assign(:sales_order_count, order_count)
     |> assign(:sales_revenue, revenue)
+    |> assign(:sales_preview, Enum.take(shares, 2))
     |> assign(:hustle_shares, shares)
+    |> assign(:partner_stats, partner_stats(socket.assigns.hustle_listings, shares))
     |> assign(:first_money, first_money)
     |> Phoenix.LiveView.stream(:sales_shares, shares, reset: true)
+  end
+
+  # Per partner store: how many of its products this store lists, and how
+  # many orders those listings' sales kits brought. Keyed by the wholesaler
+  # store id, so the hub can put the numbers on each connection row.
+  defp partner_stats(listings, shares) do
+    orders_by_product =
+      Enum.reduce(shares, %{}, fn share, acc ->
+        Map.update(acc, share.product_id, share.order_count, &(&1 + share.order_count))
+      end)
+
+    Enum.reduce(listings, %{}, fn listing, acc ->
+      case listing do
+        %{offer: %{wholesaler_store_id: partner_id}} when is_binary(partner_id) ->
+          orders = Map.get(orders_by_product, listing.reseller_product_id, 0)
+
+          Map.update(acc, partner_id, %{products: 1, orders: orders}, fn row ->
+            %{products: row.products + 1, orders: row.orders + orders}
+          end)
+
+        _listing ->
+          acc
+      end
+    end)
   end
 
   def load_income_goal(socket) do
@@ -263,6 +296,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.Data do
 
     socket
     |> assign(:inventory_reservation_forms, forms)
+    |> assign(:reservation_count, length(reservations))
     |> Phoenix.LiveView.stream(:owned_inventory_policies, owned, reset: true)
     |> Phoenix.LiveView.stream(:eligible_inventory_policies, eligible, reset: true)
     |> Phoenix.LiveView.stream(:inventory_reservations, reservations, reset: true)
