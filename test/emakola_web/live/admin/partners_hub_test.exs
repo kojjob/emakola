@@ -47,7 +47,7 @@ defmodule EmakolaWeb.Admin.PartnersHubTest do
 
     assert has_element?(
              view,
-             "#earn-tools a[href='/admin/settings/supply-network/tools#commerce-passport']"
+             "#earn-tools a[href='/admin/settings/supply-network/tools/commerce-passport']"
            )
 
     refute has_element?(view, "#hustle-autopilot")
@@ -101,5 +101,54 @@ defmodule EmakolaWeb.Admin.PartnersHubTest do
 
     {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network/tools")
     assert has_element?(view, "#supply-network-tools")
+  end
+
+  describe "tool pages" do
+    @tool_sections %{
+      "income-plan" => "#hustle-autopilot",
+      "opportunities" => "#opportunity-radar",
+      "content-studio" => "#earn-content-studio",
+      "commerce-passport" => "#commerce-passport",
+      "collaborate" => "#collaborative-commerce",
+      "stock-holds" => "#inventory-eligibility",
+      "products" => "#earn-catalog",
+      "sales-kits" => "#sales-kit-panel",
+      "orders" => "#supplier-inbox"
+    }
+
+    test "every door opens one tool on its own page", %{conn: conn} do
+      for {slug, section} <- @tool_sections do
+        {:ok, view, _html} = live(conn, "/admin/settings/supply-network/tools/#{slug}")
+
+        assert has_element?(view, "#supply-tool-#{String.replace(slug, "-", "_")} #{section}"),
+               "#{slug} should render #{section}"
+
+        refute has_element?(view, "#supply-network-tools"), "#{slug} is a page, not the workbench"
+        assert has_element?(view, "a[href='/admin/settings/supply-network']", "Partners")
+      end
+    end
+
+    test "the hub's doors point at those pages", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
+
+      for slug <- Map.keys(@tool_sections) -- ["products", "sales-kits", "orders"] do
+        assert has_element?(
+                 view,
+                 "#earn-tools a[href^='/admin/settings/supply-network/tools/#{slug}']"
+               ),
+               "no door for #{slug}"
+      end
+    end
+
+    test "an unknown tool goes back to the hub", %{conn: conn} do
+      assert {:error, {:live_redirect, %{to: "/admin/settings/supply-network"}}} =
+               live(conn, "/admin/settings/supply-network/tools/nope")
+    end
+
+    test "the bare tools route is still the whole workbench", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/settings/supply-network/tools")
+      assert has_element?(view, "#supply-network-tools #hustle-autopilot")
+      assert has_element?(view, "#supply-network-tools #supplier-inbox")
+    end
   end
 end

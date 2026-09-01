@@ -15,6 +15,64 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
 
   def catalog(assigns) do
     ~H"""
+    <.connection_invite_panel
+      connection_count={@connection_count}
+      content_draft_count={@content_draft_count}
+      current_store={@current_store}
+      form={@form}
+      listing_count={@listing_count}
+      offer_count={@offer_count}
+      streams={@streams}
+    />
+    <.connections
+      connection_count={@connection_count}
+      content_draft_count={@content_draft_count}
+      current_store={@current_store}
+      form={@form}
+      listing_count={@listing_count}
+      offer_count={@offer_count}
+      streams={@streams}
+    />
+    <.earn_catalog
+      connection_count={@connection_count}
+      content_draft_count={@content_draft_count}
+      current_store={@current_store}
+      form={@form}
+      listing_count={@listing_count}
+      offer_count={@offer_count}
+      streams={@streams}
+    />
+    <.earned_listings
+      connection_count={@connection_count}
+      content_draft_count={@content_draft_count}
+      current_store={@current_store}
+      form={@form}
+      listing_count={@listing_count}
+      offer_count={@offer_count}
+      streams={@streams}
+    />
+    <.earn_content_studio
+      connection_count={@connection_count}
+      content_draft_count={@content_draft_count}
+      current_store={@current_store}
+      form={@form}
+      listing_count={@listing_count}
+      offer_count={@offer_count}
+      streams={@streams}
+    />
+    """
+  end
+
+  attr :connection_count, :integer, required: true
+  attr :content_draft_count, :integer, required: true
+  attr :current_store, :any, required: true
+  attr :form, :any, required: true
+  attr :listing_count, :integer, required: true
+  attr :offer_count, :integer, required: true
+  attr :streams, :map, required: true
+
+  def connection_invite_panel(assigns) do
+    ~H"""
     <section
       id="connection-invite-panel"
       class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
@@ -57,7 +115,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
         </button>
       </.form>
     </section>
+    """
+  end
 
+  attr :connection_count, :integer, required: true
+  attr :content_draft_count, :integer, required: true
+  attr :current_store, :any, required: true
+  attr :form, :any, required: true
+  attr :listing_count, :integer, required: true
+  attr :offer_count, :integer, required: true
+  attr :streams, :map, required: true
+
+  def connections(assigns) do
+    ~H"""
     <section aria-labelledby="connections-heading" class="space-y-4">
       <div class="flex items-end justify-between gap-4">
         <div>
@@ -172,7 +242,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
         </article>
       </div>
     </section>
+    """
+  end
 
+  attr :connection_count, :integer, required: true
+  attr :content_draft_count, :integer, required: true
+  attr :current_store, :any, required: true
+  attr :form, :any, required: true
+  attr :listing_count, :integer, required: true
+  attr :offer_count, :integer, required: true
+  attr :streams, :map, required: true
+
+  def earn_catalog(assigns) do
+    ~H"""
     <section id="earn-catalog" aria-labelledby="earn-catalog-heading" class="space-y-5">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -293,7 +375,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
         </article>
       </div>
     </section>
+    """
+  end
 
+  attr :connection_count, :integer, required: true
+  attr :content_draft_count, :integer, required: true
+  attr :current_store, :any, required: true
+  attr :form, :any, required: true
+  attr :listing_count, :integer, required: true
+  attr :offer_count, :integer, required: true
+  attr :streams, :map, required: true
+
+  def earned_listings(assigns) do
+    ~H"""
     <section id="earned-listings" aria-labelledby="earned-listings-heading" class="space-y-4">
       <div class="flex items-center justify-between gap-4">
         <div>
@@ -375,7 +469,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CatalogComponents do
         </article>
       </div>
     </section>
+    """
+  end
 
+  attr :connection_count, :integer, required: true
+  attr :content_draft_count, :integer, required: true
+  attr :current_store, :any, required: true
+  attr :form, :any, required: true
+  attr :listing_count, :integer, required: true
+  attr :offer_count, :integer, required: true
+  attr :streams, :map, required: true
+
+  def earn_content_studio(assigns) do
+    ~H"""
     <section id="earn-content-studio" aria-labelledby="content-studio-heading" class="space-y-4">
       <div class="flex items-end justify-between gap-4">
         <div>

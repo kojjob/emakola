@@ -52,6 +52,9 @@ defmodule EmakolaWeb.Platform.MessageLiveTest do
       assert {:ok, [message]} = Conversations.list_messages(thread.id)
       assert message.body == "Your payout is on the way."
       assert message.author_kind == :platform
+      # The composer empties itself after a send; the server never held the
+      # typed text, so a re-render alone leaves it in the box.
+      assert_push_event(view, "composer:clear", %{})
     end
 
     test "media attachments render in the staff thread", ctx do
