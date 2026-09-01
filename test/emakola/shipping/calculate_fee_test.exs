@@ -60,6 +60,23 @@ defmodule Emakola.Shipping.CalculateFeeTest do
       assert {:error, :no_zone} = Shipping.calculate_fee(store.id, "Northern")
     end
 
+    test "an unmatched region falls back to the store's catch-all zone" do
+      store = create_store!()
+      _accra = create_zone!(store, name: "Greater Accra", fee: 1500)
+      _rest = create_zone!(store, name: "Other Regions", fee: 3500, fallback: true)
+
+      assert {:ok, 1500} = Shipping.calculate_fee(store.id, "greater_accra")
+      assert {:ok, 3500} = Shipping.calculate_fee(store.id, "Volta")
+      assert {:ok, %{name: "Other Regions"}} = Shipping.find_zone(store.id, "Northern")
+    end
+
+    test "a paused catch-all does not catch anything" do
+      store = create_store!()
+      _rest = create_zone!(store, name: "Other Regions", fee: 3500, fallback: true, active: false)
+
+      assert {:error, :no_zone} = Shipping.calculate_fee(store.id, "Volta")
+    end
+
     test "matches stored region name with underscores against UI region keys" do
       # Storefronts dispatch region as snake_case ("greater_accra"); zones are
       # stored with human names ("Greater Accra"). The lookup should normalise.
