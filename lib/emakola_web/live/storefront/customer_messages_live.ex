@@ -79,7 +79,8 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLive do
            Conversations.post_message(thread, :customer, customer_id, body,
              attachments: attachments
            ) do
-      {:noreply, socket |> assign(form: blank_form()) |> load()}
+      {:noreply,
+       socket |> assign(form: blank_form()) |> push_event("composer:clear", %{}) |> load()}
     else
       {:error, reason} -> {:noreply, put_flash(socket, :error, send_error_message(reason))}
       _ -> {:noreply, put_flash(socket, :error, "That message did not send. Try again.")}

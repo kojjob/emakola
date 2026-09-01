@@ -145,6 +145,7 @@ defmodule EmakolaWeb.Admin.MessageLive do
         {:noreply,
          socket
          |> assign(messages: messages, form: blank_form())
+         |> push_event("composer:clear", %{})
          |> load_threads(socket.assigns.current_store)}
 
       {:error, reason} ->

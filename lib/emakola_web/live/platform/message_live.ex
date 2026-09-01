@@ -98,7 +98,12 @@ defmodule EmakolaWeb.Platform.MessageLive do
     case Conversations.post_message(thread, :platform, staff.id, body, attachments: attachments) do
       {:ok, _message} ->
         {:ok, messages} = Conversations.list_messages(thread.id)
-        {:noreply, socket |> assign(messages: messages, form: blank_form()) |> load_threads()}
+
+        {:noreply,
+         socket
+         |> assign(messages: messages, form: blank_form())
+         |> push_event("composer:clear", %{})
+         |> load_threads()}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, send_error_message(reason))}
