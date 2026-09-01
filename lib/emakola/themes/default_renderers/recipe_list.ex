@@ -56,7 +56,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
                 <span :if={post.published_at}>
                   {Calendar.strftime(post.published_at, "%B %d, %Y")}
                 </span>
-                <span>{post.view_count} views</span>
+                <span>{Emakola.Plural.count(post.view_count, "view")}</span>
               </div>
             </div>
           </article>

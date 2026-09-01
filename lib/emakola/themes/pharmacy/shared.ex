@@ -86,7 +86,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class="relative w-11 h-11 rounded-full hover:bg-[#A7E5C5]/30 flex items-center justify-center transition-colors"
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <span class="material-symbols-outlined text-[#14543E]" style="font-size: 22px;">
                 shopping_bag

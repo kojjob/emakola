@@ -146,7 +146,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.ActivationComponents do
                 </div>
               </div>
               <span class="text-[10px] font-semibold text-slate-400">
-                {share.click_count} clicks · {share.order_count} orders
+                {Emakola.Plural.count(share.click_count, "click")} · {Emakola.Plural.count(
+                  share.order_count,
+                  "order"
+                )}
               </span>
             </div>
 
@@ -219,7 +222,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.ActivationComponents do
             id="inbound-fulfillment-count"
             class="w-fit rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/15"
           >
-            {@inbound_count} orders
+            {Emakola.Plural.count(@inbound_count, "order")}
           </span>
         </div>
       </div>
@@ -257,7 +260,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.ActivationComponents do
               </p>
             </div>
             <p class="text-xs font-semibold text-slate-400">
-              {length(fulfillment.line_items)} item types
+              {Emakola.Plural.count(length(fulfillment.line_items), "item type")}
             </p>
           </div>
 

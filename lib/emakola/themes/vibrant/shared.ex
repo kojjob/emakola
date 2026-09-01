@@ -112,7 +112,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               <a
                 href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
-                aria-label={"Shopping cart, #{@cart_count} items"}
+                aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               >
                 <svg
                   class="w-5 h-5 text-[#92400E]"

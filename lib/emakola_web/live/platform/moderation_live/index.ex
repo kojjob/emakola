@@ -402,7 +402,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
           </p>
         </div>
         <div :if={@products_loaded?} class="flex items-center gap-2">
-          <.severity_pill label={"#{@total_count} products"} tone="blue" />
+          <.severity_pill label={Emakola.Plural.count(@total_count, "product")} tone="blue" />
           <.severity_pill label={"#{@taken_down_count} taken down"} tone="rose" />
         </div>
       </div>
@@ -575,7 +575,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
                 :if={photo_count(@selected) > 1}
                 class="absolute bottom-2.5 right-3 text-[11px] font-semibold text-slate-600 bg-white/85 px-2 py-0.5 rounded-full tabular-nums"
               >
-                {"#{@photo_index + 1} of #{photo_count(@selected)} photos"}
+                {"#{@photo_index + 1} of #{Emakola.Plural.count(photo_count(@selected), "photo")}"}
               </span>
             </div>
 

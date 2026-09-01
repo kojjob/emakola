@@ -108,7 +108,7 @@ defmodule Emakola.Themes.Depot.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Your order, #{@cart_count} items"}
+              aria-label={"Your order, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="flex h-11 items-center gap-2 border border-[#E7E5E1] shadow-sm px-3.5 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
             >
               <svg
@@ -230,7 +230,7 @@ defmodule Emakola.Themes.Depot.Shared do
     <a
       href={@href}
       aria-current={@active && "page"}
-      aria-label={if @badge > 0, do: "#{@label}, #{@badge} items"}
+      aria-label={if @badge > 0, do: "#{@label}, #{Emakola.Plural.count(@badge, "item")}"}
       class={[
         "flex flex-1 flex-col items-center justify-center gap-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900",
         if(@active, do: "text-zinc-900", else: "text-zinc-400 hover:text-zinc-900")

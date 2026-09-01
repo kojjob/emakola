@@ -232,4 +232,82 @@ defmodule Emakola.Platform.StatsTest do
       assert List.last(values) >= 1
     end
   end
+
+  describe "stores page tiles" do
+    defp backdate!(record, days) do
+      Ash.Seed.update!(record, %{
+        inserted_at: DateTime.add(DateTime.utc_now(), -days, :day)
+      })
+    end
+
+    test "merchants_with_multiple_stores/0 counts merchants holding more than one store" do
+      before = Stats.merchants_with_multiple_stores()
+
+      {merchant, _store} = Factory.create_merchant_with_store!()
+      Factory.create_store_membership!(merchant, Factory.create_store!(), :admin)
+      {_single, _store} = Factory.create_merchant_with_store!()
+
+      assert Stats.merchants_with_multiple_stores() == before + 1
+    end
+
+    test "merchants_joined_since/1 counts recent sign-ups only" do
+      before = Stats.merchants_joined_since(7)
+
+      Factory.create_merchant!()
+      Factory.create_merchant!() |> backdate!(10)
+
+      assert Stats.merchants_joined_since(7) == before + 1
+    end
+
+    test "orders, paid GMV and selling stores inside the window" do
+      orders_before = Stats.orders_since(30)
+      gmv_before = Stats.gmv_since(30)
+      sellers_before = Stats.stores_with_orders_since(30)
+
+      store = Factory.create_store!()
+      Factory.create_order!(store)
+      Factory.create_order!(store)
+      store |> Factory.create_order!() |> backdate!(40)
+
+      store
+      |> Factory.create_payment!(amount: 5_000)
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+
+      store
+      |> Factory.create_payment!(amount: 7_000)
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+      |> backdate!(40)
+
+      # A pending payment is not GMV.
+      Factory.create_payment!(store, amount: 9_000)
+
+      assert Stats.orders_since(30) == orders_before + 2
+      assert Stats.gmv_since(30) == gmv_before + 5_000
+      assert Stats.stores_with_orders_since(30) == sellers_before + 1
+    end
+
+    test "featured and featuring-eligible store counts" do
+      featured_before = Stats.featured_stores()
+      eligible_before = Stats.featuring_eligible_stores()
+
+      featured = Factory.create_store!(featured: true)
+      _plain = Factory.create_store!(featured: false)
+
+      Emakola.Stores.DirectoryStanding
+      |> Ash.Changeset.for_create(:record, %{
+        store_id: featured.id,
+        eligible: true,
+        disqualifiers: [],
+        score: 800,
+        score_breakdown: %{},
+        computed_at: DateTime.utc_now()
+      })
+      |> Ash.create!(authorize?: false)
+
+      assert Stats.featured_stores() == featured_before + 1
+      assert Stats.featuring_eligible_stores() == eligible_before + 1
+    end
+  end
 end

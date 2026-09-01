@@ -244,4 +244,86 @@ defmodule Emakola.Platform.Stats do
 
     %{labels: Enum.map(buckets, &elem(&1, 0)), values: Enum.map(buckets, &elem(&1, 1))}
   end
+
+  # ── Stores page tiles ────────────────────────────────────────────
+
+  @doc "Merchants who hold a membership in more than one store."
+  def merchants_with_multiple_stores do
+    Emakola.Accounts.StoreMembership
+    |> Ash.Query.select([:merchant_id])
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, rows} ->
+        rows
+        |> Enum.frequencies_by(& &1.merchant_id)
+        |> Enum.count(fn {_merchant_id, stores} -> stores > 1 end)
+
+      _ ->
+        0
+    end
+  end
+
+  def merchants_joined_since(days) do
+    since = since(days)
+
+    Emakola.Accounts.Merchant
+    |> Ash.Query.filter(inserted_at >= ^since)
+    |> count()
+  end
+
+  def orders_since(days) do
+    since = since(days)
+
+    Emakola.Orders.Order
+    |> Ash.Query.filter(inserted_at >= ^since)
+    |> count()
+  end
+
+  @doc "Successful payment volume inside the window — the same rule as total_gmv/0."
+  def gmv_since(days) do
+    since = since(days)
+
+    case Emakola.Payments.Payment
+         |> Ash.Query.filter(status == :success and inserted_at >= ^since)
+         |> Ash.sum(:amount, authorize?: false) do
+      {:ok, sum} -> sum || 0
+      _ -> 0
+    end
+  end
+
+  @doc "Distinct stores with at least one order inside the window."
+  def stores_with_orders_since(days) do
+    since = since(days)
+
+    Emakola.Orders.Order
+    |> Ash.Query.filter(inserted_at >= ^since)
+    |> Ash.Query.select([:store_id])
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, rows} -> rows |> Enum.map(& &1.store_id) |> Enum.uniq() |> length()
+      _ -> 0
+    end
+  end
+
+  def featured_stores do
+    Emakola.Stores.Store
+    |> Ash.Query.filter(featured == true)
+    |> count()
+  end
+
+  @doc "Stores whose directory standing clears every featuring bar."
+  def featuring_eligible_stores do
+    Emakola.Stores.DirectoryStanding
+    |> Ash.Query.filter(eligible == true)
+    |> count()
+  end
+
+  defp since(days), do: DateTime.add(DateTime.utc_now(), -days, :day)
+
+  defp count(query) do
+    case Ash.count(query, authorize?: false) do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  end
 end

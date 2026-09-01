@@ -141,7 +141,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
           >
             {if @publishing,
               do: "Publishing…",
-              else: "Publish #{length(@uploads.photos.entries)} products"}
+              else: "Publish #{Emakola.Plural.count(length(@uploads.photos.entries), "product")}"}
           </button>
         </div>
       </.form>
@@ -253,7 +253,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
          socket
          |> put_flash(
            :info,
-           "#{published} #{pluralize(published)} published — live on your store."
+           "#{Emakola.Plural.count(published, "product")} published — live on your store."
          )
          |> push_navigate(to: ~p"/admin/products")}
 
@@ -267,9 +267,6 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
          )}
     end
   end
-
-  defp pluralize(1), do: "product"
-  defp pluralize(_), do: "products"
 
   defp card_value(cards, ref, field), do: cards |> Map.get(ref, %{}) |> Map.get(field, "")
 

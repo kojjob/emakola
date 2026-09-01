@@ -340,7 +340,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#supplier-inbox")
-    assert has_element?(view, "#inbound-fulfillment-count", "1 orders")
+    assert has_element?(view, "#inbound-fulfillment-count", "1 order")
     assert has_element?(view, "#inbound-fulfillments article", "Accra")
 
     view
@@ -559,7 +559,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     |> render_click()
 
     assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "approved")
-    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "1 products active")
+    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "1 product active")
 
     assert {:ok, [listing]} =
              Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)

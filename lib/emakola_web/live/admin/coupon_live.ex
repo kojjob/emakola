@@ -619,7 +619,9 @@ defmodule EmakolaWeb.Admin.CouponLive do
       <.admin_card padding={:none} class="overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100">
           <h2 class="text-base font-bold text-slate-900">All Coupons</h2>
-          <p class="text-xs text-slate-500 mt-0.5">{length(@coupons)} coupon codes</p>
+          <p class="text-xs text-slate-500 mt-0.5">
+            {Emakola.Plural.count(length(@coupons), "coupon code")}
+          </p>
         </div>
 
         <div :if={@coupons == []} class="px-6 py-16 text-center">

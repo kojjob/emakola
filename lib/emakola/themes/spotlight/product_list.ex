@@ -22,7 +22,7 @@ defmodule Emakola.Themes.Spotlight.ProductList do
       <section class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="flex items-baseline justify-between mb-8">
           <h1 class="spot-display text-4xl uppercase">Shop</h1>
-          <span class="text-sm text-[#7A7468]">{@products_count} items</span>
+          <span class="text-sm text-[#7A7468]">{Emakola.Plural.count(@products_count, "item")}</span>
         </div>
         <div
           id="product-list"

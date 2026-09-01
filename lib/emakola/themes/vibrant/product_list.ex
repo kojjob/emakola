@@ -75,7 +75,7 @@ defmodule Emakola.Themes.Vibrant.ProductList do
             Shop All
           </h1>
           <p class="text-white/70 text-sm mt-1" style="font-family: 'Inter', sans-serif;">
-            {@products_count} products
+            {Emakola.Plural.count(@products_count, "product")}
           </p>
         </div>
       </div>
