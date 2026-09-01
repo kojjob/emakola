@@ -84,6 +84,41 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
 
   # -- List by store ----------------------------------------------------------
 
+  describe "catch-all zone" do
+    test "a zone can be the store's catch-all, and only one can", %{store: store} do
+      catch_all = create_delivery_zone!(store, name: "Other Regions", fee: 3500, fallback: true)
+      assert catch_all.fallback
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Shipping.DeliveryZone
+               |> Ash.Changeset.for_create(:create, %{
+                 store_id: store.id,
+                 name: "Everywhere Else",
+                 fee: 4000,
+                 fallback: true
+               })
+               |> Ash.create(authorize?: false)
+    end
+
+    test "another store may have its own catch-all", %{store: store} do
+      create_delivery_zone!(store, name: "Other Regions", fee: 3500, fallback: true)
+      other = create_store!()
+
+      assert %{fallback: true} =
+               create_delivery_zone!(other, name: "Other Regions", fee: 3000, fallback: true)
+    end
+
+    test "updating a zone to catch-all is refused while another holds it", %{store: store} do
+      create_delivery_zone!(store, name: "Other Regions", fee: 3500, fallback: true)
+      accra = create_delivery_zone!(store, name: "Greater Accra", fee: 1500)
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               accra
+               |> Ash.Changeset.for_update(:update, %{fallback: true})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
   describe "list_by_store" do
     test "returns zones for the given store", %{store: store} do
       create_delivery_zone!(store, name: "Greater Accra", fee: 1500)
