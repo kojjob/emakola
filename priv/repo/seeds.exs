@@ -39,6 +39,25 @@ defmodule Seeds do
     |> Ash.update!()
   end
 
+  @doc """
+  Mark a seeded merchant's address as verified.
+
+  Sign-in is gated on `confirmed_at` — an unverified merchant is bounced to
+  /auth/verify and never reaches the dashboard. Seeded merchants stand in for
+  established shops that have long since clicked their confirmation link, so
+  they are confirmed here. Without this every seeded login dead-ends on the
+  verify page, which takes the whole Playwright suite with it: auth.setup.ts
+  signs in once and gates all 70 specs.
+
+  Same mechanism as `mix emakola.confirm_merchant`.
+  """
+  def confirm!(merchant) do
+    merchant
+    |> Ash.Changeset.for_update(:update_profile, %{}, authorize?: false)
+    |> Ash.Changeset.force_change_attribute(:confirmed_at, DateTime.utc_now())
+    |> Ash.update!()
+  end
+
   def unique_email(prefix), do: "#{prefix}+#{System.unique_integer([:positive])}@emakola.com"
 end
 
@@ -229,6 +248,7 @@ merchant1 =
     password: "Password123!",
     password_confirmation: "Password123!"
   })
+  |> Seeds.confirm!()
 
 merchant1 =
   Seeds.update!(merchant1, :update_profile, %{
@@ -891,6 +911,7 @@ merchant2 =
     password: "Password123!",
     password_confirmation: "Password123!"
   })
+  |> Seeds.confirm!()
 
 merchant2 =
   Seeds.update!(merchant2, :update_profile, %{
@@ -2014,6 +2035,7 @@ merchant3 =
     password: "Password123!",
     password_confirmation: "Password123!"
   })
+  |> Seeds.confirm!()
 
 merchant3 =
   Seeds.update!(merchant3, :update_profile, %{
