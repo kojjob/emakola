@@ -37,6 +37,7 @@ defmodule EmakolaWeb.Storefront.CustomerMessagesLiveTest do
     assert {:ok, [message]} = Conversations.list_messages(thread.id)
     assert message.body == "Do you have blue?"
     assert message.author_kind == :customer
+    assert_push_event(view, "composer:clear", %{})
   end
 
   test "a buyer sends a picture to the shop", ctx do
