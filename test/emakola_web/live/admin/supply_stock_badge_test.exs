@@ -74,12 +74,12 @@ defmodule EmakolaWeb.Admin.SupplyStockBadgeTest do
 
       connect!(ctx)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
       assert badge_html(view, "#offer-stock-badge-#{offer.id}") =~ "In stock"
 
       set_stock!(variant_b, 5)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
       assert badge_html(view, "#offer-stock-badge-#{offer.id}") =~ "Low stock"
     end
 
@@ -87,7 +87,7 @@ defmodule EmakolaWeb.Admin.SupplyStockBadgeTest do
       %{offer: offer} = publish_two_variant_offer!(ctx, 8, 20)
       connect!(ctx)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
       refute badge_html(view, "#offer-stock-badge-#{offer.id}") =~ ~r/\b8\b/
     end
@@ -102,18 +102,18 @@ defmodule EmakolaWeb.Admin.SupplyStockBadgeTest do
       connect!(ctx)
       {:ok, listing} = ListingImporter.import(ctx.merchant, ctx.store.id, offer)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
       assert badge_html(view, "#listing-stock-badge-#{listing.id}") =~ "In stock"
 
       set_stock!(variant_b, 5)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
       assert badge_html(view, "#listing-stock-badge-#{listing.id}") =~ "Low stock"
 
       set_stock!(variant_a, 0)
       set_stock!(variant_b, 0)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
       assert badge_html(view, "#listing-stock-badge-#{listing.id}") =~ "Out of stock"
     end
 
@@ -122,7 +122,7 @@ defmodule EmakolaWeb.Admin.SupplyStockBadgeTest do
       connect!(ctx)
       {:ok, listing} = ListingImporter.import(ctx.merchant, ctx.store.id, offer)
 
-      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
       refute badge_html(view, "#listing-stock-badge-#{listing.id}") =~ ~r/\b8\b/
     end

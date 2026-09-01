@@ -49,6 +49,7 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :sessions_force_revoked,
           :staff_deactivated,
           :staff_reactivated,
+          :staff_removed,
           :sign_out,
           :store_suspended,
           :store_blocked,

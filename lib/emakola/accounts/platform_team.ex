@@ -78,6 +78,22 @@ defmodule Emakola.Accounts.PlatformTeam do
     end
   end
 
+  @doc """
+  Remove a staff member from the platform team (owner-only): strips
+  ownership and every permission, then revokes their sessions. The user
+  record stays, so the audit log keeps resolving them. An owner cannot
+  remove themselves, and the last active owner cannot be removed.
+  """
+  def remove(%User{} = user, actor) do
+    with :ok <- require_manage_team(actor),
+         :ok <- require_owner(actor),
+         :ok <- require_other_user(user, actor),
+         {:ok, removed} <- run_update(user, :remove_from_platform_staff, actor),
+         {:ok, _count} <- Sessions.revoke_all_for_user(user.id, actor) do
+      {:ok, removed}
+    end
+  end
+
   @doc "Reactivate a deactivated staff member (owner-only)."
   def reactivate(%User{} = user, actor) do
     with :ok <- require_manage_team(actor),
@@ -268,6 +284,9 @@ defmodule Emakola.Accounts.PlatformTeam do
 
   defp require_owner(%User{is_owner: true, deactivated_at: nil}), do: :ok
   defp require_owner(_actor), do: {:error, :owner_required}
+
+  defp require_other_user(%User{id: id}, %User{id: id}), do: {:error, :cannot_remove_self}
+  defp require_other_user(_user, _actor), do: :ok
 
   defp require_owner_for_ownership_change(%User{is_owner: current}, new, _actor)
        when new == current,
