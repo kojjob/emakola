@@ -432,7 +432,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
   defp filter_chip_classes(active?) do
     [
-      "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] transition-colors cursor-pointer",
+      "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] whitespace-nowrap transition-colors cursor-pointer",
       if(active?,
         do: "bg-slate-900 text-white font-semibold",
         else:
@@ -484,7 +484,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-[10px] text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
               />
             </.form>
-            <div class="flex items-center gap-1.5 mt-2.5">
+            <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
               <button
                 type="button"
                 id="filter-all"

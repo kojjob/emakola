@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Platform.StoreLive.MetricsComponents do
   def row_meta(assigns) do
     ~H"""
     <p class="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1 min-w-0">
-      <.member_initials memberships={@store.store_memberships} />
+      <.member_initials :if={@store.store_memberships != []} memberships={@store.store_memberships} />
       <span class="truncate">
         {count_word(length(@store.store_memberships), "merchant")} · {count_word(
           @store.product_count,
@@ -132,7 +132,7 @@ defmodule EmakolaWeb.Platform.StoreLive.MetricsComponents do
           index > 0 && "-ml-1.5",
           Enum.at(@tints, rem(index, length(@tints)))
         ]}
-        title={merchant_name(membership.merchant)}
+        title={merchant_email(membership.merchant)}
       >
         {initial(membership.merchant)}
       </span>
@@ -144,15 +144,18 @@ defmodule EmakolaWeb.Platform.StoreLive.MetricsComponents do
 
   def store_glance(assigns) do
     ~H"""
-    <div id="store-glance" class="mt-6">
+    <div id="store-glance" class="mt-6 pt-6 border-t border-gray-100">
       <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
         Store at a glance
       </p>
       <div class="grid grid-cols-2 xl:grid-cols-5 gap-2.5">
         <.glance key="merchants" label="Merchants" value={length(@store.store_memberships)}>
-          <span class="flex items-center gap-1.5">
-            <.member_initials memberships={@store.store_memberships} />
-            {owner_line(@store.store_memberships)}
+          <span class="flex items-center gap-1.5 min-w-0">
+            <.member_initials
+              :if={@store.store_memberships != []}
+              memberships={@store.store_memberships}
+            />
+            <span class="truncate">{owner_line(@store.store_memberships)}</span>
           </span>
         </.glance>
         <.glance key="products" label="Products" value={@store.product_count}>
@@ -218,10 +221,18 @@ defmodule EmakolaWeb.Platform.StoreLive.MetricsComponents do
 
   defp rating_line(_store), do: "no reviews yet"
 
-  # Ash.CiString emails crash String.first/1 — always to_string first.
+  # Ash.CiString emails crash String.first/1 — always to_string first. A
+  # merchant with no name shows the part of the email before the @, which
+  # fits the strip; the full address is on the row's tooltip.
   defp merchant_name(%{name: name}) when is_binary(name) and name != "", do: name
-  defp merchant_name(%{email: email}), do: to_string(email)
+
+  defp merchant_name(%{email: email}),
+    do: email |> to_string() |> String.split("@") |> List.first()
+
   defp merchant_name(_), do: "?"
+
+  defp merchant_email(%{email: email}), do: to_string(email)
+  defp merchant_email(_), do: ""
 
   defp initial(merchant), do: merchant |> merchant_name() |> String.first() |> String.upcase()
 end
