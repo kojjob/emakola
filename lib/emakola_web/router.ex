@@ -582,6 +582,7 @@ defmodule EmakolaWeb.Router do
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
       live "/admin/settings/supply-network", Admin.SupplyNetworkLive
+      live "/admin/settings/supply-network/tools", Admin.SupplyToolLive
       live "/admin/supply/catalog", Admin.SupplyCatalogLive.Index
       live "/admin/supply/catalog/:offer_id", Admin.SupplyCatalogLive.Show
       live "/admin/supply/offers", Admin.SupplyOffersLive.Index
