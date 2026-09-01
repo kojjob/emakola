@@ -3,8 +3,10 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
   Platform admin detail page for one store KYC submission — the home for
   approve / reject.
 
-  Gated by RequirePermission (:manage_merchants). Documents are shown via
-  short-lived presigned URLs (never public). Approve awards the Store.verified
+  Gated by RequirePermission (:manage_merchants). No document is shown —
+  reviewers check the shop and the wallet proof, never a paper (L.I. 2523 makes
+  even visual inspection of a Ghana Card an offence, and the business paper
+  lived in the same public bucket). Approve awards the Store.verified
   badge; both decisions are audited and notify the merchant. Every action
   re-checks the permission against a freshly reloaded user.
   """
@@ -32,8 +34,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
       |> assign(:id, id)
       |> assign(:verification, nil)
       |> assign(:store, nil)
-      |> assign(:id_document_url, nil)
-      |> assign(:business_doc_url, nil)
       |> assign(:reject_modal, false)
       |> assign(:reject_form, to_form(%{"reason" => ""}))
       |> assign(:history, [])
@@ -110,8 +110,20 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
     {:noreply, put_flash(socket, :error, "Could not update the submission.")}
   end
 
+  # Approving says staff reviewed the shop's trading details and storefront —
+  # not a paper (none is collected) and not who the owner is. The basis is
+  # stamped so the storefront badge can say the narrower, true thing rather
+  # than inheriting the retired flow's claim.
   defp set_verified(%{} = store, value) do
-    Stores.update_store_directory_meta(store, %{verified: value}, authorize?: false)
+    Stores.update_store_directory_meta(
+      store,
+      %{
+        verified: value,
+        verified_basis: if(value, do: :business_review),
+        verified_basis_at: if(value, do: DateTime.utc_now())
+      },
+      authorize?: false
+    )
   end
 
   defp audit_metadata(store, reason) do
@@ -144,21 +156,10 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
         socket
         |> assign(:verification, verification)
         |> assign(:store, verification.store)
-        |> assign(:id_document_url, doc_url(verification.id_document_key))
-        |> assign(:business_doc_url, doc_url(verification.business_doc_key))
         |> load_history(verification.store_id)
 
       _ ->
         assign(socket, :not_found, true)
-    end
-  end
-
-  defp doc_url(nil), do: nil
-
-  defp doc_url(key) do
-    case Emakola.Storage.presigned_url(key, expires_in: 900) do
-      {:ok, url} -> url
-      _ -> nil
     end
   end
 
@@ -252,8 +253,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
 
         <dl class="mt-6 grid gap-4 sm:grid-cols-2">
           <.field label="Business name" value={@verification.business_name} />
-          <.field label="ID type" value={id_type_label(@verification.id_type)} />
-          <.field label="ID number" value={@verification.id_number} />
           <.field
             label="Submitted"
             value={
@@ -262,25 +261,6 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
             }
           />
         </dl>
-
-        <div class="mt-6 flex flex-wrap gap-3">
-          <a
-            :if={@id_document_url}
-            href={@id_document_url}
-            target="_blank"
-            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-gray-50"
-          >
-            View ID document <span class="material-symbols-outlined text-sm">open_in_new</span>
-          </a>
-          <a
-            :if={@business_doc_url}
-            href={@business_doc_url}
-            target="_blank"
-            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-gray-50"
-          >
-            View business document <span class="material-symbols-outlined text-sm">open_in_new</span>
-          </a>
-        </div>
 
         <div
           :if={@verification.status == :rejected and @verification.review_reason}
@@ -377,10 +357,4 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
 
   defp history_label(action),
     do: action |> Atom.to_string() |> String.replace("_", " ") |> String.capitalize()
-
-  defp id_type_label(:ghana_card), do: "Ghana Card"
-  defp id_type_label(:passport), do: "Passport"
-  defp id_type_label(:drivers_license), do: "Driver's License"
-  defp id_type_label(:voter_id), do: "Voter ID"
-  defp id_type_label(other), do: to_string(other)
 end

@@ -17,6 +17,7 @@ defmodule EmakolaWeb.StoresComponents do
   import EmakolaWeb.CoreComponents, only: [icon: 1]
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Stores.TrustBadge
   alias Emakola.Themes.ThemeResolver
   alias EmakolaWeb.GhanaMap
   alias EmakolaWeb.Helpers.CssColor
@@ -99,11 +100,11 @@ defmodule EmakolaWeb.StoresComponents do
             <.icon name="hero-star-solid" class="size-3" /> Featured
           </span>
           <span
-            :if={Map.get(@store, :verified)}
+            :if={TrustBadge.visible?(@store)}
             class="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-800 shadow-sm backdrop-blur"
-            title="Verified merchant"
+            title={TrustBadge.line(@store)}
           >
-            <.icon name="hero-check-badge-solid" class="size-3.5" /> Verified
+            <.icon name="hero-check-badge-solid" class="size-3.5" /> Checked
           </span>
         </div>
 
@@ -195,6 +196,21 @@ defmodule EmakolaWeb.StoresComponents do
         </div>
 
         <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
+          <%!-- The badge is one symbol at every size, so the reason is spelled
+                out here where there is room: a pictogram for a shopper who
+                does not read well, and a line under eight words for one who
+                does. --%>
+          <span
+            :if={TrustBadge.visible?(@store)}
+            class="inline-flex min-w-0 items-center gap-1.5 text-emerald-700"
+          >
+            <.icon
+              name={trust_pictogram(TrustBadge.reason(@store))}
+              class="size-4 shrink-0"
+            />
+            <span class="truncate">{TrustBadge.line(@store)}</span>
+          </span>
+
           <span :if={location(@store) != ""} class="inline-flex min-w-0 items-center gap-1.5">
             <.icon name="hero-map-pin" class="size-4 shrink-0 text-emerald-700" />
             <span class="truncate">{location(@store)}</span>
@@ -290,10 +306,11 @@ defmodule EmakolaWeb.StoresComponents do
                   <.icon name="hero-star-solid" class="size-3" /> Featured
                 </span>
                 <span
-                  :if={Map.get(@hero, :verified)}
+                  :if={TrustBadge.visible?(@hero)}
                   class="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-800"
+                  title={TrustBadge.line(@hero)}
                 >
-                  <.icon name="hero-check-badge-solid" class="size-3.5" /> Verified
+                  <.icon name="hero-check-badge-solid" class="size-3.5" /> Checked
                 </span>
               </div>
 
@@ -535,9 +552,9 @@ defmodule EmakolaWeb.StoresComponents do
 
                 <%!-- Verified badge (top-right) --%>
                 <span
-                  :if={Map.get(store, :verified)}
+                  :if={TrustBadge.visible?(store)}
                   class="absolute top-3 right-3 inline-flex items-center justify-center w-7 h-7 rounded-full bg-sky-500 text-white shadow-md ring-2 ring-white/50"
-                  title="Verified merchant"
+                  title={TrustBadge.line(store)}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -1192,4 +1209,12 @@ defmodule EmakolaWeb.StoresComponents do
   defp count_fill(count) when count < 3, do: "fill-amber-200"
   defp count_fill(count) when count < 6, do: "fill-amber-300"
   defp count_fill(_count), do: "fill-amber-500"
+
+  # A generic mobile-money glyph, deliberately not the telco mark: which
+  # network a merchant is paid on lives on StorePayoutAccount, which is
+  # merchant-only by design, and a shopper has no need for it.
+  defp trust_pictogram(:wallet), do: "hero-device-phone-mobile"
+  defp trust_pictogram(:papers), do: "hero-document-check"
+  defp trust_pictogram(:identity), do: "hero-finger-print"
+  defp trust_pictogram(_legacy), do: "hero-check-badge"
 end

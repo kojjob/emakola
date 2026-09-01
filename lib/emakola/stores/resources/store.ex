@@ -249,10 +249,40 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
-    # Trust badge — admin sets after KYC / catalog review.
+    # Trust badge — admin sets after review.
     attribute :verified, :boolean do
       allow_nil?(false)
       default(false)
+      public?(true)
+    end
+
+    # What the badge actually rests on. A badge that does not say what was
+    # checked is the placebo pattern; this is what lets the storefront say
+    # something different about a store proven by its wallet than about one
+    # grandfathered in from the retired national-ID flow.
+    #
+    #   :retired_document_flow — approved before L.I. 2523; a human looked at
+    #                            a Ghana Card image. Never awarded again.
+    #   :business_review       — staff reviewed the shop's trading details and
+    #                            storefront. No paper is collected. Says
+    #                            nothing about who the person is.
+    #   :wallet_proof          — the merchant proved control of the payout
+    #                            wallet, which the telco KYC'd against a
+    #                            Ghana Card.
+    #   :nia_biometric         — verified through an accredited NIA IVSP
+    #                            partner. Not yet built.
+    # When the current basis was stamped. Dates the claim so an approval under
+    # the retired Ghana Card flow can lapse rather than stand forever on a
+    # check nobody is allowed to repeat. See `Emakola.Stores.TrustBadge`.
+    attribute :verified_basis_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :verified_basis, :atom do
+      constraints(
+        one_of: [:retired_document_flow, :business_review, :wallet_proof, :nia_biometric]
+      )
+
       public?(true)
     end
 
@@ -697,7 +727,14 @@ defmodule Emakola.Stores.Store do
     end
 
     update :update_directory_meta do
-      accept([:featured, :featured_at, :featured_rank, :verified])
+      accept([
+        :featured,
+        :featured_at,
+        :featured_rank,
+        :verified,
+        :verified_basis,
+        :verified_basis_at
+      ])
     end
 
     # The ranking worker's cache write. Separate from :update_directory_meta
