@@ -1,0 +1,167 @@
+{
+  "pages": [
+    {
+      "id": "page-chosen",
+      "name": "Photo cards"
+    },
+    {
+      "id": "page-parked",
+      "name": "Not chosen"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "CardsStart.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Photo cards — start",
+      "page": "page-chosen"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Photo cards — filling",
+      "page": "page-chosen"
+    },
+    {
+      "file": "CardsDone.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Photo cards — in the shop",
+      "page": "page-chosen"
+    },
+    {
+      "file": "CardsDesktop.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Photo cards — desktop",
+      "page": "page-chosen"
+    },
+    {
+      "file": "Today.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1600,
+      "title": "Today — what ships now",
+      "page": "page-parked"
+    },
+    {
+      "file": "StepName.dc.html",
+      "x": 0,
+      "y": 1760,
+      "w": 390,
+      "h": 844,
+      "title": "B · One at a time — what is it",
+      "page": "page-parked"
+    },
+    {
+      "file": "StepPrice.dc.html",
+      "x": 470,
+      "y": 1760,
+      "w": 390,
+      "h": 844,
+      "title": "B · One at a time — how much",
+      "page": "page-parked"
+    },
+    {
+      "file": "StepReady.dc.html",
+      "x": 940,
+      "y": 1760,
+      "w": 390,
+      "h": 844,
+      "title": "B · One at a time — ready",
+      "page": "page-parked"
+    },
+    {
+      "file": "StepDesktop.dc.html",
+      "x": 1410,
+      "y": 1760,
+      "w": 1440,
+      "h": 900,
+      "title": "B · One at a time — desktop",
+      "page": "page-parked"
+    },
+    {
+      "file": "SaySnap.dc.html",
+      "x": 0,
+      "y": 2820,
+      "w": 390,
+      "h": 844,
+      "title": "C · Snap and say — start",
+      "page": "page-parked"
+    },
+    {
+      "file": "SayFill.dc.html",
+      "x": 470,
+      "y": 2820,
+      "w": 390,
+      "h": 844,
+      "title": "C · Snap and say — filled",
+      "page": "page-parked"
+    },
+    {
+      "file": "SayShelf.dc.html",
+      "x": 940,
+      "y": 2820,
+      "w": 390,
+      "h": 844,
+      "title": "C · Snap and say — on the shelf",
+      "page": "page-parked"
+    },
+    {
+      "file": "SayDesktop.dc.html",
+      "x": 1410,
+      "y": 2820,
+      "w": 1440,
+      "h": 900,
+      "title": "C · Snap and say — desktop",
+      "page": "page-parked"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "chosen-note",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "page": "page-chosen",
+      "text": "CHOSEN 2 Sep — Photo cards.\n\nPick one photo or thirty; every photo becomes a card with the two things it needs. Single and bulk are the same screen: single is a stack of one.\n\nA done card gets a green tick, a half-done card an amber ring and an amber field, so the eye finds the gaps without reading. The button counts what is ready and only puts the finished cards in the shop; the rest stay on the page.\n\nThe typed form and the CSV upload stay reachable as the two quiet buttons under the camera.\n\nTo build: today's Add many page (ProductLive.BulkPhoto) with the camera put in front, the card states made visible, and this page taking over the /admin/products/new address."
+    },
+    {
+      "id": "today-note",
+      "x": 470,
+      "y": 0,
+      "w": 440,
+      "page": "page-parked",
+      "text": "TODAY — /admin/products/new at phone width, shown at full length.\n\nNine labelled fields before the photo. SEO title and SEO description, which a market seller will never fill, sit above the images. Two buttons that need reading to tell apart.\n\nThe three other ways in (Add by photo, Add many, CSV upload) live on the Products page header, so a merchant who lands here from the top-bar \"+\" never sees them.\n\nAll three directions started from the same three facts: a photo, a name, a price. Everything else moves behind the product once it exists."
+    },
+    {
+      "id": "b-note",
+      "x": -500,
+      "y": 1760,
+      "w": 440,
+      "page": "page-parked",
+      "text": "B — ONE AT A TIME\n\nThe photos across the top are the progress bar; the current one is ringed, done ones get a tick. Each screen asks exactly one question with one big control, and the button says what happens next. The price is the largest thing on the page.\n\nBest for: a merchant who does not read well. Every screen can be understood from the picture and the size of things, and there is never more than one field on screen.\n\nCost: two screens per product, so thirty products is sixty taps of Next. The \"Same as last\" chip softens it for stalls that price everything alike.\n\nTo build: the name suggestions already exist behind Add by photo (AiGate); the mic reuses the voice hook on the supply network page. The rest is a small state machine over today's bulk upload."
+    },
+    {
+      "id": "c-note",
+      "x": -500,
+      "y": 2820,
+      "w": 440,
+      "text": "C — SNAP AND SAY\n\nNo typing at all. Take the photo; the AI reads it and offers three names to tap; say the price into the mic. The shelf at the top grows as you go, and the shop preview shows the item exactly as buyers will see it.\n\nBulk is just repetition: two taps and one sentence per product.\n\nBest for: a merchant who cannot read or type. The most adventurous of the three.\n\nCost: needs AI switched on (ANTHROPIC_API_KEY) and speech recognition wired to the price field. A noisy market makes the mic miss, so \"type it\" stays one tap away on both name and price.\n\nTo build: the photo-to-name step is the live Add by photo page; the mic is the supply network voice hook pointed at a number."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

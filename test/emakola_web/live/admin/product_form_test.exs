@@ -25,7 +25,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     # Flash is a signed token in the live_redirect tuple; follow_redirect decodes it.
     test "creating with price + activate → active product, 2500-pesewas variant, storefront visible, published flash",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       {:ok, _redirect_view, html} =
         view
@@ -66,7 +66,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
 
     test "activating without price → draft product, honest flash",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       {:ok, _redirect_view, html} =
         view
@@ -88,7 +88,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
 
     test "invalid price → no product created, validation error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       html =
         view
@@ -204,7 +204,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
 
     test "price '0' → no product created, error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       html =
         view
@@ -225,7 +225,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
 
     test "price '0.00' → no product created, error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       html =
         view
@@ -257,7 +257,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       # clipping it to 1px (`sr-only`) and triggered only through its wrapping
       # label. The input must instead be a full-size transparent overlay so the
       # tap lands on the <input type="file"> directly.
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new/form")
       input_tag = Regex.run(~r/<input[^>]*name="product_images"[^>]*>/, html) |> List.first()
 
       assert input_tag, "expected a product_images file input on the form"
@@ -275,7 +275,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         {:ok, "https://s3.example.com/test/shirt.png"}
       end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -311,7 +311,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
          %{conn: conn, store: store} do
       stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts -> {:error, :boom} end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -354,7 +354,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         raise "boom from storage client"
       end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -420,7 +420,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     test "a store with digital enabled is offered both types", %{conn: conn, store: store} do
       enable_digital!(store)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new/form")
 
       assert html =~ "product[product_type]"
       assert html =~ "digital_download"
@@ -430,7 +430,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     # picker. Offering a type the store cannot accept would fail server-side
     # in ProductTypeAcceptedByStore with no explanation.
     test "a store without digital enabled is not offered it", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new/form")
 
       refute html =~ "digital_download"
       assert html =~ ~p"/admin/settings"
@@ -439,7 +439,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     test "submitting the type persists it", %{conn: conn, store: store} do
       enable_digital!(store)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       view
       |> element("#product-form")
@@ -515,7 +515,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     end
 
     test "a product being created has no label yet", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       # Nothing to point at: the slug the code would carry does not exist until
       # the product is saved.
