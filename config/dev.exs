@@ -71,10 +71,13 @@ config :emakola, Emakola.Payments.HubtelClient,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :emakola, EmakolaWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+  # Loopback by default. `PHX_LAN=1` binds every interface so a phone on the
+  # same Wi-Fi can open the dev server (http://<this machine's IP>:<port>).
   # PORT env override lets a second checkout/worktree run alongside the default server
-  http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
+  http: [
+    ip: if(System.get_env("PHX_LAN"), do: {0, 0, 0, 0}, else: {127, 0, 0, 1}),
+    port: String.to_integer(System.get_env("PORT") || "4000")
+  ],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
