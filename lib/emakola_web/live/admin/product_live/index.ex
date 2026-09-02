@@ -215,18 +215,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   # ── Product Form Slide-Over Events ──
 
   @impl true
-  def handle_event("open_new_product", _params, socket) do
-    {:noreply,
-     assign(socket,
-       show_product_form: true,
-       editing_product: nil,
-       form_data: empty_form_data(),
-       product_form: to_form(empty_form_data(), as: :product),
-       form_errors: %{}
-     )}
-  end
-
-  @impl true
   def handle_event("open_edit_product", %{"id" => id}, socket) do
     product = load_product(id, socket)
 
@@ -256,23 +244,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
      )}
   end
 
+  # The slide-over is edit-only: new products come in through
+  # /admin/products/new. A save event with nothing being edited is ignored.
   @impl true
-  def handle_event("save_product", %{"product" => params}, socket) do
+  def handle_event(
+        "save_product",
+        %{"product" => params},
+        %{assigns: %{editing_product: %{} = editing}} = socket
+      ) do
     action = if params["_action"] == "activate", do: :active, else: :draft
-    editing = socket.assigns.editing_product
-
-    # Pop price on the create path; edit path uses variant_prices instead
-    {price_result, product_params} =
-      if is_nil(editing) do
-        {price_str, rest} = Map.pop(params, "price")
-        {Shared.parse_price_input(price_str), rest}
-      else
-        {:skip, params}
-      end
-
-    errors =
-      validate_form(Map.delete(product_params, "_action"))
-      |> apply_price_error(price_result)
+    errors = validate_form(Map.delete(params, "_action"))
 
     if map_size(errors) > 0 do
       {:noreply,
@@ -282,17 +263,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
          form_errors: errors
        )}
     else
-      attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
-      pesewas = pesewas_from_price_result(price_result)
+      attrs = build_product_attrs(Map.delete(params, "_action"), socket.assigns.store_id)
 
-      result =
-        if editing do
-          # The :update action does not accept :store_id (tenancy is fixed
-          # at creation) — passing it fails the whole save with NoSuchInput.
-          update_product_with_result(editing, Map.delete(attrs, :store_id), action)
-        else
-          Shared.create_product_with_price(attrs, pesewas, action)
-        end
+      # The :update action does not accept :store_id (tenancy is fixed
+      # at creation) — passing it fails the whole save with NoSuchInput.
+      result = update_product_with_result(editing, Map.delete(attrs, :store_id), action)
 
       case result do
         {:ok, product, result_atom} ->
@@ -309,6 +284,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       end
     end
   end
+
+  def handle_event("save_product", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("cancel_product_form", _params, socket) do
@@ -352,17 +329,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   # ── Bulk Upload Slide-Over Events ──
-
-  @impl true
-  def handle_event("open_bulk_upload", _params, socket) do
-    {:noreply,
-     assign(socket,
-       show_bulk_upload: true,
-       csv_preview: [],
-       csv_errors: [],
-       bulk_importing: false
-     )}
-  end
 
   @impl true
   def handle_event("cancel_bulk_upload", _params, socket) do
@@ -447,8 +413,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
-      <%!-- Header. "Add by photo" leads because it is the one route into the
-            catalog that needs no typing. --%>
+      <%!-- Header. One way in: /admin/products/new is photo first and carries
+            the typed form and the CSV upload behind it. "Add by photo" is the
+            AI-assisted variant, shown only when AI is switched on. --%>
       <.admin_page_header
         icon="hero-cube"
         title="Products"
@@ -457,31 +424,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <.link
           :if={EmakolaWeb.AiGate.enabled?()}
           navigate={~p"/admin/products/snap"}
-          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm bg-primary hover:bg-primary-hover text-white"
+          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm border border-border bg-surface text-text hover:bg-surface-subtle"
         >
-          <.icon name="hero-camera" class="size-5" /> Add by photo
+          <.icon name="hero-sparkles" class="size-5" /> Add by photo
         </.link>
         <.link
           navigate={~p"/admin/products/new"}
-          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm border border-border bg-surface text-text hover:bg-surface-subtle"
+          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm bg-primary hover:bg-primary-hover text-white"
         >
-          <.icon name="hero-photo" class="size-5" /> Add products
+          <.icon name="hero-camera" class="size-5" /> Add products
         </.link>
-        <.admin_button
-          variant={:secondary}
-          phx-click={
-            JS.push("open_bulk_upload")
-            |> show_modal("bulk-upload-modal")
-          }
-        >
-          <.icon name="hero-arrow-up-tray" class="size-5" /> Bulk
-        </.admin_button>
-        <.admin_button phx-click={
-          JS.push("open_new_product")
-          |> show_modal("product-form-modal")
-        }>
-          <.icon name="hero-plus" class="size-5" /> New Product
-        </.admin_button>
       </.admin_page_header>
 
       <%!-- KPI tiles (store-wide, independent of search/filter) --%>
@@ -875,17 +827,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       end
     end)
   end
-
-  defp apply_price_error(errors, :error),
-    do: Map.put(errors, :price, "must be a valid amount, e.g. 25.00")
-
-  defp apply_price_error(errors, :zero),
-    do: Map.put(errors, :price, "must be greater than 0.00")
-
-  defp apply_price_error(errors, _), do: errors
-
-  defp pesewas_from_price_result({:ok, p}), do: p
-  defp pesewas_from_price_result(_), do: nil
 
   defp save_success_msg(:activated), do: "Product published — it's live on your store."
   defp save_success_msg(:activation_failed), do: "Saved as draft — add a price to publish it."

@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
              |> LazyHTML.query(~s(meta[name="robots"][content="noindex, nofollow"]))
              |> Enum.any?()
 
-      assert has_element?(view, "button", "New Product")
+      assert has_element?(view, ~s{a[href="/admin/products/new"]}, "Add products")
     end
 
     test "merchant without store gets nil current_store", %{conn: conn} do

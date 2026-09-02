@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       {:ok, view, html} = live(conn, ~p"/admin/products")
 
       assert html =~ "Products"
-      assert has_element?(view, "button", "New Product")
+      assert has_element?(view, ~s{a[href="/admin/products/new"]}, "Add products")
     end
 
     test "caps the product list at 100 rows", %{conn: conn, store: store} do
@@ -430,125 +430,6 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       assert html =~ "Edit Product"
       assert html =~ (image.thumbnail_url || image.url)
-    end
-  end
-
-  describe "ProductLive.Index slide-over create (authenticated merchant)" do
-    setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    test "creating with price and Save & Activate publishes the product",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view
-      |> element(~s{button[phx-click*="open_new_product"]})
-      |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{
-            "title" => "Kente Cloth",
-            "price" => "25.00",
-            "_action" => "activate"
-          }
-        })
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :active
-
-      loaded = Ash.load!(product, [:variants], authorize?: false)
-      assert [%{price: 2500}] = loaded.variants
-
-      assert html =~ "Product published"
-    end
-
-    test "creating without price saves a draft and shows draft flash",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view
-      |> element(~s{button[phx-click*="open_new_product"]})
-      |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{
-            "title" => "Kente Cloth",
-            "_action" => "activate"
-          }
-        })
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :draft
-      assert html =~ "Saved as draft"
-    end
-  end
-
-  describe "ProductLive.Index slide-over zero price boundary" do
-    setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    test "slide-over price '0' → no product created, error rendered",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{"title" => "Zero", "price" => "0", "_action" => "activate"}
-        })
-
-      assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
-    end
-
-    test "slide-over price '0.00' → no product created, error rendered",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{"title" => "Zero", "price" => "0.00", "_action" => "activate"}
-        })
-
-      assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
     end
   end
 
