@@ -432,7 +432,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       <%!-- Product Form Slide-Over --%>
       <.modal
         id="product-form-modal"
-        title={if @editing_product, do: "Edit Product", else: "New Product"}
+        title="Edit Product"
         kind={:slide_over}
         on_cancel={JS.push("cancel_product_form")}
       >
@@ -520,33 +520,6 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
               <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
-            </div>
-
-            <%!-- Price field: only when creating a new product --%>
-            <div :if={is_nil(@editing_product)}>
-              <label for="pf_price" class="block text-sm font-medium text-slate-700 mb-1.5">
-                Price (GHS)
-              </label>
-              <.input
-                field={@product_form[:price]}
-                type="text"
-                inputmode="decimal"
-                id="pf_price"
-                placeholder="e.g. 25.00"
-                class={[
-                  "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
-                  if(@form_errors[:price],
-                    do: "border-red-300 bg-red-50",
-                    else: "border-slate-300 bg-white"
-                  )
-                ]}
-              />
-              <p :if={@form_errors[:price]} class="mt-1 text-xs text-red-600">
-                {@form_errors[:price]}
-              </p>
-              <p :if={!@form_errors[:price]} class="mt-1 text-xs text-slate-500">
-                Required to publish. You can add more pricing options later.
-              </p>
             </div>
           </div>
 
