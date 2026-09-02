@@ -99,6 +99,28 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       assert render(view) =~ "1 more needs a name or price"
     end
 
+    test "the last price typed is offered to the cards still without one", %{conn: conn} do
+      # A stall that prices everything alike should not type the number
+      # thirty times: once a card has a price, every unpriced card shows it
+      # as a chip, and tapping the chip fills the price in.
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      [first_ref, second_ref] = upload_photos(view, ["first.png", "second.png"])
+
+      refute has_element?(view, "[data-last-price]")
+
+      set_card(view, first_ref, "price", "45")
+
+      assert has_element?(view, ~s{#card-photos-#{second_ref} [data-last-price="45"]}, "GH₵ 45")
+      refute has_element?(view, ~s{#card-photos-#{first_ref} [data-last-price]})
+
+      view
+      |> element(~s{#card-photos-#{second_ref} [data-last-price]})
+      |> render_click()
+
+      assert has_element?(view, ~s{#card-price-photos-#{second_ref}[value="45"]})
+      refute has_element?(view, ~s{#card-photos-#{second_ref} [data-last-price]})
+    end
+
     test "removing a photo drops its card", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/admin/products/new")
       [ref] = upload_photos(view, ["gone.png"])
@@ -197,6 +219,9 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
 
       assert has_element?(view, ~s{a[href="/admin/products/new"]}, "Add products")
       refute has_element?(view, ~s{a[href="/admin/products/bulk"]})
+      # One way in. The typed form and the CSV upload live behind that button now.
+      refute has_element?(view, ~s{button[phx-click*="open_new_product"]})
+      refute has_element?(view, ~s{button[phx-click*="open_bulk_upload"]})
     end
 
     test "?upload=csv opens the CSV slide-over on arrival", %{conn: conn} do
