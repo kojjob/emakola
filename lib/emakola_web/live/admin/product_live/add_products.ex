@@ -37,6 +37,10 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
        shop_url: EmakolaWeb.SEO.Canonical.store_url(store),
        max_photos: @max_photos,
        cards: %{},
+       # The most recent valid price typed: offered to unpriced cards as a
+       # chip, because a stall that prices everything alike should not type
+       # the number thirty times.
+       last_price: nil,
        # Keys of photos already attached to a product. The upload channel
        # drops a consumed entry from @uploads asynchronously, so the render
        # right after publishing would otherwise still show its card.
@@ -89,6 +93,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
             item={item}
             number={number}
             currency={@currency}
+            last_price={@last_price}
           />
         </div>
 
@@ -125,7 +130,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         cards =
           Map.update(socket.assigns.cards, key, %{field => value}, &Map.put(&1, field, value))
 
-        {:noreply, assign(socket, :cards, cards)}
+        {:noreply, socket |> assign(:cards, cards) |> remember_price(field, value)}
 
       :error ->
         {:noreply, socket}
@@ -142,6 +147,16 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
       :error ->
         {:noreply, socket}
+    end
+  end
+
+  def handle_event("copy_price", %{"upload" => upload, "ref" => ref, "price" => price}, socket) do
+    with {:ok, _name, key} <- card_key(upload, ref),
+         {:ok, _pesewas} <- Shared.parse_price_input(price) do
+      cards = Map.update(socket.assigns.cards, key, %{price: price}, &Map.put(&1, :price, price))
+      {:noreply, assign(socket, :cards, cards)}
+    else
+      _ -> {:noreply, socket}
     end
   end
 
@@ -252,6 +267,15 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   defp still_need(1), do: "1 still needs a name and price."
   defp still_need(count), do: "#{count} still need a name and price."
+
+  defp remember_price(socket, :price, value) do
+    case Shared.parse_price_input(value) do
+      {:ok, _pesewas} -> assign(socket, :last_price, String.trim(value))
+      _not_a_price -> socket
+    end
+  end
+
+  defp remember_price(socket, _field, _value), do: socket
 
   # ── Cards ──
 

@@ -194,8 +194,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   attr :item, :map, required: true
   attr :number, :integer, required: true
   attr :currency, :string, required: true
+  attr :last_price, :string, default: nil, doc: "offered to a card whose price is still empty"
 
   def photo_card(assigns) do
+    assigns =
+      assign(assigns, :offer_price, assigns.last_price && String.trim(assigns.item.price) == "")
+
     ~H"""
     <div
       id={"card-#{@item.key}"}
@@ -263,6 +267,20 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
             class={[card_field_classes(@item.missing_price?), "pl-[66px] lg:pl-[52px]"]}
           />
         </div>
+      </div>
+      <div :if={@offer_price} class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1">
+        <button
+          type="button"
+          phx-click="copy_price"
+          phx-value-upload={@item.upload}
+          phx-value-ref={@item.ref}
+          phx-value-price={@last_price}
+          data-last-price={@last_price}
+          class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-border bg-white hover:bg-surface-subtle text-[13.5px] font-bold text-text cursor-pointer transition-colors"
+        >
+          <.icon name="hero-clock" class="size-4 text-slate-500" />
+          Same as last: {Currency.currency_symbol(@currency)} {@last_price}
+        </button>
       </div>
       <p :for={problem <- @item.problems} class="px-3.5 pb-3 text-xs text-red-600">{problem}</p>
     </div>
