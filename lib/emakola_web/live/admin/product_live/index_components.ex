@@ -421,6 +421,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   attr :categories_list, :list, required: true
   attr :uploads, :any, required: true
   attr :bulk_upload_form, :any, required: true
+  attr :show_bulk_upload, :boolean, required: true
   attr :csv_preview, :any, required: true
   attr :csv_errors, :list, required: true
   attr :bulk_importing, :boolean, required: true
@@ -695,6 +696,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
       <.bulk_upload_modal
         form={@bulk_upload_form}
+        show={@show_bulk_upload}
         uploads={@uploads}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}

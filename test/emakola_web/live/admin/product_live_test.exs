@@ -250,7 +250,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
 
     test "renders new product form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new/form")
 
       assert html =~ "New Product"
       assert html =~ "Title"
@@ -272,7 +272,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new/form")
 
       refute html =~ "Welcome to Makola Payouts"
     end
@@ -287,7 +287,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     # Regression: form saves were silently denied after the H2 policy
     # tightening because create_product was called without authorize?: false.
     test "submitting the form creates a draft product", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new/form")
 
       view
       |> element("form[phx-submit=\"save_product\"]")

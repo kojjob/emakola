@@ -17,7 +17,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   alias EmakolaWeb.Admin.ProductLive.Shared
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     store_id = get_store_id(socket)
 
     socket =
@@ -44,8 +44,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{},
         editing_product: nil,
-        # Bulk upload slide-over
-        show_bulk_upload: false,
+        # Bulk upload slide-over. `?upload=csv` is the "Upload a file" button
+        # on the add-products page: arrive with the slide-over already open.
+        show_bulk_upload: params["upload"] == "csv",
         bulk_upload_form: to_form(%{}),
         csv_preview: [],
         csv_errors: [],
@@ -461,10 +462,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           <.icon name="hero-camera" class="size-5" /> Add by photo
         </.link>
         <.link
-          navigate={~p"/admin/products/bulk"}
+          navigate={~p"/admin/products/new"}
           class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm border border-border bg-surface text-text hover:bg-surface-subtle"
         >
-          <.icon name="hero-photo" class="size-5" /> Add many
+          <.icon name="hero-photo" class="size-5" /> Add products
         </.link>
         <.admin_button
           variant={:secondary}
@@ -592,6 +593,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         categories_list={@categories_list}
         uploads={@uploads}
         bulk_upload_form={@bulk_upload_form}
+        show_bulk_upload={@show_bulk_upload}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}
         bulk_importing={@bulk_importing}
