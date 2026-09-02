@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+    input::placeholder, textarea::placeholder { color: #94A3B8; font-weight: 500; }
+    button { font-family: inherit; }
+    @keyframes ring { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.1); opacity: 0; } }
+    @keyframes shimmer { 0% { opacity: .35; } 50% { opacity: .7; } 100% { opacity: .35; } }
+    
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #F8FAFC; color: #0F172A; display: flex; flex-direction: column; overflow: hidden;">
+  
+  <div style="height: 72px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(226,232,240,0.8); backdrop-filter: blur(24px);">
+    <button aria-label="Open sidebar" style="width: 36px; height: 36px; margin-left: -8px; border: 0; background: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg></button>
+    <div style="flex: 1; position: relative;">
+      <div style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg></div>
+      <input type="search" placeholder="Search anything..." aria-label="Search" style="width: 100%; padding: 10px 16px 10px 40px; background: rgba(248,250,252,0.8); border: 1px solid #E2E8F0; border-radius: 12px; font-size: 14px; color: #334155; font-family: inherit; outline: none;" />
+    </div>
+    <button aria-label="Notifications" style="width: 36px; height: 36px; border: 0; background: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></button>
+    <div style="width: 36px; height: 36px; border-radius: 999px; background: #ECFDF5; color: #047857; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">A</div>
+  </div>
+  <div style="flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+
+    <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px 0;">
+      <button aria-label="Back" style="width: 40px; height: 40px; margin-left: -8px; border: 0; background: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg></button>
+      <div style="flex: 1; font-size: 17px; font-weight: 700; color: #0F172A;">Add products</div>
+      
+    </div>
+    <div style="padding: 8px 16px 0; display: flex; flex-direction: column; gap: 18px;">
+      <div style="position: relative; height: 210px; border-radius: 20px; overflow: hidden; background: #F1F5F9; box-shadow: 0 10px 30px rgba(15,23,42,0.12);"><img src="eggs.jpg" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block; " />
+        <div style="position: absolute; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,0.92); font-size: 12.5px; font-weight: 800; color: #047857;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg><span>Read from your photo</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #94A3B8;">Name</div></div>
+        <button style="height: 54px; border: 2px solid #059669; border-radius: 13px; background: #ECFDF5; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; cursor: pointer;"><span style="font-size: 18px; font-weight: 800; color: #0F172A;">Fresh eggs, crate</span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.75l6 6 9-13.5"/></svg></button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;"><button style="height: 42px; padding: 0 16px; border-radius: 999px; border: 1.5px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 14.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;"><span>Egg crate</span></button><button style="height: 42px; padding: 0 16px; border-radius: 999px; border: 1.5px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 14.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;"><span>Eggs, 30 pieces</span></button><button style="height: 42px; padding: 0 16px; border-radius: 999px; border: 1.5px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 14.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg><span>Type it</span></button></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #94A3B8;">Price</div><div style="font-size: 13px; color: #94A3B8;">or <u>type it</u></div></div>
+        
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <div style="position: relative; width: 76px; height: 76px; flex-shrink: 0;">
+          <div style="position: absolute; inset: 0; border-radius: 999px; background: rgba(5,150,105,0.25); animation: ring 1.6s ease-out infinite;"></div>
+          <div style="position: absolute; inset: 0; border-radius: 999px; background: rgba(5,150,105,0.25); animation: ring 1.6s ease-out 0.5s infinite;"></div>
+          <button aria-label="Say the price" style="position: relative; width: 76px; height: 76px; border: 0; border-radius: 999px; background: #059669; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px rgba(5,150,105,0.35);"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg></button>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 14px; font-style: italic; color: #64748B;">“forty-five cedis”</div>
+          <div style="font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #0F172A; font-variant-numeric: tabular-nums; line-height: 1.1; margin-top: 2px;"><span style="font-size: 20px; color: #64748B; font-weight: 700;">GH₵</span> 45</div>
+        </div>
+      </div>
+        <div style="font-size: 14px; color: #64748B;">Tap the mic and say the price.</div>
+      </div>
+    </div>
+  </div>
+  
+  <div style="flex-shrink: 0; padding: 12px 16px 16px; background: rgba(255,255,255,0.95); border-top: 1px solid #E2E8F0; backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 10px;">
+    <button style="width: 100%; height: 56px; border: 0; border-radius: 13px; background: #059669; color: #fff; padding: 0 24px; font-size: 16.5px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 5px 14px rgba(5,150,105,0.28);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z"/></svg><span>Put in shop</span></button><div style="text-align: center; font-size: 13.5px; color: #64748B;"><u>Save for later</u></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
