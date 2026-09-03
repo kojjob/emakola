@@ -3,17 +3,22 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
   Marketing emails on the Makola.io brand chassis: a 600px white card, navy
   header band with the Cowrie Coin, gold button, dark footer.
 
-  Two templates, both picture-first for merchants who read slowly:
+  Four templates, all picture-first for merchants who read slowly:
 
     * `picture_first/1` — one photo, one short headline, one button, three steps.
+      The default.
     * `update/1` — one lead story, a few short items, one action. Used for
       newsletters, announcements and general updates.
+    * `founding_seller_letter/1` — a personal note from the founder with
+      WhatsApp as the only action, for outreach to the first sellers.
+    * `campaign_push/1` — navy hero, date pill, two photo tiles, one big button,
+      for seasonal drives.
 
   Everything is table layout with spacer cells (no `border-spacing`, no bare
   `div` rules) so it survives Outlook. Copy is escaped; facts arrive as assigns.
   """
 
-  alias __MODULE__.{PictureFirst, Update}
+  alias __MODULE__.{CampaignPush, FoundingSellerLetter, PictureFirst, Update}
 
   @font "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 
@@ -22,6 +27,12 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
 
   @spec update(map()) :: String.t()
   def update(assigns), do: Update.render(assigns)
+
+  @spec founding_seller_letter(map()) :: String.t()
+  def founding_seller_letter(assigns), do: FoundingSellerLetter.render(assigns)
+
+  @spec campaign_push(map()) :: String.t()
+  def campaign_push(assigns), do: CampaignPush.render(assigns)
 
   # ── Chassis ─────────────────────────────────────────────────────
 
@@ -53,7 +64,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
     right =
       if right_line,
         do:
-          ~s(<p style="margin: 4px 0 0; font-size: 13px; color: #8896ab;">#{escape(right_line)}</p>),
+          "<p style=\"margin: 4px 0 0; font-size: 13px; color: #8896ab;\">#{escape(right_line)}</p>",
         else: ""
 
     """
@@ -93,7 +104,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
   def button_row(label, url, note \\ nil, padding \\ "24px 28px 0") do
     note_html =
       if note,
-        do: ~s(<p style="margin: 12px 0 0; font-size: 14px; color: #64748b;">#{escape(note)}</p>),
+        do: "<p style=\"margin: 12px 0 0; font-size: 14px; color: #64748b;\">#{escape(note)}</p>",
         else: ""
 
     """
@@ -106,10 +117,15 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
     """
   end
 
+  @doc "wa.me link for the platform support number."
+  def support_whatsapp_url do
+    number = Application.get_env(:emakola, :support_whatsapp)
+    "https://wa.me/#{String.replace(to_string(number), ~r/[^0-9]/, "")}"
+  end
+
   @doc "Green box pointing at the platform WhatsApp number."
   def whatsapp_row(title, line) do
-    number = Application.get_env(:emakola, :support_whatsapp)
-    url = "https://wa.me/#{String.replace(to_string(number), ~r/[^0-9]/, "")}"
+    url = support_whatsapp_url()
 
     """
     <tr><td style="padding: 26px 28px 30px;">
@@ -131,7 +147,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail do
     link_html =
       all_links
       |> Enum.map(fn {label, url} ->
-        ~s(<a href="#{escape(url)}" style="color: #8896ab;">#{escape(label)}</a>)
+        "<a href=\"#{escape(url)}\" style=\"color: #8896ab;\">#{escape(label)}</a>"
       end)
       |> Enum.join(" &nbsp;&middot;&nbsp; ")
 

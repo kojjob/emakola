@@ -53,7 +53,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail.Update do
   defp read_more(nil), do: ""
 
   defp read_more(url) do
-    ~s(<p style="margin: 12px 0 0; font-size: 15px; font-weight: 600;"><a href="#{escape(url)}" style="color: #b98a1f; text-decoration: none;">Read the whole story &rarr;</a></p>)
+    "<p style=\"margin: 12px 0 0; font-size: 15px; font-weight: 600;\"><a href=\"#{escape(url)}\" style=\"color: #b98a1f; text-decoration: none;\">Read the whole story &rarr;</a></p>"
   end
 
   defp items_rows([]), do: ""
@@ -80,7 +80,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail.Update do
           escape(item.title)
 
         url ->
-          ~s(<a href="#{escape(url)}" style="color: #0f172a; text-decoration: none;">#{escape(item.title)}</a>)
+          "<a href=\"#{escape(url)}\" style=\"color: #0f172a; text-decoration: none;\">#{escape(item.title)}</a>"
       end
 
     """
@@ -103,7 +103,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmail.Update do
           ""
 
         text ->
-          ~s(<p style="margin: 8px 0 0; font-size: 19px; font-weight: 700; line-height: 1.35; color: #0f172a;">#{escape(text)}</p>)
+          "<p style=\"margin: 8px 0 0; font-size: 19px; font-weight: 700; line-height: 1.35; color: #0f172a;\">#{escape(text)}</p>"
       end
 
     """

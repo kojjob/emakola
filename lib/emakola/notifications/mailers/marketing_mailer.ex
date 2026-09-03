@@ -24,6 +24,23 @@ defmodule Emakola.Notifications.MarketingMailer do
     deliver(to_address, assigns, MarketingEmail.update(assigns), update_text(assigns))
   end
 
+  @spec deliver_founding_seller_letter(String.t(), map()) :: {:ok, term()} | {:error, term()}
+  def deliver_founding_seller_letter(to_address, assigns) do
+    assigns = Map.put_new(assigns, :headline, "Free shop, set up for you.")
+
+    deliver(
+      to_address,
+      assigns,
+      MarketingEmail.founding_seller_letter(assigns),
+      founding_seller_text(assigns)
+    )
+  end
+
+  @spec deliver_campaign_push(String.t(), map()) :: {:ok, term()} | {:error, term()}
+  def deliver_campaign_push(to_address, assigns) do
+    deliver(to_address, assigns, MarketingEmail.campaign_push(assigns), campaign_text(assigns))
+  end
+
   defp deliver(to_address, assigns, html, text) do
     new()
     |> to(to_address)
@@ -39,6 +56,38 @@ defmodule Emakola.Notifications.MarketingMailer do
     #{assigns.headline}
 
     #{assigns.body}
+
+    #{assigns.cta_label}: #{assigns.cta_url}
+
+    Makola.io - Accra, Ghana
+    """
+  end
+
+  defp founding_seller_text(assigns) do
+    """
+    Hi #{assigns.first_name},
+
+    Free shop, set up for you. You send photos and prices, I build the shop, you share one link. No monthly fee.
+
+    #{Map.get(assigns, :honest_line, "")}
+
+    Message me on WhatsApp: #{MarketingEmail.support_whatsapp_url()}
+
+    #{assigns.sender_name}, #{Map.get(assigns, :sender_role, "Founder, Makola.io")}
+    """
+  end
+
+  defp campaign_text(assigns) do
+    tiles =
+      assigns
+      |> Map.get(:tiles, [])
+      |> Enum.map_join("\n", fn tile -> "- #{tile.title}: #{Map.get(tile, :line)}" end)
+
+    """
+    #{assigns.campaign_name}: #{assigns.headline}
+    #{Map.get(assigns, :date_line, "")}
+
+    #{tiles}
 
     #{assigns.cta_label}: #{assigns.cta_url}
 

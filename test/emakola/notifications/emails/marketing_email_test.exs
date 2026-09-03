@@ -20,11 +20,11 @@ defmodule Emakola.Notifications.Emails.MarketingEmailTest do
     end
 
     test "opens with the coin logo served from an absolute URL", %{html: html} do
-      assert html =~ ~s(src="#{base_url()}/images/email/cowrie-coin.png")
+      assert html =~ "src=\"#{base_url()}/images/email/cowrie-coin.png\""
     end
 
     test "leads with the photo, then five words, then one button", %{html: html} do
-      assert html =~ ~s(src="#{base_url()}/images/landing/hero-market-woman.jpg")
+      assert html =~ "src=\"#{base_url()}/images/landing/hero-market-woman.jpg\""
       assert html =~ "Your shop. One link. Free."
       assert html =~ "Customers pick what they want"
       assert html =~ ~s(href="https://makola.io/register")
@@ -109,7 +109,7 @@ defmodule Emakola.Notifications.Emails.MarketingEmailTest do
     end
 
     test "opens with the coin logo, the update type, and the month", %{html: html} do
-      assert html =~ ~s(src="#{base_url()}/images/email/cowrie-coin.png")
+      assert html =~ "src=\"#{base_url()}/images/email/cowrie-coin.png\""
       assert html =~ "Update"
       assert html =~ "September 2026"
     end
