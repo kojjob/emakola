@@ -380,7 +380,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             <ul class="space-y-2">
               <li :for={cat <- Enum.take(@categories, 6)}>
                 <a
-                  href={store_path(@store.slug, "/products?category=#{cat.slug}")}
+                  href={store_path(@store.slug, "/category/#{cat.slug}")}
                   class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
