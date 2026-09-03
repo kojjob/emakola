@@ -70,6 +70,10 @@ cannot verify.
 
 ## Discovery endpoints
 
+The apex `/sitemap.xml` is a sitemap index: `/sitemap-platform.xml` (marketing
+pages, blog, region pages) plus one entry per live shop's sitemap. Submitting
+the apex sitemap in Search Console therefore covers every shop.
+
 Each store exposes:
 
 ```text

@@ -328,6 +328,7 @@ defmodule EmakolaWeb.Router do
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :platform
+    get "/sitemap-platform.xml", SitemapController, :platform_pages
     get "/robots.txt", SitemapController, :platform_robots
     get "/llms.txt", SitemapController, :platform_llms
   end

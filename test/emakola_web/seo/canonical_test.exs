@@ -62,6 +62,11 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
       assert Canonical.url("/sell-online/greater-accra") ==
                base <> "/sell-online/greater-accra"
     end
+
+    test "sitemap_url/1 uses the /s/:slug route, the only one that serves the subfolder form",
+         %{base: base, store: store} do
+      assert Canonical.sitemap_url(store) == base <> "/s/kente-shop/sitemap.xml"
+    end
   end
 
   describe "store subdomain form (:store_subdomain_base configured)" do
@@ -114,6 +119,11 @@ defmodule EmakolaWeb.SEO.CanonicalTest do
     test "url/1 (platform path) stays on the apex even when a subdomain base is set" do
       assert Canonical.url("/sell-online/greater-accra") ==
                EmakolaWeb.Endpoint.url() <> "/sell-online/greater-accra"
+    end
+
+    test "sitemap_url/1 is the subdomain-root sitemap the store's robots.txt declares",
+         %{origin: origin, store: store} do
+      assert Canonical.sitemap_url(store) == origin <> "/sitemap.xml"
     end
   end
 end
