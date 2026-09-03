@@ -2,14 +2,17 @@ defmodule Emakola.Themes.Pace.Sections.CategoryRail do
   @moduledoc """
   Pace home category rail — categories as track lanes: a horizontal
   scroll of outlined pills, each opened by the theme's `///` lane tick.
-  Renders nothing when the store has no categories yet; the grid section
-  below carries the intentional empty state for a brand-new store.
+  Renders nothing when the store has no categories yet, or until the
+  lineup is full enough to need lanes (four or more products); the grid
+  section below carries the intentional empty state for a brand-new store.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "pace/category_rail"
@@ -21,8 +24,14 @@ defmodule Emakola.Themes.Pace.Sections.CategoryRail do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <nav :if={@categories != []} class="py-2 sm:py-3" aria-label="Product categories">
+    <nav
+      :if={@categories != [] and @layout.show_categories?}
+      class="py-2 sm:py-3"
+      aria-label="Product categories"
+    >
       <div
         class="mx-auto flex max-w-[1280px] gap-2.5 overflow-x-auto px-5 sm:px-8 lg:px-10 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         role="list"

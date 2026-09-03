@@ -10,11 +10,15 @@ defmodule Emakola.Themes.Pace.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pace.Shared
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Pace)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Pace)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="bg-[var(--theme-bg,#E6EFF6)] pt-2">
