@@ -109,8 +109,83 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
 
   def capture_tiles(assigns) do
     ~H"""
+    <%!-- A phone photo is 3 to 8 MB; on a market data plan thirty of them
+          is the slowest thing on this page. The hook shrinks each picked
+          photo to 1600px on the phone and hands the small files to
+          LiveView, which then uploads as it always does. --%>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".ShrinkPhotos">
+      const MAX_EDGE = 1600
+
+      async function decode(file) {
+        try {
+          return await createImageBitmap(file, { imageOrientation: "from-image" })
+        } catch (_unsupportedOption) {
+          return await createImageBitmap(file)
+        }
+      }
+
+      async function shrink(file) {
+        if (!file.type.startsWith("image/")) return file
+        try {
+          const bitmap = await decode(file)
+          const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
+          if (scale === 1 && file.type === "image/jpeg") {
+            bitmap.close()
+            return file
+          }
+          const canvas = document.createElement("canvas")
+          canvas.width = Math.round(bitmap.width * scale)
+          canvas.height = Math.round(bitmap.height * scale)
+          canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+          bitmap.close()
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85))
+          if (!blob) return file
+          const name = file.name.replace(/\.[^.]+$/, "") + ".jpg"
+          return new File([blob], name, { type: "image/jpeg", lastModified: file.lastModified })
+        } catch (_cannotDecode) {
+          return file
+        }
+      }
+
+      export default {
+        // Mounted on the tile, not the input: a dot-named hook is only
+        // resolved on a plain tag in this template, and the input is
+        // rendered by live_file_input.
+        mounted() {
+          const input = this.el.querySelector('input[type="file"]')
+          if (!input) return
+          // `this.upload` makes LiveView re-dispatch an input event on the
+          // input, synchronously; the flag lets that one through and
+          // catches every other change, whatever dispatched it.
+          let passthrough = false
+          const intercept = (event) => {
+            if (passthrough) return
+            if (!input.files || input.files.length === 0) return
+            event.stopImmediatePropagation()
+            const files = Array.from(input.files)
+            // Clear the input so LiveView tracks only the shrunk files.
+            input.value = ""
+            Promise.all(files.map(shrink)).then((shrunk) => {
+              passthrough = true
+              try {
+                this.upload(input.name, shrunk)
+              } finally {
+                passthrough = false
+              }
+            })
+          }
+          input.addEventListener("input", intercept, true)
+          input.addEventListener("change", intercept, true)
+        },
+      }
+    </script>
     <div class={["grid gap-3 lg:gap-4", (@compact && "grid-cols-2") || "grid-cols-1 lg:grid-cols-2"]}>
-      <label class={tile_classes(:primary, @compact)} phx-drop-target={@uploads.camera.ref}>
+      <label
+        id="camera-tile"
+        phx-hook=".ShrinkPhotos"
+        class={tile_classes(:primary, @compact)}
+        phx-drop-target={@uploads.camera.ref}
+      >
         <span class={disc_classes(:primary, @compact)}>
           <.icon name="hero-camera" class={(@compact && "size-6") || "size-8 lg:size-6"} />
         </span>
@@ -127,7 +202,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         />
       </label>
 
-      <label class={tile_classes(:quiet, @compact)} phx-drop-target={@uploads.photos.ref}>
+      <label
+        id="photos-tile"
+        phx-hook=".ShrinkPhotos"
+        class={tile_classes(:quiet, @compact)}
+        phx-drop-target={@uploads.photos.ref}
+      >
         <span class={disc_classes(:quiet, @compact)}>
           <.icon name="hero-photo" class="size-6" />
         </span>
@@ -194,8 +274,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   attr :item, :map, required: true
   attr :number, :integer, required: true
   attr :currency, :string, required: true
+  attr :last_price, :string, default: nil, doc: "offered to a card whose price is still empty"
 
   def photo_card(assigns) do
+    assigns =
+      assign(assigns, :offer_price, assigns.last_price && String.trim(assigns.item.price) == "")
+
     ~H"""
     <div
       id={"card-#{@item.key}"}
@@ -263,6 +347,20 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
             class={[card_field_classes(@item.missing_price?), "pl-[66px] lg:pl-[52px]"]}
           />
         </div>
+      </div>
+      <div :if={@offer_price} class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1">
+        <button
+          type="button"
+          phx-click="copy_price"
+          phx-value-upload={@item.upload}
+          phx-value-ref={@item.ref}
+          phx-value-price={@last_price}
+          data-last-price={@last_price}
+          class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-border bg-white hover:bg-surface-subtle text-[13.5px] font-bold text-text cursor-pointer transition-colors"
+        >
+          <.icon name="hero-clock" class="size-4 text-slate-500" />
+          Same as last: {Currency.currency_symbol(@currency)} {@last_price}
+        </button>
       </div>
       <p :for={problem <- @item.problems} class="px-3.5 pb-3 text-xs text-red-600">{problem}</p>
     </div>
