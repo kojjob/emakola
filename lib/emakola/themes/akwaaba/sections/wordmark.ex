@@ -5,7 +5,9 @@ defmodule Emakola.Themes.Akwaaba.Sections.Wordmark do
 
   The name is set as a graphic, not as a heading: it is already announced by the
   hero's `<h1>` and the nav, so repeating it as an `<h2>` would just be noise to
-  a screen reader. The floating card is the section's real content.
+  a screen reader. The floating card is the section's real content: the
+  featured product from the shared Layout plan, which the grid leaves out so
+  nothing on the page appears twice.
   """
   @behaviour Emakola.Themes.Section
 
@@ -14,6 +16,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Wordmark do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Akwaaba.Shared
+  alias Emakola.Themes.Layout
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
@@ -28,7 +31,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Wordmark do
 
   @impl true
   def render(assigns) do
-    featured = Enum.at(assigns.products, 1) || List.first(assigns.products)
+    featured = Layout.of(assigns).featured
 
     assigns =
       assigns

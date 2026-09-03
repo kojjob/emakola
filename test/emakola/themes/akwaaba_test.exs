@@ -4,8 +4,8 @@ defmodule Emakola.Themes.AkwaabaTest do
   data the merchant does not have yet: no photos, no reviews, no description.
   These tests hold the line on the two rules that matter most —
 
-  * the hero must never open on an empty slab (it falls back through merchant
-    upload → first product photo → type), and
+  * the hero shows only the merchant's own upload, never a borrowed product
+    photograph, and holds the panel with type alone without one, and
   * the theme must never invent social proof it does not have.
   """
   use Emakola.DataCase, async: false
@@ -14,7 +14,7 @@ defmodule Emakola.Themes.AkwaabaTest do
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.Akwaaba
-  alias Emakola.Themes.Akwaaba.Sections.{Categories, Hero, Testimonials}
+  alias Emakola.Themes.Akwaaba.Sections.{Categories, Editorial, Hero, Testimonials}
   alias Emakola.Themes.Akwaaba.Shared
 
   @store %{
@@ -43,6 +43,9 @@ defmodule Emakola.Themes.AkwaabaTest do
       attrs
     )
   end
+
+  # Four pieces: the category rail only joins the page on a full stall.
+  defp stall, do: Enum.map(1..4, &product(%{id: "prod-#{&1}", slug: "piece-#{&1}"}))
 
   defp render_section(section, assigns, overrides \\ %{}) do
     defaults = for s <- section.settings_schema(), into: %{}, do: {s.key, s.default}
@@ -88,8 +91,8 @@ defmodule Emakola.Themes.AkwaabaTest do
     end
   end
 
-  describe "hero — photo-fallback, never an empty slab" do
-    test "with a catalogue it carries the first product's photograph and its price" do
+  describe "hero — photo-optional, never a borrowed photograph" do
+    test "with a catalogue it never borrows the first product's photograph" do
       html =
         render_section(Hero, %{
           store: @store,
@@ -97,10 +100,21 @@ defmodule Emakola.Themes.AkwaabaTest do
           categories: []
         })
 
-      assert html =~ "/uploads/dress.jpg"
-      assert html =~ "Ankara Wrap Dress"
-      assert html =~ "GH₵ 58"
+      refute html =~ "/uploads/dress.jpg"
+      refute html =~ "<img"
       assert html =~ ~s(id="akwaaba-hero-heading")
+    end
+
+    test "the merchant's own local upload renders as the hero photograph" do
+      html =
+        render_section(
+          Hero,
+          %{store: @store, products: [], categories: []},
+          %{"image_url" => "/uploads/awning.jpg"}
+        )
+
+      assert html =~ ~s(src="/uploads/awning.jpg")
+      assert html =~ ~s(alt="Adjoa Atelier")
     end
 
     test "with no catalogue at all it still renders the store name as the h1" do
@@ -167,14 +181,15 @@ defmodule Emakola.Themes.AkwaabaTest do
       html =
         render_section(Categories, %{
           store: @store,
-          products: [],
+          products: stall(),
           categories: [category]
         })
 
       assert html =~ "Jewellery"
       assert html =~ "View collection"
-      # the designed fallback ground, not an empty box
+      # the designed fallback ground, not an empty box — and no lettered panel
       assert html =~ "from-[#F3D3C0]"
+      refute html =~ ~r/>\s*J\s*</
     end
 
     test "no categories at all → no section" do
@@ -190,7 +205,7 @@ defmodule Emakola.Themes.AkwaabaTest do
       html =
         render_section(Categories, %{
           store: @store,
-          products: [],
+          products: stall(),
           categories: [category],
           category_photos: %{"cat-9" => "/uploads/pendant.jpg"}
         })
@@ -205,13 +220,32 @@ defmodule Emakola.Themes.AkwaabaTest do
       html =
         render_section(Categories, %{
           store: @store,
-          products: [],
+          products: stall(),
           categories: [category],
           category_photos: %{"cat-apparel" => "/uploads/dress.jpg"}
         })
 
       refute html =~ "/uploads/dress.jpg"
       assert html =~ "from-[#F3D3C0]"
+    end
+  end
+
+  describe "editorial band" do
+    test "never borrows a product photograph; it renders only with the merchant's own upload" do
+      products = [product(%{images: [%{url: "/uploads/dress.jpg"}]})]
+
+      html = render_section(Editorial, %{store: @store, products: products, categories: []})
+      assert String.trim(html) == ""
+
+      html =
+        render_section(
+          Editorial,
+          %{store: @store, products: products, categories: []},
+          %{"image_url" => "/uploads/band.jpg"}
+        )
+
+      assert html =~ ~s(src="/uploads/band.jpg")
+      refute html =~ "/uploads/dress.jpg"
     end
   end
 
@@ -279,29 +313,38 @@ defmodule Emakola.Themes.AkwaabaTest do
       :ok
     end
 
-    test "the whole page composes: one h1, its own nav with a desktop cart, its own footer" do
+    defp render_home(store) do
+      Emakola.Themes.Akwaaba.Home.render(%{
+        __changed__: nil,
+        store: store,
+        theme: Akwaaba.defaults(),
+        products:
+          Emakola.Catalog.Product
+          |> Ash.read!(authorize?: false, tenant: store.id)
+          |> Ash.load!(
+            [:variants, :images, :min_price, :max_price, :avg_rating, :review_count],
+            authorize?: false,
+            tenant: store.id
+          ),
+        categories: Emakola.Catalog.Category |> Ash.read!(authorize?: false, tenant: store.id),
+        cart_count: 0
+      })
+      |> rendered_to_string()
+    end
+
+    test "a full stall composes: one h1, its own nav with a desktop cart, its own footer, one newsletter" do
       {_merchant, store} = create_merchant_with_store!()
       create_category!(store, %{name: "Apparel"})
       item = create_product!(store, %{title: "Kente Kaftan", status: :active})
       create_variant!(item, store, %{price: 12_345, stock_quantity: 5})
 
-      html =
-        Emakola.Themes.Akwaaba.Home.render(%{
-          __changed__: nil,
-          store: store,
-          theme: Akwaaba.defaults(),
-          products:
-            Emakola.Catalog.Product
-            |> Ash.read!(authorize?: false, tenant: store.id)
-            |> Ash.load!(
-              [:variants, :images, :min_price, :max_price, :avg_rating, :review_count],
-              authorize?: false,
-              tenant: store.id
-            ),
-          categories: Emakola.Catalog.Category |> Ash.read!(authorize?: false, tenant: store.id),
-          cart_count: 0
-        })
-        |> rendered_to_string()
+      # Four pieces make a full stall: the newsletter joins the page only then
+      for title <- ["Ankara Wrap Dress", "Batakari Smock", "Bead Necklace"] do
+        piece = create_product!(store, %{title: title, status: :active})
+        create_variant!(piece, store, %{price: 1000, stock_quantity: 5})
+      end
+
+      html = render_home(store)
 
       assert length(String.split(html, "<h1")) == 2
       assert html =~ ~r/<header[^>]*role="banner"/
@@ -311,6 +354,20 @@ defmodule Emakola.Themes.AkwaabaTest do
       assert html =~ "GH₵ 123.45"
       assert html =~ ~s(phx-submit="subscribe_newsletter")
       assert html =~ ~s(href="#akwaaba-content")
+    end
+
+    test "one piece: the wordmark card carries it alone — no grid card, no newsletter" do
+      {_merchant, store} = create_merchant_with_store!()
+      item = create_product!(store, %{title: "Kente Kaftan", status: :active})
+      create_variant!(item, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ ~s(aria-label="Featured: Kente Kaftan")
+      assert html =~ "GH₵ 123.45"
+      refute html =~ ~s(phx-click="add_to_cart")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
     end
   end
 end
