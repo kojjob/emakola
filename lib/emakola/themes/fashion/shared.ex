@@ -201,6 +201,29 @@ defmodule Emakola.Themes.Fashion.Shared do
     end
   end
 
+  # How the home divides the catalogue so no product appears twice: the
+  # lookbook takes the cover look (the plan's featured product) and three
+  # supporting; the edit grid takes the next eight; the restock band the four
+  # after that. Each section reads its slice from the shared `Layout` plan.
+  @lookbook_supporting 3
+  @edit_size 8
+  @band_size 4
+
+  @doc "The products beside the lookbook's cover look."
+  def lookbook_supporting(layout), do: Enum.take(layout.grid_products, @lookbook_supporting)
+
+  @doc "The edit grid's products — the catalogue after the lookbook's."
+  def edit_products(layout) do
+    layout.grid_products |> Enum.drop(@lookbook_supporting) |> Enum.take(@edit_size)
+  end
+
+  @doc "The restock band's products — the catalogue after the edit grid's."
+  def band_products(layout) do
+    layout.grid_products
+    |> Enum.drop(@lookbook_supporting + @edit_size)
+    |> Enum.take(@band_size)
+  end
+
   def first_image(product) do
     case product.images do
       [%{thumbnail_url: url} | _] when is_binary(url) -> url
@@ -236,6 +259,7 @@ defmodule Emakola.Themes.Fashion.Shared do
         <div
           :if={!first_image(@product)}
           class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FAF6EE] to-[#E7E5E4]"
+          data-placeholder="product"
         >
           <span class="material-symbols-outlined text-[#5B21B6]/30" style="font-size: 56px;">
             checkroom

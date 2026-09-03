@@ -2,8 +2,10 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
   @moduledoc """
   Beauty FAQ accordion — native `<details>` disclosures, no JavaScript.
 
-  Questions come from the theme's `faq.items` config; a store with none
-  renders the heading and an empty list, exactly as it does today.
+  Questions come from the theme's `faq.items` config — the merchant's own.
+  A store with none gets no section: a heading over an empty list, or the
+  theme's sample questions ("Do you ship across Ghana?"), both spoke for a
+  merchant who had written nothing.
   """
   @behaviour Emakola.Themes.Section
 
@@ -27,8 +29,13 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :items, faq_items(assigns.theme))
+
     ~H"""
-    <section :if={section_enabled?(@theme, :faq)} class="bg-[#F5EFE5] pb-16 sm:pb-24">
+    <section
+      :if={@items != [] && section_enabled?(@theme, :faq)}
+      class="bg-[#F5EFE5] pb-16 sm:pb-24"
+    >
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
           <h2 class="beauty-heading text-3xl sm:text-4xl font-semibold text-[#3D2F25] mb-2">
@@ -43,7 +50,7 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
           </p>
         </div>
         <div class="space-y-3">
-          <details :for={item <- faq_items(@theme)} name="faq" class="beauty-card group">
+          <details :for={item <- @items} name="faq" class="beauty-card group">
             <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
               <span class="text-base font-semibold text-[#3D2F25] pr-4">
                 {Item.field(item, :question)}
@@ -79,7 +86,7 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
 
   defp faq_items(theme) do
     case get_in(theme, [:faq, :items]) do
-      items when is_list(items) and items != [] -> items
+      items when is_list(items) -> Enum.filter(items, &Item.has?(&1, :question))
       _ -> []
     end
   end

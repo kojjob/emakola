@@ -49,6 +49,13 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
     store
   end
 
+  defp stock!(store, titles) do
+    for title <- titles do
+      product = create_product!(store, %{title: title, status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    end
+  end
+
   defp render_home(store) do
     products =
       Emakola.Catalog.Product
@@ -79,10 +86,11 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
     test "renders every block's landmark copy, one h1, in today's visual order" do
       html = render_home(seeded_store(@merchant_claims))
 
-      # Hero — the overline, the hero product as the page's h1, tagline, CTA
+      # Hero — the overline, the hero product as the page's h1, CTA. The
+      # tagline used to be the theme's line about goods it had never seen.
       assert html =~ "The one you reach for"
       assert html =~ ~r/<h1[^>]*>\s*Lively Drink\s*<\/h1>/
-      assert html =~ "Clean, honest, and made to be part of your everyday rhythm."
+      refute html =~ "Clean, honest, and made to be part of your everyday rhythm."
       assert html =~ "Choose yours"
 
       # Benefits (theme.trust) — the merchant's claims, not the theme's
@@ -111,20 +119,60 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       assert html =~ "If you only make one thing, make it count."
       assert html =~ "Get yours"
 
-      # Newsletter (theme.newsletter)
-      assert html =~ "Stay in the loop"
-      assert html =~ "New drops and members-only offers, straight to your inbox."
-      assert html =~ "Subscribe"
+      # Newsletter — a one-product shop, the theme's premise, asks for no
+      # email; the list opens at four products (see the full-stall test)
+      refute html =~ "Stay in the loop"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
 
       # The hero owns the page's only h1
       assert length(String.split(html, "<h1")) == 2
 
       # Visual order: hero -> benefits -> ingredients -> testimonials
-      #            -> closing CTA -> newsletter
+      #            -> closing CTA
       assert String.match?(
                html,
-               ~r/The one you reach for.*What makes it different.*reasons it works.*One product, done properly\..*Stay in the loop/s
+               ~r/The one you reach for.*What makes it different.*reasons it works.*One product, done properly\./s
              )
+    end
+
+    test "a full stall opens the list, after the closing CTA" do
+      store = seeded_store()
+      stock!(store, ["Still Water", "Sparkling Water", "Ginger Tonic"])
+
+      html = render_home(store)
+
+      assert html =~ "Stay in the loop"
+      assert html =~ "New drops and members-only offers, straight to your inbox."
+      assert html =~ "Subscribe"
+      assert String.match?(html, ~r/One product, done properly\..*Stay in the loop/s)
+    end
+
+    test "the hero's tagline is the product's own description, never the theme's line" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "spotlight"}})
+
+      product =
+        create_product!(store, %{
+          title: "Lively Drink",
+          status: :active,
+          description: "Ginger, lime and nothing else."
+        })
+
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ "Ginger, lime and nothing else."
+      refute html =~ "Clean, honest, and made to be part of your everyday rhythm."
+    end
+
+    test "the footer says nothing about a store that wrote nothing" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "spotlight"}})
+
+      html = render_home(store)
+
+      refute html =~ "delivered to your door"
     end
 
     test "the hero funnels to the hero product's page" do
@@ -146,9 +194,10 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       assert html =~ ~r/<h1[^>]*>\s*One product\.\s*<\/h1>/
       assert length(String.split(html, "<h1")) == 2
       # The rest of the page still stands. The benefits block does NOT: it used
-      # to carry four claims about the goods that no merchant had written.
+      # to carry four claims about the goods that no merchant had written. Nor
+      # does the newsletter: a shop with nothing to sell has no news.
       refute html =~ "What makes it different"
-      assert html =~ "Stay in the loop"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
     end
 
     test "keeps Spotlight's chrome: theme styles, nav, footer" do
@@ -254,14 +303,15 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
     end
   end
 
+  # A section rendered on its own knows nothing of the catalogue (no
+  # `products` key), so the Layout plan hides nothing — the way the design
+  # editor previews it.
   defp render_section(section, store, theme, overrides \\ %{}) do
     defaults =
       for setting <- section.settings_schema(), into: %{}, do: {setting.key, setting.default}
 
     %{
       store: store,
-      products: [],
-      categories: [],
       theme: theme,
       cart_count: 0,
       settings: Map.merge(defaults, overrides),

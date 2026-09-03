@@ -43,7 +43,13 @@ defmodule Emakola.Themes.Beauty.Sections.FeaturedProducts do
             Curated for your routine
           </h2>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div class={[
+          "grid gap-4 sm:gap-6",
+          if(length(@featured_products) == 1,
+            do: "grid-cols-1 max-w-sm mx-auto",
+            else: "grid-cols-2 lg:grid-cols-3"
+          )
+        ]}>
           <Shared.product_card :for={product <- @featured_products} product={product} store={@store} />
         </div>
         <div class="text-center mt-12">

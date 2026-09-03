@@ -1,10 +1,17 @@
 defmodule Emakola.Themes.Fashion.Sections.FeaturedProducts do
-  @moduledoc "Fashion home featured-products grid — extracted verbatim from fashion/home.ex."
+  @moduledoc """
+  Fashion home featured-products grid — extracted verbatim from fashion/home.ex.
+
+  Shows the catalogue after the lookbook's four, so nothing on the page
+  appears twice; with four products or fewer the lookbook carries them all
+  and this grid stays off the page.
+  """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fashion/featured_products"
@@ -17,7 +24,7 @@ defmodule Emakola.Themes.Fashion.Sections.FeaturedProducts do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :featured_products, Enum.take(assigns[:products] || [], 8))
+    assigns = assign(assigns, :featured_products, Shared.edit_products(Layout.of(assigns)))
 
     ~H"""
     <section

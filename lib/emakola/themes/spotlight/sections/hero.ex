@@ -3,10 +3,13 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
   Spotlight home hero — extracted verbatim from spotlight/home.ex.
 
   Carries the page's `<h1>`, which is the hero product's title when the
-  store has one and the theme's `hero.title` when it does not. Settings are
-  additive: a blank default falls back to the theme-config expression the
-  block used before the section retrofit, so an untouched storefront renders
-  byte-identically.
+  store has one and the theme's `hero.title` when it does not. The hero
+  product is the shared Layout plan's featured product, and its photo shows
+  here only — no other section repeats it. The tagline is the merchant's
+  (a setting, their theme config, or the product's own description), never
+  the theme's sample line. Other settings are additive: a blank default
+  falls back to the theme-config expression the block used before the
+  section retrofit.
   """
   @behaviour Emakola.Themes.Section
 
@@ -15,6 +18,7 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Spotlight.Shared
 
   @impl true
@@ -36,7 +40,7 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
   @impl true
   def render(assigns) do
     hero = get_in(assigns.theme, [:hero]) || %{}
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
+    hero_product = Layout.of(assigns).featured
 
     assigns =
       assigns
@@ -52,7 +56,11 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
         present(assigns.settings["headline"]) ||
           if(hero_product, do: hero_product.title, else: Map.get(hero, :title, "One product."))
       )
-      |> assign(:tagline, present(assigns.settings["tagline"]) || Map.get(hero, :tagline))
+      |> assign(
+        :tagline,
+        present(assigns.settings["tagline"]) || present(Map.get(hero, :tagline)) ||
+          product_description(hero_product)
+      )
       |> assign(
         :cta_label,
         present(assigns.settings["cta_label"]) || Map.get(hero, :cta_text, "Choose yours")
@@ -70,7 +78,10 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
           <h1 class="spot-display text-5xl sm:text-6xl lg:text-7xl text-[#16130F] mt-4 uppercase">
             {@headline}
           </h1>
-          <p class="text-[#6B675F] text-base mt-5 max-w-md leading-relaxed">
+          <p
+            :if={@tagline}
+            class="text-[#6B675F] text-base mt-5 max-w-md leading-relaxed line-clamp-4"
+          >
             {@tagline}
           </p>
           <div :if={@hero_product} class="mt-7">
@@ -102,6 +113,8 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
             <div
               :if={!(@hero_product && Shared.first_image(@hero_product))}
               class="w-full h-full flex items-center justify-center bg-[#F3EFE8]"
+              data-placeholder={@hero_product && "product"}
+              aria-hidden="true"
             >
               <span class="material-symbols-outlined text-[#d8d0c2] text-6xl">image</span>
             </div>
@@ -117,4 +130,7 @@ defmodule Emakola.Themes.Spotlight.Sections.Hero do
   end
 
   defp present(_value), do: nil
+
+  defp product_description(nil), do: nil
+  defp product_description(product), do: present(Map.get(product, :description))
 end

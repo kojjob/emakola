@@ -2,6 +2,10 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
   @moduledoc """
   Fashion home lookbook — the 2x2 editorial grid (one cover look, three
   supporting) — extracted verbatim from fashion/home.ex.
+
+  The cover look is the shared plan's featured product and the supporting
+  cards are the next three, so a one-product shop shows its product here,
+  alone, and the sections below never repeat it.
   """
   @behaviour Emakola.Themes.Section
 
@@ -10,6 +14,7 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fashion/lookbook"
@@ -22,12 +27,12 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
 
   @impl true
   def render(assigns) do
-    products = assigns[:products] || []
+    layout = Layout.of(assigns)
 
     assigns =
       assigns
-      |> assign(:lookbook_hero, List.first(products))
-      |> assign(:lookbook_supporting, Enum.slice(products, 1, 3))
+      |> assign(:lookbook_hero, layout.featured)
+      |> assign(:lookbook_supporting, Shared.lookbook_supporting(layout))
 
     ~H"""
     <section
@@ -56,10 +61,16 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
         </div>
 
         <div class="grid lg:grid-cols-12 gap-4 sm:gap-6">
-          <%!-- Hero product (left, 7 cols) --%>
+          <%!-- Hero product (left, 7 cols; a lone cover sits centred) --%>
           <a
             href={store_path(@store.slug, "/products/#{@lookbook_hero.slug}")}
-            class="lg:col-span-7 relative aspect-[4/5] lg:aspect-auto rounded-lg overflow-hidden group bg-white"
+            class={[
+              "relative aspect-[4/5] rounded-lg overflow-hidden group bg-white",
+              if(@lookbook_supporting == [],
+                do: "lg:col-span-6 lg:col-start-4",
+                else: "lg:col-span-7 lg:aspect-auto"
+              )
+            ]}
           >
             <%= if Shared.first_image(@lookbook_hero) do %>
               <img
@@ -68,7 +79,10 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
             <% else %>
-              <div class="absolute inset-0 bg-gradient-to-br from-[#5B21B6]/20 to-[#D97706]/15 flex items-center justify-center">
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-[#5B21B6]/20 to-[#D97706]/15 flex items-center justify-center"
+                data-placeholder="product"
+              >
                 <span class="material-symbols-outlined text-[#5B21B6]/40" style="font-size: 120px;">
                   checkroom
                 </span>
@@ -91,7 +105,10 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
           </a>
 
           <%!-- 3 stacked supporting (right, 5 cols) --%>
-          <div class="lg:col-span-5 grid grid-cols-3 lg:grid-cols-1 gap-4 sm:gap-6">
+          <div
+            :if={@lookbook_supporting != []}
+            class="lg:col-span-5 grid grid-cols-3 lg:grid-cols-1 gap-4 sm:gap-6"
+          >
             <Shared.product_card
               :for={product <- @lookbook_supporting}
               product={product}
