@@ -14,11 +14,19 @@ defmodule Emakola.Themes.FreshSectionsTest do
     on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
   end
 
+  # A full stall with overflow: "Today's Picks" takes four products, "Shop
+  # All Products" takes the fifth, and the category circles and newsletter
+  # join the page at four or more.
   defp seed_store! do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fresh"}})
     create_category!(store, %{name: "Fresh Peppers"})
     product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
     create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+    for n <- 2..5 do
+      product = create_product!(store, %{title: "Product #{n}", status: :active})
+      create_variant!(product, store, %{price: 1000, stock_quantity: 5})
+    end
 
     store
   end
@@ -51,10 +59,12 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
   describe "home render" do
     test "renders every visual block with its own copy" do
-      html = render_home(seed_store!())
+      store = seed_store!()
+      html = render_home(store)
 
-      # Hero — the theme's own headline and CTA
-      assert html =~ "Fresh to Your Door"
+      # Hero — the store's own name is the headline; the theme ships no
+      # invented one. The CTA label is the theme's.
+      assert html =~ ~r/<h1[^>]*id="fresh-hero-heading"[^>]*>\s*#{Regex.escape(store.name)}/
       assert html =~ "Start Shopping"
       # Category circles
       assert html =~ ~s(aria-label="Product categories")
@@ -82,10 +92,43 @@ defmodule Emakola.Themes.FreshSectionsTest do
     end
 
     test "the hero owns the page's only h1" do
-      html = render_home(seed_store!())
+      store = seed_store!()
+      html = render_home(store)
 
       assert length(String.split(html, "<h1")) == 2
-      assert html =~ ~r/<h1[^>]*>\s*Fresh to Your Door\s*<\/h1>/
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
+    end
+
+    test "one product: Today's Picks carries it alone" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fresh"}})
+      create_category!(store, %{name: "Fresh Peppers"})
+      create_product!(store, %{title: "Kente Tote Bag", status: :active})
+
+      html = render_home(store)
+
+      assert html =~ "Today's Picks"
+      assert html =~ "Kente Tote Bag"
+      refute html =~ "Shop All Products"
+      refute html =~ ~s(aria-label="Product categories")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
+    test "a category without a cover is a plain chip, not a lettered circle" do
+      html = render_home(seed_store!())
+
+      assert html =~ "Fresh Peppers"
+      refute html =~ ~r/>\s*F\s*</
+    end
+
+    test "a store with no description gets no invented headline or standfirst" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "fresh"}, description: nil})
+
+      html = render_home(store)
+
+      refute html =~ "Fresh to Your Door"
+      refute html =~ "picked for you"
+      refute html =~ "Fresh produce and groceries"
     end
 
     test "blocks render in today's visual order" do
@@ -93,7 +136,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       assert String.match?(
                html,
-               ~r/Fresh to Your Door.*Shop by Category.*Today's Picks.*Delivery &amp; returns.*fresh-shop-all.*Get Weekly Deals/s
+               ~r/fresh-hero-heading.*Shop by Category.*Today's Picks.*Delivery &amp; returns.*fresh-shop-all.*Get Weekly Deals/s
              )
     end
 
@@ -111,7 +154,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       assert String.match?(
                html,
-               ~r/Search products.*Fresh to Your Door.*Get Weekly Deals.*<footer/s
+               ~r/Search products.*fresh-hero-heading.*Get Weekly Deals.*<footer/s
              )
     end
 
@@ -128,7 +171,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
       refute html =~ "This store sets its own delivery times"
     end
 
-    test "an empty catalogue drops the category, featured and grid blocks" do
+    test "an empty catalogue drops the category, featured, grid and newsletter blocks" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fresh"}})
 
       html = render_home(store)
@@ -136,10 +179,11 @@ defmodule Emakola.Themes.FreshSectionsTest do
       refute html =~ ~s(aria-label="Product categories")
       refute html =~ "Today's Picks"
       refute html =~ "Shop All Products"
-      # Hero, delivery banner and newsletter still stand
-      assert html =~ "Fresh to Your Door"
+      # A bare store has no news to sign up for.
+      refute html =~ "Get Weekly Deals"
+      # Hero and delivery banner still stand
+      assert html =~ ~s(id="fresh-hero-heading")
       assert html =~ "Delivery &amp; returns"
-      assert html =~ "Get Weekly Deals"
     end
 
     test "a store description replaces the hero subtitle" do
@@ -175,7 +219,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       refute html =~ "Get Weekly Deals"
       refute html =~ "Delivery &amp; returns"
-      assert html =~ "Fresh to Your Door"
+      assert html =~ ~s(id="fresh-hero-heading")
       assert html =~ "Shop All Products"
     end
   end
@@ -255,7 +299,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
       assert html =~ "Fill your basket"
       assert html =~ "Market mornings"
       assert html =~ "Join"
-      refute html =~ "Fresh to Your Door"
+      assert html =~ ~r/<h1[^>]*>\s*Kumasi Greens\s*<\/h1>/
       refute html =~ "Get Weekly Deals"
       # Sections left out of the saved layout stay out
       refute html =~ "Shop All Products"
@@ -281,7 +325,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       refute html =~ "Shop All Products"
       assert html =~ "Today's Picks"
-      assert html =~ "Fresh to Your Door"
+      assert html =~ ~s(id="fresh-hero-heading")
     end
   end
 

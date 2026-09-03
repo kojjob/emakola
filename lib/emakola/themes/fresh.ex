@@ -56,12 +56,16 @@ defmodule Emakola.Themes.Fresh do
         heading: "Nunito",
         body: "Inter"
       },
+      # No invented copy: the hero used to open every Fresh shop with "Fresh
+      # to Your Door" and "Fresh produce and groceries, picked for you".
+      # Empty here means the store speaks for itself — its own name is the
+      # h1, its own description the standfirst, nothing where it wrote nothing.
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "Fresh to Your Door",
-        subtitle: "Fresh produce and groceries, picked for you",
+        title: "",
+        subtitle: "",
         cta_text: "Start Shopping",
         cta_url: "/products"
       },

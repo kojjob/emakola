@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Fresh.Sections.Newsletter do
   use Phoenix.Component
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fresh/newsletter"
@@ -28,8 +29,13 @@ defmodule Emakola.Themes.Fresh.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :newsletter)} class="py-10">
+    <section
+      :if={Shared.section_enabled?(@theme, :newsletter) and @layout.show_newsletter?}
+      class="py-10"
+    >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-[#FEF9C3] rounded-3xl p-8 sm:p-12 text-center">
           <h2

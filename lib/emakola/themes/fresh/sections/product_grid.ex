@@ -1,7 +1,8 @@
 defmodule Emakola.Themes.Fresh.Sections.ProductGrid do
   @moduledoc """
-  Fresh home "Shop All Products" grid — the whole catalogue, 2/3/4 columns.
-  Extracted verbatim from `fresh/home.ex`.
+  Fresh home "Shop All Products" grid — the catalogue minus what "Today's
+  Picks" took (the featured product plus three), 2/3/4 columns, so nothing
+  appears twice on the home.
   """
   @behaviour Emakola.Themes.Section
 
@@ -10,6 +11,7 @@ defmodule Emakola.Themes.Fresh.Sections.ProductGrid do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fresh/product_grid"
@@ -23,7 +25,7 @@ defmodule Emakola.Themes.Fresh.Sections.ProductGrid do
 
   @impl true
   def render(assigns) do
-    assigns = assign_new(assigns, :grid_products, fn -> assigns.products end)
+    assigns = assign(assigns, :grid_products, Enum.drop(Layout.of(assigns).grid_products, 3))
 
     ~H"""
     <section

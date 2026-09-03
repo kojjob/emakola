@@ -1,9 +1,9 @@
 defmodule Emakola.Themes.Fresh.Sections.Hero do
   @moduledoc """
-  Fresh home hero — emerald-to-amber gradient, leaf pattern, friendly
-  headline. Extracted verbatim from `fresh/home.ex`; the merchant's
-  `@theme.hero` config stays the fallback behind the section settings, so an
-  untouched store renders exactly as before.
+  Fresh home hero — emerald-to-amber gradient, leaf pattern, the store's
+  own name as the headline. The theme ships no invented headline or
+  standfirst: a merchant heading (section setting, then `@theme.hero`)
+  wins, then the store's own description, then nothing.
   """
   @behaviour Emakola.Themes.Section
 
@@ -29,6 +29,19 @@ defmodule Emakola.Themes.Fresh.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(
+        :heading,
+        present(assigns.settings["heading"]) || present(assigns.theme.hero.title) ||
+          assigns.store.name
+      )
+      |> assign(
+        :subheading,
+        present(assigns.settings["subheading"]) || present(assigns.store.description) ||
+          present(assigns.theme.hero.subtitle)
+      )
+
     ~H"""
     <section :if={Shared.section_enabled?(@theme, :hero)} class="relative overflow-hidden">
       <div class="bg-gradient-to-br from-[#059669] via-[#047857] to-[#92400E]/30">
@@ -59,7 +72,10 @@ defmodule Emakola.Themes.Fresh.Sections.Hero do
 
         <div class="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
           <div class="max-w-2xl">
+            <%!-- The leaf badge names the store above a merchant headline. When
+                 the store's name is the headline it would say it twice. --%>
             <span
+              :if={@heading != @store.name}
               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold tracking-widest uppercase text-[#D9F99D] bg-white/10 rounded-full mb-4 backdrop-blur-sm"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -72,28 +88,18 @@ defmodule Emakola.Themes.Fresh.Sections.Hero do
               {@store.name}
             </span>
             <h1
+              id="fresh-hero-heading"
               class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-4"
               style="font-family: 'Nunito', sans-serif;"
             >
-              {if @settings["heading"] not in [nil, ""],
-                do: @settings["heading"],
-                else: @theme.hero.title || "Fresh to Your Door"}
+              {@heading}
             </h1>
             <p
+              :if={@subheading}
               class="text-lg sm:text-xl text-white/80 leading-relaxed mb-8 max-w-lg"
               style="font-family: 'Inter', sans-serif;"
             >
-              {cond do
-                @settings["subheading"] not in [nil, ""] ->
-                  @settings["subheading"]
-
-                @store.description ->
-                  @store.description
-
-                true ->
-                  @theme.hero.subtitle ||
-                    "Fresh produce and groceries from #{@store.name}."
-              end}
+              {@subheading}
             </p>
             <div class="flex flex-wrap gap-3">
               <a
@@ -139,4 +145,10 @@ defmodule Emakola.Themes.Fresh.Sections.Hero do
     </section>
     """
   end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 end

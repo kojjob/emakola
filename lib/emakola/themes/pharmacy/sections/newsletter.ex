@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.Newsletter do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -30,8 +31,13 @@ defmodule Emakola.Themes.Pharmacy.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :newsletter)} class="bg-[#14543E] py-14 sm:py-20">
+    <section
+      :if={Shared.section_enabled?(@theme, :newsletter) && @layout.show_newsletter?}
+      class="bg-[#14543E] py-14 sm:py-20"
+    >
       <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="pharmacy-heading text-3xl sm:text-4xl font-medium text-white mb-3">
           {if @settings["title"] not in [nil, ""],
@@ -76,7 +82,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.Newsletter do
   defp newsletter_subtitle(theme),
     do:
       get_in(theme, [:newsletter, :subtitle]) ||
-        "Health tips, new launches, and offers from our pharmacists."
+        "New products and updates, straight to your inbox."
 
   defp newsletter_button(theme),
     do: get_in(theme, [:newsletter, :button_text]) || "Subscribe"

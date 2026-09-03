@@ -115,11 +115,8 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
         class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-16 sm:pb-24 pt-32"
         style="text-shadow: 0 1px 3px rgba(0,0,0,0.4);"
       >
-        <div class={[
-          "grid items-end gap-10",
-          @hero_product_image && "lg:grid-cols-5 lg:gap-16"
-        ]}>
-          <div class={["max-w-3xl", @hero_product_image && "lg:col-span-3"]}>
+        <div class="grid items-end gap-10">
+          <div class="max-w-3xl">
             <%!-- The badge only exists if the merchant wrote one. An empty pill
           is worse than no pill, and an invented one is worse than both. --%>
             <span
@@ -186,38 +183,6 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
               </a>
             </div>
           </div>
-
-          <%!-- The shop's own photography, standing in a portrait frame instead
-          of stretched across the band behind the type. It is one real product,
-          named and priced from its own record, and it goes to that product. --%>
-          <a
-            :if={@hero_product_image}
-            href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
-            class="group block w-full lg:col-span-2 lg:justify-self-end"
-          >
-            <div class="overflow-hidden rounded-2xl ring-1 ring-white/20 shadow-2xl">
-              <.optimized_image
-                src={@hero_product_image}
-                alt={@hero_product.title}
-                priority={:high}
-                width={640}
-                height={800}
-                class="aspect-[4/5] w-full object-cover transition-transform duration-700 motion-safe:group-hover:scale-105"
-              />
-            </div>
-            <div class="mt-4 flex items-baseline justify-between gap-4">
-              <p class="truncate text-sm font-semibold text-white">
-                {@hero_product.title}
-              </p>
-              <p class="shrink-0 text-sm font-bold tabular-nums text-white/80">
-                {EmakolaWeb.Helpers.Currency.format_price_range(
-                  @hero_product.min_price,
-                  @hero_product.max_price,
-                  @store.currency
-                )}
-              </p>
-            </div>
-          </a>
         </div>
 
         <%!-- Carousel Progress Indicators --%>
@@ -239,25 +204,16 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
     """
   end
 
-  # The hero carries one of two very different kinds of picture, and they want
-  # different frames.
-  #
-  # Hero art the merchant uploads is COMPOSED for a full-bleed band, so it fills
-  # the viewport behind the type — that full-height wash is Atelier's signature.
-  #
-  # A product photograph is not that. It is a tall portrait of a single thing,
-  # and stretching one across a 100vh landscape band crops away half its height:
-  # a model's head goes out the top and the storefront opens on a pair of legs.
-  # So when the shop has never set hero art, we do not fake it — we stand the
-  # product photograph in a portrait frame beside the type, over Atelier's own
-  # gradient ground, the way every other theme frames the same picture.
+  # The hero shows only art the merchant set for it. It never borrows a
+  # product photograph: the featured card right below already carries that
+  # picture, and a home must not show the same photo twice. Without hero art
+  # the band is Atelier's own gradient ground behind the type.
   defp prepare_hero_assigns(assigns) do
     theme = assigns[:theme] || %{}
     configured = configured_hero_images(theme)
     image_count = length(configured)
     hero_carousel = get_in(theme, [:hero, :carousel]) || false
     store_name = Map.get(assigns.store, :name, "Our Store")
-    hero_product = if configured == [], do: hero_product(Map.get(assigns, :products, []))
 
     assigns
     |> assign(:valid_images, configured)
@@ -265,8 +221,6 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
     |> assign(:use_carousel, image_count > 1 && hero_carousel)
     |> assign(:image_count, image_count)
     |> assign(:total_duration, max(image_count, 1) * 7)
-    |> assign(:hero_product, hero_product)
-    |> assign(:hero_product_image, hero_product && Shared.first_image(hero_product))
     |> assign_hero_text(theme, store_name)
   end
 
@@ -279,13 +233,6 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
       valid_hero_image?(single) -> [single]
       true -> []
     end
-  end
-
-  # Product images are our own upload records, already rendered by every card on
-  # this page, so they do not pass through the merchant-typed-URL gate that the
-  # theme's image_url setting does.
-  defp hero_product(products) do
-    Enum.find(products, &Shared.first_image/1)
   end
 
   # The hero used to fall back to copy the merchant never wrote: a headline

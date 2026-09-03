@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Fresh.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   @doc """
@@ -30,7 +31,10 @@ defmodule Emakola.Themes.Fresh.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Fresh)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Fresh)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-[#FEFCE8]">

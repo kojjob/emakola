@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Starter.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
   alias Emakola.Themes.Starter.Shared
 
@@ -32,7 +33,10 @@ defmodule Emakola.Themes.Starter.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Starter)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Starter)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-white">

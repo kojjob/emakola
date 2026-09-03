@@ -5,6 +5,7 @@ defmodule Emakola.Themes.Atelier.Sections.Newsletter do
   use Phoenix.Component
 
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "atelier/newsletter"
@@ -46,9 +47,13 @@ defmodule Emakola.Themes.Atelier.Sections.Newsletter do
       |> assign(:nl_button_text, nl_button_text)
       |> assign(:nl_placeholder, nl_placeholder)
       |> assign(:nl_disclaimer, nl_disclaimer)
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :newsletter)} class="bg-white">
+    <section
+      :if={Shared.section_enabled?(@theme, :newsletter) and @layout.show_newsletter?}
+      class="bg-white"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div class="max-w-xl mx-auto text-center">
           <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">

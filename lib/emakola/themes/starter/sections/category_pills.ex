@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Starter.Sections.CategoryPills do
 
   import Emakola.Themes.Starter.Sections.Helpers
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Starter.Shared
 
   @impl true
@@ -18,9 +19,11 @@ defmodule Emakola.Themes.Starter.Sections.CategoryPills do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={section_enabled?(@theme, :categories) and @categories != []}
+      :if={section_enabled?(@theme, :categories) and @categories != [] and @layout.show_categories?}
       class="py-6 bg-white"
       aria-label="Product categories"
     >
