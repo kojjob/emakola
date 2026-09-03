@@ -74,7 +74,11 @@ defmodule Emakola.Themes.Spotlight do
         overline: "The one you reach for",
         title: "One product.",
         subtitle: "Done right.",
-        tagline: "Clean, honest, and made to be part of your everyday rhythm.",
+        # "Clean, honest, and made to be part of your everyday rhythm." stood
+        # under every Spotlight hero — a claim about goods the theme had never
+        # seen. The hero now falls back to the product's own description.
+        # Blank, but the key must stay (see trust below).
+        tagline: nil,
         cta_text: "Choose yours",
         cta_url: "/products",
         # No default badge — provenance claims are the merchant's to make.
