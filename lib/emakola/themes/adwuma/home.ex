@@ -10,12 +10,16 @@ defmodule Emakola.Themes.Adwuma.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Adwuma.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
     # Required: the layout's fallback header renders when :theme_module is
     # absent, and SectionRenderer resolves this theme's sections through it.
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Adwuma)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Adwuma)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-[color:var(--adw-bg)] pb-16 text-[color:var(--adw-ink)] sm:pb-0">

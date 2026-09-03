@@ -10,12 +10,18 @@ defmodule Emakola.Themes.Adwuma.Sections.Categories do
 
   Each tile is a real link. `phx-click="filter_category"` is NOT handled by
   StoreLive and would kill the page.
+
+  A tile without a cover is a plain named tile — no lettered panel, which is
+  nothing to a buyer who reads slowly. The grid joins the page once the shop
+  is a full stall (four or more products).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "adwuma/categories"
@@ -33,10 +39,11 @@ defmodule Emakola.Themes.Adwuma.Sections.Categories do
       assigns
       |> assign(:categories, Map.get(assigns, :categories) || [])
       |> assign(:photos, Map.get(assigns, :category_photos) || %{})
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <section
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="bg-white px-4 py-16 [font-family:var(--adw-body)] sm:px-6 sm:py-20"
     >
       <div class="mx-auto max-w-5xl">
@@ -50,20 +57,13 @@ defmodule Emakola.Themes.Adwuma.Sections.Categories do
             href={store_path(@store.slug, "/category/#{category.slug}")}
             class="group overflow-hidden rounded-2xl border border-[color:var(--adw-rule)] bg-[#F4F4F6]"
           >
-            <div class="aspect-[16/10] overflow-hidden">
+            <div :if={Map.get(@photos, category.id)} class="aspect-[16/10] overflow-hidden">
               <img
-                :if={Map.get(@photos, category.id)}
                 src={Map.get(@photos, category.id)}
                 alt={category.name}
                 loading="lazy"
                 class="h-full w-full object-cover"
               />
-              <div
-                :if={is_nil(Map.get(@photos, category.id))}
-                class="flex h-full w-full items-center justify-center text-4xl font-semibold text-[color:var(--adw-muted)]/40 [font-family:var(--adw-display)]"
-              >
-                {String.first(category.name)}
-              </div>
             </div>
             <p class="px-5 py-4 text-sm font-semibold text-[color:var(--adw-ink)]">
               {category.name}
