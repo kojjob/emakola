@@ -122,10 +122,13 @@ defmodule Emakola.Themes.Bold do
   end
 
   def storefront_footer(assigns) do
+    # A direct call applies no attr defaults. Pages other than the home know
+    # nothing of the catalogue, so the footer keeps its mini subscribe form.
     Emakola.Themes.Bold.Shared.footer(%{
       __changed__: nil,
       store: assigns.store,
-      categories: Map.get(assigns, :categories) || []
+      categories: Map.get(assigns, :categories) || [],
+      newsletter: true
     })
   end
 end

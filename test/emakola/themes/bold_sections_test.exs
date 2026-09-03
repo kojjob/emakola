@@ -178,6 +178,16 @@ defmodule Emakola.Themes.BoldSectionsTest do
       refute html =~ ~s(phx-submit="subscribe_newsletter")
     end
 
+    test "the footer keeps its subscribe form on pages that know nothing of the catalogue" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
+
+      # The chrome renderer calls storefront_footer/1 directly, where no attr
+      # default applies, so the switch is passed by hand.
+      html = rendered_to_string(Bold.storefront_footer(%{store: store, categories: []}))
+
+      assert html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
     test "a store with no description says nothing about itself" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
       product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
