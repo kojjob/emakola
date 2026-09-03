@@ -1,6 +1,8 @@
 defmodule Emakola.Themes.Vibrant.Sections.ProductGrid do
   @moduledoc """
-  Vibrant product grid — the mobile-first 2/3/4-column shop-all grid.
+  Vibrant product grid — the mobile-first 2/3/4-column shop-all grid. It shows
+  the catalogue minus the featured card and the pair above it
+  (`Shared.slots/1`), so nothing on the page is shown twice.
 
   Carries the ankara pattern divider that has always preceded it; like the
   featured card's kente rule, the divider sits outside the section's gate so a
@@ -13,6 +15,7 @@ defmodule Emakola.Themes.Vibrant.Sections.ProductGrid do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [pattern_divider: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
 
   @impl true
@@ -24,25 +27,28 @@ defmodule Emakola.Themes.Vibrant.Sections.ProductGrid do
   @impl true
   def settings_schema do
     [
-      %{key: "eyebrow", type: :string, label: "Eyebrow", default: "Just Landed"},
-      %{key: "heading", type: :string, label: "Heading", default: "Picked for you"}
+      %{key: "eyebrow", type: :string, label: "Eyebrow", default: ""},
+      %{key: "heading", type: :string, label: "Heading", default: "Shop all"}
     ]
   end
 
   @impl true
   def render(assigns) do
-    products = Map.get(assigns, :products) || []
+    grid = assigns |> Layout.of() |> Shared.slots() |> Map.fetch!(:grid)
     settings = assigns[:settings] || %{}
 
+    # "Just Landed" claimed these were new and "Picked for you" that someone
+    # picked them; they are the rest of the catalogue in catalogue order. No
+    # eyebrow unless the merchant writes one.
     assigns =
       assigns
-      |> assign(:grid_products, products)
+      |> assign(:grid_products, grid)
       |> assign(
         :enabled,
-        Shared.section_enabled?(assigns.theme, :products) and products != []
+        Shared.section_enabled?(assigns.theme, :products) and grid != []
       )
-      |> assign(:eyebrow, present(settings["eyebrow"]) || "Just Landed")
-      |> assign(:heading, present(settings["heading"]) || "Picked for you")
+      |> assign(:eyebrow, present(settings["eyebrow"]))
+      |> assign(:heading, present(settings["heading"]) || "Shop all")
 
     ~H"""
     <.pattern_divider variant={:ankara} class="bg-[#FFFBEB]" />
@@ -51,7 +57,10 @@ defmodule Emakola.Themes.Vibrant.Sections.ProductGrid do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-6 sm:mb-8">
           <div>
-            <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2">
+            <p
+              :if={@eyebrow}
+              class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2"
+            >
               {@eyebrow}
             </p>
             <h2

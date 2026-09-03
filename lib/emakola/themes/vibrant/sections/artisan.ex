@@ -1,7 +1,9 @@
 defmodule Emakola.Themes.Vibrant.Sections.Artisan do
   @moduledoc """
   Vibrant artisan signature — the maker card, gated by the theme's `about`
-  toggle.
+  toggle and shown only when the merchant has written a description
+  (`Emakola.Themes.Layout`): the card is the merchant's own story, and there
+  is no story to tell for them.
 
   Carries the second kente pattern divider, outside the gate, for the same
   reason the featured card does: it renders today whether or not the card does.
@@ -13,6 +15,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Artisan do
   import EmakolaWeb.StorefrontComponents,
     only: [artisan_signature_card: 1, pattern_divider: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
 
   @impl true
@@ -32,7 +35,10 @@ defmodule Emakola.Themes.Vibrant.Sections.Artisan do
 
     assigns =
       assigns
-      |> assign(:enabled, Shared.section_enabled?(assigns.theme, :about))
+      |> assign(
+        :enabled,
+        Shared.section_enabled?(assigns.theme, :about) and Layout.of(assigns).show_about?
+      )
       |> assign(:headline, present(settings["headline"]) || "Meet the Maker")
 
     ~H"""

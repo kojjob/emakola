@@ -2,14 +2,17 @@ defmodule Emakola.Themes.Vibrant.Sections.Newsletter do
   @moduledoc """
   Vibrant newsletter callout — the dark stone panel with the amber subscribe
   button. `subscribe_newsletter` is handled globally by the storefront LiveView.
+  Shown only once the stall is full enough to have news: four or more
+  products (`Emakola.Themes.Layout`). Its copy promises nothing on the
+  merchant's behalf — it used to offer "First dibs on new arrivals" and
+  "exclusive offers".
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
-
-  @default_body "Get notified when fresh pieces drop and exclusive offers go live."
 
   @impl true
   def key, do: "vibrant/newsletter"
@@ -20,9 +23,9 @@ defmodule Emakola.Themes.Vibrant.Sections.Newsletter do
   @impl true
   def settings_schema do
     [
-      %{key: "eyebrow", type: :string, label: "Eyebrow", default: "Stay in the loop"},
-      %{key: "heading", type: :string, label: "Heading", default: "First dibs on new arrivals"},
-      %{key: "body", type: :text, label: "Body", default: @default_body},
+      %{key: "eyebrow", type: :string, label: "Eyebrow", default: ""},
+      %{key: "heading", type: :string, label: "Heading", default: "Stay in the loop"},
+      %{key: "body", type: :text, label: "Body", default: ""},
       %{key: "button_label", type: :string, label: "Button label", default: "Subscribe"}
     ]
   end
@@ -33,17 +36,28 @@ defmodule Emakola.Themes.Vibrant.Sections.Newsletter do
 
     assigns =
       assigns
-      |> assign(:enabled, Shared.section_enabled?(assigns.theme, :newsletter))
-      |> assign(:eyebrow, present(settings["eyebrow"]) || "Stay in the loop")
-      |> assign(:heading, present(settings["heading"]) || "First dibs on new arrivals")
-      |> assign(:body, present(settings["body"]) || @default_body)
+      |> assign(
+        :enabled,
+        Shared.section_enabled?(assigns.theme, :newsletter) and
+          Layout.of(assigns).show_newsletter?
+      )
+      |> assign(:eyebrow, present(settings["eyebrow"]))
+      |> assign(:heading, present(settings["heading"]) || "Stay in the loop")
+      |> assign(
+        :body,
+        present(settings["body"]) ||
+          "New products and updates from #{assigns.store.name}, straight to your inbox."
+      )
       |> assign(:button_label, present(settings["button_label"]) || "Subscribe")
 
     ~H"""
     <section :if={@enabled} class="py-10 sm:py-14">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-gradient-to-br from-[#1C1917] to-[#292524] rounded-3xl p-8 sm:p-12 text-center">
-          <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-highlight,#F59E0B)] mb-3">
+          <p
+            :if={@eyebrow}
+            class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-highlight,#F59E0B)] mb-3"
+          >
             {@eyebrow}
           </p>
           <h2

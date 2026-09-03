@@ -24,13 +24,24 @@ defmodule Emakola.Themes.VibrantSectionsTest do
 
     create_category!(store, %{name: "Kente Cloth"})
 
-    for {title, price} <- [{"Adinkra Wrapper", 12_345}, {"Bolga Basket", 6_500}] do
+    # A full stall: the featured card takes one product, the pair the next two
+    # and the grid the rest, and the occasion edits and the newsletter join
+    # the page at four products (Emakola.Themes.Layout).
+    for {title, price} <- [
+          {"Adinkra Wrapper", 12_345},
+          {"Bolga Basket", 6_500},
+          {"Shea Butter Tub", 3_000},
+          {"Kente Stole", 20_000}
+        ] do
       product = create_product!(store, %{title: title, status: :active})
       create_variant!(product, store, %{price: price, stock_quantity: 4})
     end
 
     store
   end
+
+  defp h1_of(store),
+    do: ~r/<h1[^>]*>\s*#{Regex.escape(Plug.HTML.html_escape(store.name))}\s*<\/h1>/
 
   defp render_home(store) do
     products =
@@ -61,12 +72,16 @@ defmodule Emakola.Themes.VibrantSectionsTest do
   # one of these moves, the storefront moved.
 
   describe "home render" do
-    test "the editorial hero opens the page with the theme's headline and dual CTA" do
-      html = render_home(seed_store())
+    # Updated with the finish-at-one-product rules: the hero reads as the
+    # store's own name, not the theme's "Discover Unique Finds".
+    test "the editorial hero opens the page with the store's name and dual CTA" do
+      store = seed_store()
+      html = render_home(store)
 
       # Gradient hero (no merchant hero image configured)
       assert html =~ ~s(id="vibrant-pattern")
-      assert html =~ ~r/<h1[^>]*>\s*Discover Unique Finds\s*<\/h1>/
+      assert html =~ h1_of(store)
+      refute html =~ "Discover Unique Finds"
       # Was "Handcrafted with Love" — how every product in every Vibrant store
       # was made, in the hero subtitle.
       assert html =~ "Shop the collection"
@@ -94,7 +109,7 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       assert html =~ "Secure checkout"
     end
 
-    test "editor's picks pairs the first two products" do
+    test "editor's picks pairs the two products after the featured card" do
       html = render_home(seed_store())
 
       assert html =~ ~s(id="vibrant-editors-picks")
@@ -111,7 +126,8 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       html = render_home(seed_store())
 
       assert html =~ ~s(id="vibrant-occasions")
-      assert html =~ "Curated Edits"
+      # "Curated Edits" claimed a curation nobody did; these are the categories.
+      refute html =~ "Curated Edits"
       assert html =~ "Shop the moments"
       assert html =~ "Kente Cloth"
       assert html =~ "Shop the edit"
@@ -126,12 +142,16 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       assert html =~ "GH₵ 123.45"
     end
 
-    test "the product grid lists every product behind its own heading" do
+    # Updated with the finish-at-one-product rules: the grid shows the rest of
+    # the catalogue, and "Just Landed" / "Picked for you" claimed a newness and
+    # a picking nobody did.
+    test "the product grid lists the rest of the catalogue behind its own heading" do
       html = render_home(seed_store())
 
       assert html =~ ~s(id="vibrant-shop-all")
-      assert html =~ "Just Landed"
-      assert html =~ "Picked for you"
+      refute html =~ "Just Landed"
+      refute html =~ "Picked for you"
+      assert html =~ "Shop all"
       assert html =~ "View all"
       assert html =~ "Adinkra Wrapper"
       assert html =~ "Bolga Basket"
@@ -148,8 +168,11 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       html = render_home(seed_store())
 
       assert html =~ "Stay in the loop"
-      assert html =~ "First dibs on new arrivals"
-      assert html =~ "Get notified when fresh pieces drop and exclusive offers go live."
+      # "First dibs on new arrivals" and "exclusive offers" promised things on
+      # the merchant's behalf.
+      refute html =~ "First dibs on new arrivals"
+      refute html =~ "Get notified when fresh pieces drop"
+      assert html =~ "New products and updates from"
       assert html =~ ~s(type="email")
       assert html =~ "Subscribe"
 
@@ -224,19 +247,21 @@ defmodule Emakola.Themes.VibrantSectionsTest do
 
       assert String.match?(
                html,
-               ~r/vibrant-pattern.*Why shop with us.*vibrant-editors-picks.*vibrant-occasions.*Add to bag.*vibrant-shop-all.*Meet the Maker.*First dibs on new arrivals.*Secure checkout/s
+               ~r/vibrant-pattern.*Why shop with us.*vibrant-editors-picks.*vibrant-occasions.*Add to bag.*vibrant-shop-all.*Meet the Maker.*Stay in the loop.*Secure checkout/s
              )
     end
 
-    test "an empty store still renders hero, trust, artisan, newsletter and service strip" do
+    # Updated with the finish-at-one-product rules: with no description there
+    # is no maker story to tell, and a bare store carries no capture form.
+    test "an empty store still renders hero, trust and service strip" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "vibrant"}})
 
       html = render_home(store)
 
-      assert html =~ ~r/<h1[^>]*>\s*Discover Unique Finds\s*<\/h1>/
+      assert html =~ h1_of(store)
       refute html =~ "Locally crafted"
-      assert html =~ "Meet the Maker"
-      assert html =~ "First dibs on new arrivals"
+      refute html =~ "Meet the Maker"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
       assert html =~ "Secure checkout"
       # Product- and category-gated blocks stay away
       refute html =~ ~s(id="vibrant-editors-picks")
