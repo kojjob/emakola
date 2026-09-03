@@ -127,7 +127,8 @@ defmodule Emakola.Themes.Fresh.Shared do
 
   @doc """
   Circle with warm amber border, category image, and name below.
-  Like a farmers market sign.
+  Like a farmers market sign. Without a cover it is a plain chip carrying
+  the name — never a lettered circle.
 
   Renders as a **link** when `href` is given — that is the home page, which has
   no product list to filter, so the shopper is going to the category's own page.
@@ -171,38 +172,54 @@ defmodule Emakola.Themes.Fresh.Shared do
   attr :active, :boolean, required: true
 
   defp circle_face(assigns) do
+    assigns = assign(assigns, :image, category_image(assigns.category))
+
     ~H"""
-    <div class={[
-      "w-[76px] h-[76px] rounded-full p-[3px] group-hover:scale-110 transition-transform duration-200",
-      if(@active,
-        do: "bg-gradient-to-br from-[#059669] to-[#047857] shadow-lg shadow-emerald-200",
-        else: "bg-gradient-to-br from-[#92400E] to-[#B45309] shadow-sm"
-      )
-    ]}>
-      <%= if category_image(@category) do %>
-        <.optimized_image
-          src={category_image(@category)}
-          alt={@category.name}
-          priority={:low}
-          class="w-full h-full rounded-full object-cover border-[3px] border-[#FEFCE8]"
-          width={70}
-          height={70}
-        />
-      <% else %>
-        <div class="w-full h-full rounded-full bg-[#FEFCE8] border-[3px] border-[#FEFCE8] flex items-center justify-center">
-          <span class="text-xl font-bold text-[#92400E]">
-            {String.first(@category.name)}
-          </span>
-        </div>
-      <% end %>
+    <div
+      :if={@image}
+      class={[
+        "w-[76px] h-[76px] rounded-full p-[3px] group-hover:scale-110 transition-transform duration-200",
+        if(@active,
+          do: "bg-gradient-to-br from-[#059669] to-[#047857] shadow-lg shadow-emerald-200",
+          else: "bg-gradient-to-br from-[#92400E] to-[#B45309] shadow-sm"
+        )
+      ]}
+    >
+      <.optimized_image
+        src={@image}
+        alt={@category.name}
+        priority={:low}
+        class="w-full h-full rounded-full object-cover border-[3px] border-[#FEFCE8]"
+        width={70}
+        height={70}
+      />
     </div>
-    <span class={[
-      "text-xs font-semibold text-center whitespace-nowrap max-w-[80px] truncate",
-      if(@active,
-        do: "text-[#059669]",
-        else: "text-[#78350F] group-hover:text-[#059669]"
-      )
-    ]}>
+    <span
+      :if={@image}
+      class={[
+        "text-xs font-semibold text-center whitespace-nowrap max-w-[80px] truncate",
+        if(@active,
+          do: "text-[#059669]",
+          else: "text-[#78350F] group-hover:text-[#059669]"
+        )
+      ]}
+    >
+      {@category.name}
+    </span>
+    <%!-- Without a cover the signboard is a plain chip: a lettered circle is
+         nothing to a buyer who reads slowly. --%>
+    <span
+      :if={!@image}
+      class={[
+        "px-4 py-2 rounded-full text-sm font-bold border whitespace-nowrap transition-colors",
+        if(@active,
+          do: "bg-[#059669] text-white border-[#059669] shadow-sm",
+          else:
+            "bg-white text-[#78350F] border-[#D9F99D] group-hover:border-[#059669] group-hover:text-[#059669]"
+        )
+      ]}
+      style="font-family: 'Nunito', sans-serif;"
+    >
       {@category.name}
     </span>
     """
@@ -229,7 +246,11 @@ defmodule Emakola.Themes.Fresh.Shared do
           alt={@product.title}
           class="w-full aspect-square object-cover group-hover:scale-[1.04] transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full aspect-square flex items-center justify-center bg-[#ECFDF5]">
+        <div
+          :if={!@image}
+          class="w-full aspect-square flex items-center justify-center bg-[#ECFDF5]"
+          data-placeholder="product"
+        >
           <svg
             class="w-12 h-12 text-[#059669]/40"
             fill="none"

@@ -15,6 +15,7 @@ defmodule Emakola.Themes.Fresh.Sections.CategoryCircles do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fresh/category_circles"
@@ -28,9 +29,14 @@ defmodule Emakola.Themes.Fresh.Sections.CategoryCircles do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={Shared.section_enabled?(@theme, :categories) and @categories != []}
+      :if={
+        Shared.section_enabled?(@theme, :categories) and @categories != [] and
+          @layout.show_categories?
+      }
       class="py-6 bg-[#FEFCE8]"
       aria-label="Product categories"
     >

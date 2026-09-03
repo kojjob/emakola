@@ -1,8 +1,8 @@
 defmodule Emakola.Themes.Fresh.Sections.Featured do
   @moduledoc """
-  Fresh home "Today's Picks" — the first four products of the catalogue.
-  Extracted verbatim from `fresh/home.ex`, which derived the same slice with
-  `Enum.take(products, 4)`.
+  Fresh home "Today's Picks" — the featured product and up to three more.
+  The "Shop All Products" grid takes what is left, so no product is shown
+  twice on the home; with a single product the picks carry it alone.
   """
   @behaviour Emakola.Themes.Section
 
@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Fresh.Sections.Featured do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fresh/featured"
@@ -25,7 +26,14 @@ defmodule Emakola.Themes.Fresh.Sections.Featured do
 
   @impl true
   def render(assigns) do
-    assigns = assign_new(assigns, :featured_products, fn -> Enum.take(assigns.products, 4) end)
+    layout = Layout.of(assigns)
+
+    picks =
+      if layout.featured,
+        do: [layout.featured | Enum.take(layout.grid_products, 3)],
+        else: []
+
+    assigns = assign(assigns, :featured_products, picks)
 
     ~H"""
     <section
