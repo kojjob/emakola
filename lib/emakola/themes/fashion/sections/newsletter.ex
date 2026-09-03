@@ -6,12 +6,16 @@ defmodule Emakola.Themes.Fashion.Sections.Newsletter do
   `EmakolaWeb.Hooks.NewsletterSubscription`. It previously carried no
   `phx-submit` and no `name` on its input, so it captured nothing — a shopper
   could join "the List" and end up on no list at all.
+
+  Shown only once the shop is full enough to have news: four or more
+  products, per the shared `Layout` plan.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fashion/newsletter"
@@ -34,6 +38,7 @@ defmodule Emakola.Themes.Fashion.Sections.Newsletter do
 
     assigns =
       assigns
+      |> assign(:layout, Layout.of(assigns))
       |> assign(:newsletter_title, setting_or(assigns, "heading", newsletter_title(theme)))
       |> assign(
         :newsletter_subtitle,
@@ -45,7 +50,10 @@ defmodule Emakola.Themes.Fashion.Sections.Newsletter do
       )
 
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :newsletter)} class="bg-[#5B21B6] py-14 sm:py-20">
+    <section
+      :if={@layout.show_newsletter? && Shared.section_enabled?(@theme, :newsletter)}
+      class="bg-[#5B21B6] py-14 sm:py-20"
+    >
       <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-3">
           The List

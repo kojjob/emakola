@@ -49,7 +49,10 @@ defmodule Emakola.Themes.Fashion.Sections.Hero do
         :hero_title,
         setting_or(assigns, "heading", theme.hero.title || "The new collection")
       )
-      |> assign(:hero_subtitle, setting_or(assigns, "subheading", theme.hero.subtitle))
+      |> assign(
+        :hero_subtitle,
+        setting_or(assigns, "subheading", hero_subtitle(theme, assigns.store))
+      )
       |> assign(
         :hero_cta_text,
         setting_or(assigns, "cta_label", theme.hero.cta_text || "Shop the Drop")
@@ -121,6 +124,18 @@ defmodule Emakola.Themes.Fashion.Sections.Hero do
       _blank -> fallback
     end
   end
+
+  # The theme's sample subtitle described goods this shop may not sell. Under
+  # the store's name, only the merchant's own description can stand.
+  defp hero_subtitle(theme, store) do
+    present(get_in(theme, [:hero, :subtitle])) || present(Map.get(store, :description))
+  end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   defp hero_image_url(theme) do
     case get_in(theme, [:hero, :images]) || [] do
