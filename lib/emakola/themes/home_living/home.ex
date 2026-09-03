@@ -18,6 +18,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   attr :store, :map, required: true
@@ -27,7 +28,10 @@ defmodule Emakola.Themes.HomeLiving.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.HomeLiving)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.HomeLiving)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="home-living-body min-h-screen">
@@ -35,7 +39,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
 
       {SectionRenderer.home(assigns)}
 
-      <Shared.home_living_footer store={@store} />
+      <Shared.home_living_footer store={@store} categories={@categories} />
     </div>
     """
   end

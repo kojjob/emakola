@@ -8,8 +8,14 @@ defmodule Emakola.Themes.Beauty.Sections.Hero do
   would change the storefront's rendered output, so it is extracted here
   verbatim along with the rest of the block.
 
-  Merchant settings override the theme's `hero.*` config; blank falls back
-  to it, so an untouched store renders exactly as it did pre-retrofit.
+  Merchant settings override the theme's `hero.*` config. With neither set,
+  the headline is the store's name and the subheadline its description —
+  never the theme's sample copy ("Elevate Your Essence", "Botanical skincare
+  and beauty essentials…"), which spoke for every store on the theme. The
+  badge above the headline names the store only when a custom headline has
+  displaced it, and the floating card carries the merchant's tagline or
+  nothing: "Each formula is thoughtfully designed…" was a claim about jars
+  the theme had never seen.
   """
   @behaviour Emakola.Themes.Section
 
@@ -37,6 +43,16 @@ defmodule Emakola.Themes.Beauty.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    custom_headline =
+      first_present([assigns.settings["headline"], get_in(assigns.theme, [:hero, :title])])
+
+    assigns =
+      assigns
+      |> assign(:custom_headline, custom_headline)
+      |> assign(:headline, custom_headline || assigns.store.name)
+      |> assign(:subheadline, subheadline(assigns))
+      |> assign(:tagline, first_present([Map.get(assigns.store, :tagline)]))
+
     ~H"""
     <section :if={section_enabled?(@theme, :hero)} class="relative bg-[#6B4423]">
       <Shared.beauty_nav store={@store} cart_count={assigns[:cart_count] || 0} on_dark={true} />
@@ -44,22 +60,21 @@ defmodule Emakola.Themes.Beauty.Sections.Hero do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-24">
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div class="relative z-10 order-2 lg:order-1">
-            <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#C9925E]/20 text-[#C9925E] text-[11px] font-semibold uppercase tracking-[0.2em] mb-6">
+            <span
+              :if={@custom_headline}
+              class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#C9925E]/20 text-[#C9925E] text-[11px] font-semibold uppercase tracking-[0.2em] mb-6"
+            >
               <span class="material-symbols-outlined" style="font-size: 14px;">spa</span>
-              Botanical Beauty
+              {@store.name}
             </span>
             <h1 class="beauty-heading text-5xl sm:text-6xl lg:text-7xl font-semibold text-[#FAF6EE] leading-[1.05] mb-6">
-              {if @settings["headline"] not in [nil, ""],
-                do: @settings["headline"],
-                else: @theme.hero.title || "Elevate Your Essence"}
+              {@headline}
             </h1>
-            <p class="text-base sm:text-lg text-[#FAF6EE]/80 leading-relaxed mb-8 max-w-lg">
-              {if @settings["subheadline"] not in [nil, ""],
-                do: @settings["subheadline"],
-                else:
-                  @theme.hero.subtitle ||
-                    @store.description ||
-                    "Botanical skincare and beauty essentials — crafted for melanin-rich skin."}
+            <p
+              :if={@subheadline}
+              class="text-base sm:text-lg text-[#FAF6EE]/80 leading-relaxed mb-8 max-w-lg"
+            >
+              {@subheadline}
             </p>
             <div class="flex flex-col sm:flex-row gap-3">
               <a
@@ -101,12 +116,12 @@ defmodule Emakola.Themes.Beauty.Sections.Hero do
                 </div>
               <% end %>
             </div>
-            <%!-- floating tagline card --%>
-            <div class="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 max-w-[240px] bg-[#3D2F25]/85 backdrop-blur-md rounded-2xl px-5 py-4 text-[#FAF6EE]">
-              <p class="beauty-heading text-sm font-semibold mb-1">Beauty, Personalized Care</p>
-              <p class="text-xs text-[#FAF6EE]/75 leading-relaxed">
-                Each formula is thoughtfully designed to highlight your natural elegance.
-              </p>
+            <%!-- floating tagline card: the merchant's tagline, or no card --%>
+            <div
+              :if={@tagline}
+              class="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 max-w-[240px] bg-[#3D2F25]/85 backdrop-blur-md rounded-2xl px-5 py-4 text-[#FAF6EE]"
+            >
+              <p class="beauty-heading text-sm font-semibold">{@tagline}</p>
             </div>
           </div>
         </div>
@@ -121,6 +136,16 @@ defmodule Emakola.Themes.Beauty.Sections.Hero do
       _ -> true
     end
   end
+
+  defp subheadline(assigns) do
+    first_present([
+      assigns.settings["subheadline"],
+      get_in(assigns.theme, [:hero, :subtitle]),
+      Map.get(assigns.store, :description)
+    ])
+  end
+
+  defp first_present(values), do: Enum.find(values, &Shared.present?/1)
 
   defp hero_image_url(assigns) do
     case assigns.settings["image_url"] do

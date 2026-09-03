@@ -159,11 +159,19 @@ defmodule Emakola.Themes.SikaTest do
   # ── home page through SectionRenderer ───────────────────────────
 
   describe "home render" do
-    test "renders all five sections in order with one h1 and a plainly stated price" do
-      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "sika"}})
+    test "a full collection with a description renders all five sections in order" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "sika"},
+          description: "Third-generation goldsmiths at Ashaiman."
+        })
+
       create_category!(store, %{name: "Rings"})
-      product = create_product!(store, %{title: "Asase Signet", status: :active})
-      create_variant!(product, store, %{price: 12_345, stock_quantity: 3})
+
+      for title <- ["Nsuo Band", "Adinkra Pendant", "Sankofa Hoops", "Asase Signet"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 3})
+      end
 
       html = render_home(store)
 
@@ -175,8 +183,9 @@ defmodule Emakola.Themes.SikaTest do
       assert html =~ "Asase Signet"
       assert html =~ "GH₵ 123.45"
       assert html =~ "tabular-nums"
-      # Maker's mark section
+      # Maker's mark section carries the merchant's own words
       assert html =~ "The maker&#39;s mark"
+      assert html =~ "Third-generation goldsmiths at Ashaiman."
       # Assurance names the real rails; newsletter owns capture
       assert html =~ "MTN MoMo"
       assert html =~ "Telecel Cash"
@@ -188,6 +197,21 @@ defmodule Emakola.Themes.SikaTest do
                html,
                ~r/sika-hero-heading.*Asase Signet.*maker&#39;s mark.*We accept.*sika-newsletter-form/s
              )
+    end
+
+    test "one piece: the collection carries it alone — no maker copy, no newsletter" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "sika"}})
+      product = create_product!(store, %{title: "Asase Signet", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 3})
+
+      html = render_home(store)
+
+      assert html =~ "The collection"
+      assert html =~ "Asase Signet"
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ "sika-maker-heading"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "We accept"
     end
 
     test "no quick add-to-cart on home — pieces are viewed, not grabbed" do
@@ -284,33 +308,40 @@ defmodule Emakola.Themes.SikaTest do
       refute html =~ "animate-pulse"
     end
 
-    test "the price card names and prices the piece — it does not reprint its photograph" do
+    test "never borrows a piece's photograph: the vitrine holds only the merchant's own image" do
       product = component_product(%{images: [%{url: "/uploads/signet.jpg"}]})
 
       html = render_section(Hero, %{store: @component_store, products: [product]})
 
-      # The card used to carry a 48px thumbnail of the very photograph it sits
-      # on top of — the same image twice, a few pixels apart. The vitrine shows
-      # the piece once; the card is its price tag.
-      assert length(String.split(html, "<img")) - 1 == 1
+      # The collection below already carries the piece; a photo appears once.
+      refute html =~ "<img"
+      refute html =~ "signet"
+      refute html =~ "Nsuo Band"
 
-      assert html =~ "Nsuo Band"
-      assert html =~ "GH₵ 4,800"
+      html =
+        render_section(Hero, %{store: @component_store, products: [product]}, %{
+          "image_url" => "/uploads/vitrine.jpg"
+        })
+
+      assert html =~ ~s(src="/uploads/vitrine.jpg")
+      refute html =~ "signet"
     end
   end
 
   # ── collection section ──────────────────────────────────────────
 
   describe "collection section" do
-    test "each piece gets a full row: velvet tray monogram, name, plain price, view link" do
+    test "each piece gets a full row: velvet tray pictogram, name, plain price, view link" do
       html =
         render_section(Collection, %{
           store: @component_store,
           products: [component_product()]
         })
 
-      # Placeholder-first: finished with zero image bytes
+      # Placeholder-first: finished with zero image bytes, and never a letter
       refute html =~ "<img"
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*N\s*</
       assert html =~ "Nsuo Band"
       # 480_000 pesewas stated plainly — no chip, no shouting
       assert html =~ "GH₵ 4,800"
@@ -362,12 +393,10 @@ defmodule Emakola.Themes.SikaTest do
   # ── maker section ───────────────────────────────────────────────
 
   describe "maker section" do
-    test "falls back to neutral copy and shows the maker's mark monogram" do
+    test "renders nothing without a description — no invented welcome copy" do
       html = render_section(Maker, %{store: @component_store})
 
-      assert html =~ "The maker&#39;s mark"
-      assert html =~ "chosen with care"
-      refute html =~ "wa.me/"
+      assert String.trim(html) == ""
     end
 
     test "renders the store description and WhatsApp enquiry when present" do
@@ -433,6 +462,14 @@ defmodule Emakola.Themes.SikaTest do
       html = render_section(Newsletter, %{store: @component_store})
 
       refute html =~ ~r/\d+\s*%|discount|% off|free shipping/i
+    end
+
+    test "waits for a full collection: no form under four pieces" do
+      one = [component_product()]
+      refute render_section(Newsletter, %{store: @component_store, products: one}) =~ "<form"
+
+      four = Enum.map(1..4, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+      assert render_section(Newsletter, %{store: @component_store, products: four}) =~ "<form"
     end
 
     test "a merchant heading replaces the default" do

@@ -6,7 +6,8 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
   it went up within the last 14 days. No countdown to nothing.
 
   Renders nothing without products — the grid section owns the store's
-  empty state, so a brand-new store never shows two of them.
+  empty state, so a brand-new store never shows two of them. The grid
+  below shows the rack minus the drop, so the drop appears once.
   """
   @behaviour Emakola.Themes.Section
 
@@ -16,6 +17,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Chale.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "chale/drop"
@@ -28,13 +30,19 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
   end
 
   @impl true
-  def render(%{products: [product | _rest]} = assigns) do
+  def render(assigns) do
+    case Layout.of(assigns) do
+      %{featured: nil} -> ~H""
+      %{featured: product} -> assigns |> assign(:product, product) |> drop()
+    end
+  end
+
+  defp drop(assigns) do
     assigns =
       assigns
-      |> assign(:product, product)
       |> assign(:heading, heading(assigns.settings))
-      |> assign(:image, Shared.first_image(product))
-      |> assign(:sold_out, Shared.sold_out?(product))
+      |> assign(:image, Shared.first_image(assigns.product))
+      |> assign(:sold_out, Shared.sold_out?(assigns.product))
 
     ~H"""
     <section class="px-4 py-6 sm:px-6 sm:py-8 lg:px-8" aria-labelledby="chale-drop-heading">
@@ -60,14 +68,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
             class="relative block aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-inset md:border-r-2 md:border-[#E3E0DA]"
             aria-label={"View #{@product.title}"}
           >
-            <div
-              class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
-              aria-hidden="true"
-            >
-              <span class="select-none text-9xl font-bold uppercase text-zinc-400 [font-family:var(--chale-display)]">
-                {String.first(@product.title)}
-              </span>
-            </div>
+            <Shared.flyer_placeholder size={:lg} />
             <.optimized_image
               :if={@image}
               src={@image}
@@ -128,8 +129,6 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
     </section>
     """
   end
-
-  def render(assigns), do: ~H""
 
   defp heading(settings) do
     case settings["heading"] do

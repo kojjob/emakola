@@ -106,23 +106,32 @@ defmodule Emakola.Themes.Sika.Shared do
 
   @doc """
   The velvet-tray image placeholder: touchstone green with a faint sheen
-  and the piece's initial inside a hairline assay ring. Absolute-positioned
-  to fill its (relative) parent; a real image layers over it on arrival.
+  and a quiet bag pictogram in caught gold inside a hairline assay ring,
+  marked `data-placeholder`. Never the piece's initial — a letter means
+  nothing to a buyer who reads slowly. Absolute-positioned to fill its
+  (relative) parent; a real image layers over it on arrival.
   """
-  attr :name, :string, required: true
-
   def tray(assigns) do
     ~H"""
-    <div class="absolute inset-0 bg-[#1F332C]" aria-hidden="true">
+    <div class="absolute inset-0 bg-[#1F332C]" data-placeholder="product" aria-hidden="true">
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_25%,rgba(194,161,91,0.18),transparent_65%)]">
       </div>
       <span class="absolute inset-0 flex items-center justify-center">
-        <span class={[
-          "flex h-16 w-16 select-none items-center justify-center rounded-full",
-          "border border-[#C2A15B]/50 text-2xl text-[#EFE9DA]",
-          "[font-family:var(--dt-heading-font,Marcellus,Georgia,serif)]"
-        ]}>
-          {String.first(@name)}
+        <span class="flex h-16 w-16 items-center justify-center rounded-full border border-[#C2A15B]/50 text-[#C2A15B]">
+          <svg
+            class="h-7 w-7"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+            />
+          </svg>
         </span>
       </span>
     </div>
@@ -153,7 +162,7 @@ defmodule Emakola.Themes.Sika.Shared do
         class="group block border border-[#E8E3D9] bg-white p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16] focus-visible:ring-offset-2 sm:p-3"
       >
         <div class="relative aspect-[4/5] overflow-hidden">
-          <.tray name={@product.title} />
+          <.tray />
           <.optimized_image
             :if={@image}
             src={@image}

@@ -6,13 +6,15 @@ defmodule Emakola.Themes.HomeLiving.Sections.Newsletter do
   `EmakolaWeb.Hooks.NewsletterSubscription`. It was inert before: no
   `phx-submit`, no action, so the submit button did nothing at all. Still gated
   by the legacy `@theme.sections.newsletter` toggle underneath the section
-  editor's own `enabled` flag.
+  editor's own `enabled` flag, and shown only once the stall is full enough
+  to have news: four or more products (`Emakola.Themes.Layout`).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "home_living/newsletter"
@@ -32,15 +34,19 @@ defmodule Emakola.Themes.HomeLiving.Sections.Newsletter do
   def render(assigns) do
     assigns =
       assigns
+      |> assign(:layout, Layout.of(assigns))
       |> assign(
         :heading,
         present(assigns.settings["heading"]) || get_in(assigns.theme, [:newsletter, :title]) ||
           "New pieces, in your inbox"
       )
+      # "Restocks, seasonal releases, and home inspiration — once a month"
+      # promised a cadence and content on the merchant's behalf.
       |> assign(
         :subheading,
         present(assigns.settings["subheading"]) ||
-          get_in(assigns.theme, [:newsletter, :subtitle]) || "Restocks and seasonal releases."
+          present(get_in(assigns.theme, [:newsletter, :subtitle])) ||
+          "New products and updates from #{assigns.store.name}, straight to your inbox."
       )
       |> assign(
         :cta_label,
@@ -49,7 +55,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.Newsletter do
       )
 
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :newsletter)} class="bg-[#1F2937] py-14 sm:py-20">
+    <section
+      :if={Shared.section_enabled?(@theme, :newsletter) && @layout.show_newsletter?}
+      class="bg-[#1F2937] py-14 sm:py-20"
+    >
       <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="home-living-heading text-3xl sm:text-4xl font-bold text-white mb-3">
           {@heading}

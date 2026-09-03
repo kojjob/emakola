@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Bold.Sections.Categories do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Bold.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "bold/categories"
@@ -24,11 +25,17 @@ defmodule Emakola.Themes.Bold.Sections.Categories do
 
   @impl true
   def render(assigns) do
-    assigns = assign_new(assigns, :categories, fn -> [] end)
+    assigns =
+      assigns
+      |> assign_new(:categories, fn -> [] end)
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <section
-      :if={Shared.section_enabled?(@theme, :categories) and @categories != []}
+      :if={
+        Shared.section_enabled?(@theme, :categories) and @categories != [] and
+          @layout.show_categories?
+      }
       class="py-8 bg-[#F8FAFC] border-b border-[#E2E8F0]"
       aria-label="Product categories"
     >

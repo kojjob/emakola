@@ -12,6 +12,13 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
   Horizontal scroll is kept on every breakpoint. It is native, costs no
   JavaScript, and is the interaction shoppers on small Android screens
   already expect.
+
+  The gallery joins the page once the stall is full enough to need sorting
+  (`Emakola.Themes.Layout`: four or more products). Covers come from the
+  store's real category covers (`category_photos`, loaded by `StoreLive`),
+  not from the home's own product preview: that preview is what the hero
+  card and the showcase already show, and a home must not show the same
+  photo twice.
   """
   @behaviour Emakola.Themes.Section
 
@@ -19,6 +26,8 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
 
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "heirloom/category_gallery"
@@ -34,16 +43,19 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
   @impl true
   def render(assigns) do
     categories = Map.get(assigns, :categories) || []
-    products = Map.get(assigns, :products) || []
 
     assigns =
       assigns
       |> assign(:categories, categories)
-      |> assign(:covers, covers(categories, products))
+      |> assign(:layout, Layout.of(assigns))
+      |> assign(:covers, Map.get(assigns, :category_photos) || %{})
       |> assign(:heading, present(assigns.settings["heading"]))
 
     ~H"""
-    <section :if={@categories != []} class="bg-[color:var(--hl-bg)] pb-24 sm:pb-32">
+    <section
+      :if={@categories != [] and @layout.show_categories?}
+      class="bg-[color:var(--hl-bg)] pb-24 sm:pb-32"
+    >
       <div class="mx-auto max-w-[1360px] px-5 sm:px-8">
         <h2
           :if={@heading}
@@ -93,36 +105,6 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
       </ul>
     </section>
     """
-  end
-
-  # A category has no image of its own, so each card borrows the first image
-  # from a product filed under it. Categories with no product yet fall back to
-  # the plain tile — a labelled swatch rather than a broken frame.
-  defp covers(categories, products) do
-    by_category =
-      products
-      |> Enum.filter(&Map.get(&1, :category_id))
-      |> Enum.group_by(& &1.category_id)
-
-    for category <- categories, into: %{} do
-      cover =
-        by_category
-        |> Map.get(category.id, [])
-        |> Enum.find_value(&first_image/1)
-
-      {category.id, cover}
-    end
-  end
-
-  defp first_image(product) do
-    case Map.get(product, :images) do
-      [_ | _] = images ->
-        image = images |> Enum.sort_by(& &1.position) |> List.first()
-        image.thumbnail_url || image.url
-
-      _none ->
-        nil
-    end
   end
 
   defp present(value) when is_binary(value) do

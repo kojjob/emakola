@@ -6,11 +6,11 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
   headline, the merchant's photography carried large, and a proof stack that
   closes with the CTA. Carries the page's single `<h1>`.
 
-  **Photo-fallback, not photo-required.** The image resolves: the merchant's own
-  hero upload → the first product's photograph → type alone. Chale's hero was
-  photo-*optional* — it showed an image only if a merchant had set one, which no
-  new store ever had — so in practice every storefront opened on an empty band.
-  A store with a catalogue is never a blank slab here.
+  **Photo-optional, never a borrowed photograph.** The image is the merchant's
+  own hero upload or nothing: with none, the type holds the panel alone. The
+  hero used to fall back to the first product's photograph, which then appeared
+  again in the grid or the wordmark card — the same picture twice on one screen
+  reads as a mistake, and the featured card already carries it.
 
   The CTA links to the server-generated products path. A merchant-controlled
   href would be a stored-XSS sink, so no URL setting exists, and the image
@@ -22,9 +22,6 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
 
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
-
-  alias Emakola.Themes.Akwaaba.Shared
-  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def key, do: "akwaaba/hero"
@@ -44,8 +41,6 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
-
     assigns =
       assigns
       |> assign(:eyebrow, present(assigns.settings["eyebrow"]) || "New season")
@@ -55,12 +50,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop now")
-      |> assign(:hero_product, hero_product)
-      |> assign(
-        :image,
-        valid_image(assigns.settings["image_url"]) ||
-          (hero_product && Shared.first_image(hero_product))
-      )
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
       |> assign(:rating, rating(Map.get(assigns, :products, [])))
 
     ~H"""
@@ -97,8 +87,8 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
             </h1>
           </div>
 
-          <%!-- The photograph. With an empty catalogue this column simply does
-          not render and the type holds the panel alone.
+          <%!-- The photograph. Without a merchant upload this column simply
+          does not render and the type holds the panel alone.
 
           It is ordered LAST on a phone. The photograph is ~500px tall, so
           leading with it pushes "Shop now" — the buy button — below the fold and
@@ -109,39 +99,12 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
           <div :if={@image} class="relative order-3 mx-auto w-full max-w-md lg:order-2 lg:max-w-none">
             <.optimized_image
               src={@image}
-              alt={(@hero_product && @hero_product.title) || @store.name}
+              alt={@store.name}
               priority={:high}
               width={760}
               height={950}
               class="mx-auto aspect-[4/5] w-full rounded-[1.75rem] object-cover shadow-2xl"
             />
-
-            <div
-              :if={@hero_product}
-              class="absolute -bottom-5 left-1/2 flex w-[min(19rem,90%)] -translate-x-1/2 items-center gap-3 rounded-2xl bg-white p-2.5 pr-4 shadow-xl"
-            >
-              <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-[#F6F4F1]">
-                <.optimized_image
-                  src={@image}
-                  alt=""
-                  width={96}
-                  height={96}
-                  class="h-full w-full object-cover"
-                />
-              </div>
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-[color:var(--akwaaba-ink)] [font-family:var(--akwaaba-display)]">
-                  {@hero_product.title}
-                </p>
-                <p class="text-sm font-bold tabular-nums text-[color:var(--akwaaba-sun)]">
-                  {Currency.format_price_range(
-                    @hero_product.min_price,
-                    @hero_product.max_price,
-                    @store.currency
-                  )}
-                </p>
-              </div>
-            </div>
           </div>
 
           <%!-- The proof stack.

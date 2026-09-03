@@ -13,7 +13,8 @@ defmodule Emakola.Themes.Market.Sections.ProductGrid do
 
   use Phoenix.Component
 
-  alias Emakola.Themes.Market.{Components, Layout}
+  alias Emakola.Themes.Layout
+  alias Emakola.Themes.Market.Components
 
   @impl true
   def key, do: "market/product_grid"

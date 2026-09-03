@@ -85,29 +85,55 @@ defmodule Emakola.Themes.BeautySectionsTest do
     }
   }
 
+  # The FAQ is the merchant's questions now. "Do you ship across Ghana?" and
+  # "What is your return policy?" shipped as theme defaults, so every Beauty
+  # store asked and answered them; a store that writes none gets no FAQ.
+  @merchant_faq %{
+    "faq" => %{
+      "items" => [
+        %{
+          question: "Which courier do you use?",
+          answer: "Yango within Accra; Ghana Post everywhere else."
+        }
+      ]
+    }
+  }
+
+  # Four products: the newsletter joins the page at a full stall, so the
+  # characterization store carries one.
   defp seeded_store(config \\ %{}) do
     theme_config = Map.merge(%{"theme" => "beauty"}, config)
     {_merchant, store} = create_merchant_with_store!(%{theme_config: theme_config})
     create_category!(store, %{name: "Shea Butters"})
-    product = create_product!(store, %{title: "Baobab Face Oil", status: :active})
-    create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    stock!(store)
     store
+  end
+
+  defp stock!(store) do
+    for title <- ["Baobab Face Oil", "Shea Whip", "Cocoa Balm", "Baobab Hair Oil"] do
+      product = create_product!(store, %{title: title, status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    end
   end
 
   # ── characterization: today's rendered home, landmark by landmark ──
 
   describe "home render" do
     test "every visual block renders its own copy, verbatim" do
-      html = render_home(seeded_store(@merchant_why_us))
+      store = seeded_store(Map.merge(@merchant_why_us, @merchant_faq))
+      html = render_home(store)
 
       # Nav (chrome, inside the hero band)
       assert html =~ "Book Now"
-      # Hero
-      assert html =~ "Botanical Beauty"
-      assert html =~ "Elevate Your Essence"
+      # Hero — the store's name, never "Elevate Your Essence". The "Botanical
+      # Beauty" badge and the "Beauty, Personalized Care" card spoke for jars
+      # the theme had never seen.
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
+      refute html =~ "Elevate Your Essence"
+      refute html =~ "Botanical Beauty"
+      refute html =~ "Beauty, Personalized Care"
       assert html =~ "Shop the Collection"
       assert html =~ "Our Story"
-      assert html =~ "Beauty, Personalized Care"
       # Featured products
       assert html =~ "Our Products"
       assert html =~ "Curated for your routine"
@@ -124,9 +150,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
       # landmark here is their absence.
       refute html =~ "Akua M."
       refute html =~ "What buyers say"
-      # FAQ
+      # FAQ — the merchant's question; "Do you ship across Ghana?" was the theme's
       assert html =~ "Frequently Asked Questions"
-      assert html =~ "Do you ship across Ghana?"
+      assert html =~ "Which courier do you use?"
+      refute html =~ "Do you ship across Ghana?"
       # Closing CTA
       assert html =~ "Ready when you are."
       assert html =~ "Shop Now"
@@ -141,18 +168,20 @@ defmodule Emakola.Themes.BeautySectionsTest do
     end
 
     test "the hero owns the page's single h1" do
-      html = render_home(seeded_store())
+      store = seeded_store()
+      html = render_home(store)
 
-      assert html =~ ~r/<h1[^>]*>\s*Elevate Your Essence\s*<\/h1>/
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
       assert length(String.split(html, "<h1")) == 2
     end
 
     test "the blocks keep today's visual order" do
-      html = render_home(seeded_store(@merchant_why_us))
+      store = seeded_store(Map.merge(@merchant_why_us, @merchant_faq))
+      html = render_home(store)
 
       assert String.match?(
                html,
-               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why buy from us.*Frequently Asked Questions.*Ready when you are.*Join the list/s
+               ~r/Book Now.*<h1.*#{Regex.escape(store.name)}.*Curated for your routine.*Why buy from us.*Frequently Asked Questions.*Ready when you are.*Join the list/s
              )
     end
 
@@ -163,20 +192,18 @@ defmodule Emakola.Themes.BeautySectionsTest do
     end
 
     test "a section switched off in theme_config disappears, as it does today" do
-      {_merchant, store} =
-        create_merchant_with_store!(%{
-          theme_config: %{
-            "theme" => "beauty",
-            "sections" => %{"testimonials" => false, "faq" => false}
-          }
-        })
+      store =
+        seeded_store(
+          Map.merge(@merchant_faq, %{"sections" => %{"testimonials" => false, "faq" => false}})
+        )
 
       html = render_home(store)
 
       refute html =~ "What buyers say"
       refute html =~ "Frequently Asked Questions"
+      refute html =~ "Which courier do you use?"
       # The rest of the page is untouched
-      assert html =~ "Elevate Your Essence"
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
       assert html =~ "Join the list"
     end
 
@@ -194,7 +221,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       refute html =~ "As featured in"
       # ...and the rest of the page is untouched
-      assert html =~ "Elevate Your Essence"
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
     end
 
     test "the brand strip names the publications the merchant named" do
@@ -219,8 +246,9 @@ defmodule Emakola.Themes.BeautySectionsTest do
       html = render_home(store)
 
       refute html =~ "Curated for your routine"
-      assert html =~ "Elevate Your Essence"
-      assert html =~ "Join the list"
+      assert html =~ ~r/<h1[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
+      # A shop with nothing to sell has no news; the list opens at four products.
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
       # The why-us block is gone with the products: its three cards were claims
       # about formulation, packaging and sourcing that no merchant had written.
       refute html =~ "Why buy from us"
@@ -242,6 +270,31 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Ready when you are"
       refute html =~ "Elevate Your Essence"
       refute html =~ "Ready when you are."
+    end
+
+    test "a store with no description says nothing about itself" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+
+      html = render_home(store)
+
+      refute html =~ "Botanical skincare"
+      refute html =~ "Each formula is thoughtfully designed"
+      refute html =~ "Do you ship across Ghana?"
+      refute html =~ "Frequently Asked Questions"
+    end
+
+    test "the merchant's description and tagline are the hero's and footer's words" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "beauty"},
+          description: "Whipped shea from Tamale, forty jars a week.",
+          tagline: "Small batches, every Friday."
+        })
+
+      html = render_home(store)
+
+      assert html =~ "Whipped shea from Tamale, forty jars a week."
+      assert html =~ "Small batches, every Friday."
     end
   end
 
@@ -283,6 +336,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
   describe "a published layout" do
     test "its settings override the theme copy" do
       {merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+      stock!(store)
 
       layout =
         Beauty
@@ -329,7 +383,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       refute html =~ "What buyers say"
       # why_us now stands before the hero
-      assert String.match?(html, ~r/Why buy from us.*Elevate Your Essence/s)
+      assert String.match?(html, ~r/Why buy from us.*<h1[^>]*>\s*#{Regex.escape(store.name)}/s)
     end
   end
 end

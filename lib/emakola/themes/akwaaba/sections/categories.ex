@@ -4,8 +4,10 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
 
   Each tile borrows the photograph of a product in that category, so a merchant
   gets a photo-led category rail without having to shoot category art they do
-  not have. With no photo at all the tile falls back to a warm ground and the
-  category's initial.
+  not have. With no photo at all the tile falls back to a warm ground — plain,
+  with no initial cut into it: a letter means nothing to a buyer who reads
+  slowly. The rail joins the page once the shop is a full stall (four or more
+  products).
   """
   @behaviour Emakola.Themes.Section
 
@@ -14,6 +16,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Akwaaba.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "akwaaba/categories"
@@ -28,8 +31,8 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
   @impl true
   def render(assigns) do
     assigns =
-      assign(
-        assigns,
+      assigns
+      |> assign(
         :tiles,
         tiles(
           assigns.categories,
@@ -37,10 +40,11 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
           Map.get(assigns, :category_photos) || %{}
         )
       )
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <section
-      :if={@tiles != []}
+      :if={@tiles != [] and @layout.show_categories?}
       class="bg-white px-5 pb-4 [font-family:var(--akwaaba-body)] sm:px-10"
       aria-labelledby="akwaaba-categories-heading"
     >
@@ -61,18 +65,15 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
               <%!-- A category can only borrow a photograph from a product the
               home page happens to have loaded, and Category carries no image of
               its own. So a photo-less tile must look *designed*, not failed: a
-              warm terracotta ground with the category's initial cut into it,
-              carrying the same label and pill as its photographed neighbours.
-              A grid where some tiles look finished and others look empty reads
-              as a bug even when it is working. --%>
+              warm terracotta ground carrying the same label and pill as its
+              photographed neighbours — and no initial, which is nothing to a
+              buyer who reads slowly. A grid where some tiles look finished and
+              others look empty reads as a bug even when it is working. --%>
               <div
                 :if={is_nil(image)}
-                class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#F3D3C0] via-[#E9B99F] to-[#D99873]"
+                class="absolute inset-0 bg-gradient-to-br from-[#F3D3C0] via-[#E9B99F] to-[#D99873]"
                 aria-hidden="true"
               >
-                <span class="select-none text-7xl text-white/70 [font-family:var(--akwaaba-display)]">
-                  {String.first(category.name)}
-                </span>
               </div>
 
               <Shared.photo_or_initial

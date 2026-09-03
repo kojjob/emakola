@@ -10,7 +10,7 @@ defmodule Emakola.Themes.Market.Sections.Newsletter do
 
   use Phoenix.Component
 
-  alias Emakola.Themes.Market.Layout
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "market/newsletter"

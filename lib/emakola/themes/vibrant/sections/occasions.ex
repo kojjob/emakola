@@ -3,7 +3,8 @@ defmodule Emakola.Themes.Vibrant.Sections.Occasions do
   Vibrant occasion edits — the store's root categories as full-bleed tiles.
 
   Gated by the theme's `categories` toggle, and hidden outright when the shop
-  has no categories to show.
+  has no categories to show or too few products to need sorting
+  (`Emakola.Themes.Layout`: four or more).
   """
   @behaviour Emakola.Themes.Section
 
@@ -11,6 +12,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Occasions do
 
   import EmakolaWeb.StorefrontComponents, only: [occasion_collection_tile: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
 
   @impl true
@@ -22,7 +24,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Occasions do
   @impl true
   def settings_schema do
     [
-      %{key: "eyebrow", type: :string, label: "Eyebrow", default: "Curated Edits"},
+      %{key: "eyebrow", type: :string, label: "Eyebrow", default: ""},
       %{key: "heading", type: :string, label: "Heading", default: "Shop the moments"},
       %{key: "limit", type: :integer, label: "Tiles shown", default: 6}
     ]
@@ -33,14 +35,17 @@ defmodule Emakola.Themes.Vibrant.Sections.Occasions do
     categories = Map.get(assigns, :categories) || []
     settings = assigns[:settings] || %{}
 
+    # "Curated Edits" claimed someone curated these; they are the store's
+    # categories. No eyebrow unless the merchant writes one.
     assigns =
       assigns
       |> assign(:categories, categories)
       |> assign(
         :enabled,
-        Shared.section_enabled?(assigns.theme, :categories) and categories != []
+        Shared.section_enabled?(assigns.theme, :categories) and
+          Layout.of(assigns).show_categories?
       )
-      |> assign(:eyebrow, present(settings["eyebrow"]) || "Curated Edits")
+      |> assign(:eyebrow, present(settings["eyebrow"]))
       |> assign(:heading, present(settings["heading"]) || "Shop the moments")
       |> assign(:limit, limit(settings["limit"]))
 
@@ -48,7 +53,10 @@ defmodule Emakola.Themes.Vibrant.Sections.Occasions do
     <section :if={@enabled} class="py-10 sm:py-14 bg-[#FFFBEB]" aria-labelledby="vibrant-occasions">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-6 sm:mb-8">
-          <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2">
+          <p
+            :if={@eyebrow}
+            class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2"
+          >
             {@eyebrow}
           </p>
           <h2

@@ -3,15 +3,18 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
   Chale home product grid — 2 / 3 / 4 columns of square pasted-flyer
   cards with quick add-to-cart (the home LiveView handles `add_to_cart`).
 
-  A store with zero products renders an intentional setting-up state
-  instead of nothing — a brand-new store must never look broken to its
-  first visitor (or to the merchant previewing it).
+  The grid shows the rack minus the drop, so nothing on the page appears
+  twice; with a single product the drop carries it and the grid stays out
+  of the way. A store with zero products renders an intentional setting-up
+  state instead of nothing — a brand-new store must never look broken to
+  its first visitor (or to the merchant previewing it).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   alias Emakola.Themes.Chale.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "chale/grid"
@@ -25,9 +28,11 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={@products != []}
+      :if={@layout.grid_products != []}
       class="px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="chale-grid-heading"
     >
@@ -40,7 +45,7 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
         </h2>
         <div class="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
           <Shared.product_card
-            :for={product <- @products}
+            :for={product <- @layout.grid_products}
             product={product}
             store={@store}
             quick_add
@@ -49,7 +54,7 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
       </div>
     </section>
     <section
-      :if={@products == []}
+      :if={@layout.count == 0}
       class="px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="chale-grid-empty-heading"
     >

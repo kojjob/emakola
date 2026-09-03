@@ -16,6 +16,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Item
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "home_living/category_strip"
@@ -27,7 +28,12 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :rooms, rooms_items(assigns.theme, assigns[:categories] || []))
+    assigns =
+      assign(
+        assigns,
+        :rooms,
+        rooms_items(assigns.theme, assigns[:categories] || [], Layout.of(assigns))
+      )
 
     ~H"""
     <section :if={@rooms != []} class="bg-white py-10 sm:py-12 border-b border-[#E5E7EB]">
@@ -62,19 +68,25 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
   end
 
   # The grid used to invent four furniture rooms for every shop wearing the
-  # theme. The default is now the store's real categories; a shop with none
-  # shows no grid at all.
-  defp rooms_items(theme, categories) do
-    case get_in(theme, [:rooms, :items]) do
-      items when is_list(items) and items != [] ->
-        items
+  # theme. The merchant's own rooms always show; otherwise the store's real
+  # categories fill it once the stall is full enough to need sorting
+  # (`Layout`: four or more products), and a shop with none shows no grid.
+  defp rooms_items(theme, categories, layout) do
+    merchant_items = get_in(theme, [:rooms, :items])
 
-      _ ->
+    cond do
+      is_list(merchant_items) and merchant_items != [] ->
+        merchant_items
+
+      layout.show_categories? ->
         categories
         |> Enum.take(4)
         |> Enum.map(fn category ->
           %{name: category.name, icon: "category", href: "/category/#{category.slug}"}
         end)
+
+      true ->
+        []
     end
   end
 end

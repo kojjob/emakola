@@ -7,6 +7,9 @@ defmodule Emakola.Themes.Adwuma.Sections.Hero do
   exists. It also removes an upload, a bandwidth cost and a URL-injection
   surface from the most-viewed element on the site.
 
+  The subheading is the merchant's own: their setting first, then the store
+  description, and nothing at all when they wrote neither.
+
   The pill badges carry only platform-true facts. There is deliberately no
   "24/7 support" pill — no merchant promised that, and `reply within` is in the
   banned-promise regex for good reason.
@@ -33,7 +36,10 @@ defmodule Emakola.Themes.Adwuma.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :heading, heading(assigns))
+    assigns =
+      assigns
+      |> assign(:heading, heading(assigns))
+      |> assign(:subheading, subheading(assigns))
 
     ~H"""
     <section class="relative overflow-hidden bg-[color:var(--adw-bg)] [font-family:var(--adw-body)]">
@@ -48,11 +54,8 @@ defmodule Emakola.Themes.Adwuma.Sections.Hero do
             {@heading}
           </h1>
 
-          <p
-            :if={@settings["subheading"] not in [nil, ""]}
-            class="mx-auto mt-4 max-w-xl text-base text-[color:var(--adw-muted)]"
-          >
-            {@settings["subheading"]}
+          <p :if={@subheading} class="mx-auto mt-4 max-w-xl text-base text-[color:var(--adw-muted)]">
+            {@subheading}
           </p>
 
           <a
@@ -88,6 +91,16 @@ defmodule Emakola.Themes.Adwuma.Sections.Hero do
       true -> assigns.store.name
     end
   end
+
+  defp subheading(assigns) do
+    present(assigns.settings["subheading"]) || present(Map.get(assigns.store, :description))
+  end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   defp badges, do: ["Mobile money", "Secure checkout", "Your own library"]
 end

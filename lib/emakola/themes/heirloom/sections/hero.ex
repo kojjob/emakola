@@ -3,12 +3,20 @@ defmodule Emakola.Themes.Heirloom.Sections.Hero do
   Full-bleed photograph, headline over it, and a floating card for one real
   product.
 
+  The photograph is only ever one the merchant chose. The headline reads as
+  the store's own name and the supporting text as its description until the
+  merchant writes their own — no line the theme wrote speaks for a store.
+
   Three pieces are data-dependent and each disappears on its own:
 
-  - the room pills are the store's own categories, and are hidden below two
-    (a single pill is a label, not a filter)
-  - the floating card is the store's first product, with its real name and
-    its real price — hidden when the store has no products
+  - the room pills are the store's own categories, hidden below two (a single
+    pill is a label, not a filter) and until the stall is full enough to need
+    sorting (`Emakola.Themes.Layout`: four or more products)
+  - the floating card is Heirloom's featured card: the catalogue's first
+    product (`Layout.featured`), with its real name and its real price, which
+    the showcase below then leaves out so nothing is shown twice. A
+    one-product shop is carried by this card alone; a store with no products
+    has no card
   - the was-price only appears when the variant genuinely carries a higher
     `compare_at_price`
 
@@ -24,6 +32,7 @@ defmodule Emakola.Themes.Heirloom.Sections.Hero do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Heirloom.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "heirloom/hero"
@@ -44,18 +53,23 @@ defmodule Emakola.Themes.Heirloom.Sections.Hero do
   @impl true
   def render(assigns) do
     store = assigns.store
-    products = Map.get(assigns, :products) || []
     categories = Map.get(assigns, :categories) || []
     hero = get_in(assigns.theme, [:hero]) || %{}
+    layout = Layout.of(assigns)
 
-    featured = List.first(products)
+    featured = layout.featured
 
     assigns =
       assigns
-      |> assign(:heading, present(assigns.settings["heading"]) || present(hero[:title]) || "")
+      |> assign(:layout, layout)
+      |> assign(
+        :heading,
+        present(assigns.settings["heading"]) || present(hero[:title]) || store.name
+      )
       |> assign(
         :subheading,
-        present(assigns.settings["subheading"]) || present(hero[:subtitle]) || ""
+        present(assigns.settings["subheading"]) || present(hero[:subtitle]) ||
+          present(Map.get(store, :description)) || ""
       )
       |> assign(:cta_text, present(assigns.settings["cta_text"]) || "Shop the collection")
       |> assign(
@@ -84,7 +98,7 @@ defmodule Emakola.Themes.Heirloom.Sections.Hero do
 
       <div class="mx-auto flex min-h-[38rem] max-w-[1360px] flex-col justify-end px-5 pb-14 pt-32 sm:px-8 lg:min-h-[46rem] lg:pb-20">
         <div
-          :if={length(@pills) > 1}
+          :if={length(@pills) > 1 and @layout.show_categories?}
           class="mb-8 flex flex-wrap gap-1 self-start rounded-full bg-white/15 p-1 backdrop-blur"
         >
           <a
@@ -131,12 +145,36 @@ defmodule Emakola.Themes.Heirloom.Sections.Hero do
           >
             <div class="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[color:var(--hl-tile)]">
               <.optimized_image
+                :if={hero_thumb(@featured)}
                 src={hero_thumb(@featured)}
                 alt=""
                 width={160}
                 height={160}
                 class="h-full w-full object-cover"
               />
+              <%!-- No photo yet: a quiet pictogram on the tile, never the
+                   product's initial. --%>
+              <div
+                :if={!hero_thumb(@featured)}
+                class="flex h-full w-full items-center justify-center"
+                data-placeholder="product"
+                aria-hidden="true"
+              >
+                <svg
+                  class="h-8 w-8 text-[color:var(--hl-muted)]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+                  />
+                </svg>
+              </div>
             </div>
             <div class="min-w-0">
               <p class="truncate text-base text-[color:var(--hl-ink)] [font-family:var(--hl-display)]">

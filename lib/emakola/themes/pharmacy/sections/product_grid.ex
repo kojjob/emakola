@@ -1,7 +1,8 @@
 defmodule Emakola.Themes.Pharmacy.Sections.ProductGrid do
   @moduledoc """
-  Pharmacy home product grid — the products the trending strip did not take
-  (up to twelve more). Extracted verbatim from `pharmacy/home.ex`.
+  Pharmacy home product grid — the products neither "From our shelves" (the
+  featured product plus three) nor the highlight cards (the next three) took,
+  up to twelve more, so nothing on the home appears twice.
 
   Shares the legacy `@theme.sections.featured_products` toggle with the
   trending strip, exactly as before.
@@ -10,6 +11,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.ProductGrid do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -23,7 +25,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.ProductGrid do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :grid_products, Enum.drop(Map.get(assigns, :products) || [], 4))
+    assigns = assign(assigns, :grid_products, Enum.drop(Layout.of(assigns).grid_products, 6))
 
     ~H"""
     <section

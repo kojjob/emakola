@@ -17,6 +17,7 @@ defmodule Emakola.Themes.Atelier.Home do
   alias Phoenix.LiveView.JS
   alias Emakola.Themes.Atelier.Shared
   alias Emakola.Themes.Delivery
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   @doc """
@@ -36,7 +37,10 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Atelier)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Atelier)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="atelier-body">
@@ -63,7 +67,7 @@ defmodule Emakola.Themes.Atelier.Home do
         store={@store}
         categories={@categories}
         theme={@theme}
-        hide_newsletter={Shared.section_enabled?(@theme, :newsletter)}
+        hide_newsletter={Shared.section_enabled?(@theme, :newsletter) or not @layout.show_newsletter?}
       />
     </div>
     """

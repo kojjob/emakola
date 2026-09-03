@@ -90,12 +90,17 @@ defmodule Emakola.Themes.Heirloom do
         on_dark: "#FFFFFF"
       },
       fonts: %{heading: "Outfit", body: "Outfit"},
+      # `title: nil` and `subtitle: nil` — the hero reads as the store's own
+      # name and description until the merchant writes a headline. It used to
+      # ship "Furniture with a soul" / "Pieces chosen to last, for the way you
+      # actually live." to every store, whatever it sold. The keys stay for
+      # the reason given above.
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "Furniture with a soul",
-        subtitle: "Pieces chosen to last, for the way you actually live.",
+        title: nil,
+        subtitle: nil,
         cta_text: "Shop the collection",
         cta_url: "/products"
       },
@@ -198,7 +203,8 @@ defmodule Emakola.Themes.Heirloom do
     Shared.footer(%{
       __changed__: nil,
       store: assigns.store,
-      categories: Map.get(assigns, :categories) || []
+      categories: Map.get(assigns, :categories) || [],
+      hide_newsletter: false
     })
   end
 end

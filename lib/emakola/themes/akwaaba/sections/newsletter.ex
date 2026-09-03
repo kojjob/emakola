@@ -5,10 +5,15 @@ defmodule Emakola.Themes.Akwaaba.Sections.Newsletter do
   `subscribe_newsletter` is handled by `EmakolaWeb.Hooks.NewsletterSubscription`,
   attached to every storefront live_session. A `phx-submit` naming any other
   event would crash the page — five themes once shipped exactly that.
+
+  Shown only once the shop is a full stall with news to send: four or more
+  products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "akwaaba/newsletter"
@@ -31,8 +36,11 @@ defmodule Emakola.Themes.Akwaaba.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
+      :if={@layout.show_newsletter?}
       class="bg-white px-5 pb-16 [font-family:var(--akwaaba-body)] sm:px-10"
       aria-labelledby="akwaaba-newsletter-heading"
     >

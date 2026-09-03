@@ -1,7 +1,7 @@
-defmodule Emakola.Themes.Market.LayoutTest do
+defmodule Emakola.Themes.LayoutTest do
   use ExUnit.Case, async: true
 
-  alias Emakola.Themes.Market.Layout
+  alias Emakola.Themes.Layout
 
   defp product(id) do
     %{id: id, title: "Product #{id}", slug: "p#{id}", min_price: 100, max_price: 100, images: []}

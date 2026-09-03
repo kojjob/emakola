@@ -5,8 +5,9 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
   Carries the page's `<h1>`. Deliberately short on a phone: a hungry
   customer should reach the menu in one thumb-flick. Photo-optional by
   design — with no image the signboard is pure paint: the store's name at
-  display scale in chalk on the bottle-green board. WhatsApp ordering is a
-  first-class action beside the menu CTA, never a footnote.
+  display scale in chalk on the bottle-green board. It never borrows a
+  dish's photograph: the special below already carries it. WhatsApp
+  ordering is a first-class action beside the menu CTA, never a footnote.
 
   The CTA links only to the server-generated products path — a
   merchant-controlled href here would be a stored-XSS sink, so no URL
@@ -39,12 +40,6 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
-    # if the merchant had set one in the editor — which no new store has — so
-    # every real storefront opened on an empty band. It now falls back to the
-    # shop's own first product photograph.
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
-
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -56,12 +51,7 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop now")
-      |> assign(:hero_product, hero_product)
-      |> assign(
-        :image,
-        valid_image(assigns.settings["image_url"]) ||
-          (hero_product && Emakola.Themes.Dede.Shared.first_image(hero_product))
-      )
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
       |> assign(:whatsapp, Shared.whatsapp_link(assigns.store))
 
     ~H"""
@@ -114,25 +104,12 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
           <div class="overflow-hidden rounded-2xl border-2 border-[#F3EDDF]/15">
             <.optimized_image
               src={@image}
-              alt={(@hero_product && @hero_product.title) || "#{@store.name} kitchen"}
+              alt={"#{@store.name} kitchen"}
               priority={:high}
               width={512}
               height={512}
               class="aspect-square w-full object-cover"
             />
-          </div>
-          <div
-            :if={@hero_product}
-            class="absolute -bottom-4 -left-3 max-w-[13rem] rounded-xl bg-[#F3EDDF] px-4 py-2.5 shadow-lg"
-          >
-            <p class="truncate text-xs font-semibold text-[#2B1B12]">{@hero_product.title}</p>
-            <p class="text-xs font-bold tabular-nums text-store-accent">
-              {EmakolaWeb.Helpers.Currency.format_price_range(
-                @hero_product.min_price,
-                @hero_product.max_price,
-                @store.currency
-              )}
-            </p>
           </div>
         </div>
       </div>

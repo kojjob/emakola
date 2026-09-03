@@ -61,7 +61,11 @@ defmodule Emakola.Themes.Bold do
         images: [],
         carousel: false,
         title: "The Edit",
-        subtitle: "Curated goods for the discerning eye",
+        # "Curated goods for the discerning eye" stood under every Bold store's
+        # name. The hero now falls back to the store's own description; blank,
+        # but the key must stay — ThemeResolver.deep_merge_atomize/2 drops any
+        # override whose key is absent from the defaults.
+        subtitle: nil,
         cta_text: "Shop the Collection",
         cta_url: "/products"
       },
@@ -118,10 +122,13 @@ defmodule Emakola.Themes.Bold do
   end
 
   def storefront_footer(assigns) do
+    # A direct call applies no attr defaults. Pages other than the home know
+    # nothing of the catalogue, so the footer keeps its mini subscribe form.
     Emakola.Themes.Bold.Shared.footer(%{
       __changed__: nil,
       store: assigns.store,
-      categories: Map.get(assigns, :categories) || []
+      categories: Map.get(assigns, :categories) || [],
+      newsletter: true
     })
   end
 end

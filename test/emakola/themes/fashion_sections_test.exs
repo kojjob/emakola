@@ -32,8 +32,9 @@ defmodule Emakola.Themes.FashionSectionsTest do
     on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
   end
 
-  # The new-arrivals band takes products 5..8, so a store needs more than four
-  # products before the whole page is on screen.
+  # No product appears twice on the home: the lookbook takes the first four,
+  # the edit grid the next eight, the restock band the four after that. A
+  # store needs sixteen products before the whole page is on screen.
   # The editorial intro and the brand story are the merchant's own words now.
   # They used to be theme defaults that credited two workshops which do not
   # exist ("the Mensah collective", "the Kwame house") and told every shopper the
@@ -53,7 +54,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: theme_config})
     create_category!(store, %{name: "Ankara"})
 
-    for n <- 1..6 do
+    for n <- 1..16 do
       product = create_product!(store, %{title: "Kente Wrap #{n}", status: :active})
       create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
     end
@@ -154,13 +155,14 @@ defmodule Emakola.Themes.FashionSectionsTest do
       refute html =~ "Volume IV"
     end
 
-    test "an empty store keeps the hero and newsletter, and claims nothing" do
+    test "an empty store keeps the hero, claims nothing, and asks for no email" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fashion"}})
 
       html = render_home(store)
 
       assert html =~ "The new collection"
-      assert html =~ "First access. No noise."
+      # A shop with nothing to sell has no news; the list opens at four products.
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
       # The editorial intro and brand story are gone: both were claims about who
       # made the clothes, and this merchant has made none.
       refute html =~ "Curated drops, made by hand."
@@ -187,13 +189,10 @@ defmodule Emakola.Themes.FashionSectionsTest do
     end
 
     test "merchant theme copy overrides the defaults" do
-      {_merchant, store} =
-        create_merchant_with_store!(%{
-          theme_config: %{
-            "theme" => "fashion",
-            "hero" => %{"title" => "Cloth with a name", "cta_text" => "See the drop"},
-            "newsletter" => %{"title" => "The dispatch"}
-          }
+      store =
+        seeded_store!(%{
+          "hero" => %{"title" => "Cloth with a name", "cta_text" => "See the drop"},
+          "newsletter" => %{"title" => "The dispatch"}
         })
 
       html = render_home(store)
@@ -202,6 +201,42 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert html =~ "See the drop"
       assert html =~ "The dispatch"
       refute html =~ "Made by Tailors. Worn by You."
+    end
+
+    test "the hero speaks the merchant's description, never the theme's sample line" do
+      {_merchant, bare} = create_merchant_with_store!(%{theme_config: %{"theme" => "fashion"}})
+
+      {_merchant, described} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "fashion"},
+          description: "Slow fashion from a two-room studio in Osu."
+        })
+
+      # "Ankara, kente and ready-to-wear." stood under every Fashion store's
+      # name, including the ones selling shoes.
+      refute render_home(bare) =~ "Ankara, kente and ready-to-wear."
+      assert render_home(described) =~ "Slow fashion from a two-room studio in Osu."
+    end
+
+    test "a full page carries every product exactly once" do
+      store = seeded_store!()
+
+      html = render_home(store)
+
+      products =
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+        |> Ash.read!(authorize?: false)
+
+      assert length(products) == 16
+      assert html =~ "Back in stock, briefly."
+
+      for product <- products do
+        href = ~s(href="/s/#{store.slug}/products/#{product.slug}")
+
+        assert length(String.split(html, href)) - 1 == 1,
+               "#{product.title} should link from exactly one place on the home"
+      end
     end
   end
 

@@ -4,11 +4,15 @@ defmodule Emakola.Themes.Depot.Sections.Newsletter do
   restock signal, not a marketing splash. The form fires
   `subscribe_newsletter`, handled platform-wide by
   `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view handler needed.
-  Copy is honest: updates from this store, nothing else promised.
+  Copy is honest: updates from this store, nothing else promised. Shown
+  only once the depot carries enough stock to have news: four or more
+  products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "depot/newsletter"
@@ -22,8 +26,11 @@ defmodule Emakola.Themes.Depot.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
+      :if={@layout.show_newsletter?}
       class="bg-[#FAF9F7] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-newsletter-heading"
     >

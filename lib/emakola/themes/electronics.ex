@@ -61,12 +61,15 @@ defmodule Emakola.Themes.Electronics do
         heading: "Outfit",
         body: "Inter"
       },
+      # `title: nil` and `subtitle: nil` — the hero reads as the store's own
+      # name and description until the merchant writes a headline. It used to
+      # ship "Shop the latest" / "New things land here first." to every shop.
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "Shop the latest",
-        subtitle: "New things land here first.",
+        title: nil,
+        subtitle: nil,
         cta_text: "Shop Now",
         cta_url: "/products"
       },
@@ -107,14 +110,19 @@ defmodule Emakola.Themes.Electronics do
         subtitle: nil,
         items: []
       },
+      # The band renders only over the merchant's own heading: "Explore our
+      # latest collection of electronics" spoke for every shop wearing the
+      # theme, whatever it sold.
       cta_band: %{
-        title: "Explore our latest collection",
-        subtitle: "of electronics",
+        title: nil,
+        subtitle: nil,
         button_text: "Shop the Collection"
       },
+      # No "exclusive offers" promised on the merchant's behalf; blank, the
+      # section says only what it can — updates from this store.
       newsletter: %{
         title: "Subscribe to our newsletter",
-        subtitle: "New launches and exclusive offers, delivered to your inbox.",
+        subtitle: nil,
         button_text: "Subscribe"
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},

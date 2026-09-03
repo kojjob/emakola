@@ -1,8 +1,8 @@
 defmodule Emakola.Themes.Electronics.Sections.Bestsellers do
   @moduledoc """
   Electronics home "Best selling product" grid -- extracted verbatim from
-  electronics/home.ex. It shows the three products after the four the
-  popular grid already carries.
+  electronics/home.ex. It shows the three products after the featured and
+  immersive blocks (`Helpers.slots/1`), so nothing is shown twice.
   """
   @behaviour Emakola.Themes.Section
 
@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Electronics.Sections.Bestsellers do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Electronics.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "electronics/bestsellers"
@@ -25,11 +26,11 @@ defmodule Emakola.Themes.Electronics.Sections.Bestsellers do
 
   @impl true
   def render(assigns) do
-    # These are products 5-7 in catalog order. Nothing here is derived from
+    # These are the next products in catalog order. Nothing here is derived from
     # sales: the platform knows what each store has sold, and this never asked.
     # Calling them "Best selling" told every shopper a fact about a ranking that
     # does not exist. They are simply more of the shop, so that is what they say.
-    best_sellers = assigns[:products] |> Kernel.||([]) |> Enum.drop(4) |> Enum.take(3)
+    best_sellers = assigns |> Layout.of() |> slots() |> Map.fetch!(:more)
 
     assigns =
       assigns

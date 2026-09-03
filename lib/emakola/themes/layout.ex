@@ -1,6 +1,7 @@
-defmodule Emakola.Themes.Market.Layout do
+defmodule Emakola.Themes.Layout do
   @moduledoc """
-  What the Market home shows for the catalogue it actually has.
+  What a storefront home shows for the catalogue it actually has. Shared by
+  every theme; each theme's sections consult it.
 
   Most live shops carry one or two products, so the page must look finished
   at one product and grow from there, never showing the same product twice

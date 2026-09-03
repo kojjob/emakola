@@ -7,7 +7,8 @@ defmodule Emakola.Themes.Fie.Sections.CollectionIndex do
   and an arrow into the category page. The numbering encodes true
   structure (a décor catalogue genuinely is an indexed collection), so
   when the store has no collections the section withdraws entirely
-  rather than render fake numbers.
+  rather than render fake numbers. It also waits for a catalogue full
+  enough to index: four or more pieces.
   """
   @behaviour Emakola.Themes.Section
 
@@ -16,6 +17,7 @@ defmodule Emakola.Themes.Fie.Sections.CollectionIndex do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fie.Components
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fie/collections"
@@ -29,9 +31,11 @@ defmodule Emakola.Themes.Fie.Sections.CollectionIndex do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="border-b border-[#EBDAD3] bg-[#FDFCFB]"
       aria-labelledby="fie-collections-heading"
     >

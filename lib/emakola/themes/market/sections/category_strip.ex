@@ -11,7 +11,8 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
-  alias Emakola.Themes.Market.{Layout, Shared}
+  alias Emakola.Themes.Layout
+  alias Emakola.Themes.Market.Shared
 
   @impl true
   def key, do: "market/category_strip"

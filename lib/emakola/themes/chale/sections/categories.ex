@@ -2,13 +2,16 @@ defmodule Emakola.Themes.Chale.Sections.Categories do
   @moduledoc """
   Chale home category rail — chunky uppercase tags in a horizontal scroll,
   like flyers pinned in a row. Hover inverts to black. Hidden entirely
-  when the store has no categories.
+  when the store has no categories, and until the rack is full enough to
+  sort: four or more products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "chale/categories"
@@ -20,9 +23,11 @@ defmodule Emakola.Themes.Chale.Sections.Categories do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <nav
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="border-b border-[#E3E0DA] bg-white py-4"
       aria-label="Product categories"
     >

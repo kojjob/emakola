@@ -5,7 +5,8 @@ defmodule Emakola.Themes.Dede.Sections.Special do
   Features the first *available* product (sold-out dishes never headline)
   with the fastest possible order: price, one-tap add, and WhatsApp when
   the store has a number. Renders nothing when no dish is available — the
-  menu section owns the empty state.
+  menu section owns the empty state. The board below lists every other
+  dish, so the special is chalked once on the page (`Shared.special/1`).
   """
   @behaviour Emakola.Themes.Section
 
@@ -29,7 +30,7 @@ defmodule Emakola.Themes.Dede.Sections.Special do
 
   @impl true
   def render(assigns) do
-    special = Enum.find(assigns.products, &(!Shared.sold_out?(&1)))
+    special = Shared.special(assigns.products)
 
     assigns =
       assigns
@@ -59,6 +60,7 @@ defmodule Emakola.Themes.Dede.Sections.Special do
               height={96}
               class="h-20 w-20 flex-shrink-0 rounded-full border-2 border-[#26211A]/15 object-cover sm:h-24 sm:w-24"
             />
+            <Shared.dish_placeholder :if={!@image} class="h-20 w-20 sm:h-24 sm:w-24" />
             <div class="min-w-0 flex-1">
               <h2
                 id="dede-special-heading"

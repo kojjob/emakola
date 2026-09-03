@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
   alias Emakola.Themes.SectionRenderer
 
@@ -23,7 +24,10 @@ defmodule Emakola.Themes.Pharmacy.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Pharmacy)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Pharmacy)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="pharmacy-body min-h-screen">

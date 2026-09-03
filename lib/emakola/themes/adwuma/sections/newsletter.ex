@@ -6,10 +6,15 @@ defmodule Emakola.Themes.Adwuma.Sections.Newsletter do
   on every storefront live_session. A `phx-submit` naming any other event, or an
   input without `name="email"`, is a form that silently swallows what a shopper
   types — `no_dead_forms_test` asserts both literals.
+
+  Shown only once the shop is a full stall with news to send: four or more
+  products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "adwuma/newsletter"
@@ -32,8 +37,13 @@ defmodule Emakola.Themes.Adwuma.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="relative overflow-hidden bg-[color:var(--adw-bg)] px-4 py-20 [font-family:var(--adw-body)] sm:px-6">
+    <section
+      :if={@layout.show_newsletter?}
+      class="relative overflow-hidden bg-[color:var(--adw-bg)] px-4 py-20 [font-family:var(--adw-body)] sm:px-6"
+    >
       <div class="absolute inset-0 -z-10 opacity-60" style="background-image: var(--adw-mesh)"></div>
 
       <div class="mx-auto max-w-xl text-center">

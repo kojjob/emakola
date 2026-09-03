@@ -1,6 +1,8 @@
 defmodule Emakola.Themes.Vibrant.Sections.Featured do
   @moduledoc """
-  Vibrant featured product — the refined hero card for the shop's first product.
+  Vibrant featured product — the refined hero card for the shop's first product
+  (`Emakola.Themes.Layout`), which the pair and the grid leave out so nothing
+  is shown twice; a one-product shop is carried by this card alone.
 
   Carries the kente pattern divider that has always preceded it. The divider is
   deliberately outside the section's gate: on the pre-section home it rendered
@@ -16,6 +18,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
   import EmakolaWeb.StorefrontComponents,
     only: [optimized_image: 1, pattern_divider: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -30,7 +33,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
 
   @impl true
   def render(assigns) do
-    featured = assigns |> Map.get(:products) |> List.wrap() |> List.first()
+    featured = Layout.of(assigns).featured
 
     assigns =
       assigns
@@ -72,7 +75,12 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
           priority={:high}
           class="w-full h-full object-cover"
         />
-        <div :if={!@image} class="w-full h-full flex items-center justify-center">
+        <div
+          :if={!@image}
+          class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
+        >
           <svg class="w-16 h-16 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

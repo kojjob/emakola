@@ -1,7 +1,9 @@
 defmodule Emakola.Themes.Electronics.Sections.Featured do
   @moduledoc """
   Electronics home "Popular product" grid plus the featured-deal split card
-  -- extracted verbatim from electronics/home.ex.
+  -- extracted verbatim from electronics/home.ex. The deal card takes the
+  catalogue's first product and the grid the next four (`Helpers.slots/1`),
+  so a one-product shop gets the deal card alone and nothing shows twice.
   """
   @behaviour Emakola.Themes.Section
 
@@ -11,6 +13,7 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Electronics.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "electronics/featured"
@@ -24,18 +27,18 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
 
   @impl true
   def render(assigns) do
-    products = assigns[:products] || []
+    slots = assigns |> Layout.of() |> slots()
 
     assigns =
       assigns
-      |> assign(:featured_products, Enum.take(products, 4))
-      |> assign(:featured_deal, List.first(products))
+      |> assign(:featured_products, slots.featured_grid)
+      |> assign(:featured_deal, slots.deal)
       |> assign(:heading, setting(assigns[:settings], "heading", "Featured products"))
 
     ~H"""
     <%!-- POPULAR PRODUCTS GRID + FEATURED DEAL --%>
     <section
-      :if={section_enabled?(@theme, :featured_products) && @featured_products != []}
+      :if={section_enabled?(@theme, :featured_products) && @featured_deal}
       class="bg-[#F5EFE5] pb-14 sm:pb-20"
     >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,15 +54,15 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
             <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
           </a>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div
+          :if={@featured_products != []}
+          class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+        >
           <Shared.product_card :for={product <- @featured_products} product={product} store={@store} />
         </div>
 
         <%!-- Featured deal split card --%>
-        <div
-          :if={@featured_deal}
-          class="mt-8 grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden electronics-card"
-        >
+        <div class="mt-8 grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden electronics-card">
           <div class="aspect-square lg:aspect-auto bg-[#F3F4F6] flex items-center justify-center p-12">
             <%= if Shared.first_image(@featured_deal) do %>
               <img
@@ -68,7 +71,12 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
                 class="max-w-full max-h-full object-cover"
               />
             <% else %>
-              <span class="material-symbols-outlined text-[#134E4A]/30" style="font-size: 160px;">
+              <span
+                class="material-symbols-outlined text-[#134E4A]/30"
+                style="font-size: 160px;"
+                data-placeholder="product"
+                aria-hidden="true"
+              >
                 headphones
               </span>
             <% end %>

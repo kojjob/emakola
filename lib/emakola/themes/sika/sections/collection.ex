@@ -70,7 +70,7 @@ defmodule Emakola.Themes.Sika.Sections.Collection do
               ]}
             >
               <div class="relative aspect-[4/5] overflow-hidden">
-                <Shared.tray name={product.title} />
+                <Shared.tray />
                 <.optimized_image
                   :if={Shared.first_image(product)}
                   src={Shared.first_image(product)}

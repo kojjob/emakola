@@ -6,10 +6,15 @@ defmodule Emakola.Themes.Beauty.Sections.Newsletter do
   `EmakolaWeb.Hooks.NewsletterSubscription`. It previously carried no
   `phx-submit` and no `name` on its input, so a shopper could type an email,
   press Subscribe, and never be subscribed to anything.
+
+  Shown only once the shop is full enough to have news: four or more
+  products, per the shared `Layout` plan.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "beauty/newsletter"
@@ -28,8 +33,13 @@ defmodule Emakola.Themes.Beauty.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section :if={section_enabled?(@theme, :newsletter)} class="bg-[#6B4423] py-14 sm:py-20">
+    <section
+      :if={@layout.show_newsletter? && section_enabled?(@theme, :newsletter)}
+      class="bg-[#6B4423] py-14 sm:py-20"
+    >
       <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="beauty-heading text-3xl sm:text-4xl font-semibold text-[#FAF6EE] mb-3">
           {if @settings["heading"] not in [nil, ""],

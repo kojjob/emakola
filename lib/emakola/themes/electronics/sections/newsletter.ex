@@ -5,13 +5,16 @@ defmodule Emakola.Themes.Electronics.Sections.Newsletter do
   The form fires `subscribe_newsletter`, handled platform-wide by
   `EmakolaWeb.Hooks.NewsletterSubscription`. It previously posted nowhere and
   fired no LiveView event, so a shopper could type an email, press Subscribe,
-  and never be subscribed to anything.
+  and never be subscribed to anything. Shown only once the stall is full
+  enough to have news: four or more products (`Emakola.Themes.Layout`).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import Emakola.Themes.Electronics.Sections.Helpers
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "electronics/newsletter"
@@ -33,8 +36,12 @@ defmodule Emakola.Themes.Electronics.Sections.Newsletter do
 
     assigns =
       assigns
+      |> assign(:layout, Layout.of(assigns))
       |> assign(:heading, setting(settings, "heading", newsletter_title(assigns.theme)))
-      |> assign(:subheading, setting(settings, "subheading", newsletter_subtitle(assigns.theme)))
+      |> assign(
+        :subheading,
+        setting(settings, "subheading", newsletter_subtitle(assigns.theme, assigns.store))
+      )
       |> assign(
         :button_label,
         setting(settings, "button_label", newsletter_button(assigns.theme))
@@ -42,7 +49,10 @@ defmodule Emakola.Themes.Electronics.Sections.Newsletter do
 
     ~H"""
     <%!-- NEWSLETTER --%>
-    <section :if={section_enabled?(@theme, :newsletter)} class="bg-[#0A0F1F] py-14 sm:py-20">
+    <section
+      :if={section_enabled?(@theme, :newsletter) && @layout.show_newsletter?}
+      class="bg-[#0A0F1F] py-14 sm:py-20"
+    >
       <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="electronics-heading text-3xl sm:text-4xl font-bold text-white mb-3">
           {@heading}
@@ -76,8 +86,12 @@ defmodule Emakola.Themes.Electronics.Sections.Newsletter do
   defp newsletter_title(theme),
     do: get_in(theme, [:newsletter, :title]) || "Subscribe to our newsletter"
 
-  defp newsletter_subtitle(theme),
-    do: get_in(theme, [:newsletter, :subtitle]) || "New launches and exclusive offers."
+  # "New launches and exclusive offers" promised offers on the merchant's
+  # behalf. Blank, the section says only what it can.
+  defp newsletter_subtitle(theme, store) do
+    present(get_in(theme, [:newsletter, :subtitle])) ||
+      "New products and updates from #{store.name}, straight to your inbox."
+  end
 
   defp newsletter_button(theme),
     do: get_in(theme, [:newsletter, :button_text]) || "Subscribe"
