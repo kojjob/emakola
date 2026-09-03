@@ -164,11 +164,16 @@ defmodule Emakola.Themes.DedeTest do
       |> rendered_to_string()
     end
 
-    test "renders the six sections in order with a single h1 and real prices" do
+    test "a full menu renders the six sections in order with a single h1 and real prices" do
       {_merchant, store} = create_merchant_with_store!()
       create_category!(store, %{name: "Rice Dishes"})
       product = create_product!(store, %{title: "Jollof with Chicken", status: :active})
       create_variant!(product, store, %{price: 3550, stock_quantity: 9})
+
+      for title <- ["Red Red", "Kelewele", "Sobolo"] do
+        dish = create_product!(store, %{title: title, status: :active})
+        create_variant!(dish, store, %{price: 1000, stock_quantity: 9})
+      end
 
       html = render_home(store)
 
@@ -185,11 +190,31 @@ defmodule Emakola.Themes.DedeTest do
       # Category chips
       assert html =~ ~s(aria-label="Product categories")
       assert html =~ "Rice Dishes"
+      # Every dish is chalked once: the special leaves the board
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 5
       # Section order: signboard -> special -> categories -> board -> order info -> newsletter
       assert String.match?(
                html,
                ~r/dede-hero-heading.*dede-special-heading.*Product categories.*dede-menu-heading.*dede-order-info-heading.*dede-newsletter-form/s
              )
+    end
+
+    test "one dish: the special carries it alone — no board, chips or newsletter" do
+      {_merchant, store} = create_merchant_with_store!()
+      create_category!(store, %{name: "Rice Dishes"})
+      product = create_product!(store, %{title: "Jollof with Chicken", status: :active})
+      create_variant!(product, store, %{price: 3550, stock_quantity: 9})
+
+      html = render_home(store)
+
+      assert html =~ ~s(id="dede-special-heading")
+      assert html =~ "Jollof with Chicken"
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 2
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~s(id="dede-menu-heading")
+      refute html =~ ~s(aria-label="Product categories")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "dede-order-info-heading"
     end
 
     test "an empty store renders an intentional chalkboard empty state, not a blank page" do
@@ -353,6 +378,15 @@ defmodule Emakola.Themes.DedeTest do
       refute html =~ "<img"
     end
 
+    test "never borrows a dish's photo: the image comes only from the merchant's own setting" do
+      products = [dish(%{images: [%{thumbnail_url: "/uploads/waakye.jpg"}]})]
+
+      html = render_section(Hero, %{store: @component_store, products: products})
+
+      refute html =~ "<img"
+      refute html =~ "waakye"
+    end
+
     test "renders a local upload only — remote and scheme URLs never reach src" do
       html =
         render_section(Hero, %{
@@ -372,11 +406,18 @@ defmodule Emakola.Themes.DedeTest do
   end
 
   describe "menu section (the board)" do
+    # Today's special takes the first available dish, so the board lists
+    # the dishes behind it.
+    defp behind_the_special(dishes) do
+      [dish(%{id: "special", title: "Red Red", slug: "red-red"}) | dishes]
+    end
+
     test "a dish row carries name, price on the leader line, and one-tap add" do
       html =
         render_section(Menu, %{
           store: @component_store,
-          products: [dish(%{description: "Rice and beans, gari, spaghetti, egg."})]
+          products:
+            behind_the_special([dish(%{description: "Rice and beans, gari, spaghetti, egg."})])
         })
 
       assert html =~ "Waakye Special"
@@ -393,16 +434,17 @@ defmodule Emakola.Themes.DedeTest do
       html =
         render_section(Menu, %{
           store: @component_store,
-          products: [
-            dish(%{
-              id: "d1",
-              title: "Kelewele",
-              slug: "kelewele",
-              min_price: 1000,
-              max_price: 1000
-            }),
-            dish(%{id: "d2", title: "Sobolo", slug: "sobolo", min_price: 750, max_price: 750})
-          ]
+          products:
+            behind_the_special([
+              dish(%{
+                id: "d1",
+                title: "Kelewele",
+                slug: "kelewele",
+                min_price: 1000,
+                max_price: 1000
+              }),
+              dish(%{id: "d2", title: "Sobolo", slug: "sobolo", min_price: 750, max_price: 750})
+            ])
         })
 
       assert html =~ "GH₵ 10"
@@ -426,17 +468,40 @@ defmodule Emakola.Themes.DedeTest do
           ]
         })
 
-      html = render_section(Menu, %{store: @component_store, products: [product]})
+      html =
+        render_section(Menu, %{store: @component_store, products: behind_the_special([product])})
 
       refute html =~ "Sold out"
       assert html =~ ~s(phx-click="add_to_cart")
     end
 
     test "products without loaded variants fail open to orderable" do
-      html = render_section(Menu, %{store: @component_store, products: [dish()]})
+      html =
+        render_section(Menu, %{store: @component_store, products: behind_the_special([dish()])})
 
       refute html =~ "Sold out"
       assert html =~ ~s(phx-click="add_to_cart")
+    end
+
+    test "the board leaves today's special to the special section" do
+      # One available dish: the special carries it, the board stays off the page
+      html = render_section(Menu, %{store: @component_store, products: [dish()]})
+
+      refute html =~ "dede-menu-heading"
+      refute html =~ "Waakye Special"
+
+      html =
+        render_section(Menu, %{store: @component_store, products: behind_the_special([dish()])})
+
+      assert html =~ "Waakye Special"
+      refute html =~ "Red Red"
+    end
+
+    test "a dish without a photo gets one pictogram placeholder on the board" do
+      html =
+        render_section(Menu, %{store: @component_store, products: behind_the_special([dish()])})
+
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
     end
 
     test "zero products render the chalked-up empty state, never a blank board" do
@@ -452,7 +517,7 @@ defmodule Emakola.Themes.DedeTest do
       html =
         render_section(Menu, %{
           store: @component_store,
-          products: [dish()],
+          products: behind_the_special([dish()]),
           settings: %{"heading" => "Today's pots", "note" => "Until the pots run dry."}
         })
 
@@ -461,7 +526,8 @@ defmodule Emakola.Themes.DedeTest do
     end
 
     test "the note stays silent by default — no invented promises" do
-      html = render_section(Menu, %{store: @component_store, products: [dish()]})
+      html =
+        render_section(Menu, %{store: @component_store, products: behind_the_special([dish()])})
 
       refute html =~ @invented_sla
     end
@@ -488,6 +554,23 @@ defmodule Emakola.Themes.DedeTest do
 
       assert render_section(Special, %{store: @component_store, products: [sold_out_dish()]}) =~
                ~r/^\s*$/
+    end
+
+    test "a dish without a photo gets one pictogram placeholder, never a letter" do
+      html = render_section(Special, %{store: @component_store, products: [dish()]})
+
+      refute html =~ "<img"
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*W\s*</
+
+      html =
+        render_section(Special, %{
+          store: @component_store,
+          products: [dish(%{images: [%{thumbnail_url: "/uploads/waakye.jpg"}]})]
+        })
+
+      assert html =~ ~s(src="/uploads/waakye.jpg")
+      refute html =~ ~s(data-placeholder="product")
     end
 
     test "a merchant label replaces the default" do
@@ -549,6 +632,13 @@ defmodule Emakola.Themes.DedeTest do
     test "copy is honest — no fake incentive" do
       refute render_section(Newsletter, %{store: @component_store}) =~
                ~r/\d+\s*%|discount|% off|free shipping/i
+    end
+
+    test "waits for a full menu: no form under four dishes" do
+      refute render_section(Newsletter, %{store: @component_store, products: [dish()]}) =~ "<form"
+
+      four = Enum.map(1..4, &dish(%{id: "d#{&1}", slug: "d#{&1}"}))
+      assert render_section(Newsletter, %{store: @component_store, products: four}) =~ "<form"
     end
 
     test "a merchant heading replaces the default" do

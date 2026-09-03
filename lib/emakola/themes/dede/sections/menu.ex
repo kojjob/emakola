@@ -9,8 +9,12 @@ defmodule Emakola.Themes.Dede.Sections.Menu do
   garnish. Sold-out dishes stay chalked on the board, struck through and
   stamped, because "finished for today" is information, not absence.
 
-  A store with zero products renders an intentional being-chalked-up state
-  — a brand-new chop bar must never look broken to its first visitor.
+  The board lists every dish except today's special, which the special
+  section already chalks up — nothing on the page appears twice. With a
+  single available dish the special carries it and the board stays out of
+  the way. A store with zero products renders an intentional
+  being-chalked-up state — a brand-new chop bar must never look broken to
+  its first visitor.
   """
   @behaviour Emakola.Themes.Section
 
@@ -35,8 +39,11 @@ defmodule Emakola.Themes.Dede.Sections.Menu do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :board, Shared.board(assigns.products))
+
     ~H"""
     <section
+      :if={@products == [] or @board != []}
       id="dede-menu"
       class="px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
       aria-labelledby="dede-menu-heading"
@@ -54,11 +61,11 @@ defmodule Emakola.Themes.Dede.Sections.Menu do
           </p>
         </div>
 
-        <ul :if={@products != []} role="list" class="divide-y divide-white/10">
+        <ul :if={@board != []} role="list" class="divide-y divide-white/10">
           <%!-- quick_add: the home page is StoreLive, whose add_to_cart
           handler takes the product-id payload. --%>
           <Shared.menu_row
-            :for={product <- @products}
+            :for={product <- @board}
             product={product}
             store={@store}
             quick_add={true}
