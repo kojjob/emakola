@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Item
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "electronics/category_strip"
@@ -27,7 +28,7 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
       assign(
         assigns,
         :strip_items,
-        categories_strip_items(assigns.theme, assigns[:categories] || [])
+        categories_strip_items(assigns.theme, assigns[:categories] || [], Layout.of(assigns))
       )
 
     ~H"""
@@ -60,20 +61,27 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
   end
 
   # The strip used to invent electronics categories ("Wireless", "Noise
-  # Cancellation") for every shop wearing the theme. The default is now the
-  # store's real categories; a shop with none shows no strip at all.
-  defp categories_strip_items(theme, categories) do
-    case get_in(theme, [:categories_strip, :items]) do
-      items when is_list(items) and items != [] ->
-        items
+  # Cancellation") for every shop wearing the theme. The merchant's own pills
+  # always show; otherwise the store's real categories fill it once the stall
+  # is full enough to need sorting (`Layout`: four or more products), and a
+  # shop with none shows no strip at all.
+  defp categories_strip_items(theme, categories, layout) do
+    merchant_items = get_in(theme, [:categories_strip, :items])
 
-      _ ->
+    cond do
+      is_list(merchant_items) and merchant_items != [] ->
+        merchant_items
+
+      layout.show_categories? ->
         categories
         |> Enum.take(5)
         |> Enum.with_index()
         |> Enum.map(fn {category, index} ->
           %{label: category.name, href: "/category/#{category.slug}", active: index == 0}
         end)
+
+      true ->
+        []
     end
   end
 end

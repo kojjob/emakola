@@ -109,9 +109,12 @@ defmodule Emakola.Themes.HomeLiving.Shared do
   end
 
   @doc """
-  Charcoal footer with lime accents.
+  Charcoal footer with lime accents. The description and the shop links are
+  the store's own — it used to fall back to a stock sentence and list five
+  invented rooms.
   """
   attr :store, :map, required: true
+  attr :categories, :list, default: []
 
   def home_living_footer(assigns) do
     ~H"""
@@ -120,9 +123,11 @@ defmodule Emakola.Themes.HomeLiving.Shared do
         <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div class="md:col-span-2">
             <span class="home-living-heading text-2xl font-bold">{@store.name}</span>
-            <p class="text-sm text-white/65 leading-relaxed mt-4 max-w-md">
-              {@store.description ||
-                "Good things for your home and your day."}
+            <p
+              :if={@store.description not in [nil, ""]}
+              class="text-sm text-white/65 leading-relaxed mt-4 max-w-md"
+            >
+              {@store.description}
             </p>
             <div class="flex items-center gap-3 mt-6">
               <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
@@ -143,12 +148,20 @@ defmodule Emakola.Themes.HomeLiving.Shared do
               Shop
             </h4>
             <ul class="space-y-3 text-sm text-white/65">
-              <li :for={room <- ["Living", "Bedroom", "Kitchen", "Bathroom", "Lighting"]}>
+              <li :for={category <- Enum.take(assigns[:categories] || [], 5)}>
+                <a
+                  href={store_path(@store.slug, "/category/#{category.slug}")}
+                  class="hover:text-white transition-colors"
+                >
+                  {category.name}
+                </a>
+              </li>
+              <li :if={(assigns[:categories] || []) == []}>
                 <a
                   href={store_path(@store.slug, "/products")}
                   class="hover:text-white transition-colors"
                 >
-                  {room}
+                  All products
                 </a>
               </li>
             </ul>
@@ -240,6 +253,8 @@ defmodule Emakola.Themes.HomeLiving.Shared do
         <div
           :if={!first_image(@product)}
           class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
         >
           <span class="material-symbols-outlined text-[#1F2937]/20" style="font-size: 64px;">
             chair

@@ -2,8 +2,9 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
   @moduledoc """
   Electronics home "Immersive Sound, Unmatched Comfort" split -- extracted
   verbatim from electronics/home.ex: a 2x2 product mini-grid beside a
-  lifestyle panel. Its heading is fixed theme copy, so it exposes no
-  settings.
+  lifestyle panel. The grid takes the four products after the featured block
+  (`Helpers.slots/1`), so nothing on the page is shown twice. Its heading is
+  fixed theme copy, so it exposes no settings.
   """
   @behaviour Emakola.Themes.Section
 
@@ -13,6 +14,7 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Electronics.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "electronics/immersive"
@@ -24,20 +26,19 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
 
   @impl true
   def render(assigns) do
-    products = assigns[:products] || []
-    grid = Enum.take(products, 4)
+    slots = assigns |> Layout.of() |> slots()
 
-    # The promo panel shows the shop's own goods — the fifth product's photo
-    # (first not already in the grid), else any product photo, else a neutral
-    # storefront glyph. Never a stock image of goods this shop does not sell.
+    # The promo panel shows the shop's own goods — the photo of a product no
+    # card on the page carries, else a neutral storefront glyph. Never a photo
+    # already shown, and never a stock image of goods this shop does not sell.
     panel_image =
-      (Enum.drop(products, 4) ++ grid)
+      slots.unshown
       |> Enum.map(&Shared.first_image/1)
       |> Enum.find(&is_binary/1)
 
     assigns =
       assigns
-      |> assign(:immersive_grid, grid)
+      |> assign(:immersive_grid, slots.immersive_grid)
       |> assign(:panel_image, panel_image)
 
     ~H"""
@@ -79,15 +80,12 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
               </span>
             </span>
             <div class="absolute bottom-6 left-6 right-6">
-              <p class="electronics-heading text-2xl font-bold text-white mb-1">
+              <p class="electronics-heading text-2xl font-bold text-white mb-4">
                 See the whole range
               </p>
-              <%!-- Was "Hand-picked for clarity, comfort, and battery life." —
-                   an assertion that someone at this shop auditioned the gear on
-                   three specific criteria. Nobody did. --%>
-              <p class="text-sm text-white/70 mb-4">
-                Browse the range.
-              </p>
+              <%!-- Was "Hand-picked for clarity, comfort, and battery life.",
+                   then "Browse the range." — no stock sentence under the
+                   heading; the link says what the panel does. --%>
               <a
                 href={store_path(@store.slug, "/products")}
                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#134E4A] text-xs font-bold hover:bg-[#F5EFE5] transition-colors"

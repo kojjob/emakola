@@ -40,16 +40,22 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    title = setting(assigns[:settings], "heading", get_in(assigns.theme, [:hero, :title]))
+    custom_title =
+      present(setting(assigns[:settings], "heading", get_in(assigns.theme, [:hero, :title])))
+
+    title = custom_title || assigns.store.name
 
     assigns =
       assigns
       |> assign(:cart_count, assigns[:cart_count] || 0)
+      |> assign(:custom_title, custom_title)
       |> assign(:hero_title_first, title_first(title))
       |> assign(:hero_title_second, title_second(title))
       |> assign(
         :hero_subtitle,
-        setting(assigns[:settings], "subheading", get_in(assigns.theme, [:hero, :subtitle]))
+        present(
+          setting(assigns[:settings], "subheading", get_in(assigns.theme, [:hero, :subtitle]))
+        ) || present(Map.get(assigns.store, :description))
       )
       |> assign(
         :hero_cta_text,
@@ -71,9 +77,14 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-20">
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div class="text-white">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0EA5E9]/20 text-[#0EA5E9] text-[11px] font-bold uppercase tracking-[0.18em] mb-5">
+            <%!-- The eyebrow is the store's name over a merchant-written
+                 headline. It used to read "New Arrivals" on every shop. --%>
+            <span
+              :if={@custom_title}
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0EA5E9]/20 text-[#0EA5E9] text-[11px] font-bold uppercase tracking-[0.18em] mb-5"
+            >
               <span class="material-symbols-outlined" style="font-size: 14px;">flash_on</span>
-              New Arrivals
+              {@store.name}
             </span>
             <h1 class="electronics-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] mb-3">
               {@hero_title_first}
@@ -140,30 +151,24 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
     """
   end
 
-  # The hero always shows a real picture when the shop has one anywhere.
-  # It used to read the theme's hero settings and nothing else, so a shop that
-  # had not set one — every demo store, and every merchant who never opened the
-  # Design Studio — got a 200px headphones glyph where its best photograph
-  # should be. The merchant's own choices still lead; the shop's own goods are
-  # the backstop, which is the same order the marketplace card uses.
+  # The hero shows only a picture the merchant chose for it — the theme's
+  # hero images or the store's cover. It never borrows a product photograph:
+  # the featured deal card below carries that photo, and a home must not show
+  # the same picture twice. A shop with no hero image keeps the glyph.
   #
   # Every candidate goes through ImageUrl, so a page link pasted into a picture
   # field cannot put a broken image at the top of a storefront.
   defp hero_image_url(assigns) do
     theme_images = get_in(assigns.theme, [:hero, :images]) || []
-    product_images = Enum.map(assigns[:products] || [], &Shared.first_image/1)
 
     Emakola.Stores.ImageUrl.first_image(
       theme_images ++
-        [get_in(assigns.theme, [:hero, :image_url]), Map.get(assigns.store, :cover_image_url)] ++
-        product_images
+        [get_in(assigns.theme, [:hero, :image_url]), Map.get(assigns.store, :cover_image_url)]
     )
   end
 
   # Splits the hero title at the first comma so the headline can be
   # "Upgrade Your Gear" then sky-blue "Upgrade Yourself" on a second line.
-  defp title_first(nil), do: "Shop the latest"
-
   defp title_first(title) when is_binary(title) do
     case String.split(title, ",", parts: 2) do
       [first, _] -> String.trim(first)
@@ -179,6 +184,4 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
       _ -> nil
     end
   end
-
-  defp title_second(_title), do: nil
 end

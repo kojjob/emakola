@@ -67,12 +67,13 @@ defmodule Emakola.Themes.HomeLiving do
         image_url: "",
         images: [],
         carousel: false,
-        # Was "Masterpieces Crafted From Solid Wood" — the material every Home
-        # Living store's goods were made of, asserted by the theme. The hero
-        # title is the most editable field on the storefront; its default should
-        # describe the page, not the furniture.
-        title: "For the way you live",
-        subtitle: "Good things for your home and your day.",
+        # Was "Masterpieces Crafted From Solid Wood", then "For the way you
+        # live" / "Good things for your home and your day." Blank, the hero
+        # reads as the store's own name and description until the merchant
+        # writes a headline. The keys stay: ThemeResolver.deep_merge_atomize/2
+        # drops any override whose key is absent from the defaults.
+        title: nil,
+        subtitle: nil,
         cta_text: "Explore More",
         cta_url: "/products"
       },
@@ -88,14 +89,11 @@ defmodule Emakola.Themes.HomeLiving do
         brand_story: true,
         newsletter: true
       },
+      # `items: []` — the strip shows the store's real categories. This list
+      # used to invent four furniture rooms for every shop wearing the theme.
       rooms: %{
         title: "Shop by room",
-        items: [
-          %{name: "Living Room", icon: "weekend", slug: "living"},
-          %{name: "Bedroom", icon: "bed", slug: "bedroom"},
-          %{name: "Kitchen", icon: "blender", slug: "kitchen"},
-          %{name: "Bathroom", icon: "bathtub", slug: "bath"}
-        ]
+        items: []
       },
       feature_tiles: %{
         items: [
@@ -119,9 +117,11 @@ defmodule Emakola.Themes.HomeLiving do
         subtitle: "Quality materials, designed for everyday life.",
         items: []
       },
+      # `subtitle: nil` — no cadence or content promised on the merchant's
+      # behalf; blank, the section says only what it can.
       newsletter: %{
         title: "New pieces, in your inbox",
-        subtitle: "Restocks, seasonal releases, and home inspiration — once a month.",
+        subtitle: nil,
         button_text: "Subscribe"
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},

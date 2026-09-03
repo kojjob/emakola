@@ -16,15 +16,16 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
 
   # ── helpers ─────────────────────────────────────────────────────
 
-  # Bestsellers takes products 5..7 (drop 4, take 3), so a store needs at
-  # least five products before every block on the page renders.
+  # No product is shown twice: the deal card takes one, the featured grid four,
+  # the immersive grid four and "more from the shop" three (Helpers.slots/1),
+  # so a store needs twelve products before every block on the page renders.
   defp stocked_store do
     {_merchant, store} =
       create_merchant_with_store!(%{theme_config: %{"theme" => "electronics"}})
 
     create_category!(store, %{name: "Headphones"})
 
-    for n <- 1..7 do
+    for n <- 1..12 do
       product = create_product!(store, %{title: "Gadget #{n}", status: :active})
       create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
     end
@@ -48,6 +49,9 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
         Map.put(store.theme_config || %{}, "home_sections", %{"v" => 1, "electronics" => entries})
     })
   end
+
+  defp h1_of(store),
+    do: ~r/<h1[^>]*>\s*#{Regex.escape(Plug.HTML.html_escape(store.name))}\s*<\/h1>/
 
   defp render_home(store) do
     products =
@@ -98,8 +102,10 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
     end
   end
 
-  describe "the hero always carries a picture" do
-    test "falls back to the shop's own product photo when no hero image is set" do
+  describe "the hero picture" do
+    # Updated with the finish-at-one-product rules: the hero used to borrow
+    # the shop's first product photo, which then appeared twice on the page.
+    test "never borrows a product photo: the deal card carries it, once" do
       store = stocked_store()
 
       [product | _] =
@@ -110,10 +116,10 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       create_image!(product, store, %{url: "/uploads/#{store.slug}/gadget.jpg"})
 
       html = render_home(store)
+      [hero | _] = String.split(html, "</section>")
 
-      # The 200px headphones glyph is what a merchant who never opened the
-      # Design Studio used to get where their best photograph should be.
-      assert html =~ "/uploads/#{store.slug}/gadget.jpg"
+      refute hero =~ "<img"
+      assert length(String.split(html, "/uploads/#{store.slug}/gadget.jpg")) == 2
     end
 
     test "a page link in a picture field cannot become the hero" do
@@ -150,11 +156,14 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
 
   describe "home render" do
     test "renders every block with its own copy, in today's order, under one h1" do
-      html = render_home(stocked_store())
+      store = stocked_store()
+      html = render_home(store)
 
-      # Hero — the only h1 on the page
-      assert html =~ "Shop the latest"
-      assert html =~ "New Arrivals"
+      # Hero — the only h1 on the page, carrying the store's own name. It used
+      # to read "Shop the latest" under a "New Arrivals" pill on every shop.
+      assert html =~ h1_of(store)
+      refute html =~ "Shop the latest"
+      refute html =~ "New Arrivals"
       assert html =~ "Learn more"
       # The spec card used to ship "Battery / 40hrs · BT 5.3" to every shop
       # that installed this theme — a fact about goods the platform knows
@@ -200,13 +209,15 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # Best sellers
       assert html =~ "More from the shop"
 
-      # Dark CTA band
-      assert html =~ "Explore our latest collection"
-      assert html =~ "Shop the Collection"
+      # Dark CTA band — the merchant's own pitch or nothing. "Explore our
+      # latest collection of electronics" used to speak for every shop.
+      refute html =~ "Explore our latest collection"
+      refute html =~ "Shop the Collection"
 
-      # Newsletter
+      # Newsletter — no "exclusive offers" promised on the merchant's behalf
       assert html =~ "Subscribe to our newsletter"
-      assert html =~ "New launches and exclusive offers"
+      refute html =~ "New launches and exclusive offers"
+      assert html =~ "New products and updates from #{Plug.HTML.html_escape(store.name)}"
 
       # Footer chrome closes the page
       assert html =~ "All rights reserved"
@@ -214,21 +225,24 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # Today's visual order, top to bottom
       assert String.match?(
                html,
-               ~r/Shop the latest.*More from.*Featured products.*Why shop here.*More from the shop.*Explore our latest collection.*Subscribe to our newsletter.*All rights reserved/s
+               ~r/<h1.*More from.*Featured products.*Why shop here.*More from the shop.*Subscribe to our newsletter.*All rights reserved/s
              )
     end
 
-    test "an empty store keeps hero, strip, trust, CTA band and newsletter" do
+    # Updated with the finish-at-one-product rules: the newsletter joins the
+    # page only on a full stall and the CTA band only over the merchant's own
+    # heading — an empty store used to carry both, in the theme's words.
+    test "an empty store keeps hero and trust; the rest stands down" do
       {_merchant, store} =
         create_merchant_with_store!(%{theme_config: %{"theme" => "electronics"}})
 
       html = render_home(store)
 
-      assert html =~ "Shop the latest"
+      assert html =~ h1_of(store)
       refute html =~ "Noise Cancellation"
       assert html =~ "Why shop here"
-      assert html =~ "Explore our latest collection"
-      assert html =~ "Subscribe to our newsletter"
+      refute html =~ "Explore our latest collection"
+      refute html =~ "Subscribe to our newsletter"
 
       # The product-backed blocks stand down rather than render empty grids
       refute html =~ "More from,"
@@ -245,11 +259,18 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
           }
         })
 
+      # A full stall, so it is the toggle and not the bare catalogue that
+      # hides the newsletter.
+      for n <- 1..4 do
+        product = create_product!(store, %{title: "Gadget #{n}", status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+      end
+
       html = render_home(store)
 
       refute html =~ "Why shop here"
       refute html =~ "Subscribe to our newsletter"
-      assert html =~ "Shop the latest"
+      assert html =~ h1_of(store)
     end
 
     test "merchant theme copy still reaches the page" do
@@ -263,6 +284,12 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
             "newsletter" => %{"title" => "Get the drops first"}
           }
         })
+
+      # A full stall: the newsletter joins the page at four products.
+      for n <- 1..4 do
+        product = create_product!(store, %{title: "Gadget #{n}", status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+      end
 
       html = render_home(store)
 

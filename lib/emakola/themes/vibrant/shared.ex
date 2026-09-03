@@ -177,11 +177,9 @@ defmodule Emakola.Themes.Vibrant.Shared do
             height={70}
           />
         <% else %>
-          <div class="w-full h-full rounded-full bg-[#FFFBEB] border-[3px] border-[#FFFBEB] flex items-center justify-center">
-            <span class="text-xl font-bold text-[var(--theme-accent,#7C2D12)]">
-              {String.first(@category.name)}
-            </span>
-          </div>
+          <%!-- No cover: a plain ring. A lettered circle is nothing to a
+               buyer who reads slowly. --%>
+          <div class="w-full h-full rounded-full bg-[#FFFBEB] border-[3px] border-[#FFFBEB]"></div>
         <% end %>
       </div>
       <span class={[
@@ -217,7 +215,12 @@ defmodule Emakola.Themes.Vibrant.Shared do
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#FEF3C7]">
+        <div
+          :if={!@image}
+          class="w-full aspect-[3/4] flex items-center justify-center bg-[#FEF3C7]"
+          data-placeholder="product"
+          aria-hidden="true"
+        >
           <svg class="w-12 h-12 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -289,6 +292,22 @@ defmodule Emakola.Themes.Vibrant.Shared do
       [%{url: url} | _] when is_binary(url) -> url
       _ -> nil
     end
+  end
+
+  @doc """
+  How the home's product blocks divide the catalogue (`Emakola.Themes.Layout`)
+  so no product is shown twice: the featured card takes the first product,
+  the featured pair the next two (only when there are two), and the grid the
+  rest.
+  """
+  def slots(layout) do
+    {picks, grid} =
+      case layout.grid_products do
+        [_, _ | _] = rest -> Enum.split(rest, 2)
+        rest -> {[], rest}
+      end
+
+    %{featured: layout.featured, picks: picks, grid: grid}
   end
 
   defp category_image(category) do

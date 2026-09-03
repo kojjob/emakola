@@ -46,8 +46,18 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
     sofa = create_product!(store, %{title: "Linen Sofa", status: :active})
     create_variant!(sofa, store, %{price: 89_900, stock_quantity: 2})
 
+    # A full stall: the category strip and the newsletter join the page at
+    # four products (Emakola.Themes.Layout), so every block renders.
+    for title <- ["Rattan Chair", "Brass Lamp"] do
+      product = create_product!(store, %{title: title, status: :active})
+      create_variant!(product, store, %{price: 5_000, stock_quantity: 3})
+    end
+
     store
   end
+
+  defp h1_of(store),
+    do: ~r/<h1[^>]*>\s*#{Regex.escape(Plug.HTML.html_escape(store.name))}\s*<\/h1>/
 
   defp render_home(store) do
     theme = ThemeResolver.resolve(store.theme_config || %{}, store)
@@ -79,15 +89,17 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
       html = render_home(store)
 
-      # Hero — charcoal signboard, the theme's default headline, lime CTA.
-      # The nav lives INSIDE the hero section (today's markup) and is the
-      # only cart link on the page.
-      assert html =~ "For the way you live"
+      # Hero — charcoal signboard carrying the store's own name (it used to
+      # read "For the way you live" on every shop), lime CTA. The nav lives
+      # INSIDE the hero section (today's markup) and is the only cart link on
+      # the page.
+      assert html =~ h1_of(store)
+      refute html =~ "For the way you live"
       assert html =~ "Explore More"
       assert html =~ ~s(href="/s/#{store.slug}/cart")
       assert length(String.split(html, "<h1")) == 2
 
-      # Shop-by-categories strip — rooms from theme config, ungated
+      # Shop-by-categories strip — the store's real categories, on a full stall
       assert html =~ "by categories"
       assert html =~ "Living Room"
 
@@ -148,18 +160,22 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # -> editor pick -> trust -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/For the way you live.*by categories.*Featured products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
+               ~r/<h1.*by categories.*Featured products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
              )
     end
 
-    test "an empty store still renders the hero, the strips and the chrome" do
+    # Updated with the finish-at-one-product rules: an empty store used to
+    # carry four invented rooms and a newsletter form; both stand down now.
+    test "an empty store still renders the hero, the trust strips and the chrome" do
       {_merchant, store} =
         create_merchant_with_store!(%{theme_config: %{"theme" => "home_living"}})
 
       html = render_home(store)
 
-      assert html =~ "For the way you live"
-      assert html =~ "by categories"
+      assert html =~ h1_of(store)
+      refute html =~ "For the way you live"
+      refute html =~ "by categories"
+      refute html =~ "Bedroom"
       # "Daily Curation — Hand-picked" claimed someone at the shop selected these
       # goods by hand, every day. Gone.
       refute html =~ "Daily Curation"
@@ -175,7 +191,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # long they last, for every store on the theme.
       refute html =~ "Built in Ghana"
       assert html =~ "Our story"
-      assert html =~ "New pieces, in your inbox"
+      refute html =~ "New pieces, in your inbox"
       assert html =~ "Designed for living"
       assert length(String.split(html, "<h1")) == 2
     end
@@ -194,6 +210,16 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
           }
         })
 
+      # A full stall with a category, so it is the toggles and not the bare
+      # catalogue that hide the blocks, and the untouched strip has something
+      # to show.
+      create_category!(store, %{name: "Living Room"})
+
+      for n <- 1..4 do
+        product = create_product!(store, %{title: "Piece #{n}", status: :active})
+        create_variant!(product, store, %{price: 5_000, stock_quantity: 3})
+      end
+
       html = render_home(store)
 
       refute html =~ "Daily Curation"
@@ -201,7 +227,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Built in Ghana, made for life."
       refute html =~ "New pieces, in your inbox"
       # Untouched blocks still render
-      assert html =~ "For the way you live"
+      assert html =~ h1_of(store)
       assert html =~ "by categories"
     end
   end

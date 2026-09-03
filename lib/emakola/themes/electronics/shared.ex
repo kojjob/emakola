@@ -209,6 +209,8 @@ defmodule Emakola.Themes.Electronics.Shared do
         <div
           :if={!first_image(@product)}
           class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
         >
           <span class="material-symbols-outlined text-[#134E4A]/20" style="font-size: 64px;">
             devices

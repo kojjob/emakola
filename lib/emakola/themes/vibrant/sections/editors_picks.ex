@@ -1,7 +1,9 @@
 defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
   @moduledoc """
-  Vibrant editor's picks — the 2-up flagship pair, shown only when the shop has
-  at least two products (a single card in a two-column grid reads as a bug).
+  Vibrant editor's picks — the 2-up flagship pair: the two products after the
+  featured card (`Shared.slots/1`), shown only when there are two of them (a
+  single card in a two-column grid reads as a bug), so nothing on the page is
+  shown twice.
 
   Gated by the theme's `featured` toggle, like the featured card below it.
 
@@ -16,6 +18,7 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Vibrant.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -32,15 +35,15 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
 
   @impl true
   def render(assigns) do
-    products = Map.get(assigns, :products) || []
+    picks = assigns |> Layout.of() |> Shared.slots() |> Map.fetch!(:picks)
     settings = assigns[:settings] || %{}
 
     assigns =
       assigns
-      |> assign(:products, products)
+      |> assign(:picks, picks)
       |> assign(
         :enabled,
-        Shared.section_enabled?(assigns.theme, :featured) and length(products) >= 2
+        Shared.section_enabled?(assigns.theme, :featured) and picks != []
       )
       # Blanking the schema default is not enough: this `||` would put "This
       # Week" straight back. There is no weekly cycle and nobody picked these —
@@ -71,13 +74,13 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
           <.editor_pick_card
-            product={Enum.at(@products, 0)}
+            product={Enum.at(@picks, 0)}
             store={@store}
             bg="#FEF3C7"
             text_color="#92400E"
           />
           <.editor_pick_card
-            product={Enum.at(@products, 1)}
+            product={Enum.at(@picks, 1)}
             store={@store}
             bg="#FEEFE0"
             text_color="#9A3412"
@@ -139,7 +142,12 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
           alt={@product.title}
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full h-full flex items-center justify-center">
+        <div
+          :if={!@image}
+          class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
+        >
           <span class="material-symbols-outlined text-4xl" style={"color: #{@text_color};"}>
             shopping_bag
           </span>
