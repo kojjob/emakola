@@ -11,7 +11,8 @@ defmodule Emakola.Themes.Market.Home do
   """
   use Phoenix.Component
 
-  alias Emakola.Themes.Market.{Layout, Shared}
+  alias Emakola.Themes.Layout
+  alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
