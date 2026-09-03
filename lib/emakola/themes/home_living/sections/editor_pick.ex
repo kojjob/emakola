@@ -3,8 +3,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.EditorPick do
   Home Living "Featured pick" split panel — extracted verbatim from
   home_living/home.ex.
 
-  The pick is the store's first product, as it was before the retrofit, and
-  the panel renders nothing when the store has none. Still gated by the
+  The pick is the catalogue's first product (`Emakola.Themes.Layout`), which
+  the grid then leaves out so nothing is shown twice; a one-product shop is
+  carried by this panel alone. It renders nothing when the store has none.
+  Still gated by the
   legacy `@theme.sections.editor_pick` toggle underneath the section editor's
   own `enabled` flag.
   """
@@ -15,6 +17,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.EditorPick do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "home_living/editor_pick"
@@ -31,11 +34,9 @@ defmodule Emakola.Themes.HomeLiving.Sections.EditorPick do
 
   @impl true
   def render(assigns) do
-    products = Map.get(assigns, :products) || []
-
     assigns =
       assigns
-      |> assign(:editor_pick, List.first(products))
+      |> assign(:editor_pick, Layout.of(assigns).featured)
       |> assign(:badge_label, present(assigns.settings["badge_label"]) || "Featured pick")
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop now")
 
@@ -86,6 +87,8 @@ defmodule Emakola.Themes.HomeLiving.Sections.EditorPick do
             <div
               :if={!Shared.first_image(@editor_pick)}
               class="w-full h-full flex items-center justify-center"
+              data-placeholder="product"
+              aria-hidden="true"
             >
               <span class="material-symbols-outlined text-white/30" style="font-size: 140px;">
                 chair
