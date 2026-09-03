@@ -36,12 +36,26 @@ defmodule Emakola.Themes.BoldSectionsTest do
     |> rendered_to_string()
   end
 
+  # Four products and a description: the category strip and the newsletter
+  # join the page at a full stall, and the banner carries the merchant's own
+  # words or nothing — so the characterization store has all of it.
   defp seeded_store do
-    {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
+    {_merchant, store} =
+      create_merchant_with_store!(%{
+        theme_config: %{"theme" => "bold"},
+        description: "Cloth, brass and paper from Makola market."
+      })
+
     create_category!(store, %{name: "Fresh Peppers"})
-    product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
-    create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    stock!(store)
     store
+  end
+
+  defp stock!(store) do
+    for title <- ["Kente Tote Bag", "Brass Bangle", "Batik Notebook", "Bolga Basket"] do
+      product = create_product!(store, %{title: title, status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    end
   end
 
   # ── characterization: today's home output, block by block ────────
@@ -56,10 +70,12 @@ defmodule Emakola.Themes.BoldSectionsTest do
 
       html = render_home(store)
 
-      # Hero — the store name eyebrow, the theme's headline, the CTA
+      # Hero — the store name eyebrow, the theme's headline, the merchant's own
+      # subheadline (never "Curated goods for the discerning eye"), the CTA
       assert html =~ store.name
       assert html =~ "The Edit"
-      assert html =~ "Curated goods for the discerning eye"
+      assert html =~ "Cloth, brass and paper from Makola market."
+      refute html =~ "Curated goods for the discerning eye"
       assert html =~ "Shop the Collection"
       assert html =~ ~s(id="bold-grid")
 
@@ -71,8 +87,8 @@ defmodule Emakola.Themes.BoldSectionsTest do
       assert html =~ "Featured"
       assert html =~ "Kente Tote Bag"
 
-      # Editorial banner — full-width amber bar carrying the fallback line
-      assert html =~ "Curated for those who appreciate the art of well-made things."
+      # Editorial banner — full-width amber bar carrying the merchant's words
+      refute html =~ "Curated for those who appreciate the art of well-made things."
       assert html =~ ~s(class="bg-[#F59E0B]")
 
       # Products grid
@@ -92,7 +108,7 @@ defmodule Emakola.Themes.BoldSectionsTest do
       # Today's visual order, as flat siblings
       assert String.match?(
                html,
-               ~r/The Edit.*Product categories.*Featured.*art of well-made things.*The Collection.*Stay in the Know/s
+               ~r/The Edit.*Product categories.*Featured.*bg-\[#F59E0B\].*The Collection.*Stay in the Know/s
              )
     end
 
@@ -128,25 +144,71 @@ defmodule Emakola.Themes.BoldSectionsTest do
       refute html =~ "Curated for those who appreciate the art of well-made things."
     end
 
-    test "an empty store drops the category, featured and grid blocks, keeping the rest" do
+    test "an empty store keeps the hero and nothing that needs stock or words" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
 
       html = render_home(store)
 
       refute html =~ ~s(aria-label="Product categories")
       refute html =~ ~s(id="bold-shop-all")
-      # Hero, banner and newsletter still stand
       assert html =~ "The Edit"
-      assert html =~ "Curated for those who appreciate the art of well-made things."
-      assert html =~ "Stay in the Know"
+      # The banner used to carry a fallback line for a merchant who wrote none,
+      # and the newsletter asked for an email before there was anything to sell.
+      refute html =~ "Curated for those who appreciate the art of well-made things."
+      refute html =~ "Stay in the Know"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
     end
 
-    test "the home carries two subscribe forms — the newsletter band and the footer's" do
+    test "a full stall carries two subscribe forms — the newsletter band and the footer's" do
       store = seeded_store()
 
       html = render_home(store)
 
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 3
+    end
+
+    test "a one-product shop carries no subscribe form, not even the footer's" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
+      product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ "Kente Tote Bag"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
+    test "a store with no description says nothing about itself" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "bold"}})
+      product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      refute html =~ "Curated goods for the discerning eye"
+      refute html =~ "Curated for those who appreciate the art of well-made things."
+      refute html =~ ~s(class="bg-[#F59E0B]")
+    end
+
+    test "a full stall carries every product exactly once" do
+      store = seeded_store()
+
+      html = render_home(store)
+
+      products =
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+        |> Ash.read!(authorize?: false)
+
+      assert length(products) == 4
+      assert html =~ ~s(id="bold-shop-all")
+
+      for product <- products do
+        href = ~s(href="/s/#{store.slug}/products/#{product.slug}")
+
+        assert length(String.split(html, href)) - 1 == 1,
+               "#{product.title} should link from exactly one place on the home"
+      end
     end
   end
 

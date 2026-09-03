@@ -3,8 +3,9 @@ defmodule Emakola.Themes.Bold.Sections.ProductGrid do
   Bold home product grid — clean 3-column editorial grid — extracted
   verbatim from bold/home.ex.
 
-  Rendered the whole `@products` list before the retrofit (`@grid_products`);
-  it still does.
+  Shows the catalogue after the featured bento's three, so nothing on the
+  page appears twice; with three products or fewer the bento carries them
+  all and the grid stays off the page.
   """
   @behaviour Emakola.Themes.Section
 
@@ -13,6 +14,7 @@ defmodule Emakola.Themes.Bold.Sections.ProductGrid do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Bold.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "bold/product_grid"
@@ -33,7 +35,7 @@ defmodule Emakola.Themes.Bold.Sections.ProductGrid do
 
     assigns =
       assigns
-      |> assign(:grid_products, assigns[:products] || [])
+      |> assign(:grid_products, Shared.grid_products(Layout.of(assigns)))
       |> assign(:heading, override(settings["heading"], "The Collection"))
       |> assign(:cta_label, override(settings["cta_label"], "View All"))
 

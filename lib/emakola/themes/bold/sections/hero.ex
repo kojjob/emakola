@@ -4,8 +4,9 @@ defmodule Emakola.Themes.Bold.Sections.Hero do
   verbatim from bold/home.ex.
 
   Merchant settings override the theme config; left empty (the default),
-  every value falls back to exactly what `@theme.hero` resolved to before
-  the retrofit.
+  the headline and button fall back to `@theme.hero`, and the subheadline
+  to the store's own description — never to the theme's sample line
+  ("Curated goods for the discerning eye"), which spoke for every store.
   """
   @behaviour Emakola.Themes.Section
 
@@ -44,7 +45,7 @@ defmodule Emakola.Themes.Bold.Sections.Hero do
         :hero_subtitle,
         override(
           settings["subheading"],
-          Map.get(hero, :subtitle) || "Curated goods for the discerning eye"
+          override(Map.get(hero, :subtitle), Map.get(assigns.store, :description))
         )
       )
       |> assign(
@@ -133,6 +134,7 @@ defmodule Emakola.Themes.Bold.Sections.Hero do
         {@hero_title}
       </h1>
       <p
+        :if={Shared.present?(@hero_subtitle)}
         class="text-lg sm:text-xl text-slate-300 leading-relaxed mb-10 max-w-lg font-light"
         style="font-family: 'Inter', sans-serif;"
       >

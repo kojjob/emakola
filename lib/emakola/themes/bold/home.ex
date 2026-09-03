@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Bold.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Bold.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   @doc """
@@ -31,7 +32,10 @@ defmodule Emakola.Themes.Bold.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Bold)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Bold)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-[#F8FAFC]">
@@ -40,7 +44,11 @@ defmodule Emakola.Themes.Bold.Home do
 
       {SectionRenderer.home(assigns)}
 
-      <Shared.footer store={@store} categories={@categories} />
+      <Shared.footer
+        store={@store}
+        categories={@categories}
+        newsletter={@layout.show_newsletter?}
+      />
     </div>
     """
   end
