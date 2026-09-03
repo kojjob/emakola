@@ -216,6 +216,16 @@ defmodule Emakola.Themes.AkwaabaTest do
   end
 
   describe "product card" do
+    test "without a photo it shows a pictogram placeholder, never the piece's initial" do
+      html =
+        Shared.product_card(%{__changed__: nil, product: product(), store: @store})
+        |> rendered_to_string()
+
+      refute html =~ "<img"
+      assert html =~ ~s(data-placeholder="product")
+      refute html =~ ~r/>\s*A\s*</
+    end
+
     test "browse-only on the list page — that LiveView has no add_to_cart handler" do
       html =
         %{product: product(), store: @store, show_add: false, __changed__: nil}
