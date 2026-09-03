@@ -221,13 +221,6 @@ defmodule Emakola.Accounts.Merchant do
     end
   end
 
-  changes do
-    change(Emakola.Accounts.Changes.SendWelcomeEmail,
-      on: [:create],
-      where: [action_is(:register_with_password)]
-    )
-  end
-
   actions do
     defaults([:read])
 
