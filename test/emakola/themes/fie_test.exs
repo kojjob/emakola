@@ -227,11 +227,16 @@ defmodule Emakola.Themes.FieTest do
   end
 
   describe "home render through SectionRenderer" do
-    test "renders all six sections in order with their landmarks" do
-      {_merchant, store} = create_merchant_with_store!()
+    test "a full catalogue with a description renders all six sections in order" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{description: "Handwoven pieces from Bolgatanga."})
+
       create_category!(store, %{name: "Baskets"})
-      product = create_product!(store, %{title: "Kente Cushion", status: :active})
-      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      for title <- ["Kente Cushion", "Bolga Basket", "Clay Pot", "Raffia Mat"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -246,8 +251,9 @@ defmodule Emakola.Themes.FieTest do
       assert html =~ "Kente Cushion"
       assert html =~ "GH₵ 123.45"
       assert html =~ "tabular-nums"
-      # Story
+      # Story carries the merchant's own words
       assert html =~ ~s(id="fie-story-heading")
+      assert html =~ "Handwoven pieces from Bolgatanga."
       # Trust names the real rails; newsletter owns capture — exactly one form
       assert html =~ "MTN MoMo"
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 2
@@ -258,6 +264,24 @@ defmodule Emakola.Themes.FieTest do
                html,
                ~r/fie-hero-heading.*fie-collections-heading.*fie-catalogue-heading.*fie-story-heading.*fie-trust-heading.*fie-newsletter-form/s
              )
+    end
+
+    test "one piece: the catalogue carries it alone — no index, story or newsletter" do
+      {_merchant, store} = create_merchant_with_store!()
+      create_category!(store, %{name: "Baskets"})
+      product = create_product!(store, %{title: "Kente Cushion", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ ~s(id="fie-catalogue-heading")
+      assert html =~ "Kente Cushion"
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 2
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~s(id="fie-collections-heading")
+      refute html =~ ~s(id="fie-story-heading")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "MTN MoMo"
     end
 
     test "an empty store renders an intentional composed state, never a blank page" do
@@ -272,7 +296,8 @@ defmodule Emakola.Themes.FieTest do
       assert html =~ "hasn't listed any pieces yet"
       # The hero still opens the page with the store name as its h1
       assert html =~ ~r/<h1[^>]*id="fie-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
-      assert html =~ ~s(id="fie-story-heading")
+      # No description, so no story speaks for the merchant
+      refute html =~ ~s(id="fie-story-heading")
     end
 
     test "the home page carries Fie's own chrome: skip link, banner nav, footer, bottom nav" do
@@ -347,15 +372,28 @@ defmodule Emakola.Themes.FieTest do
       refute empty =~ "0 collections"
     end
 
-    test "photo-optional: no image still renders a composed cover plate, not grey boxes" do
+    test "photo-optional: no image renders a typographic composition, not grey boxes or a letter" do
       html = render_section(Hero, %{store: @component_store, products: [], categories: []})
 
       refute html =~ "<img"
       refute html =~ "animate-pulse"
-      # The typographic plate: blush ground carrying the store initial
-      assert html =~ "bg-[#F7ECE7]"
-      assert html =~ ~r/aria-hidden="true"[^>]*>\s*A\s*</s
+      # No monumental initial stands in for a picture
+      refute html =~ ~r/aria-hidden="true"[^>]*>\s*A\s*</s
       assert html =~ "Browse the catalogue"
+    end
+
+    test "never borrows a product photo: the cover comes only from the merchant's own setting" do
+      products = [
+        component_product(%{
+          images: [%{thumbnail_url: "/uploads/basket.jpg", url: "/uploads/basket-full.jpg"}]
+        })
+      ]
+
+      html = render_section(Hero, %{store: @component_store, products: products, categories: []})
+
+      refute html =~ "<img"
+      refute html =~ "basket"
+      assert html =~ ~r/<h1[^>]*id="fie-hero-heading"[^>]*>\s*Adom Home\s*<\/h1>/
     end
 
     test "renders a local upload as the cover with alt text" do
@@ -465,7 +503,7 @@ defmodule Emakola.Themes.FieTest do
   end
 
   describe "catalogue_plate/1" do
-    test "is composed before any image bytes: index, initial, price — no <img>" do
+    test "is composed before any image bytes: index, pictogram, price — no <img>" do
       html =
         render_component(&Components.catalogue_plate/1, %{
           product: component_product(),
@@ -475,8 +513,9 @@ defmodule Emakola.Themes.FieTest do
 
       refute html =~ "<img"
       assert html =~ "04"
-      # The plate carries the product initial as its typographic ground
-      assert html =~ ~r/aria-hidden="true"[^>]*>\s*B\s*</s
+      # The plate carries one pictogram placeholder, never the product's initial
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/aria-hidden="true"[^>]*>\s*B\s*</s
       assert html =~ "GH₵ 180.50"
       assert html =~ "Bolga Basket"
       assert html =~ ~s(phx-click="add_to_cart")
@@ -570,12 +609,10 @@ defmodule Emakola.Themes.FieTest do
   end
 
   describe "story section" do
-    test "falls back to neutral welcome copy without a description" do
+    test "renders nothing without a description — no invented welcome copy" do
       html = render_section(Story, %{store: @component_store})
 
-      assert html =~ ~s(id="fie-story-heading")
-      assert html =~ "Welcome to Adom Home"
-      refute html =~ "Chat on WhatsApp"
+      assert String.trim(html) == ""
     end
 
     test "renders the description and WhatsApp CTA when present" do
@@ -640,6 +677,14 @@ defmodule Emakola.Themes.FieTest do
       html = render_section(Newsletter, %{store: @component_store})
 
       refute html =~ ~r/\d+\s*%|discount|% off|free shipping/i
+    end
+
+    test "waits for a full catalogue: no form under four pieces" do
+      one = [component_product()]
+      refute render_section(Newsletter, %{store: @component_store, products: one}) =~ "<form"
+
+      four = Enum.map(1..4, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+      assert render_section(Newsletter, %{store: @component_store, products: four}) =~ "<form"
     end
   end
 

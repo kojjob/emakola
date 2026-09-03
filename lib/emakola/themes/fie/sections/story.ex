@@ -2,15 +2,16 @@ defmodule Emakola.Themes.Fie.Sections.Story do
   @moduledoc """
   Fie home story — the shop's note inside the blush frame.
 
-  Store description with a neutral fallback (no invented prose about the
-  merchant), and a WhatsApp CTA only when the store actually has a
-  number.
+  The merchant's own description and a WhatsApp CTA only when the store
+  actually has a number. Renders nothing without a description: no stock
+  sentence speaks for a merchant who has not written one.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   alias Emakola.Themes.Fie.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fie/story"
@@ -24,8 +25,10 @@ defmodule Emakola.Themes.Fie.Sections.Story do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="bg-[#FDFCFB]" aria-labelledby="fie-story-heading">
+    <section :if={@layout.show_about?} class="bg-[#FDFCFB]" aria-labelledby="fie-story-heading">
       <div class="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div class="border border-[#EBDAD3] bg-[#F7ECE7] px-6 py-10 sm:px-10 sm:py-14 lg:grid lg:grid-cols-[1fr_2fr] lg:gap-12">
           <div class="mb-6 lg:mb-0">
@@ -43,10 +46,7 @@ defmodule Emakola.Themes.Fie.Sections.Story do
           </div>
           <div>
             <p class="max-w-xl text-base leading-relaxed text-stone-700">
-              {if @store.description,
-                do: @store.description,
-                else:
-                  "Welcome to #{@store.name}. Take your time with the catalogue — each piece is numbered, priced, and ready to order."}
+              {@store.description}
             </p>
             <a
               :if={Shared.wa_me(@store)}

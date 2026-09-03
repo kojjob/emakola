@@ -11,10 +11,14 @@ defmodule Emakola.Themes.Dede.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Dede.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Dede)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Dede)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-[#FAF5EA]">

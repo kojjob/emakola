@@ -4,10 +4,14 @@ defmodule Emakola.Themes.Dede.Sections.Newsletter do
   `subscribe_newsletter`, handled platform-wide by
   `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view handler needed.
   Copy is honest: menu updates from this kitchen, nothing else promised.
+  Shown only once the menu is long enough to have news: four or more
+  dishes.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "dede/newsletter"
@@ -21,8 +25,11 @@ defmodule Emakola.Themes.Dede.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
+      :if={@layout.show_newsletter?}
       class="px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
       aria-labelledby="dede-newsletter-heading"
     >

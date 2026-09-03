@@ -4,12 +4,15 @@ defmodule Emakola.Themes.Sika.Sections.Newsletter do
 
   The form fires `subscribe_newsletter`, handled platform-wide by
   `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view handler needed.
-  Copy is honest: first sight of new pieces, nothing else promised.
+  Copy is honest: first sight of new pieces, nothing else promised. Shown
+  only once the collection is full enough to have news: four or more
+  pieces.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Sika.Shared
 
   @impl true
@@ -25,10 +28,13 @@ defmodule Emakola.Themes.Sika.Sections.Newsletter do
   @impl true
   def render(assigns) do
     assigns =
-      assign(assigns, :heading, Shared.present(assigns.settings["heading"]) || "Private viewings")
+      assigns
+      |> assign(:heading, Shared.present(assigns.settings["heading"]) || "Private viewings")
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <section
+      :if={@layout.show_newsletter?}
       class="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
       aria-labelledby="sika-newsletter-heading"
     >
