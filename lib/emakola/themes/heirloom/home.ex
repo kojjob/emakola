@@ -14,10 +14,14 @@ defmodule Emakola.Themes.Heirloom.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Heirloom.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Heirloom)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Heirloom)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="bg-[color:var(--hl-bg)] [font-family:var(--hl-font)]">
@@ -34,7 +38,13 @@ defmodule Emakola.Themes.Heirloom.Home do
       </div>
     </div>
 
-    <Shared.footer store={@store} categories={assigns[:categories] || []} />
+    <%!-- The footer's capture form waits for a full stall, like every
+         newsletter on the platform (Emakola.Themes.Layout). --%>
+    <Shared.footer
+      store={@store}
+      categories={assigns[:categories] || []}
+      hide_newsletter={!@layout.show_newsletter?}
+    />
     """
   end
 end

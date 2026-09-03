@@ -182,6 +182,7 @@ defmodule Emakola.Themes.Heirloom.Shared do
 
   attr :store, :map, required: true
   attr :categories, :list, default: []
+  attr :hide_newsletter, :boolean, default: false
 
   def footer(assigns) do
     ~H"""
@@ -194,12 +195,14 @@ defmodule Emakola.Themes.Heirloom.Shared do
       </p>
 
       <div class="mx-auto grid max-w-[1360px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2">
-        <div>
+        <div :if={!@hide_newsletter}>
           <h2 class="text-2xl font-light [font-family:var(--hl-display)]">
             Subscribe to our newsletter
           </h2>
+          <%!-- "New pieces, restocks and seasonal releases" promised a cadence
+               on the merchant's behalf. --%>
           <p class="mt-3 max-w-sm text-sm leading-relaxed text-white/60">
-            New pieces, restocks and seasonal releases, straight to your inbox.
+            New products and updates from {wordmark(@store)}, straight to your inbox.
           </p>
 
           <form phx-submit="subscribe_newsletter" class="mt-6 flex max-w-sm items-center gap-2">
