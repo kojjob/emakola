@@ -79,9 +79,11 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
 
       <%!-- Background photographic layer --%>
       <%= if @hero_image_url do %>
+        <%!-- Decorative: the headline sits on top of it, so it carries no
+             alt text — and no theme-written one like "Home interior". --%>
         <img
           src={@hero_image_url}
-          alt="Home interior"
+          alt=""
           class="absolute inset-0 w-full h-full object-cover opacity-60"
         />
         <div class="absolute inset-0 bg-gradient-to-br from-[#1F2937]/90 via-[#1F2937]/60 to-transparent">

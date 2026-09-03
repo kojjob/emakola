@@ -120,7 +120,11 @@ defmodule Emakola.Themes.Electronics.Sections.Hero do
           <div class="relative">
             <div class="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-[#1A6E69] to-[#0E3F3B] flex items-center justify-center">
               <%= if @hero_image_url do %>
-                <img src={@hero_image_url} alt="Electronics" class="w-full h-full object-cover" />
+                <img
+                  src={@hero_image_url}
+                  alt={"#{@store.name} storefront"}
+                  class="w-full h-full object-cover"
+                />
               <% else %>
                 <span class="material-symbols-outlined text-[#0EA5E9]/40" style="font-size: 200px;">
                   headphones
