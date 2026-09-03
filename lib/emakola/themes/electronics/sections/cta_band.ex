@@ -1,7 +1,9 @@
 defmodule Emakola.Themes.Electronics.Sections.CtaBand do
   @moduledoc """
   Electronics home dark CTA band with the star pattern -- extracted verbatim
-  from electronics/home.ex.
+  from electronics/home.ex. It carries the merchant's own pitch and renders
+  nothing without one: "Explore our latest collection of electronics" spoke
+  for every shop wearing the theme, whatever it sold.
   """
   @behaviour Emakola.Themes.Section
 
@@ -38,9 +40,9 @@ defmodule Emakola.Themes.Electronics.Sections.CtaBand do
       )
 
     ~H"""
-    <%!-- DARK CTA BAND with star pattern --%>
+    <%!-- DARK CTA BAND with star pattern — the merchant's own pitch, or nothing --%>
     <section
-      :if={section_enabled?(@theme, :cta_band)}
+      :if={section_enabled?(@theme, :cta_band) && @heading}
       class="bg-[#134E4A] py-14 sm:py-20 relative overflow-hidden"
     >
       <%!-- Star pattern background --%>
@@ -66,10 +68,13 @@ defmodule Emakola.Themes.Electronics.Sections.CtaBand do
         </svg>
       </div>
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-        <h2 class="electronics-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-3">
+        <h2 class={[
+          "electronics-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight",
+          if(@subheading, do: "mb-3", else: "mb-7")
+        ]}>
           {@heading}
         </h2>
-        <p class="text-base text-white/80 mb-7">{@subheading}</p>
+        <p :if={@subheading} class="text-base text-white/80 mb-7">{@subheading}</p>
         <a
           href={store_path(@store.slug, "/products")}
           class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-[#134E4A] text-sm font-bold hover:bg-[#F5EFE5] transition-colors min-h-[48px]"
@@ -82,11 +87,10 @@ defmodule Emakola.Themes.Electronics.Sections.CtaBand do
     """
   end
 
-  defp cta_band_title(theme),
-    do: get_in(theme, [:cta_band, :title]) || "Explore our latest collection"
+  # No fallback copy on either line: blank means no band.
+  defp cta_band_title(theme), do: present(get_in(theme, [:cta_band, :title]))
 
-  defp cta_band_subtitle(theme),
-    do: get_in(theme, [:cta_band, :subtitle]) || "of electronics"
+  defp cta_band_subtitle(theme), do: present(get_in(theme, [:cta_band, :subtitle]))
 
   defp cta_band_button(theme),
     do: get_in(theme, [:cta_band, :button_text]) || "Shop the Collection"
