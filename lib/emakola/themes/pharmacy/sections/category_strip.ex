@@ -9,6 +9,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.CategoryStrip do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -22,9 +23,14 @@ defmodule Emakola.Themes.Pharmacy.Sections.CategoryStrip do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={Shared.section_enabled?(@theme, :categories) && @categories != []}
+      :if={
+        Shared.section_enabled?(@theme, :categories) && @categories != [] &&
+          @layout.show_categories?
+      }
       class="bg-[#F9F6F0] pb-10"
     >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
