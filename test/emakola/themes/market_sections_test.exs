@@ -136,11 +136,21 @@ defmodule Emakola.Themes.MarketSectionsTest do
   end
 
   describe "home render through SectionRenderer" do
-    test "renders all five sections in order with their landmarks" do
-      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
+    test "a full stall renders all the sections in order with their landmarks" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "market"},
+          description: "Hand-picked goods from Makola market."
+        })
+
       create_category!(store, %{name: "Fresh Peppers"})
       product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
       create_variant!(product, store, %{price: 12345, stock_quantity: 5})
+
+      for n <- 1..3 do
+        extra = create_product!(store, %{title: "Extra #{n}", status: :active})
+        create_variant!(extra, store, %{price: 1000, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -184,7 +194,8 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ "added any products yet"
       # The hero still opens the page with the store name as its h1
       assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
-      assert html =~ "About the Shop"
+      # Nothing invented: no About card speaks for a merchant who wrote nothing
+      refute html =~ "About the Shop"
     end
 
     test "a store description renders in the about section" do
@@ -498,8 +509,9 @@ defmodule Emakola.Themes.MarketSectionsTest do
       html = render_hero(@component_store)
 
       refute html =~ "<img"
-      # Monumental store-initial watermark (decorative, hidden from AT)
-      assert html =~ ~r/aria-hidden="true"[^>]*>\s*S\s*</s
+      # No monumental store-initial watermark: a letter means nothing to a
+      # buyer who reads slowly, so the composition is type, colour and space.
+      refute html =~ ~r/aria-hidden="true"[^>]*>\s*S\s*</s
       assert html =~ ~r/<h1[^>]*>\s*Stall Front\s*<\/h1>/
       assert html =~ "Shop all"
     end
@@ -702,7 +714,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   end
 
   describe "product_card/1" do
-    test "looks finished with no image: initial, price chip, add to cart — no <img>" do
+    test "looks finished with no image: pictogram, price, add to cart — no letter, no <img>" do
       html =
         render_component(&Components.product_card/1, %{
           product: component_product(),
@@ -710,8 +722,9 @@ defmodule Emakola.Themes.MarketSectionsTest do
         })
 
       refute html =~ "<img"
-      # Placeholder panel carries the product's initial
-      assert html =~ ~r/>\s*S\s*</
+      # The placeholder panel is a pictogram, never the product's initial
+      refute html =~ ~r/>\s*S\s*</
+      assert html =~ ~s(data-placeholder="product")
       assert html =~ "GH₵ 45.50"
       assert html =~ "Shea Butter"
       assert html =~ ~s(phx-click="add_to_cart")
@@ -824,12 +837,10 @@ defmodule Emakola.Themes.MarketSectionsTest do
   end
 
   describe "about_card/1" do
-    test "falls back to the neutral welcome copy without a description" do
+    test "renders nothing without a description — no invented welcome copy" do
       html = render_component(&Components.about_card/1, %{store: @component_store})
 
-      assert html =~ "About the Shop"
-      assert html =~ "Welcome to Stall Front."
-      refute html =~ "Chat on WhatsApp"
+      assert String.trim(html) == ""
     end
 
     test "renders the description and WhatsApp CTA when present" do

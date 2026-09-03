@@ -5,10 +5,11 @@ defmodule Emakola.Themes.Market.Sections.Hero do
 
   Carries the page's `<h1>`. Photo-optional by design: with no image the
   hero is a typographic composition on warm stone — a display-scale
-  headline in the merchant's heading family anchored by the store's
-  initial at monumental scale, the theme's placeholder glyph language.
-  With a local upload it becomes a stall front: text beside a
-  product-forward photo in the card family's rounded frame.
+  headline in the merchant's heading family. It never borrows a product
+  photograph: thumbnails blown up to a banner looked broken on every real
+  shop, and the featured card right below already carries the photo. With
+  a local upload it becomes a stall front: text beside the merchant's own
+  image in the card family's rounded frame.
 
   The CTA is a notched tag (the price-chip geometry writ large) and always
   links to the server-generated products path — a merchant-controlled href
@@ -40,12 +41,6 @@ defmodule Emakola.Themes.Market.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
-    # if the merchant had set one in the editor — which no new store has — so
-    # every real storefront opened on an empty band. It now falls back to the
-    # shop's own first product photograph.
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
-
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -57,31 +52,19 @@ defmodule Emakola.Themes.Market.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop all")
-      |> assign(:hero_product, hero_product)
-      |> assign(
-        :image,
-        valid_image(assigns.settings["image_url"]) ||
-          (hero_product && Emakola.Themes.Market.Shared.first_image(hero_product))
-      )
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
 
     ~H"""
     <section
       class="relative overflow-hidden bg-white"
       aria-labelledby="market-hero-heading"
     >
-      <span
-        :if={!@image}
-        class="pointer-events-none absolute -right-6 top-1/2 hidden -translate-y-1/2 select-none text-[15rem] font-bold leading-none text-stone-100 [font-family:var(--dt-heading-font,inherit)] sm:block lg:text-[20rem]"
-        aria-hidden="true"
-      >
-        {String.first(@store.name)}
-      </span>
       <div class="relative mx-auto max-w-[1280px] px-4 pt-4 sm:px-6 sm:pt-5 lg:px-8">
         <%!-- Photo band: text overlays the image on a legibility gradient --%>
         <div :if={@image} class="relative overflow-hidden rounded-[22px]">
           <.optimized_image
             src={@image}
-            alt={(@hero_product && @hero_product.title) || "#{@store.name} storefront"}
+            alt={"#{@store.name} storefront"}
             priority={:high}
             width={1280}
             height={480}
@@ -129,16 +112,6 @@ defmodule Emakola.Themes.Market.Sections.Hero do
                   />
                 </svg>
               </a>
-              <span
-                :if={@hero_product}
-                class="rounded-xl bg-white/95 px-3.5 py-2.5 text-[0.8125rem] font-bold leading-none tabular-nums text-stone-900"
-              >
-                {EmakolaWeb.Helpers.Currency.format_price_range(
-                  @hero_product.min_price,
-                  @hero_product.max_price,
-                  @store.currency
-                )}
-              </span>
             </div>
           </div>
         </div>
