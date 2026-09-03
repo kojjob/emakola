@@ -9,11 +9,15 @@ defmodule Emakola.Themes.Sika.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
   alias Emakola.Themes.Sika.Shared
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Sika)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Sika)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="bg-[#FAF9F7] text-[#211D16] [font-family:var(--dt-body-font,Work_Sans,system-ui,sans-serif)]">
