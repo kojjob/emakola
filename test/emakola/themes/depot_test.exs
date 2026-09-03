@@ -181,7 +181,7 @@ defmodule Emakola.Themes.DepotTest do
       |> rendered_to_string()
     end
 
-    test "renders the order sheet: SKU, minor-unit price, stock on hand, quick add" do
+    test "a full sheet renders the order sheet: SKU, minor-unit price, stock on hand, quick add" do
       {_merchant, store} = create_merchant_with_store!(%{currency: "GHS"})
       create_category!(store, %{name: "Cooking Oils"})
       product = create_product!(store, %{title: "Cassava Flour 10kg", status: :active})
@@ -192,6 +192,13 @@ defmodule Emakola.Themes.DepotTest do
         sku: "CSV-10KG",
         position: 0
       })
+
+      # Four lines make a full sheet: the product-line index and stock
+      # alerts only join the page once there is enough stock to index
+      for title <- ["Rice 25kg", "Palm Oil 5L", "Sugar 50kg"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 1000, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -230,6 +237,22 @@ defmodule Emakola.Themes.DepotTest do
                html,
                ~r/depot-hero-heading.*depot-order-sheet-heading.*depot-lines-heading.*We accept.*depot-newsletter-form/s
              )
+    end
+
+    test "a one-line sheet carries the product alone: no line index, no stock alerts" do
+      {_merchant, store} = create_merchant_with_store!(%{currency: "GHS"})
+      create_category!(store, %{name: "Cooking Oils"})
+      product = create_product!(store, %{title: "Cassava Flour 10kg", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 24, sku: "CSV-10KG"})
+
+      html = render_home(store)
+
+      assert html =~ ~s(id="depot-order-sheet-heading")
+      assert html =~ "Cassava Flour 10kg"
+      assert html =~ ~s(phx-value-product-id="#{product.id}")
+      refute html =~ ~s(id="depot-lines-heading")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "MTN MoMo"
     end
 
     test "an empty store renders an intentional stocking-up state, never a blank page" do
@@ -386,12 +409,13 @@ defmodule Emakola.Themes.DepotTest do
       assert html =~ ~r/<img[^>]*alt=""/
     end
 
-    test "a line with no photograph falls back to a lettered tile, never a broken image" do
+    test "a line with no photograph shows a pictogram tile, never a broken image or a letter" do
       html =
         render_section(OrderSheet, %{store: @component_store, products: [component_product()]})
 
       refute html =~ "<img"
-      assert html =~ ~r/aria-hidden="true"[^>]*>\s*P\s*</
+      assert html =~ ~s(data-placeholder="product")
+      refute html =~ ~r/aria-hidden="true"[^>]*>\s*P\s*</
     end
 
     test "the sheet numbers its lines the way a manifest does" do
