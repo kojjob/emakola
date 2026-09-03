@@ -4,20 +4,6 @@ defmodule Emakola.Notifications.AuthMailer do
 
   alias Emakola.Mailer
 
-  def welcome(user) do
-    new()
-    |> to({user.name || "User", to_string(user.email)})
-    |> from(Mailer.from_address("Makola"))
-    |> subject("Welcome to Makola!")
-    |> html_body("""
-    <h1>Welcome to Makola!</h1>
-    <p>Hi #{user.name || "there"},</p>
-    <p>Your account has been created. Get started by creating your first workspace.</p>
-    """)
-    |> text_body("Welcome to Makola! Your account has been created.")
-    |> Mailer.deliver()
-  end
-
   # The link lands on the interactive confirm page (require_interaction? — a GET
   # from an email-scanner bot must not be able to confirm; the page POSTs).
   def confirm_email(email, token) do
