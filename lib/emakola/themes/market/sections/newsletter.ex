@@ -3,11 +3,14 @@ defmodule Emakola.Themes.Market.Sections.Newsletter do
   Market home email capture. The form fires `subscribe_newsletter`, handled
   platform-wide by `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view
   handler needed. Copy is honest: updates from this store, nothing else
-  promised.
+  promised. Shown only once the stall is full enough to have news: four or
+  more products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Market.Layout
 
   @impl true
   def key, do: "market/newsletter"
@@ -21,8 +24,14 @@ defmodule Emakola.Themes.Market.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8" aria-labelledby="market-newsletter-heading">
+    <section
+      :if={@layout.show_newsletter?}
+      class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
+      aria-labelledby="market-newsletter-heading"
+    >
       <div class="mx-auto max-w-[1280px] rounded-[20px] border border-stone-200 bg-white p-6 text-center sm:p-8">
         <h2
           id="market-newsletter-heading"

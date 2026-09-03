@@ -63,6 +63,11 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
 
     test "the newsletter section form submits through the platform hook", %{conn: conn} do
       store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+      # The newsletter joins the page once the stall is full: four or more products.
+      for n <- 1..4 do
+        product = Factory.create_product!(store, %{title: "Product #{n}", status: :active})
+        Factory.create_variant!(product, store, %{price: 1000, stock_quantity: 5})
+      end
 
       {:ok, view, _html} = live(conn, "/s/#{store.slug}")
 

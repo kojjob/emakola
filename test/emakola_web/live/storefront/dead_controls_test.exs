@@ -69,7 +69,8 @@ defmodule EmakolaWeb.Storefront.DeadControlsTest do
     for theme <- ~w(beauty electronics fashion home_living pharmacy spotlight market) do
       test "#{theme}: subscribing actually records a subscriber", ctx do
         store = store_on(unquote(theme))
-        _product = stocked_product!(store)
+        # Four products: Market shows its newsletter only on a full stall.
+        for _n <- 1..4, do: stocked_product!(store)
 
         {:ok, view, _html} = live(ctx.conn, "/s/#{store.slug}")
 
