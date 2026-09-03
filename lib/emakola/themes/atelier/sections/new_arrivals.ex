@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Atelier.Sections.NewArrivals do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "atelier/new_arrivals"
@@ -20,21 +21,16 @@ defmodule Emakola.Themes.Atelier.Sections.NewArrivals do
 
   @impl true
   def render(assigns) do
-    # Show products not in the featured hero section (skip first product used as hero)
-    featured_count = min(length(assigns.products), 5)
-    trending = assigns.products |> Enum.drop(featured_count) |> Enum.take(4)
-    # If not enough overflow, show last 4 products in different order
-    trending =
-      if trending == [], do: assigns.products |> Enum.reverse() |> Enum.take(4), else: trending
+    # Only what the featured bento (the featured product plus four) did not
+    # take. There is no "show the last four again" fallback any more: the
+    # same product in a different order is still the same product twice.
+    trending = Layout.of(assigns).grid_products |> Enum.drop(4) |> Enum.take(4)
 
     assigns = assign(assigns, :trending, trending)
 
     ~H"""
     <section
-      :if={
-        Shared.section_enabled?(@theme, :featured_products) and length(@products) > 3 and
-          @trending != []
-      }
+      :if={Shared.section_enabled?(@theme, :featured_products) and @trending != []}
       class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24"
     >
       <div class="flex items-center justify-between mb-8">

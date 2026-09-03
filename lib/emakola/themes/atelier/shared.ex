@@ -162,7 +162,11 @@ defmodule Emakola.Themes.Atelier.Shared do
             alt={@product.title}
             class="w-full h-full object-cover transition-transform duration-300"
           />
-          <div :if={!@image} class="w-full h-full flex items-center justify-center bg-gray-100">
+          <div
+            :if={!@image}
+            class="w-full h-full flex items-center justify-center bg-gray-100"
+            data-placeholder="product"
+          >
             <.image_placeholder />
           </div>
 
@@ -269,7 +273,11 @@ defmodule Emakola.Themes.Atelier.Shared do
         alt={@product.title}
         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
-      <div :if={!@image} class="w-full h-full flex items-center justify-center">
+      <div
+        :if={!@image}
+        class="w-full h-full flex items-center justify-center"
+        data-placeholder="product"
+      >
         <.image_placeholder />
       </div>
 

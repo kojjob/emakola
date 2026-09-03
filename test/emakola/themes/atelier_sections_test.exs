@@ -23,7 +23,9 @@ defmodule Emakola.Themes.AtelierSectionsTest do
   test "default render carries each section's landmark content" do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "atelier"}})
     create_category!(store)
-    for _ <- 1..4, do: create_product!(store, %{status: :active})
+    # Six, not four: the featured bento takes five, and "More from the shop"
+    # now shows only what is left over instead of repeating the catalogue.
+    for _ <- 1..6, do: create_product!(store, %{status: :active})
 
     html = render_home(store)
 
@@ -102,6 +104,53 @@ defmodule Emakola.Themes.AtelierSectionsTest do
       assert html =~ "We sell rice, oil and shito."
     end
   end
+
+  describe "the home grows with the catalogue" do
+    test "one product: the featured card carries it alone" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "atelier"}})
+      create_category!(store)
+      create_product!(store, %{title: "Kente Tote Bag", status: :active})
+
+      html = render_home(store)
+
+      assert html =~ "Featured Masterpieces"
+      assert count(html, "Kente Tote Bag") == 1
+      refute html =~ "More from the shop"
+      refute html =~ "Shop by Category"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
+    test "six products: the overflow grid shows only what the bento did not take" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "atelier"}})
+
+      products =
+        for n <- 1..6, do: create_product!(store, %{title: "Product #{n}", status: :active})
+
+      html = render_home(store)
+
+      assert html =~ "More from the shop"
+      # The featured card has no add-to-cart button; the five other products
+      # get one card each, and no product id is on more than one card.
+      assert count(html, ~s(phx-value-product-id=)) == 5
+
+      for product <- products do
+        assert count(html, ~s(phx-value-product-id="#{product.id}")) <= 1,
+               "#{product.title} is on more than one card"
+      end
+    end
+
+    test "the hero never borrows a product photo" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "atelier"}})
+      product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
+      image = create_image!(product, store, %{url: "https://s3.example.com/kente-tote.jpg"})
+
+      html = render_home(store)
+
+      assert count(html, image.url) == 1
+    end
+  end
+
+  defp count(html, needle), do: length(String.split(html, needle)) - 1
 
   defp render_home(store) do
     theme = ThemeResolver.resolve(store.theme_config || %{}, store)
