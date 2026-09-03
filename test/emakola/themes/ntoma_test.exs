@@ -128,11 +128,14 @@ defmodule Emakola.Themes.NtomaTest do
       :ok
     end
 
-    test "renders all seven sections in order with their landmarks" do
+    test "a full collection renders all seven sections in order with their landmarks" do
       {_merchant, store} = create_merchant_with_store!()
       create_category!(store, %{name: "Kaftans"})
-      product = create_product!(store, %{title: "Kente Kaftan", status: :active})
-      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      for title <- ["Ankara Wrap", "Batakari", "Slit and Kaba", "Kente Kaftan"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -157,6 +160,8 @@ defmodule Emakola.Themes.NtomaTest do
       assert html =~ "tabular-nums"
       # Newsletter owns capture — exactly one subscribe form
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 2
+      # The featured piece leaves the grid, so every piece appears once
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 5
 
       # Flat sibling order: hero -> trust -> tiles -> wordmark -> featured
       # -> grid -> newsletter
@@ -164,6 +169,25 @@ defmodule Emakola.Themes.NtomaTest do
                html,
                ~r/ntoma-hero-heading.*MTN MoMo.*Product categories.*ntoma-wordmark-heading.*Featured piece.*Latest pieces.*ntoma-newsletter-form/s
              )
+    end
+
+    test "one piece: the featured card carries it alone — no grid, tiles or newsletter" do
+      {_merchant, store} = create_merchant_with_store!()
+      create_category!(store, %{name: "Kaftans"})
+      product = create_product!(store, %{title: "Kente Kaftan", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ ~s(aria-label="Featured piece")
+      assert html =~ "Kente Kaftan"
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 2
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ "Latest pieces"
+      refute html =~ ~s(aria-label="Product categories")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      # The type still composes the page around the one piece
+      assert html =~ ~r/id="ntoma-wordmark-heading"[^>]*>\s*#{Regex.escape(store.name)}\s*</
     end
 
     test "empty products and categories render an intentional empty state, not a blank page" do
@@ -181,7 +205,8 @@ defmodule Emakola.Themes.NtomaTest do
                ~r/<h1[^>]*id="ntoma-hero-heading"[^>]*>\s*#{Regex.escape(store.name)}\s*<\/h1>/
 
       assert html =~ ~r/id="ntoma-wordmark-heading"[^>]*>\s*#{Regex.escape(store.name)}\s*</
-      assert html =~ ~s(phx-submit="subscribe_newsletter")
+      # No news to subscribe to yet
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
     end
 
     test "the home page carries Ntoma's own chrome: skip link, banner nav, footer, bottom nav" do
@@ -362,6 +387,20 @@ defmodule Emakola.Themes.NtomaTest do
       assert html =~ ~s(href="/s/cloth/products")
     end
 
+    test "never borrows a product photo: the image comes only from the merchant's own setting" do
+      products = [
+        component_product(%{
+          images: [%{thumbnail_url: "/uploads/dress.jpg", url: "/uploads/dress-full.jpg"}]
+        })
+      ]
+
+      html = render_section(Hero, %{store: @component_store, products: products})
+
+      refute html =~ "<img"
+      refute html =~ "dress"
+      assert html =~ ~r/<h1[^>]*id="ntoma-hero-heading"[^>]*>\s*Adjoa Atelier\s*<\/h1>/
+    end
+
     test "renders a local upload as the hero image with alt text" do
       html =
         render_section(Hero, %{store: @component_store}, %{
@@ -467,6 +506,9 @@ defmodule Emakola.Themes.NtomaTest do
       refute html =~ "<a"
     end
 
+    # The tiles wait for a full collection, so these carry four pieces.
+    defp three_fillers, do: Enum.map(2..4, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+
     test "a tile with no image of its own borrows a photograph from a product in that category" do
       categories = [%{id: "cat-1", name: "Ankara", slug: "ankara"}]
 
@@ -476,6 +518,7 @@ defmodule Emakola.Themes.NtomaTest do
           category_id: "cat-1",
           images: [%{thumbnail_url: "/uploads/ankara.jpg", url: "/uploads/ankara-full.jpg"}]
         })
+        | three_fillers()
       ]
 
       html =
@@ -498,6 +541,7 @@ defmodule Emakola.Themes.NtomaTest do
           category_id: "cat-apparel",
           images: [%{thumbnail_url: "/uploads/dress.jpg", url: "/uploads/dress-full.jpg"}]
         })
+        | three_fillers()
       ]
 
       html =
@@ -508,8 +552,41 @@ defmodule Emakola.Themes.NtomaTest do
         })
 
       refute html =~ "/uploads/dress.jpg"
-      # The finished calico-and-initial state stands in instead.
+      # The finished calico state stands in instead.
       assert html =~ "Food"
+    end
+
+    test "a tile without a cover is a plain calico tile, not a lettered one" do
+      html =
+        render_section(CategoryTiles, %{
+          store: @component_store,
+          categories: [%{id: "cat-1", name: "Kaftans", slug: "kaftans"}]
+        })
+
+      assert html =~ "Kaftans"
+      refute html =~ ~r/>\s*K\s*</
+    end
+
+    test "the tiles wait for a full collection: four or more pieces" do
+      three = Enum.map(1..3, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+
+      html =
+        render_section(CategoryTiles, %{
+          store: @component_store,
+          categories: four_categories(),
+          products: three
+        })
+
+      refute html =~ "Product categories"
+
+      html =
+        render_section(CategoryTiles, %{
+          store: @component_store,
+          categories: four_categories(),
+          products: [component_product(%{id: "p4", slug: "p4"}) | three]
+        })
+
+      assert html =~ "Product categories"
     end
 
     test "renders with no :products assign at all" do
@@ -596,26 +673,42 @@ defmodule Emakola.Themes.NtomaTest do
   end
 
   describe "product grid section" do
+    defp two_products do
+      [
+        component_product(),
+        component_product(%{id: "prod-2", title: "Batakari Smock", slug: "batakari-smock"})
+      ]
+    end
+
     test "renders the grid with a merchant-overridable heading" do
-      html =
-        render_section(ProductGrid, %{
-          store: @component_store,
-          products: [component_product()]
-        })
+      html = render_section(ProductGrid, %{store: @component_store, products: two_products()})
 
       assert html =~ "Latest pieces"
-      assert html =~ "Ankara Wrap Dress"
+      assert html =~ "Batakari Smock"
       assert html =~ "GH₵ 45.50"
 
       html =
         render_section(
           ProductGrid,
-          %{store: @component_store, products: [component_product()]},
+          %{store: @component_store, products: two_products()},
           %{"heading" => "New in"}
         )
 
       assert html =~ "New in"
       refute html =~ "Latest pieces"
+    end
+
+    test "the grid leaves the featured piece to the featured card" do
+      html = render_section(ProductGrid, %{store: @component_store, products: two_products()})
+
+      refute html =~ "Ankara Wrap Dress"
+      assert html =~ ~s(phx-value-product-id="prod-2")
+
+      html =
+        render_section(ProductGrid, %{store: @component_store, products: [component_product()]})
+
+      refute html =~ "Latest pieces"
+      refute html =~ "Ankara Wrap Dress"
     end
 
     test "zero products render an intentional empty state, not nothing" do
@@ -636,6 +729,14 @@ defmodule Emakola.Themes.NtomaTest do
       assert html =~ ~s(type="email")
       assert html =~ ~s(name="email")
       assert html =~ "Subscribe"
+    end
+
+    test "waits for a full collection: no form under four pieces" do
+      one = [component_product()]
+      refute render_section(Newsletter, %{store: @component_store, products: one}) =~ "<form"
+
+      four = Enum.map(1..4, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+      assert render_section(Newsletter, %{store: @component_store, products: four}) =~ "<form"
     end
 
     test "copy is honest — no fake incentive" do
@@ -726,7 +827,10 @@ defmodule Emakola.Themes.NtomaTest do
       assert html =~ "bg-gradient-to-br", "the ground should be tonal, not one flat fill"
       assert html =~ "repeating-linear-gradient(90deg", "missing the warp (vertical threads)"
       assert html =~ "repeating-linear-gradient(0deg", "missing the weft (horizontal threads)"
-      assert html =~ ~r/>\s*A\s*</, "the product's initial should still sit on the weave"
+      # A pictogram sits on the weave, never the product's initial — a letter
+      # means nothing to a buyer who reads slowly.
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*A\s*</
     end
 
     test "featured_card weaves too — the two sit on the same page and must not disagree" do
@@ -738,6 +842,8 @@ defmodule Emakola.Themes.NtomaTest do
 
       assert html =~ "repeating-linear-gradient(90deg"
       assert html =~ "repeating-linear-gradient(0deg"
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*A\s*</
     end
 
     test "the weave is decorative — hidden from assistive tech, and covered by a real photo" do
@@ -762,7 +868,7 @@ defmodule Emakola.Themes.NtomaTest do
   end
 
   describe "product_card/1" do
-    test "looks finished with no image: serif initial, price tag, add to cart — no <img>" do
+    test "looks finished with no image: pictogram, price tag, add to cart — no <img>" do
       html =
         render_component(&Shared.product_card/1, %{
           product: component_product(),
@@ -770,7 +876,8 @@ defmodule Emakola.Themes.NtomaTest do
         })
 
       refute html =~ "<img"
-      assert html =~ ~r/>\s*A\s*</
+      assert html =~ ~s(data-placeholder="product")
+      refute html =~ ~r/>\s*A\s*</
       assert html =~ "GH₵ 45.50"
       assert html =~ "Ankara Wrap Dress"
       assert html =~ ~s(phx-click="add_to_cart")

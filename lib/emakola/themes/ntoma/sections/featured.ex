@@ -8,6 +8,7 @@ defmodule Emakola.Themes.Ntoma.Sections.Featured do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Ntoma.Shared
 
   @impl true
@@ -22,15 +23,17 @@ defmodule Emakola.Themes.Ntoma.Sections.Featured do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={@products != []}
+      :if={@layout.featured}
       class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
       aria-label="Featured piece"
     >
       <div class="mx-auto max-w-[1280px]">
         <Shared.featured_card
-          product={List.first(@products)}
+          product={@layout.featured}
           store={@store}
           eyebrow={
             if @settings["heading"] not in [nil, ""], do: @settings["heading"], else: "Featured"

@@ -4,14 +4,18 @@ defmodule Emakola.Themes.Ntoma.Sections.ProductGrid do
   Cards carry the placeholder-first treatment, the garment-label price tag,
   and add-to-cart.
 
-  A store with zero products renders an intentional setting-up state
-  instead of nothing — a brand-new atelier must never look broken to its
-  first visitor (or to the merchant previewing it).
+  The grid shows the catalogue minus the featured piece, so nothing on the
+  page appears twice; with a single piece the featured card carries it and
+  the grid stays out of the way. A store with zero products renders an
+  intentional setting-up state instead of nothing — a brand-new atelier
+  must never look broken to its first visitor (or to the merchant
+  previewing it).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Ntoma.Shared
 
   @impl true
@@ -26,9 +30,11 @@ defmodule Emakola.Themes.Ntoma.Sections.ProductGrid do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={@products != []}
+      :if={@layout.grid_products != []}
       class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
       aria-labelledby="ntoma-grid-heading"
     >
@@ -40,12 +46,16 @@ defmodule Emakola.Themes.Ntoma.Sections.ProductGrid do
           {if @settings["heading"] not in [nil, ""], do: @settings["heading"], else: "Latest pieces"}
         </h2>
         <div class="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-3 md:gap-x-4 lg:grid-cols-4 lg:gap-x-5">
-          <Shared.product_card :for={product <- @products} product={product} store={@store} />
+          <Shared.product_card
+            :for={product <- @layout.grid_products}
+            product={product}
+            store={@store}
+          />
         </div>
       </div>
     </section>
     <section
-      :if={@products == []}
+      :if={@layout.count == 0}
       class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
       aria-labelledby="ntoma-grid-empty-heading"
     >
