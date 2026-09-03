@@ -6,6 +6,8 @@ defmodule Emakola.Themes.Starter.Sections.Newsletter do
 
   import Emakola.Themes.Starter.Sections.Helpers
 
+  alias Emakola.Themes.Layout
+
   @impl true
   def key, do: "starter/newsletter"
   @impl true
@@ -18,9 +20,11 @@ defmodule Emakola.Themes.Starter.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={section_enabled?(@theme, :newsletter)}
+      :if={section_enabled?(@theme, :newsletter) and @layout.show_newsletter?}
       class="py-12"
     >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">

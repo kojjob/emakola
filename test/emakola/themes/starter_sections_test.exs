@@ -21,14 +21,17 @@ defmodule Emakola.Themes.StarterSectionsTest do
   test "default render carries each section's landmark content" do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "starter"}})
     create_category!(store)
-    create_product!(store, %{status: :active})
+    # A full stall: category pills and the newsletter join the page at four
+    # or more products.
+    for _ <- 1..4, do: create_product!(store, %{status: :active})
 
     html = render_home(store)
 
     # Landmarks -- one distinctive literal per block, picked from the
     # CURRENT starter/home.ex before extraction (Task 7 reuses these).
-    # Hero
-    assert html =~ "Your New Favorite Store"
+    # Hero -- the store's own name is the h1; the theme ships no invented
+    # headline for it to fall back to.
+    assert html =~ ~r/<h1[^>]*id="starter-hero-heading"[^>]*>\s*#{Regex.escape(store.name)}/
     # Category Pills
     assert html =~ "Shop by Category"
     # Featured Products
@@ -37,6 +40,40 @@ defmodule Emakola.Themes.StarterSectionsTest do
     assert html =~ "Secure Payment"
     # Newsletter
     assert html =~ "Stay in the Know"
+  end
+
+  describe "the home finishes at one product" do
+    test "one product: no category pills, no newsletter, no invented hero copy" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "starter"}, description: nil})
+
+      create_category!(store)
+      create_product!(store, %{title: "Kente Tote Bag", status: :active})
+
+      html = render_home(store)
+
+      assert html =~ "Kente Tote Bag"
+      assert html =~ ~s(id="starter-hero-heading")
+      refute html =~ "Your New Favorite Store"
+      refute html =~ "Quality products, curated for you."
+      refute html =~ "Shop by Category"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
+    test "the merchant's own hero words still win" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{
+            "theme" => "starter",
+            "hero" => %{"title" => "Fresh stock, every Friday", "subtitle" => "Since 2011"}
+          }
+        })
+
+      html = render_home(store)
+
+      assert html =~ "Fresh stock, every Friday"
+      assert html =~ "Since 2011"
+    end
   end
 
   defp render_home(store) do

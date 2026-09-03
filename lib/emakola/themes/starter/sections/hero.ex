@@ -23,6 +23,21 @@ defmodule Emakola.Themes.Starter.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # The store speaks for itself: its own name is the h1 unless the merchant
+    # wrote a heading, and the standfirst is its own description or nothing.
+    assigns =
+      assigns
+      |> assign(
+        :heading,
+        present(assigns.settings["heading"]) || present(assigns.theme.hero.title) ||
+          assigns.store.name
+      )
+      |> assign(
+        :subheading,
+        present(assigns.settings["subheading"]) || present(assigns.store.description) ||
+          present(assigns.theme.hero.subtitle)
+      )
+
     ~H"""
     <section
       :if={section_enabled?(@theme, :hero)}
@@ -32,24 +47,18 @@ defmodule Emakola.Themes.Starter.Sections.Hero do
         <div class="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
           <div class="max-w-2xl">
             <h1
+              id="starter-hero-heading"
               class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-4 tracking-tight"
               style="font-family: 'Inter', sans-serif;"
             >
-              {if @settings["heading"] not in [nil, ""],
-                do: @settings["heading"],
-                else: @theme.hero.title}
+              {@heading}
             </h1>
             <p
+              :if={@subheading}
               class="text-lg sm:text-xl text-white/90 leading-relaxed mb-8 max-w-lg"
               style="font-family: 'Inter', sans-serif;"
             >
-              {if @settings["subheading"] not in [nil, ""],
-                do: @settings["subheading"],
-                else:
-                  if(@store.description,
-                    do: @store.description,
-                    else: @theme.hero.subtitle
-                  )}
+              {@subheading}
             </p>
             <div class="flex flex-wrap gap-3">
               <a
@@ -94,4 +103,10 @@ defmodule Emakola.Themes.Starter.Sections.Hero do
     </section>
     """
   end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 end
