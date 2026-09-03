@@ -2,11 +2,12 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
   @moduledoc """
   Fie home hero — the catalogue cover.
 
-  Carries the page's `<h1>`. Photo-optional by design: the cover plate is
-  a typographic composition on the blush ground by default — the store's
-  initial at monumental scale inside the hairline frame — so the page is
-  composed before any image bytes arrive. A local upload turns the plate
-  photographic; the type never moves.
+  Carries the page's `<h1>`. Photo-optional by design: without an image the
+  hero is a typographic composition — index line, headline, subheadline,
+  CTA — so the page is composed before any image bytes arrive. A local
+  upload adds the cover plate beside the type. It never borrows a product
+  photograph (the catalogue below already carries it) and never stands a
+  monumental initial in for a picture.
 
   The index line above the headline states only a true count (the
   collections, which the home page loads in full — the product preview is
@@ -45,12 +46,6 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
-    # if the merchant had set one in the editor — which no new store has — so
-    # every real storefront opened on an empty band. It now falls back to the
-    # shop's own first product photograph.
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
-
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -62,12 +57,7 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Browse the catalogue")
-      |> assign(:hero_product, hero_product)
-      |> assign(
-        :image,
-        valid_image(assigns.settings["image_url"]) ||
-          (hero_product && Emakola.Themes.Fie.Shared.first_image(hero_product))
-      )
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
       |> assign(:index_line, index_line(length(Map.get(assigns, :categories) || [])))
 
     ~H"""
@@ -80,7 +70,10 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
           </span>
         </div>
 
-        <div class="grid gap-10 lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-16">
+        <div class={[
+          "grid gap-10",
+          @image && "lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-16"
+        ]}>
           <div class="max-w-2xl">
             <p
               :if={@custom_headline}
@@ -122,40 +115,18 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
             </a>
           </div>
 
-          <div class="relative aspect-[4/5] max-h-[520px] w-full overflow-hidden border border-[#EBDAD3] bg-[#F7ECE7]">
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <span
-                class="select-none text-[7rem] font-medium leading-none text-[#D8BCB0] [font-family:'Space_Grotesk','Inter',sans-serif] lg:text-[9rem]"
-                aria-hidden="true"
-              >
-                {String.first(@store.name)}
-              </span>
-              <span class="text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                {@store.name}
-              </span>
-            </div>
+          <div
+            :if={@image}
+            class="relative aspect-[4/5] max-h-[520px] w-full overflow-hidden border border-[#EBDAD3] bg-[#F7ECE7]"
+          >
             <.optimized_image
-              :if={@image}
               src={@image}
-              alt={(@hero_product && @hero_product.title) || "#{@store.name} catalogue cover"}
+              alt={"#{@store.name} catalogue cover"}
               priority={:high}
               width={640}
               height={800}
               class="absolute inset-0 h-full w-full object-cover"
             />
-            <div
-              :if={@image && @hero_product}
-              class="absolute bottom-4 left-4 max-w-[14rem] border border-[#EBDAD3] bg-white px-4 py-2.5 shadow-sm"
-            >
-              <p class="truncate text-xs font-semibold text-stone-900">{@hero_product.title}</p>
-              <p class="text-xs font-semibold tabular-nums text-store-accent">
-                {EmakolaWeb.Helpers.Currency.format_price_range(
-                  @hero_product.min_price,
-                  @hero_product.max_price,
-                  @store.currency
-                )}
-              </p>
-            </div>
           </div>
         </div>
       </div>
