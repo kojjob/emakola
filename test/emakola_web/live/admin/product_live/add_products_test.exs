@@ -22,25 +22,38 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
   end
 
   describe "start" do
-    test "the new-product address opens on the camera, not a form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/admin/products/new")
+    test "one tile: the camera under the thumb, the gallery in a pill", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/admin/products/new")
 
       assert html =~ "Add products"
-      assert html =~ "Take a photo"
-      assert html =~ "Choose photos"
+      assert html =~ "Add photos"
+      assert has_element?(view, "#gallery-pill", "Gallery")
+      refute html =~ "Take a photo"
+      refute html =~ "Choose photos"
       refute html =~ "SEO Title"
     end
 
-    test "the typed form and the CSV upload stay one tap away", %{conn: conn} do
+    test "typing a product is a card on this page, not another form", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/admin/products/new")
 
-      assert has_element?(view, ~s{a[href="/admin/products/new/form"]}, "Type it in")
-      assert has_element?(view, ~s{a[href="/admin/products?upload=csv"]}, "Upload a file")
+      refute has_element?(view, ~s{a[href="/admin/products/new/form"]})
+
+      view |> element("#typed-tile") |> render_click()
+
+      assert has_element?(view, ~s{#card-typed-1[data-state="untouched"]})
+      assert render(view) =~ "No photo yet"
+      assert render(view) =~ "1 item"
+    end
+
+    test "the spreadsheet stays one tap away", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+
+      assert has_element?(view, ~s{a[href="/admin/products?upload=csv"]})
     end
 
     test "the old bulk address still lands on the same page", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/admin/products/bulk")
-      assert html =~ "Take a photo"
+      assert html =~ "Add photos"
     end
 
     test "both photo inputs are full-size tap overlays, not clipped sr-only", %{conn: conn} do
@@ -66,7 +79,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       upload_photos(view, ["a.png", "b.png"])
 
       html = render(view)
-      assert html =~ "2 photos"
+      assert html =~ "2 items"
       assert length(String.split(html, ~s(name="card_name"))) - 1 == 2
       assert has_element?(view, "#publish-button[disabled]", "Put 0 in shop")
       assert html =~ "2 more need a name or price"
@@ -79,7 +92,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       camera = file_input(view, "#add-products-form", :camera, [png_upload("shot.png")])
       render_upload(camera, "shot.png")
 
-      assert render(view) =~ "1 photo"
+      assert render(view) =~ "1 item"
       assert has_element?(view, ~s{[id^="card-camera-"][data-state="untouched"]})
     end
 
@@ -128,7 +141,31 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       view |> render_hook("remove_photo", %{"upload" => "photos", "ref" => ref})
 
       refute has_element?(view, "#card-photos-#{ref}")
-      assert render(view) =~ "Take a photo"
+      assert render(view) =~ "Add photos"
+    end
+
+    test "a typed card is ready with a name and a price, like any other", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      view |> element("#typed-tile") |> render_click()
+      view |> element("#typed-tile") |> render_click()
+
+      set_card(view, "1", "name", "Hair braiding", "typed")
+      set_card(view, "1", "price", "80", "typed")
+
+      assert has_element?(view, ~s{#card-typed-1[data-state="ready"]})
+      assert has_element?(view, ~s{#card-typed-2[data-state="untouched"]})
+      assert has_element?(view, "#publish-button:not([disabled])", "Put 1 in shop")
+      assert render(view) =~ "2 items"
+    end
+
+    test "removing a typed card drops it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      view |> element("#typed-tile") |> render_click()
+
+      view |> render_hook("remove_photo", %{"upload" => "typed", "ref" => "1"})
+
+      refute has_element?(view, "#card-typed-1")
+      assert render(view) =~ "Add photos"
     end
   end
 
@@ -175,7 +212,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       assert has_element?(view, ~s{a[href="#{shop_url}"]}, "See my shop")
 
       view |> element("button", "Add more") |> render_click()
-      assert render(view) =~ "Take a photo"
+      assert render(view) =~ "Add photos"
       refute render(view) =~ "in your shop"
     end
 
@@ -197,6 +234,27 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       assert Emakola.Catalog.Product
              |> Ash.Query.filter(store_id == ^store.id and title == "No Price Item")
              |> Ash.read!(authorize?: false) == []
+    end
+
+    test "a typed card becomes a product with no photo", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      view |> element("#typed-tile") |> render_click()
+      set_card(view, "1", "name", "Hair braiding", "typed")
+      set_card(view, "1", "price", "80", "typed")
+
+      html = view |> element("#add-products-form") |> render_submit()
+
+      assert html =~ "1 in your shop"
+      assert html =~ "Hair braiding"
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Hair braiding")
+        |> Ash.read_one!(authorize?: false, load: [:variants, :images])
+
+      assert product.status == :active
+      assert [%{price: 8000}] = product.variants
+      assert product.images == []
     end
 
     test "nothing ready means nothing published", %{conn: conn, store: store} do
@@ -254,9 +312,9 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
     |> Enum.map(fn [_, ref] -> ref end)
   end
 
-  defp set_card(view, ref, field, value) do
+  defp set_card(view, ref, field, value, upload \\ "photos") do
     render_hook(view, "set_card", %{
-      "upload" => "photos",
+      "upload" => upload,
       "ref" => ref,
       "field" => field,
       "value" => value

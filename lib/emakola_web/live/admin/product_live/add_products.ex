@@ -1,18 +1,19 @@
 defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   @moduledoc """
-  `/admin/products/new` — photo cards.
+  `/admin/products/new` — the one door.
 
-  One photo or thirty: every photo becomes a card that needs exactly two
-  things, what it is and how much. One button puts the finished cards in the
-  shop; the rest stay on the page. Built for merchants who do not read well,
-  so the page's state is carried by badges and counts rather than sentences
-  (design/add-products, chosen 2026-09-02).
+  One photo or thirty, or no photo at all: every product is a card that
+  needs exactly two things, what it is and how much. One button puts the
+  finished cards in the shop; the rest stay on the page. Built for merchants
+  who do not read well, so the page's state is carried by badges and counts
+  rather than sentences (design/add-products-one-door, 2026-09-04).
 
-  Two upload configs back the two tiles: `:camera` opens the phone's camera
-  through `capture="environment"`, `:photos` opens the gallery. Cards are
-  keyed `"camera-0"` / `"photos-0"` because entry refs are only unique within
-  one config. Both auto-upload so the publish button can gate on progress
-  without deadlocking.
+  Two upload configs back the one tile: `:camera` opens the phone's camera
+  through `capture="environment"`, `:photos` (the Gallery pill) opens the
+  library. Cards are keyed `"camera-0"` / `"photos-0"` because entry refs
+  are only unique within one config; a typed card is `"typed-1"`. Both
+  uploads auto-upload so the publish button can gate on progress without
+  deadlocking.
   """
   use EmakolaWeb, :live_view
 
@@ -22,6 +23,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   @max_photos 30
   @upload_names [:camera, :photos]
+  @sources @upload_names ++ [:typed]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -45,6 +47,10 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
        # drops a consumed entry from @uploads asynchronously, so the render
        # right after publishing would otherwise still show its card.
        consumed: MapSet.new(),
+       # Typed cards, in the order they were added, and the counter that
+       # names them; unlike a photo they have no upload entry behind them.
+       typed: [],
+       typed_seq: 0,
        card_form: to_form(%{}),
        publishing: false,
        published: []
@@ -64,7 +70,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   @impl true
   def render(assigns) do
-    items = photo_items(assigns.uploads, assigns.cards, assigns.consumed)
+    items = card_items(assigns)
     ready = Enum.count(items, &(&1.state == :ready))
 
     assigns =
@@ -73,18 +79,17 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         stage: stage(assigns.published, items),
         ready: ready,
         remaining: length(items) - ready,
-        uploading?: Enum.any?(items, &(&1.entry.progress < 100))
+        uploading?: Enum.any?(items, &(&1.entry && &1.entry.progress < 100))
       )
 
     ~H"""
     <div class="max-w-[1600px] mx-auto">
-      <.add_products_header :if={@stage != :done} stage={@stage} photo_count={length(@items)} />
+      <.add_products_header :if={@stage != :done} stage={@stage} item_count={length(@items)} />
 
       <.form for={@card_form} id="add-products-form" phx-change="validate" phx-submit="publish_all">
         <div :if={@stage != :done} class="mt-5">
           <.capture_tiles uploads={@uploads} compact={@stage == :cards} max_photos={@max_photos} />
           <.upload_problems uploads={@uploads} />
-          <.entry_links :if={@stage == :capture} layout={:stack} />
         </div>
 
         <div :if={@stage == :cards} class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
@@ -137,8 +142,23 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
     end
   end
 
+  def handle_event("add_typed_card", _params, socket) do
+    seq = socket.assigns.typed_seq + 1
+
+    {:noreply,
+     socket
+     |> assign(:typed_seq, seq)
+     |> update(:typed, &(&1 ++ ["typed-#{seq}"]))}
+  end
+
   def handle_event("remove_photo", %{"upload" => upload, "ref" => ref}, socket) do
     case card_key(upload, ref) do
+      {:ok, :typed, key} ->
+        {:noreply,
+         socket
+         |> update(:typed, &List.delete(&1, key))
+         |> update(:cards, &Map.delete(&1, key))}
+
       {:ok, name, key} ->
         {:noreply,
          socket
@@ -165,13 +185,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   end
 
   def handle_event("publish_all", _params, socket) do
-    items = photo_items(socket.assigns.uploads, socket.assigns.cards, socket.assigns.consumed)
+    items = card_items(socket.assigns)
 
     cond do
       socket.assigns.publishing ->
         {:noreply, socket}
 
-      Enum.any?(items, &(&1.entry.progress < 100)) ->
+      Enum.any?(items, &(&1.entry && &1.entry.progress < 100)) ->
         {:noreply, put_flash(socket, :error, "Please wait for all photos to finish uploading.")}
 
       true ->
@@ -198,11 +218,14 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
     remaining = Enum.reject(items, &Map.has_key?(products_by_key, &1.key))
 
+    published_keys = Map.keys(products_by_key)
+
     socket =
       socket
       |> assign(:publishing, false)
-      |> update(:cards, &Map.drop(&1, Map.keys(products_by_key)))
-      |> update(:consumed, &MapSet.union(&1, MapSet.new(Map.keys(products_by_key))))
+      |> update(:cards, &Map.drop(&1, published_keys))
+      |> update(:typed, &(&1 -- published_keys))
+      |> update(:consumed, &MapSet.union(&1, MapSet.new(published_keys)))
 
     cond do
       created == [] ->
@@ -279,32 +302,50 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   # ── Cards ──
 
-  # One item per uploaded photo, across both inputs, with the card's state
-  # worked out here so the template only renders it.
-  defp photo_items(uploads, cards, consumed) do
-    for name <- @upload_names,
-        entry <- uploads[name].entries,
-        key = "#{name}-#{entry.ref}",
-        not MapSet.member?(consumed, key) do
-      card = Map.get(cards, key)
+  # One item per card: every uploaded photo across both inputs, then every
+  # typed card, with the card's state worked out here so the template only
+  # renders it.
+  defp card_items(%{uploads: uploads, cards: cards, consumed: consumed, typed: typed}) do
+    photo_items =
+      for name <- @upload_names,
+          entry <- uploads[name].entries,
+          key = "#{name}-#{entry.ref}",
+          not MapSet.member?(consumed, key) do
+        card_item(key, name, entry.ref, entry, cards, %{
+          problems: Enum.map(upload_errors(uploads[name], entry), &upload_problem/1)
+        })
+      end
 
+    typed_items =
+      for key <- typed do
+        "typed-" <> ref = key
+        card_item(key, :typed, ref, nil, cards, %{problems: []})
+      end
+
+    photo_items ++ typed_items
+  end
+
+  defp card_item(key, source, ref, entry, cards, extra) do
+    card = Map.get(cards, key)
+
+    Map.merge(
       %{
         key: key,
-        upload: name,
-        ref: entry.ref,
+        upload: source,
+        ref: ref,
         entry: entry,
         name: card_field(card, :name),
         price: card_field(card, :price),
         state: card_state(card),
         missing_name?: card != nil and card_name(card) == "",
-        missing_price?: card != nil and not priced?(card),
-        problems: Enum.map(upload_errors(uploads[name], entry), &upload_problem/1)
-      }
-    end
+        missing_price?: card != nil and not priced?(card)
+      },
+      extra
+    )
   end
 
   defp card_key(upload, ref) do
-    case Emakola.SafeAtom.to_atom_in(upload, @upload_names, nil) do
+    case Emakola.SafeAtom.to_atom_in(upload, @sources, nil) do
       nil -> :error
       name -> {:ok, name, "#{name}-#{ref}"}
     end

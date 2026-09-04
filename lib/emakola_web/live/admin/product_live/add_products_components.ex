@@ -1,11 +1,12 @@
 defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   @moduledoc """
-  Function components for the photo-cards page (`AddProducts`).
+  Function components for the one-door page (`AddProducts`).
 
-  Sizes follow the approved canvas in `design/add-products`: on a phone the
-  fields are 54px tall and the button 56px, because the merchant may not read
-  well and the controls carry the meaning; on a desktop each card gets one
-  46px row, name beside price. Every event bubbles to the parent LiveView.
+  Sizes follow the approved canvas in `design/add-products-one-door`: on a
+  phone the fields are 54px tall and the button 56px, because the merchant
+  may not read well and the controls carry the meaning; on a desktop each
+  card gets one 46px row, name beside price. Every event bubbles to the
+  parent LiveView.
   """
   use EmakolaWeb, :html
 
@@ -14,7 +15,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   # ── Header ──
 
   attr :stage, :atom, required: true, values: [:capture, :cards]
-  attr :photo_count, :integer, required: true
+  attr :item_count, :integer, required: true
 
   def add_products_header(assigns) do
     ~H"""
@@ -31,77 +32,52 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
       </div>
       <div class="flex-1 min-w-0">
         <h1 class="text-2xl lg:text-3xl font-bold tracking-tight text-text">
-          {header_title(@stage, @photo_count)}
+          {header_title(@stage, @item_count)}
         </h1>
         <p class="text-sm text-text-muted mt-0.5 lg:mt-1">{header_subtitle(@stage)}</p>
       </div>
-      <.entry_links layout={:header} />
+      <.spreadsheet_link layout={:header} />
     </div>
     """
   end
 
   defp header_title(:capture, _count), do: "Add products"
-  defp header_title(:cards, 1), do: "1 photo"
-  defp header_title(:cards, count), do: "#{count} photos"
+  defp header_title(:cards, 1), do: "1 item"
+  defp header_title(:cards, count), do: "#{count} items"
 
-  defp header_subtitle(:capture), do: "Photo first. Name and price after."
+  defp header_subtitle(:capture), do: "Photo, name, price. The rest can wait."
   defp header_subtitle(:cards), do: "Give each a name and a price."
 
-  # The typed form and the CSV upload stay one tap away, quietly: beside the
-  # title on a desktop, under the camera on a phone.
+  # The spreadsheet stays one tap away, quietly: beside the title on a
+  # desktop, under the tile on a phone. It opens the CSV sheet over the
+  # Products list, where the imported products then appear.
   attr :layout, :atom, required: true, values: [:header, :stack]
 
-  def entry_links(assigns) do
-    ~H"""
-    <div :if={@layout == :header} class="hidden lg:flex items-center gap-3">
-      <.entry_link navigate={~p"/admin/products/new/form"} icon="hero-pencil" size={:sm}>
-        Type it in
-      </.entry_link>
-      <.entry_link navigate={~p"/admin/products?upload=csv"} icon="hero-arrow-up-tray" size={:sm}>
-        Upload a file
-      </.entry_link>
-    </div>
-    <div :if={@layout == :stack} class="lg:hidden mt-4">
-      <div class="flex items-center gap-3 px-1 mb-3">
-        <div class="flex-1 h-px bg-border"></div>
-        <span class="text-[13px] font-semibold text-slate-400">or</span>
-        <div class="flex-1 h-px bg-border"></div>
-      </div>
-      <div class="grid grid-cols-2 gap-2.5">
-        <.entry_link navigate={~p"/admin/products/new/form"} icon="hero-pencil" size={:lg}>
-          Type it in
-        </.entry_link>
-        <.entry_link navigate={~p"/admin/products?upload=csv"} icon="hero-arrow-up-tray" size={:lg}>
-          Upload a file
-        </.entry_link>
-      </div>
-    </div>
-    """
-  end
-
-  attr :navigate, :string, required: true
-  attr :icon, :string, required: true
-  attr :size, :atom, required: true, values: [:sm, :lg]
-  slot :inner_block, required: true
-
-  defp entry_link(assigns) do
+  def spreadsheet_link(assigns) do
     ~H"""
     <.link
-      navigate={@navigate}
-      class={[
-        "inline-flex items-center justify-center gap-2 border-border bg-surface text-text",
-        "hover:bg-surface-subtle transition-colors",
-        @size == :sm && "px-4 py-2.5 text-sm font-semibold rounded-control border",
-        @size == :lg && "h-[54px] text-base font-bold rounded-[13px] border-2"
-      ]}
+      :if={@layout == :header}
+      navigate={~p"/admin/products?upload=csv"}
+      class="hidden lg:inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-control border border-border bg-surface text-text hover:bg-surface-subtle transition-colors"
     >
-      <.icon name={@icon} class="size-5 text-slate-500" />
-      {render_slot(@inner_block)}
+      <.icon name="hero-arrow-up-tray" class="size-5 text-slate-500" /> Upload a spreadsheet
     </.link>
+    <p
+      :if={@layout == :stack}
+      class="lg:hidden text-center text-[13.5px] font-semibold text-text-muted"
+    >
+      Have a spreadsheet?
+      <.link
+        navigate={~p"/admin/products?upload=csv"}
+        class="text-primary-hover underline underline-offset-[3px]"
+      >
+        Upload it
+      </.link>
+    </p>
     """
   end
 
-  # ── Capture tiles ──
+  # ── The one tile ──
 
   attr :uploads, :map, required: true
   attr :compact, :boolean, required: true, doc: "true once cards exist: a slim strip"
@@ -148,7 +124,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
       }
 
       export default {
-        // Mounted on the tile, not the input: a dot-named hook is only
+        // Mounted on the label, not the input: a dot-named hook is only
         // resolved on a plain tag in this template, and the input is
         // rendered by live_file_input.
         mounted() {
@@ -179,76 +155,114 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         },
       }
     </script>
-    <div class={["grid gap-3 lg:gap-4", (@compact && "grid-cols-2") || "grid-cols-1 lg:grid-cols-2"]}>
-      <label
-        id="camera-tile"
-        phx-hook=".ShrinkPhotos"
-        class={tile_classes(:primary, @compact)}
-        phx-drop-target={@uploads.camera.ref}
-      >
-        <span class={disc_classes(:primary, @compact)}>
-          <.icon name="hero-camera" class={(@compact && "size-6") || "size-8 lg:size-6"} />
-        </span>
-        <span class={tile_text_classes(@compact)}>
-          <span class={["font-extrabold text-text", (@compact && "text-base lg:text-lg") || "text-lg"]}>
-            Take a photo
-          </span>
-          <span :if={!@compact} class="text-[13.5px] text-text-muted">One item, one photo</span>
-        </span>
-        <.live_file_input
-          upload={@uploads.camera}
-          capture="environment"
-          class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-      </label>
-
-      <label
-        id="photos-tile"
-        phx-hook=".ShrinkPhotos"
-        class={tile_classes(:quiet, @compact)}
+    <div class={[
+      "grid gap-3 lg:gap-4",
+      (@compact && "grid-cols-[1fr_auto]") || "grid-cols-1 lg:grid-cols-[2fr_1fr]"
+    ]}>
+      <%!-- One tile, two hit areas. The body opens the camera on a phone
+            (a desktop browser ignores `capture` and shows its file picker);
+            the small pill opens the photo library. --%>
+      <div
+        id="photo-tile"
         phx-drop-target={@uploads.photos.ref}
+        class={[
+          "relative rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 hover:border-emerald-400 transition-colors",
+          (@compact && "h-[72px] lg:h-[110px]") || "h-[230px] lg:h-[110px]"
+        ]}
       >
-        <span class={disc_classes(:quiet, @compact)}>
-          <.icon name="hero-photo" class="size-6" />
+        <label
+          id="camera-tile"
+          phx-hook=".ShrinkPhotos"
+          class={[
+            "absolute inset-0 flex items-center justify-center cursor-pointer",
+            (@compact && "flex-row gap-3 pl-3.5 pr-[120px] lg:pl-4 lg:gap-4") ||
+              "flex-col gap-2.5 px-4 pb-6 lg:flex-row lg:gap-4 lg:pb-0 lg:pr-[140px]"
+          ]}
+        >
+          <span class={[
+            "flex items-center justify-center rounded-full shrink-0 bg-primary text-white shadow-lg shadow-emerald-600/30",
+            (@compact && "w-11 h-11 lg:w-[52px] lg:h-[52px]") ||
+              "w-[68px] h-[68px] lg:w-[52px] lg:h-[52px]"
+          ]}>
+            <.icon name="hero-camera" class={(@compact && "size-6") || "size-8 lg:size-6"} />
+          </span>
+          <span class={[
+            "flex flex-col gap-0.5",
+            (@compact && "items-start") || "items-center lg:items-start"
+          ]}>
+            <span class="text-lg font-extrabold text-text">
+              {if @compact, do: "Add more", else: "Add photos"}
+            </span>
+            <span :if={!@compact} class="text-[13.5px] text-text-muted">
+              <span class="lg:hidden">Take one, or choose up to {@max_photos}</span>
+              <span class="hidden lg:inline">Drop them here, or choose up to {@max_photos}</span>
+            </span>
+          </span>
+          <.live_file_input
+            upload={@uploads.camera}
+            capture="environment"
+            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+
+        <label
+          id="gallery-pill"
+          phx-hook=".ShrinkPhotos"
+          class={[
+            "absolute right-3 inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-border bg-white text-text font-bold shadow-sm cursor-pointer",
+            (@compact && "top-1/2 -translate-y-1/2 h-9 px-3 text-[13px]") ||
+              "bottom-3 h-10 px-3.5 text-[13.5px] lg:top-1/2 lg:bottom-auto lg:-translate-y-1/2"
+          ]}
+        >
+          <.icon name="hero-photo" class="size-[18px] text-slate-500" /> Gallery
+          <.live_file_input
+            upload={@uploads.photos}
+            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+      </div>
+
+      <%!-- Typing a product is a card without a photo, on this page. --%>
+      <button
+        id="typed-tile"
+        type="button"
+        phx-click="add_typed_card"
+        class={[
+          "rounded-2xl border-2 border-dashed border-slate-300 bg-white hover:border-emerald-400 transition-colors cursor-pointer items-center justify-center text-text",
+          (@compact && "flex h-[72px] lg:h-[110px] px-4 gap-2.5 text-base font-bold") ||
+            "hidden lg:flex h-[110px] gap-4"
+        ]}
+      >
+        <span class={[
+          "flex items-center justify-center rounded-full shrink-0 bg-slate-100 text-slate-500",
+          (@compact && "w-11 h-11 lg:w-[52px] lg:h-[52px]") || "w-[52px] h-[52px]"
+        ]}>
+          <.icon name="hero-pencil" class="size-6" />
         </span>
-        <span class={tile_text_classes(@compact)}>
-          <span class="text-base font-bold text-text">Choose photos</span>
-          <span :if={!@compact} class="text-[13px] text-text-muted">Up to {@max_photos} at once</span>
+        <span class="flex flex-col items-start gap-0.5">
+          <span class="text-base font-bold text-text">Type it in</span>
+          <span :if={!@compact} class="text-[13px] font-normal text-text-muted">No photo yet</span>
         </span>
-        <.live_file_input
-          upload={@uploads.photos}
-          class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-      </label>
+      </button>
+    </div>
+
+    <div :if={!@compact} class="lg:hidden mt-4 flex flex-col gap-3">
+      <div class="flex items-center gap-3 px-1">
+        <div class="flex-1 h-px bg-border"></div>
+        <span class="text-[13px] font-semibold text-slate-400">or</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+      <button
+        id="typed-button"
+        type="button"
+        phx-click="add_typed_card"
+        class="h-[54px] w-full rounded-[13px] border-2 border-border bg-surface text-text text-base font-bold inline-flex items-center justify-center gap-2 hover:bg-surface-subtle transition-colors cursor-pointer"
+      >
+        <.icon name="hero-pencil" class="size-5 text-slate-500" /> Type it in
+      </button>
+      <.spreadsheet_link layout={:stack} />
     </div>
     """
-  end
-
-  defp tile_classes(tone, compact) do
-    [
-      "relative flex items-center justify-center rounded-2xl border-2 border-dashed cursor-pointer transition-colors px-4",
-      tone == :primary && "border-emerald-300 bg-emerald-50/60 hover:border-emerald-400",
-      tone == :quiet && "border-slate-300 bg-white hover:border-emerald-400",
-      compact && "flex-row gap-3 h-[72px] lg:h-[110px] lg:gap-4",
-      !compact && tone == :primary &&
-        "flex-col gap-2.5 h-[230px] lg:flex-row lg:gap-4 lg:h-[110px]",
-      !compact && tone == :quiet && "flex-col gap-2 h-[140px] lg:flex-row lg:gap-4 lg:h-[110px]"
-    ]
-  end
-
-  defp disc_classes(tone, compact) do
-    [
-      "flex items-center justify-center rounded-full shrink-0",
-      tone == :primary && "bg-primary text-white shadow-lg shadow-emerald-600/30",
-      tone == :quiet && "bg-slate-100 text-slate-500",
-      compact && "w-11 h-11 lg:w-[52px] lg:h-[52px]",
-      !compact && tone == :primary && "w-[68px] h-[68px] lg:w-[52px] lg:h-[52px]",
-      !compact && tone == :quiet && "w-14 h-14 lg:w-[52px] lg:h-[52px]"
-    ]
-  end
-
-  defp tile_text_classes(compact) do
-    ["flex flex-col gap-0.5", (compact && "items-start") || "items-center lg:items-start"]
   end
 
   attr :uploads, :map, required: true
@@ -269,7 +283,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   def upload_problem(:too_many_files), do: "Up to 30 photos at a time."
   def upload_problem(_error), do: "There was a problem with a photo."
 
-  # ── One card per photo ──
+  # ── One card per product ──
 
   attr :item, :map, required: true
   attr :number, :integer, required: true
@@ -291,18 +305,9 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         @item.state == :untouched && "border-border"
       ]}
     >
-      <div class="relative h-[200px] lg:h-[170px] bg-slate-100">
+      <div :if={@item.entry} class="relative h-[200px] lg:h-[170px] bg-slate-100">
         <.live_img_preview entry={@item.entry} class="w-full h-full object-cover" />
-        <button
-          type="button"
-          phx-click="remove_photo"
-          phx-value-upload={@item.upload}
-          phx-value-ref={@item.ref}
-          aria-label="Remove photo"
-          class="absolute top-2.5 left-2.5 w-[30px] h-[30px] rounded-full bg-black/55 text-white flex items-center justify-center cursor-pointer"
-        >
-          <.icon name="hero-x-mark" class="size-3.5" />
-        </button>
+        <.remove_button item={@item} />
         <.card_badge state={@item.state} number={@number} />
         <div
           :if={@item.entry.progress < 100}
@@ -310,6 +315,17 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         >
           <div class="h-full bg-emerald-500" style={"width: #{@item.entry.progress}%"}></div>
         </div>
+      </div>
+      <%!-- A typed product: the same card, with the photo slot empty. A
+            photo can be added on the product's edit page later. --%>
+      <div
+        :if={is_nil(@item.entry)}
+        class="relative mx-3.5 mt-3.5 lg:mx-3 lg:mt-3 h-[120px] lg:h-[110px] rounded-xl border-2 border-dashed border-slate-300 bg-surface-subtle flex flex-col items-center justify-center gap-1.5"
+      >
+        <.icon name="hero-camera" class="size-[26px] text-slate-400" />
+        <span class="text-[13.5px] font-bold text-text-muted">No photo yet</span>
+        <.remove_button item={@item} />
+        <.card_badge state={@item.state} number={@number} />
       </div>
 
       <div class="p-3.5 pb-4 flex flex-col gap-2.5 lg:flex-row lg:gap-2 lg:p-3">
@@ -374,6 +390,23 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
       "focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10",
       (missing? && "border-amber-400 bg-amber-50") || "border-border bg-white"
     ]
+  end
+
+  attr :item, :map, required: true
+
+  defp remove_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-click="remove_photo"
+      phx-value-upload={@item.upload}
+      phx-value-ref={@item.ref}
+      aria-label="Remove"
+      class="absolute top-2.5 left-2.5 w-[30px] h-[30px] rounded-full bg-black/55 text-white flex items-center justify-center cursor-pointer"
+    >
+      <.icon name="hero-x-mark" class="size-3.5" />
+    </button>
+    """
   end
 
   # Green tick, amber mark, or the card's number: the state without words.
@@ -451,13 +484,14 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
           :for={product <- @published}
           class="bg-white border border-border rounded-[14px] overflow-hidden text-left"
         >
-          <div class="h-32 lg:h-40 bg-slate-100">
+          <div class="h-32 lg:h-40 bg-slate-100 flex items-center justify-center">
             <img
               :if={product.image_url}
               src={product.image_url}
               alt=""
               class="w-full h-full object-cover"
             />
+            <.icon :if={is_nil(product.image_url)} name="hero-camera" class="size-8 text-slate-300" />
           </div>
           <div class="px-3 py-2.5">
             <div class="text-[13.5px] font-bold text-text truncate">{product.title}</div>
