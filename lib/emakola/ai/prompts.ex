@@ -90,11 +90,12 @@ defmodule Emakola.AI.Prompts do
       "photo_flags" => %{
         "type" => "object",
         "additionalProperties" => false,
-        "required" => ["stock_photo", "watermark", "screenshot"],
+        "required" => ["stock_photo", "watermark", "screenshot", "screen_photo"],
         "properties" => %{
           "stock_photo" => %{"type" => "boolean"},
           "watermark" => %{"type" => "boolean"},
-          "screenshot" => %{"type" => "boolean"}
+          "screenshot" => %{"type" => "boolean"},
+          "screen_photo" => %{"type" => "boolean"}
         }
       }
     }
@@ -229,8 +230,11 @@ defmodule Emakola.AI.Prompts do
     photo_flags honestly: stock_photo when the image looks professionally staged/
     catalog-sourced rather than merchant-taken; watermark when any watermark or
     overlaid logo/text is present; screenshot when the image is a screenshot of
-    another app or listing. category must be exactly one of the provided category
-    names, or null. Title 60 characters or fewer. At most 8 tags. Alt text under 125 characters, no 'image of' or 'picture of', plain English, no quotes.
+    another app or listing; screen_photo when the photo was taken of a display
+    (a phone, laptop, or TV showing an image): moire or a visible pixel grid, a
+    bezel or screen edge, glare or reflections on glass, or on-screen UI such as
+    a status bar, browser chrome, or app buttons. category must be exactly one of
+    the provided category names, or null. Title 60 characters or fewer. At most 8 tags. Alt text under 125 characters, no 'image of' or 'picture of', plain English, no quotes.
     """
 
     categories = Enum.join(category_names, ", ")

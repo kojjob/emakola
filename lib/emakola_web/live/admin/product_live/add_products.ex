@@ -473,8 +473,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   # Fail closed: the badge depends on this, so anything but an explicit
   # all-clear reads as "not clean".
-  defp flags_clean?(%{"stock_photo" => false, "watermark" => false, "screenshot" => false}),
-    do: true
+  defp flags_clean?(%{
+         "stock_photo" => false,
+         "watermark" => false,
+         "screenshot" => false,
+         "screen_photo" => false
+       }),
+       do: true
 
   defp flags_clean?(_flags), do: false
 

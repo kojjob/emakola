@@ -146,6 +146,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       refute product.snap_verified
     end
 
+    test "a camera photo of a screen earns no badge", %{conn: conn, store: store} do
+      product = fill_and_publish(conn, store, :camera, screen_photo_payload())
+
+      refute product.snap_verified
+    end
+
     test "a description the merchant changes is theirs", %{conn: conn, store: store} do
       product =
         fill_and_publish(conn, store, :photos, ok_payload(), fn view, ref ->
@@ -219,7 +225,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => Keyword.get(opts, :category),
       "tags" => ["stole"],
       "alt_text" => "Colourful woven stole",
-      "photo_flags" => %{"stock_photo" => false, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
     })
   end
 
@@ -231,7 +242,30 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => nil,
       "tags" => ["stole"],
       "alt_text" => "Colourful woven stole",
-      "photo_flags" => %{"stock_photo" => true, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => true,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
+    })
+  end
+
+  # Every other flag is clear: only the re-photographed display gives it away.
+  defp screen_photo_payload do
+    response(%{
+      "identified" => true,
+      "title" => "Handwoven Stole",
+      "description" => "A colourful woven stole.",
+      "category" => nil,
+      "tags" => ["stole"],
+      "alt_text" => "Colourful woven stole",
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => true
+      }
     })
   end
 
@@ -243,7 +277,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => nil,
       "tags" => [],
       "alt_text" => "",
-      "photo_flags" => %{"stock_photo" => false, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
     })
   end
 
