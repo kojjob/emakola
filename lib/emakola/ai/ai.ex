@@ -19,7 +19,7 @@ defmodule Emakola.AI do
 
   require Logger
 
-  alias Emakola.AI.{Pricing, Prompts, Request, Response}
+  alias Emakola.AI.{Pricing, Prompts, Request, Response, Sanitizer}
 
   resources do
     resource Emakola.AI.Usage do
@@ -57,6 +57,7 @@ defmodule Emakola.AI do
   end
 
   defp finalize(%Request{} = request, {:ok, %Response{} = response}, latency_ms) do
+    response = Sanitizer.clean(response)
     cost = Pricing.cost_microusd(request.model, response.usage)
     record(request, :success, response, latency_ms, cost, nil)
     {:ok, response}
