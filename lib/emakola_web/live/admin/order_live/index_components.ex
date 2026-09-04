@@ -240,8 +240,10 @@ defmodule EmakolaWeb.Admin.OrderLive.IndexComponents do
         nil
 
       digits ->
+        # encode_www_form, not encode: a name with an ampersand would end the
+        # message at the ampersand.
         text = "Hello #{customer_name(order)}, about your order #{order.order_number}"
-        "https://wa.me/#{digits}?text=#{URI.encode(text)}"
+        "https://wa.me/#{digits}?text=#{URI.encode_www_form(text)}"
     end
   end
 

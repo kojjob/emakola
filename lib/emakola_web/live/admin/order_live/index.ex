@@ -316,6 +316,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <.work_card :for={order <- @work_orders} order={order} rail={@rails[order.id]} />
           </div>
+          <%!-- Past the cap the rest are one tap away, never silently gone. --%>
+          <.admin_button
+            :if={@order_stats.waiting > length(@work_orders)}
+            id="see-all-waiting"
+            variant={:secondary}
+            phx-click="filter_status"
+            phx-value-status="pending"
+          >
+            See all {@order_stats.waiting} waiting
+          </.admin_button>
         </section>
 
         <%!-- Then everything else, quietly, by where it is. --%>
@@ -390,23 +400,26 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     limit = socket.assigns[:orders_limit] || @orders_per_page
     grouped? = status == :all and query == ""
 
+    # On the grouped page the waiting orders come from their own query and
+    # the window holds only the rest, so a backlog of waiting orders can
+    # neither fill the window nor leave it counted but empty.
     orders =
-      read_orders(store_id, status: status, search: query, limit: limit + 1)
+      read_orders(store_id,
+        status: status,
+        search: query,
+        limit: limit + 1,
+        exclude_pending: grouped?
+      )
 
     # One row beyond the window is fetched purely to answer "is there more?"
     # without a second COUNT query.
     {orders, more?} =
       if length(orders) > limit, do: {Enum.take(orders, limit), true}, else: {orders, false}
 
-    # On the grouped page the waiting orders come from their own query, so
-    # the window holds only the rest.
-    {work_orders, orders} =
-      if grouped? do
-        {read_orders(store_id, status: :pending, search: "", limit: @work_orders_cap),
-         Enum.reject(orders, &(&1.status == :pending))}
-      else
-        {[], orders}
-      end
+    work_orders =
+      if grouped?,
+        do: read_orders(store_id, status: :pending, search: "", limit: @work_orders_cap),
+        else: []
 
     assign(socket,
       orders: orders,
@@ -427,6 +440,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
       status: if(status != :all, do: status, else: nil),
       search: if(search != "", do: search, else: nil)
     })
+    |> then(fn query ->
+      if Keyword.get(opts, :exclude_pending, false),
+        do: Ash.Query.filter(query, status != :pending),
+        else: query
+    end)
     |> Ash.Query.limit(Keyword.fetch!(opts, :limit))
     |> Ash.Query.load(@order_loads)
     |> Ash.read!(authorize?: false)

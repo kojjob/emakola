@@ -127,6 +127,8 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
       assert length(String.split(html, ~s(id="order-row-))) - 1 == 51
+      # Nothing else to window, so no footer counting an empty list.
+      refute html =~ "most recent orders"
     end
 
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
@@ -301,12 +303,52 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       customer: customer
     } do
       old = create_order!(store.id, customer.id, :pending)
-      for _ <- 1..50, do: create_order!(store.id, customer.id, :confirmed)
+      for _ <- 1..51, do: create_order!(store.id, customer.id, :confirmed)
+
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert has_element?(view, "#do-these-now #order-row-#{old.id}")
+      # The window counts only the rest: fifty of the fifty-one confirmed.
+      assert html =~ "Showing the 50 most recent orders"
+      assert has_element?(view, "#load-more-orders")
+    end
+
+    test "a backlog past the cap is one tap away, never silently gone", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      # The cap is 100; a store with more waiting than that keeps the tile
+      # honest and offers the Pending tab.
+      for _ <- 1..101, do: create_order!(store.id, customer.id, :pending)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders")
 
-      assert has_element?(view, "#do-these-now #order-row-#{old.id}")
-      assert has_element?(view, "#load-more-orders")
+      assert has_element?(view, "#stat-orders-waiting", "101")
+      assert length(String.split(render(view), ~s(id="order-row-))) - 1 == 100
+      assert has_element?(view, "#see-all-waiting", "See all 101 waiting")
+
+      view |> element("#see-all-waiting") |> render_click()
+
+      refute has_element?(view, "#do-these-now")
+      assert has_element?(view, "#orders-filter-tabs button.bg-white[phx-value-status=pending]")
+    end
+
+    test "a customer named with an ampersand gets the whole WhatsApp message", %{
+      conn: conn,
+      store: store
+    } do
+      customer =
+        Emakola.Factory.create_customer!(store, %{name: "Ama & Kofi", phone: "+233240000001"})
+
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      assert has_element?(
+               view,
+               ~s{#order-row-#{order.id} a[href*="wa.me/233240000001?text=Hello+Ama+%26+Kofi"]}
+             )
     end
 
     test "a tab or a search shows one flat list, not the sections", %{
