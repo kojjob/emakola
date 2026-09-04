@@ -77,26 +77,9 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           description="Try adjusting your search or filters"
         />
         <%!-- Photo first: a merchant who reads slowly can point a camera long
-              before they can fill a form. The snap flow only exists when the
-              AI key is set, so fall back to the form as the primary. --%>
+              before they can fill a form. --%>
         <.empty_state
-          :if={
-            not filtering?(@search_query, @status_filter, @category_filter) and
-              EmakolaWeb.AiGate.enabled?()
-          }
-          icon="hero-camera"
-          tone={:warning}
-          title="Add your first product"
-          description="Take a photo — Makola writes the listing"
-          action_label="Snap a photo"
-          action_icon="hero-camera"
-          action_path="/admin/products/snap"
-        />
-        <.empty_state
-          :if={
-            not filtering?(@search_query, @status_filter, @category_filter) and
-              not EmakolaWeb.AiGate.enabled?()
-          }
+          :if={not filtering?(@search_query, @status_filter, @category_filter)}
           icon="hero-camera"
           tone={:warning}
           title="Add your first product"

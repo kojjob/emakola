@@ -1,0 +1,116 @@
+{
+  "pages": [
+    {
+      "id": "page-one-door",
+      "name": "One door"
+    },
+    {
+      "id": "page-alternate",
+      "name": "Alternate"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Start.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "One door — start",
+      "page": "page-one-door"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "One door — filling",
+      "page": "page-one-door"
+    },
+    {
+      "file": "More.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 1000,
+      "title": "One door — More, opened",
+      "page": "page-one-door"
+    },
+    {
+      "file": "Done.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "One door — in the shop (unchanged)",
+      "page": "page-one-door"
+    },
+    {
+      "file": "Desktop.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "One door — desktop",
+      "page": "page-one-door"
+    },
+    {
+      "file": "TodayMap.dc.html",
+      "x": 0,
+      "y": 1140,
+      "w": 760,
+      "h": 560,
+      "title": "Today — five doors",
+      "page": "page-one-door"
+    },
+    {
+      "file": "OneDoorMap.dc.html",
+      "x": 840,
+      "y": 1140,
+      "w": 760,
+      "h": 560,
+      "title": "One door — the map",
+      "page": "page-one-door"
+    },
+    {
+      "file": "ShelfAlt.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Alternate — grow the shelf (low-fi)",
+      "page": "page-alternate"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "door-note",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "page": "page-one-door",
+      "text": "ONE DOOR — what consolidates\n\nOne tile. On a phone the body opens the camera and the small Gallery pill opens the photo library; on a desktop the body picks files and takes a drop. Two tiles become one.\n\nOne card. A typed product is the same card without a photo, on this page. The separate nine-field form goes; product type, SEO and files stay on the edit page, where they already live.\n\nMore, inside the card: category chips and a description, opening in place. Two things, not nine. A filled category shows on the closed row.\n\nFill it in: the AI snap page becomes a pill on the photo, shown only when AI is on. It writes the name, category and description, and the amber line says so.\n\nUpload a spreadsheet opens the existing CSV sheet on this page, not on Products.\n\nProducts page: one button, Add products."
+    },
+    {
+      "id": "today-note",
+      "x": -500,
+      "y": 1140,
+      "w": 440,
+      "page": "page-one-door",
+      "text": "TODAY\n\nTwo buttons on the Products page, four on this one. Three of the six lead to pages in the old style: the nine-field form, the AI snap page, the CSV sheet on the Products list. A merchant meets three different pages for one job, and the desktop page is two tiles and empty space."
+    },
+    {
+      "id": "alt-note",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "page": "page-alternate",
+      "text": "ALTERNATE — grow the shelf (low-fi)\n\nNo add page at all. The camera tile is the first tile on the Products page; new photos land as amber draft tiles at the top, get a name and a price where they stand, and turn into products in place.\n\nFor: the merchant never leaves the list, and the shop grows in front of them.\n\nAgainst: thirty photos flood the list, and the list page has to carry uploads, card states and a publish bar. Typed products and spreadsheets still need a home."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-one-door"
+  }
+}
