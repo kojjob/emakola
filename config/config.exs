@@ -17,12 +17,16 @@ config :emakola,
 # claim a platform host as a custom domain. One list, two readers.
 # Dev-only: this machine's own LAN addresses, so a phone on the same Wi-Fi
 # (see PHX_LAN in dev.exs) reaches the admin. Compile-time like the rest of
-# the list; a new address needs a recompile, which the config change triggers.
+# the list, and Mix only recompiles on a config FILE change, so a new address
+# means `mix compile --force`. Link-local 169.254.x.x addresses are skipped:
+# a USB or tethering link self-assigns one whenever it comes up, a phone on
+# Wi-Fi never uses it, and every appearance forced that recompile.
 lan_hosts =
   with true <- config_env() == :dev,
        {:ok, interfaces} <- :inet.getif() do
     for {{a, b, c, d}, _broadcast, _netmask} <- interfaces,
         {a, b, c, d} != {127, 0, 0, 1},
+        {a, b} != {169, 254},
         do: "#{a}.#{b}.#{c}.#{d}"
   else
     _not_dev_or_no_interfaces -> []

@@ -69,10 +69,11 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
       nil ->
         :passthrough
 
-      {slug, rest} ->
+      {form, slug, rest} ->
         case DomainResolver.primary_host(slug) do
           host when is_binary(host) -> {:redirect, origin(host) <> rest <> query_suffix(conn)}
-          _ -> short_move(conn, slug, rest)
+          _ when form == :subfolder -> short_move(conn, slug, rest)
+          _ -> :passthrough
         end
     end
   end
@@ -99,14 +100,17 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
     match?(%{}, Phoenix.Router.route_info(EmakolaWeb.Router, conn.method, path, conn.host))
   end
 
-  # Only "/s/:slug/rest" identifies a store by path on the apex; everything else
-  # is a platform page and is never touched.
-  #
-  # The short form (makola.io/:slug) needs the same move, but that route — and
-  # the reserved-slug list that tells a store slug apart from a platform page —
-  # arrive with the short-URL work. Extending this to `[slug | rest]` without
-  # that list would 301 the pricing page to a merchant's domain.
-  defp apex_store_slug(%{path_info: ["s", slug | rest]}), do: {slug, join(rest)}
+  # "/s/:slug/rest" names a store by path on the apex, and so does the short
+  # form "/:slug/rest" once the reserved list has ruled out a platform page.
+  # Without that list this would 301 the pricing page to a merchant's domain.
+  # The form matters when there is no custom domain: the subfolder still moves
+  # to the short URL, while the short URL is already where it should be.
+  defp apex_store_slug(%{path_info: ["s", slug | rest]}), do: {:subfolder, slug, join(rest)}
+
+  defp apex_store_slug(%{path_info: [slug | rest]}) do
+    if ReservedStoreSlugs.reserved?(slug), do: nil, else: {:short, slug, join(rest)}
+  end
+
   defp apex_store_slug(_conn), do: nil
 
   defp join([]), do: ""

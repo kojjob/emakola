@@ -414,20 +414,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header. One way in: /admin/products/new is photo first and carries
-            the typed form and the CSV upload behind it. "Add by photo" is the
-            AI-assisted variant, shown only when AI is switched on. --%>
+            the typed card, the AI fill and the CSV upload behind it. --%>
       <.admin_page_header
         icon="hero-cube"
         title="Products"
         subtitle="Manage your store catalog"
       >
-        <.link
-          :if={EmakolaWeb.AiGate.enabled?()}
-          navigate={~p"/admin/products/snap"}
-          class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm border border-border bg-surface text-text hover:bg-surface-subtle"
-        >
-          <.icon name="hero-sparkles" class="size-5" /> Add by photo
-        </.link>
         <.link
           navigate={~p"/admin/products/new"}
           class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-4 py-2.5 text-sm bg-primary hover:bg-primary-hover text-white"

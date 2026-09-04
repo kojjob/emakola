@@ -1,0 +1,109 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A · Card — welcome"
+    },
+    {
+      "file": "CardSeverities.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A · Card — critical and warning"
+    },
+    {
+      "file": "CardDesktop.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 1440,
+      "h": 640,
+      "title": "A · Card — desktop"
+    },
+    {
+      "file": "RibbonPhone.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "B · Ribbon — welcome"
+    },
+    {
+      "file": "RibbonSeverities.dc.html",
+      "x": 470,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "B · Ribbon — critical"
+    },
+    {
+      "file": "RibbonDesktop.dc.html",
+      "x": 940,
+      "y": 1000,
+      "w": 1440,
+      "h": 640,
+      "title": "B · Ribbon — desktop"
+    },
+    {
+      "file": "SheetPhone.dc.html",
+      "x": 0,
+      "y": 2000,
+      "w": 390,
+      "h": 844,
+      "title": "C · Sheet — critical, first open"
+    },
+    {
+      "file": "SheetDesktop.dc.html",
+      "x": 940,
+      "y": 2000,
+      "w": 1440,
+      "h": 640,
+      "title": "C · Sheet — desktop"
+    },
+    {
+      "file": "Composer.dc.html",
+      "x": 0,
+      "y": 3000,
+      "w": 1280,
+      "h": 760,
+      "title": "Composer — with a live preview"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "a-note",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "text": "A — CARD (leading)\n\nMoves the banner out of the chrome and into the page, first thing under the greeting, where a merchant is already looking. A white card with a tinted hairline, a gradient icon disc that says what kind of news this is, one big Got it. A critical one adds one action button and a quiet Got it.\n\nInfo is emerald, not blue: blue reads as somebody else's system.\n\nFor: reads as part of the dashboard, not a warning strip; the button is a real tap target; stacks cleanly when two are live.\n\nAgainst: only on the Dashboard, like today; a merchant who lands elsewhere first still misses it until they come home."
+    },
+    {
+      "id": "b-note",
+      "x": -500,
+      "y": 1000,
+      "w": 440,
+      "text": "B — RIBBON\n\nKeeps today's place, above the top bar, and makes it handsome: tinted band, left accent, icon disc, round X. Smallest change.\n\nFor: always the first pixel on screen; costs no page space.\n\nAgainst: still chrome, still a strip; the X is the only control, so a critical notice cannot carry an action without crowding the band."
+    },
+    {
+      "id": "c-note",
+      "x": -500,
+      "y": 2000,
+      "w": 440,
+      "text": "C — SHEET, for critical only\n\nThe first open after a critical announcement raises a sheet (phone) or a centred card (desktop): one pictogram, one line, one button. Nothing else on the page until it is answered. Info and warning fall back to A.\n\nFor: the one time a merchant must not miss something, they cannot.\n\nAgainst: interruptive; earns its place only for critical. Two components to build, not one."
+    },
+    {
+      "id": "d-note",
+      "x": -500,
+      "y": 3000,
+      "w": 440,
+      "text": "COMPOSER\n\nThe platform page gains a live preview of the card as staff type, phone or desktop, and severity becomes three chips with the same icons merchants will see. Recent broadcasts pick up the disc too.\n\nBuilds on whichever banner is chosen; the preview is the same component."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
