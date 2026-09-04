@@ -12,14 +12,16 @@ defmodule EmakolaWeb.Admin.ProductLive.TitleExampleTest do
   @example "Oraimo FreePods 3 earbuds"
 
   setup %{conn: conn} do
-    {conn, _merchant, _store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-    %{conn: conn}
+    {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+    %{conn: conn, store: store}
   end
 
-  test "the typed product form shows a brand-plus-item example in the title field", %{
-    conn: conn
+  test "the edit form shows a brand-plus-item example in the title field", %{
+    conn: conn,
+    store: store
   } do
-    {:ok, _view, html} = live(conn, "/admin/products/new/form")
+    product = Emakola.Factory.create_product!(store, %{title: "Watch"})
+    {:ok, _view, html} = live(conn, "/admin/products/#{product.id}/edit")
 
     assert html =~ ~s(placeholder="e.g. #{@example}")
   end
