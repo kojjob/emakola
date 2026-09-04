@@ -45,11 +45,12 @@ defmodule Emakola.Content.Workers.ImageAltTextWorkerTest do
     assert {:cancel, _} = perform_job(ImageAltTextWorker, %{"image_id" => image.id})
   end
 
-  test "cancels when the store hit its daily AI limit", ctx do
+  test "snoozes until the daily AI cap resets instead of giving up", ctx do
     image = create_image!(ctx.product, ctx.store, %{alt_text: nil})
     for _ <- 1..RateLimiter.default_limit(), do: RateLimiter.check_and_increment(ctx.store.id)
 
-    assert {:cancel, _} = perform_job(ImageAltTextWorker, %{"image_id" => image.id})
+    assert {:snooze, seconds} = perform_job(ImageAltTextWorker, %{"image_id" => image.id})
+    assert seconds in 60..86_460
   end
 
   test "no-ops when the image no longer exists" do

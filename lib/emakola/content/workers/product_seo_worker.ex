@@ -4,9 +4,12 @@ defmodule Emakola.Content.Workers.ProductSEOWorker do
 
   Idempotent on two levels: Oban uniqueness (one job per product per minute) and
   a data check (skips products that already have a description). Gated by the
-  per-store daily `RateLimiter`. The generated description is saved directly to
-  the product, so callers must clearly tell merchants to review it. Ships dark —
-  if the generator has no API key it cancels the job rather than retrying forever.
+  per-store daily `RateLimiter`: past the cap the job snoozes until the cap
+  resets, so a large import is described over a few days rather than stopping
+  at fifty. The description is saved through `:backfill_description`, which
+  marks it as AI-written so the product form can ask the merchant to read it.
+  Ships dark — if the generator has no API key it cancels the job rather than
+  retrying forever.
   """
 
   use Oban.Worker, queue: :ai_content, max_attempts: 3, unique: [period: 60, keys: [:product_id]]
@@ -29,12 +32,12 @@ defmodule Emakola.Content.Workers.ProductSEOWorker do
            {:ok, store} <- Ash.get(Emakola.Stores.Store, product.store_id, authorize?: false),
            {:ok, description} <- Generator.generate_product_description(product, store) do
         product
-        |> Ash.Changeset.for_update(:update, %{description: description})
+        |> Ash.Changeset.for_update(:backfill_description, %{description: description})
         |> Ash.update(authorize?: false)
 
         :ok
       else
-        {:error, :rate_limit_exceeded} -> {:cancel, "store hit its daily AI limit"}
+        {:error, :rate_limit_exceeded} -> {:snooze, RateLimiter.seconds_until_reset()}
         {:error, :not_configured} -> {:cancel, "AI generator not configured"}
         {:error, reason} -> {:error, reason}
       end
