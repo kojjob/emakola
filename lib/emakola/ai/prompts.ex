@@ -100,10 +100,20 @@ defmodule Emakola.AI.Prompts do
     }
   }
 
-  @doc "Build the request for `feature` from `inputs`."
-  @spec build(atom(), map()) :: Request.t()
+  # Appended to every system prompt, whatever the feature: a merchant's shop
+  # shows words, never a symbol the merchant did not type. `Emakola.AI.Sanitizer`
+  # enforces the same rule on the reply for the times a model ignores it.
+  @house_rule "House rule for every reply: never use emoji or decorative symbols " <>
+                "anywhere, not in titles, descriptions, alt text, tags or body text. Words only."
 
-  def build(:product_description, %{product: product, store: store}) do
+  @doc "Build the request for `feature` from `inputs`, with the house rule appended."
+  @spec build(atom(), map()) :: Request.t()
+  def build(feature, inputs) do
+    request = compose(feature, inputs)
+    %{request | system: String.trim_trailing(request.system) <> "\n\n" <> @house_rule}
+  end
+
+  defp compose(:product_description, %{product: product, store: store}) do
     system = """
     You write concise, accurate ecommerce product descriptions for West African
     online shops. Use only facts present in the supplied title, notes, and tags.
@@ -125,7 +135,7 @@ defmodule Emakola.AI.Prompts do
     text_request(@cheap_model, system, user, 400)
   end
 
-  def build(:seo_meta, %{resource: resource, store: store}) do
+  defp compose(:seo_meta, %{resource: resource, store: store}) do
     system = """
     You write SEO meta tags. Reply ONLY as JSON: {"title": "...", "description": "..."}.
     Title <= 60 characters, description <= 155 characters. No markdown, no commentary.
@@ -144,7 +154,7 @@ defmodule Emakola.AI.Prompts do
     }
   end
 
-  def build(:blog_post, %{topic: topic, store: store, type: type}) do
+  defp compose(:blog_post, %{topic: topic, store: store, type: type}) do
     system = """
     You prepare human-review drafts for a West African online store's blog.
     Write a useful #{type} with clear subheadings and plain English. Never invent
@@ -165,7 +175,7 @@ defmodule Emakola.AI.Prompts do
     }
   end
 
-  def build(:image_alt_text, %{image_url: image_url}) do
+  defp compose(:image_alt_text, %{image_url: image_url}) do
     system =
       "You write concise, descriptive image alt text under 125 characters. " <>
         "Describe only visible details; do not infer material, brand, origin, " <>
@@ -185,7 +195,7 @@ defmodule Emakola.AI.Prompts do
     }
   end
 
-  def build(:recipe, %{product: product, store: store}) do
+  defp compose(:recipe, %{product: product, store: store}) do
     system = """
     You prepare human-review recipe drafts in a West African cuisine context.
     Do not make health, nutrition, allergy, or product-ingredient claims not
@@ -205,7 +215,11 @@ defmodule Emakola.AI.Prompts do
     }
   end
 
-  def build(:snap_to_shop, %{image_url: image_url, store: store, category_names: category_names}) do
+  defp compose(:snap_to_shop, %{
+         image_url: image_url,
+         store: store,
+         category_names: category_names
+       }) do
     system = """
     You extract structured product data from merchant-submitted photos for a West African
     ecommerce platform. Never invent a material, ingredient, origin, size, feature,
