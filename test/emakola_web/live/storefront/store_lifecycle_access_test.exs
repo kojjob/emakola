@@ -29,9 +29,9 @@ defmodule EmakolaWeb.Storefront.StoreLifecycleAccessTest do
     assert {:error, {:redirect, %{to: "/store-unavailable"}}} = live(conn, "/s/#{store.slug}")
   end
 
-  test "an archived store is hidden (redirects home)", %{conn: conn} do
+  test "an archived store answers 410 so search engines drop it", %{conn: conn} do
     {:ok, store} = Stores.archive_store(Factory.create_store!(), %{}, authorize?: false)
-    assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/#{store.slug}")
+    assert_error_sent 410, fn -> get(conn, "/#{store.slug}") end
   end
 
   test "the /store-unavailable page renders without a store context", %{conn: conn} do
