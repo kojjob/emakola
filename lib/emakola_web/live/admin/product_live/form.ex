@@ -191,6 +191,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
+            <p
+              :if={@is_edit and @product.description_written_by_ai}
+              class="mt-1.5 text-xs font-medium text-amber-700"
+            >
+              Makola wrote this. Change what is wrong.
+            </p>
           </div>
 
           <div>
