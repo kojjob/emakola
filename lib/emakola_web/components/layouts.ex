@@ -126,10 +126,6 @@ defmodule EmakolaWeb.Layouts do
 
   @doc false
   # Severity tint for the merchant announcement banner in app.html.heex.
-  def announcement_classes(:critical), do: "bg-red-50 text-red-800 border-red-200"
-  def announcement_classes(:warning), do: "bg-amber-50 text-amber-800 border-amber-200"
-  def announcement_classes(_info), do: "bg-blue-50 text-blue-800 border-blue-200"
-
   # Embed all files in layouts/* within this module.
   # The app.html.heex template requires: @flash, @inner_content, @active_nav, @current_user
   # The root.html.heex template provides the HTML skeleton.

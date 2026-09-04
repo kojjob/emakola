@@ -269,6 +269,11 @@ defmodule EmakolaWeb.DashboardLive do
         merchant_name={@merchant_name}
       />
 
+      <%!-- Platform announcements: first thing under the greeting, where the
+            merchant is already looking. Loaded and dismissed by
+            EmakolaWeb.Hooks.MerchantAnnouncements. --%>
+      <.announcement_banner :for={announcement <- @announcements} announcement={announcement} />
+
       <%!-- Setup checklist — auto-hides when all steps are done --%>
       <.setup_checklist
         :if={@setup_steps != []}

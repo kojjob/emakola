@@ -39,7 +39,12 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
 
+  # The preview card follows the form as staff type; nothing is saved.
   @impl true
+  def handle_event("preview", %{"announcement" => params}, socket) do
+    {:noreply, assign(socket, :announcement_form, to_form(params, as: :announcement))}
+  end
+
   def handle_event("create", %{"announcement" => params}, socket) do
     socket = assign(socket, :announcement_form, to_form(params, as: :announcement))
 
@@ -188,6 +193,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         <.form
           for={@announcement_form}
           id="announcement-form"
+          phx-change="preview"
           phx-submit="create"
           class="w-full lg:w-[430px] shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm p-5"
         >
@@ -304,8 +310,26 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
           </div>
         </.form>
 
-        <%!-- Timeline --%>
         <div class="flex-1 min-w-0 w-full">
+          <%!-- What a merchant will see, as staff type it. --%>
+          <div class="mb-5">
+            <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              What merchants see
+            </p>
+            <div class="bg-slate-50 border border-gray-200 rounded-2xl p-4 sm:p-5">
+              <div class="max-w-[420px]">
+                <.announcement_banner
+                  announcement={preview_announcement(@announcement_form)}
+                  preview
+                />
+              </div>
+            </div>
+            <p class="text-[12px] text-gray-400 mt-2">
+              Updates as you type. A title under eight words reads best.
+            </p>
+          </div>
+
+          <%!-- Timeline --%>
           <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Recent broadcasts
           </p>
@@ -398,4 +422,22 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
 
   defp audience_label(:active), do: "Active stores only"
   defp audience_label(_), do: "All stores"
+
+  # The card exactly as a merchant will get it, with stand-in words until
+  # staff have typed their own.
+  defp preview_announcement(form) do
+    %{
+      id: "preview",
+      title: present_or(form[:title].value, "Your title, in a few words"),
+      body: present_or(form[:body].value, "Your message, in one line."),
+      severity:
+        Emakola.SafeAtom.to_atom_in(form[:severity].value, [:info, :warning, :critical], :info)
+    }
+  end
+
+  defp present_or(value, fallback) when is_binary(value) do
+    if String.trim(value) == "", do: fallback, else: value
+  end
+
+  defp present_or(_value, fallback), do: fallback
 end
