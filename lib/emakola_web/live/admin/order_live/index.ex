@@ -1,19 +1,38 @@
 defmodule EmakolaWeb.Admin.OrderLive.Index do
   @moduledoc """
-  Lists all orders for the current store with status filtering, search,
-  and mobile-responsive layout matching the Emakola admin orders prototype.
+  `/admin/orders` — the work first.
+
+  The page opens on what needs doing: every waiting order is a card with
+  the product photo, the customer, how they paid, WhatsApp one tap away, the
+  money largest, and one Send it. Everything else is a quiet picture list
+  under On the way and Done. A status tab or a search narrows the page to
+  one flat list instead (design/orders-redesign, A · Do these now, chosen
+  2026-09-04).
   """
   use EmakolaWeb, :live_view
 
   require Ash.Query
   require Logger
 
+  import EmakolaWeb.Admin.OrderLive.IndexComponents
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
+  alias EmakolaWeb.Admin.OrderLive.Rails
+
   @statuses [:all, :pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
+  @on_the_way [:confirmed, :processing, :shipped]
 
   # Page window for the orders list; "Load more" grows it by this much.
   @orders_per_page 50
+
+  # Every waiting order is work, however old, so the work list is not a
+  # window of recent orders; it is capped only so a runaway backlog cannot
+  # render a thousand cards.
+  @work_orders_cap 100
+
+  # What a row needs to say what was bought: the first line item's product
+  # photo.
+  @order_loads [:supplier_alert, line_items: [variant: [product: [:images]]]]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -29,6 +48,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         search_form: to_form(%{"search" => ""}),
         status_filter: :all,
         orders: [],
+        work_orders: [],
+        # Payment rail per order id, for the chip a merchant knows by colour.
+        rails: %{},
         orders_limit: @orders_per_page,
         more_orders?: false,
         statuses: @statuses,
@@ -98,17 +120,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   @impl true
   def handle_event("filter_status", %{"status" => status}, socket) do
-    status_atom =
-      case status do
-        "all" -> :all
-        "pending" -> :pending
-        "confirmed" -> :confirmed
-        "processing" -> :processing
-        "shipped" -> :shipped
-        "delivered" -> :delivered
-        "cancelled" -> :cancelled
-        _ -> :all
-      end
+    status_atom = Emakola.SafeAtom.to_atom_in(status, @statuses, :all)
 
     socket =
       socket
@@ -128,12 +140,22 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   @impl true
   def render(assigns) do
+    grouped? = assigns.status_filter == :all and assigns.search_query == ""
+
+    assigns =
+      assign(assigns,
+        grouped?: grouped?,
+        on_the_way: Enum.filter(assigns.orders, &(&1.status in @on_the_way)),
+        done: Enum.filter(assigns.orders, &(&1.status == :delivered)),
+        cancelled: Enum.filter(assigns.orders, &(&1.status == :cancelled))
+      )
+
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header
         icon="hero-shopping-bag"
         title="Orders"
-        subtitle="Manage and track all customer orders"
+        subtitle={header_subtitle(@order_stats.waiting)}
       />
 
       <%!-- Find an order by pointing at its parcel. Sits above search because
@@ -176,36 +198,41 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         </p>
       </div>
 
-      <%!-- KPI tiles (store-wide, independent of search/filter) --%>
+      <%!-- Store-wide tiles: what is waiting, what is on the way, today's
+            money, the week's done. A phone shows the two that matter now. --%>
       <div id="order-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div id="stat-orders-today">
-          <.stat_card label="Orders today" value={to_string(@order_stats.today)} tone={:info}>
-            <:icon><.icon name="hero-shopping-bag" class="size-7" /></:icon>
-          </.stat_card>
-        </div>
-        <div id="stat-orders-pending">
+        <.stat_card
+          id="stat-orders-waiting"
+          label="Waiting"
+          value={to_string(@order_stats.waiting)}
+          tone={:warning}
+        >
+          <:icon><.icon name="hero-clock" class="size-7" /></:icon>
+        </.stat_card>
+        <div class="hidden lg:block">
           <.stat_card
-            label="Pending"
-            value={to_string(@order_stats.status_counts.pending)}
-            tone={:warning}
+            id="stat-orders-on-the-way"
+            label="On the way"
+            value={to_string(@order_stats.on_the_way)}
+            tone={:info}
           >
-            <:icon><.icon name="hero-clock" class="size-7" /></:icon>
+            <:icon><.icon name="hero-truck" class="size-7" /></:icon>
           </.stat_card>
         </div>
-        <div id="stat-orders-revenue">
+        <.stat_card
+          id="stat-orders-money-today"
+          label="Money today"
+          value={format_price(@order_stats.money_today, "GHS")}
+          tone={:success}
+        >
+          <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
+        </.stat_card>
+        <div class="hidden lg:block">
           <.stat_card
-            label="Revenue (7 days)"
-            value={format_price(@order_stats.revenue_7d, "GHS")}
-            tone={:primary}
-          >
-            <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
-          </.stat_card>
-        </div>
-        <div id="stat-orders-delivered">
-          <.stat_card
-            label="Delivered (30 days)"
-            value={to_string(@order_stats.delivered_30d)}
-            tone={:primary}
+            id="stat-orders-done"
+            label="Done this week"
+            value={to_string(@order_stats.done_7d)}
+            tone={:success}
           >
             <:icon><.icon name="hero-check-circle" class="size-7" /></:icon>
           </.stat_card>
@@ -259,11 +286,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
       </div>
 
       <%!-- Orders --%>
-      <%= if @orders == [] do %>
+      <%= if @orders == [] and @work_orders == [] do %>
         <%!-- A merchant who has never had an order needs directions; one whose
               filter matched nothing needs to know the filter is why. --%>
         <.empty_state
-          :if={@search_query != "" or @status_filter != :all}
+          :if={!@grouped?}
           icon="hero-shopping-bag"
           title="No orders found"
           description="Try adjusting your search or filters"
@@ -272,7 +299,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
               already in the message — how these merchants actually send a
               shop to a customer. --%>
         <.empty_state
-          :if={@search_query == "" and @status_filter == :all}
+          :if={@grouped?}
           icon="hero-shopping-bag"
           tone={:accent}
           title="Your orders will show here"
@@ -283,55 +310,56 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           external
         />
       <% else %>
-        <%!-- One responsive list of rows a merchant can act on: waiting
-              orders carry the amber edge and the page's only loud button;
-              everything else is a quiet status chip. --%>
-        <.admin_card padding={:none} class="overflow-hidden">
-          <div class="divide-y divide-slate-50">
-            <div
-              :for={order <- @orders}
-              id={"order-row-#{order.id}"}
-              class={[
-                "flex items-center gap-3.5 px-4 py-3.5 sm:px-5 transition-colors hover:bg-slate-50/60",
-                order.status == :pending && "shadow-[inset_4px_0_0_theme(colors.amber.500)]"
-              ]}
-            >
-              <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-emerald-700">
-                {order_initials(order)}
+        <%!-- The work first: every waiting order as a card with one button. --%>
+        <section :if={@grouped? and @work_orders != []} id="do-these-now" class="space-y-3">
+          <.section_eyebrow>Do these now</.section_eyebrow>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <.work_card :for={order <- @work_orders} order={order} rail={@rails[order.id]} />
+          </div>
+          <%!-- Past the cap the rest are one tap away, never silently gone. --%>
+          <.admin_button
+            :if={@order_stats.waiting > length(@work_orders)}
+            id="see-all-waiting"
+            variant={:secondary}
+            phx-click="filter_status"
+            phx-value-status="pending"
+          >
+            See all {@order_stats.waiting} waiting
+          </.admin_button>
+        </section>
+
+        <%!-- Then everything else, quietly, by where it is. --%>
+        <div :if={@grouped?} class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <section :if={@on_the_way != []} id="on-the-way" class="space-y-3">
+            <.section_eyebrow>On the way</.section_eyebrow>
+            <.admin_card padding={:none} class="overflow-hidden">
+              <div class="divide-y divide-slate-50">
+                <.order_row :for={order <- @on_the_way} order={order} rail={@rails[order.id]} />
               </div>
-              <.link navigate={~p"/admin/orders/#{order.id}"} class="min-w-0 flex-1">
-                <p class="truncate text-sm font-bold text-slate-900">{customer_name(order)}</p>
-                <p class="truncate font-mono text-[11px] text-slate-400">
-                  {order.order_number} · {format_date(order.inserted_at)}
-                </p>
-              </.link>
-              <p class="shrink-0 text-[15px] font-extrabold text-slate-900 tabular-nums">
-                {format_price(order.total, order.currency)}
-              </p>
-              <.link
-                :if={order.status == :pending}
-                navigate={~p"/admin/orders/#{order.id}"}
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-600/25 transition-colors hover:bg-primary-hover"
-              >
-                Send it <.icon name="hero-arrow-right" class="size-3" />
-              </.link>
-              <%!-- Supplier state, icon-first. A merchant scanning forty rows
-                    should see a red clock without reading a word — the label
-                    is there for whoever wants it, not carrying the meaning on
-                    its own. --%>
-              <span
-                :if={order.supplier_alert}
-                class={[
-                  "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold",
-                  supplier_alert_classes(order.supplier_alert)
-                ]}
-                title={supplier_alert_label(order.supplier_alert)}
-              >
-                <.icon name={supplier_alert_icon(order.supplier_alert)} class="size-3.5" />
-                <span class="hidden sm:inline">{supplier_alert_label(order.supplier_alert)}</span>
-              </span>
-              <.status_badge :if={order.status != :pending} status={order.status} variant={:order} />
+            </.admin_card>
+          </section>
+          <section :if={@done != []} id="done" class="space-y-3">
+            <.section_eyebrow>Done</.section_eyebrow>
+            <.admin_card padding={:none} class="overflow-hidden">
+              <div class="divide-y divide-slate-50">
+                <.order_row :for={order <- @done} order={order} rail={@rails[order.id]} />
+              </div>
+            </.admin_card>
+          </section>
+        </div>
+        <section :if={@grouped? and @cancelled != []} id="cancelled" class="space-y-3">
+          <.section_eyebrow>Cancelled</.section_eyebrow>
+          <.admin_card padding={:none} class="overflow-hidden">
+            <div class="divide-y divide-slate-50">
+              <.order_row :for={order <- @cancelled} order={order} rail={@rails[order.id]} />
             </div>
+          </.admin_card>
+        </section>
+
+        <%!-- A tab or a search: one flat list of what matched. --%>
+        <.admin_card :if={!@grouped?} padding={:none} class="overflow-hidden">
+          <div class="divide-y divide-slate-50">
+            <.order_row :for={order <- @orders} order={order} rail={@rails[order.id]} />
           </div>
         </.admin_card>
 
@@ -355,41 +383,95 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     """
   end
 
+  slot :inner_block, required: true
+
+  defp section_eyebrow(assigns) do
+    ~H"""
+    <p class="px-0.5 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-400">
+      {render_slot(@inner_block)}
+    </p>
+    """
+  end
+
   # ── Data Loading ──
 
   defp load_orders(socket) do
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
     limit = socket.assigns[:orders_limit] || @orders_per_page
+    grouped? = status == :all and query == ""
 
+    # On the grouped page the waiting orders come from their own query and
+    # the window holds only the rest, so a backlog of waiting orders can
+    # neither fill the window nor leave it counted but empty.
     orders =
-      try do
-        status_arg = if status != :all, do: status, else: nil
-        search_arg = if query != "", do: query, else: nil
-
-        Emakola.Orders.Order
-        |> Ash.Query.for_read(:list_admin, %{
-          store_id: store_id,
-          status: status_arg,
-          search: search_arg
-        })
-        |> Ash.Query.limit(limit + 1)
-        |> Ash.Query.load(:supplier_alert)
-        |> Ash.read!(authorize?: false)
-      rescue
-        exception ->
-          Logger.error(
-            "[order_live.index] load_orders loading orders raised: #{Exception.message(exception)}"
-          )
-
-          []
-      end
+      read_orders(store_id,
+        status: status,
+        search: query,
+        limit: limit + 1,
+        exclude_pending: grouped?
+      )
 
     # One row beyond the window is fetched purely to answer "is there more?"
     # without a second COUNT query.
     {orders, more?} =
       if length(orders) > limit, do: {Enum.take(orders, limit), true}, else: {orders, false}
 
-    assign(socket, orders: orders, orders_limit: limit, more_orders?: more?)
+    work_orders =
+      if grouped?,
+        do: read_orders(store_id, status: :pending, search: "", limit: @work_orders_cap),
+        else: []
+
+    assign(socket,
+      orders: orders,
+      work_orders: work_orders,
+      rails: load_rails(work_orders ++ orders),
+      orders_limit: limit,
+      more_orders?: more?
+    )
+  end
+
+  defp read_orders(store_id, opts) do
+    status = Keyword.fetch!(opts, :status)
+    search = Keyword.fetch!(opts, :search)
+
+    Emakola.Orders.Order
+    |> Ash.Query.for_read(:list_admin, %{
+      store_id: store_id,
+      status: if(status != :all, do: status, else: nil),
+      search: if(search != "", do: search, else: nil)
+    })
+    |> then(fn query ->
+      if Keyword.get(opts, :exclude_pending, false),
+        do: Ash.Query.filter(query, status != :pending),
+        else: query
+    end)
+    |> Ash.Query.limit(Keyword.fetch!(opts, :limit))
+    |> Ash.Query.load(@order_loads)
+    |> Ash.read!(authorize?: false)
+  rescue
+    exception ->
+      Logger.error(
+        "[order_live.index] read_orders loading orders raised: #{Exception.message(exception)}"
+      )
+
+      []
+  end
+
+  # One query for every successful payment on the page, keyed by order, so
+  # fifty rows do not become fifty lookups.
+  defp load_rails([]), do: %{}
+
+  defp load_rails(orders) do
+    ids = Enum.map(orders, & &1.id)
+
+    Emakola.Payments.Payment
+    |> Ash.Query.filter(order_id in ^ids and status == :success)
+    |> Ash.read!(authorize?: false)
+    |> Map.new(&{&1.order_id, Rails.for_payment(&1)})
+  rescue
+    exception ->
+      Logger.error("[order_live.index] load_rails raised: #{Exception.message(exception)}")
+      %{}
   end
 
   # Store-wide KPI numbers and per-status counts. Deliberately independent
@@ -404,18 +486,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     now = DateTime.utc_now()
     start_of_today = %{now | hour: 0, minute: 0, second: 0, microsecond: {0, 6}}
     seven_days_ago = DateTime.add(now, -7, :day)
-    thirty_days_ago = DateTime.add(now, -30, :day)
 
     status_counts =
       Map.new(@statuses -- [:all], fn status ->
         {status, count_orders(store_id, status: status)}
       end)
 
-    revenue_7d =
+    money_today =
       admin_orders_query(store_id)
-      |> Ash.Query.filter(
-        inserted_at >= ^seven_days_ago and status not in [:cancelled, :refunded]
-      )
+      |> Ash.Query.filter(inserted_at >= ^start_of_today and status != :cancelled)
       |> Ash.sum(:total, authorize?: false)
       |> case do
         {:ok, sum} when is_integer(sum) -> sum
@@ -426,9 +505,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
       order_stats: %{
         status_counts: status_counts,
         all: status_counts |> Map.values() |> Enum.sum(),
-        today: count_orders(store_id, inserted_after: start_of_today),
-        revenue_7d: revenue_7d,
-        delivered_30d: count_orders(store_id, status: :delivered, inserted_after: thirty_days_ago)
+        waiting: Map.get(status_counts, :pending, 0),
+        on_the_way: @on_the_way |> Enum.map(&Map.get(status_counts, &1, 0)) |> Enum.sum(),
+        money_today: money_today,
+        done_7d: count_orders(store_id, status: :delivered, inserted_after: seven_days_ago)
       }
     )
   rescue
@@ -442,9 +522,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     %{
       status_counts: Map.new(@statuses -- [:all], &{&1, 0}),
       all: 0,
-      today: 0,
-      revenue_7d: 0,
-      delivered_30d: 0
+      waiting: 0,
+      on_the_way: 0,
+      money_today: 0,
+      done_7d: 0
     }
   end
 
@@ -489,6 +570,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     end
   end
 
+  # The subtitle counts the work while there is any.
+  defp header_subtitle(0), do: "Manage and track all customer orders"
+  defp header_subtitle(1), do: "1 waiting for you"
+  defp header_subtitle(count), do: "#{count} waiting for you"
+
   # wa.me with no number opens WhatsApp's own share sheet, so the merchant
   # picks the recipient. Falls back to a bare share when the store has not
   # resolved (the page still renders for a merchant mid-onboarding).
@@ -503,60 +589,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   defp status_label(:all), do: "All"
   defp status_label(:pending), do: "Pending"
-
   defp status_label(:confirmed), do: "Confirmed"
   defp status_label(:processing), do: "Processing"
   defp status_label(:shipped), do: "Shipped"
   defp status_label(:delivered), do: "Delivered"
   defp status_label(:cancelled), do: "Cancelled"
-
-  defp format_date(nil), do: ""
-
-  defp format_date(%DateTime{} = dt) do
-    Calendar.strftime(dt, "%d/%m/%Y")
-  end
-
-  defp format_date(%NaiveDateTime{} = dt) do
-    Calendar.strftime(dt, "%d/%m/%Y")
-  end
-
-  defp format_date(_), do: ""
-
-  defp customer_name(%{customer: %{name: name}}) when is_binary(name), do: name
-  defp customer_name(_), do: "Unknown"
-
-  # Colour and icon are the signal; the words repeat it for whoever reads. Red
-  # for "you must act", amber for "still waiting", green for "handled".
-  defp supplier_alert_classes(:blocked), do: "bg-danger-soft text-danger"
-  defp supplier_alert_classes(:unreachable), do: "bg-danger-soft text-danger"
-  defp supplier_alert_classes(:waiting), do: "bg-warning-soft text-warning"
-  defp supplier_alert_classes(:accepted), do: "bg-success-soft text-success"
-  defp supplier_alert_classes(_other), do: "bg-slate-100 text-slate-600"
-
-  defp supplier_alert_icon(:blocked), do: "hero-exclamation-triangle"
-  defp supplier_alert_icon(:unreachable), do: "hero-signal-slash"
-  defp supplier_alert_icon(:waiting), do: "hero-clock"
-  defp supplier_alert_icon(:accepted), do: "hero-check-circle"
-  defp supplier_alert_icon(_other), do: "hero-truck"
-
-  # Under the eight-word ceiling, and each says what to do rather than what
-  # state a record is in.
-  defp supplier_alert_label(:blocked), do: "Supplier failed"
-  defp supplier_alert_label(:unreachable), do: "Not delivered"
-  defp supplier_alert_label(:waiting), do: "No reply"
-  defp supplier_alert_label(:accepted), do: "Supplier has it"
-  defp supplier_alert_label(_other), do: "Supplier"
-
-  defp order_initials(order) do
-    order
-    |> customer_name()
-    |> String.split(~r/\s+/, trim: true)
-    |> Enum.take(2)
-    |> Enum.map_join(&String.first/1)
-    |> String.upcase()
-    |> case do
-      "" -> "?"
-      initials -> initials
-    end
-  end
 end

@@ -1,0 +1,78 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1560,
+      "title": "A · Do these now — phone"
+    },
+    {
+      "file": "WorkDesktop.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "A · Do these now — desktop"
+    },
+    {
+      "file": "RowsPhone.dc.html",
+      "x": 0,
+      "y": 1700,
+      "w": 390,
+      "h": 1200,
+      "title": "B · Picture rows — phone"
+    },
+    {
+      "file": "RowsDesktop.dc.html",
+      "x": 470,
+      "y": 1700,
+      "w": 1440,
+      "h": 1000,
+      "title": "B · Picture rows — desktop"
+    },
+    {
+      "file": "BoardPhone.dc.html",
+      "x": 0,
+      "y": 3040,
+      "w": 390,
+      "h": 844,
+      "title": "C · The board — phone"
+    },
+    {
+      "file": "BoardDesktop.dc.html",
+      "x": 470,
+      "y": 3040,
+      "w": 1440,
+      "h": 1000,
+      "title": "C · The board — desktop"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "a-note",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "text": "A — DO THESE NOW (leading)\n\nThe page opens on the work. Waiting orders are big cards: the photo of what was bought, the customer, how they paid in the wallet's own colour, WhatsApp one tap away, the money largest, and one Send it. Everything else is a quiet picture list under On the way and Done, so the merchant never hunts for the three orders that matter.\n\nTwo tiles on a phone, four on a desktop; the subtitle counts the waiting.\n\nFor: a merchant who does not read well sees photos and a green button, not a table.\n\nAgainst: thirty waiting orders make thirty big cards; the list of everything else is two taps further than today."
+    },
+    {
+      "id": "b-note",
+      "x": -500,
+      "y": 1700,
+      "w": 440,
+      "text": "B — PICTURE ROWS\n\nThe page keeps its shape and every row learns to speak: the product photo replaces the initials disc, the rail chip says how it was paid (MTN yellow, Telecel red, AT blue, cash in slate), the status is an icon with a word, WhatsApp is on every row, the money is the largest thing. Tabs carry the same icons, icon-only on a phone.\n\nFor: the smallest change; every row is still one order, scanning forty is the same motion as today.\n\nAgainst: still a list; a waiting order is louder than the rest only by its amber edge and button."
+    },
+    {
+      "id": "c-note",
+      "x": -500,
+      "y": 3040,
+      "w": 440,
+      "text": "C — THE BOARD\n\nWhere every order is, at a glance: Waiting, Packing, On the way, Done as columns on a desktop, one column at a time on a phone with a status strip to switch. Each card carries the one button that moves it right.\n\nFor: the shape of the day is visible without reading a number; a stall with a packer and a rider can split the columns.\n\nAgainst: a phone shows one column; search and the parcel scanner sit above a board that is mostly empty for a one-order shop. The biggest build of the three."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
