@@ -32,7 +32,7 @@ defmodule Emakola.Themes.Depot.ProductList do
             Catalogue
           </h1>
           <p class="mt-2 text-sm tabular-nums text-zinc-600">
-            {@products_count} items shown
+            {Emakola.Plural.count(@products_count, "item")} shown
           </p>
         </div>
       </div>

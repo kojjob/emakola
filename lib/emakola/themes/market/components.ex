@@ -7,9 +7,10 @@ defmodule Emakola.Themes.Market.Components do
   by eight other themes and must not be restyled. Three rules shape every
   component here:
 
-    * Placeholder-first: the image slot is a warm stone panel carrying the
-      product's initial and the price chip, so cards look finished before
-      (or without) the photograph. The real image layers over it on arrival.
+    * Placeholder-first: the image slot is a warm stone panel carrying a
+      quiet bag pictogram, so cards look finished before (or without) the
+      photograph. Never the product's initial — a letter means nothing to a
+      buyer who reads slowly. The real image layers over it on arrival.
     * The price chip is the signature — tabular numerals in the merchant's
       heading font, notched corner, lower-left of the image.
     * The merchant's primary colour is the only accent: price chip,
@@ -76,11 +77,23 @@ defmodule Emakola.Themes.Market.Components do
       >
         <div
           class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200"
+          data-placeholder="product"
           aria-hidden="true"
         >
-          <span class="text-6xl font-bold text-stone-400 [font-family:var(--dt-heading-font,inherit)] select-none">
-            {String.first(@product.title)}
-          </span>
+          <svg
+            class="h-12 w-12 text-stone-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+            />
+          </svg>
         </div>
         <.optimized_image
           :if={@image}
@@ -113,7 +126,7 @@ defmodule Emakola.Themes.Market.Components do
           href={store_path(@store.slug, "/products/#{@product.slug}")}
           class="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
         >
-          <h3 class="truncate text-[0.8125rem] font-medium leading-snug text-stone-600">
+          <h3 class="line-clamp-2 text-[0.8125rem] font-medium leading-snug text-stone-600">
             {@product.title}
           </h3>
         </a>
@@ -164,11 +177,23 @@ defmodule Emakola.Themes.Market.Components do
       >
         <div
           class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200"
+          data-placeholder="product"
           aria-hidden="true"
         >
-          <span class="text-8xl font-bold text-stone-400 [font-family:var(--dt-heading-font,inherit)] select-none">
-            {String.first(@product.title)}
-          </span>
+          <svg
+            class="h-20 w-20 text-stone-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+            />
+          </svg>
         </div>
         <.optimized_image
           :if={@image}
@@ -229,32 +254,26 @@ defmodule Emakola.Themes.Market.Components do
   end
 
   @doc """
-  Store story card: initial avatar, description (with a neutral fallback),
-  and a WhatsApp CTA when the store has a number.
+  Store story card: the merchant's own description and a WhatsApp CTA when
+  the store has a number. Renders nothing without a description — no stock
+  sentence speaks for a merchant who has not written one yet.
   """
   attr :store, :map, required: true
 
   def about_card(assigns) do
+    assigns = assign(assigns, :description, present(Map.get(assigns.store, :description)))
+
     ~H"""
     <section
+      :if={@description}
       class="rounded-[20px] border border-stone-200 bg-white p-6 text-center sm:p-8"
       aria-labelledby="market-about-heading"
     >
-      <div class="mx-auto mb-3.5 flex h-20 w-20 items-center justify-center rounded-full border border-stone-200 bg-gradient-to-br from-stone-100 to-stone-200">
-        <span class="text-2xl font-bold text-stone-500 [font-family:var(--dt-heading-font,inherit)]">
-          {String.first(@store.name)}
-        </span>
-      </div>
       <h2 id="market-about-heading" class="mb-2 text-lg font-bold tracking-tight text-stone-900">
         About the Shop
       </h2>
       <p class="mx-auto mb-4 max-w-[480px] text-sm leading-relaxed text-stone-600">
-        <%!-- The fallback said the products were "quality" and "handpicked for
-             you" — two claims about goods the platform has never seen, on behalf
-             of a merchant who simply had not written a description yet. --%>
-        {if @store.description,
-          do: @store.description,
-          else: "Welcome to #{@store.name}. Browse the collection."}
+        {@description}
       </p>
       <a
         :if={Map.get(@store, :whatsapp_number)}
@@ -272,4 +291,10 @@ defmodule Emakola.Themes.Market.Components do
     </section>
     """
   end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 end

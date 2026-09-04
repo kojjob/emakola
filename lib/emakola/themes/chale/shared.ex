@@ -116,7 +116,7 @@ defmodule Emakola.Themes.Chale.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-[#F7F5F1] hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] motion-safe:transition-colors"
             >
               <svg
@@ -239,7 +239,7 @@ defmodule Emakola.Themes.Chale.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           aria-current={if @active == :cart, do: "page"}
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
           class={[
             "relative flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
             if(@active == :cart, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
@@ -476,6 +476,39 @@ defmodule Emakola.Themes.Chale.Shared do
   end
 
   @doc """
+  The flyer's image slot before (or without) a photograph: a zinc gradient
+  carrying a quiet bag pictogram, marked `data-placeholder`. Never the
+  product's initial — a letter means nothing to a buyer who reads slowly.
+  It sits beneath the photograph, which simply covers it on arrival.
+  """
+  attr :size, :atom, default: :sm, values: [:sm, :lg]
+
+  def flyer_placeholder(assigns) do
+    ~H"""
+    <div
+      class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
+      data-placeholder="product"
+      aria-hidden="true"
+    >
+      <svg
+        class={["text-zinc-400", if(@size == :lg, do: "h-20 w-20", else: "h-12 w-12")]}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+        />
+      </svg>
+    </div>
+    """
+  end
+
+  @doc """
   Grid product card — the pasted flyer. Square placeholder-first image
   slot with the price stamp at the lower-left; title row with an optional
   quick add-to-cart button (`quick_add` — only for pages whose LiveView
@@ -497,14 +530,7 @@ defmodule Emakola.Themes.Chale.Shared do
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="relative block aspect-square overflow-hidden rounded-xl border border-[#E3E0DA] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5"
       >
-        <div
-          class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
-          aria-hidden="true"
-        >
-          <span class="select-none text-7xl font-bold uppercase text-zinc-400 [font-family:var(--chale-display)]">
-            {String.first(@product.title)}
-          </span>
-        </div>
+        <.flyer_placeholder />
         <.optimized_image
           :if={@image}
           src={@image}

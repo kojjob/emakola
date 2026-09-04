@@ -65,12 +65,17 @@ defmodule Emakola.Themes.Pharmacy do
         heading: "Fraunces",
         body: "Inter"
       },
+      # No invented copy: the hero used to open every Pharmacy shop with
+      # "Everything you need, in one place" and "We are here to help, every
+      # step of the way." Empty here means the store speaks for itself — its
+      # own name is the h1, its own description the standfirst, nothing where
+      # it wrote nothing.
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "Everything you need, in one place",
-        subtitle: "We are here to help, every step of the way.",
+        title: "",
+        subtitle: "",
         cta_text: "Explore Now",
         cta_url: "/products"
       },
@@ -109,10 +114,11 @@ defmodule Emakola.Themes.Pharmacy do
         subtitle: nil,
         items: []
       },
+      # The subtitle used to promise "health tips ... from our pharmacists" —
+      # a professional the platform cannot vouch for, on the merchant's behalf.
       newsletter: %{
         title: "Stay healthy, stay informed",
-        subtitle:
-          "Sign up to receive health tips, new product launches, and exclusive offers from our pharmacists.",
+        subtitle: "New products and updates, straight to your inbox.",
         button_text: "Subscribe"
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},

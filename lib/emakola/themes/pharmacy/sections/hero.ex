@@ -6,7 +6,9 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
 
   Settings default to `""` so an untouched store keeps rendering the
   merchant's existing `@theme.hero` config — the section editor only takes
-  over a field once the merchant fills it in.
+  over a field once the merchant fills it in. The theme ships no invented
+  headline or standfirst: the store's own name is the h1, its own
+  description the standfirst, and nothing where it wrote nothing.
   """
   @behaviour Emakola.Themes.Section
 
@@ -34,7 +36,20 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :hero_image, hero_image(assigns))
+    assigns =
+      assigns
+      |> assign(:hero_image, hero_image(assigns))
+      |> assign(
+        :heading,
+        present(assigns.settings["title"]) || present(get_in(assigns.theme, [:hero, :title])) ||
+          assigns.store.name
+      )
+      |> assign(
+        :subheading,
+        present(assigns.settings["subtitle"]) ||
+          present(get_in(assigns.theme, [:hero, :subtitle])) ||
+          present(assigns.store.description)
+      )
 
     ~H"""
     <section
@@ -45,22 +60,27 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <%!-- Left: copy --%>
           <div class="relative z-10 order-2 lg:order-1">
-            <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#A7E5C5]/20 text-[#A7E5C5] text-xs font-semibold uppercase tracking-wider mb-6">
-              <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
-              Here to help
+            <%!-- The eyebrow read "Here to help" beside a verified tick on every
+                 store. It now names the store above a merchant headline, and
+                 says nothing when the store's name is the headline. --%>
+            <span
+              :if={@heading != @store.name}
+              class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#A7E5C5]/20 text-[#A7E5C5] text-xs font-semibold uppercase tracking-wider mb-6"
+            >
+              <span class="material-symbols-outlined" style="font-size: 14px;">local_pharmacy</span>
+              {@store.name}
             </span>
-            <h1 class="pharmacy-heading text-4xl sm:text-5xl lg:text-6xl font-medium text-white leading-[1.1] mb-6">
-              {if @settings["title"] not in [nil, ""],
-                do: @settings["title"],
-                else: @theme.hero.title || "Everything you need, in one place"}
+            <h1
+              id="pharmacy-hero-heading"
+              class="pharmacy-heading text-4xl sm:text-5xl lg:text-6xl font-medium text-white leading-[1.1] mb-6"
+            >
+              {@heading}
             </h1>
-            <p class="text-base sm:text-lg text-[#F9F6F0]/80 leading-relaxed mb-8 max-w-xl">
-              {if @settings["subtitle"] not in [nil, ""],
-                do: @settings["subtitle"],
-                else:
-                  @theme.hero.subtitle ||
-                    @store.description ||
-                    "We are here to help, every step of the way."}
+            <p
+              :if={@subheading}
+              class="text-base sm:text-lg text-[#F9F6F0]/80 leading-relaxed mb-8 max-w-xl"
+            >
+              {@subheading}
             </p>
             <div class="flex flex-col sm:flex-row gap-3">
               <a
@@ -126,6 +146,12 @@ defmodule Emakola.Themes.Pharmacy.Sections.Hero do
       _ -> theme_hero_image(assigns.theme)
     end
   end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   defp theme_hero_image(theme) do
     case get_in(theme, [:hero, :images]) || [] do

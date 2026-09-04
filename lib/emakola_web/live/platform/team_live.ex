@@ -18,6 +18,14 @@ defmodule EmakolaWeb.Platform.TeamLive do
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Accounts.PlatformTeam
   alias Emakola.Accounts.Sessions
+  alias Emakola.SafeAtom
+  alias Emakola.Security.SecretStorage
+
+  @status_filters [:all, :owners, :twofa_off, :deactivated, :invites]
+
+  # Sessions.touch/1 writes last_seen_at at most every 5 minutes, so a
+  # session seen inside this window belongs to someone using the app now.
+  @online_window_minutes 10
 
   @impl true
   def mount(_params, _session, socket) do
@@ -30,19 +38,57 @@ defmodule EmakolaWeb.Platform.TeamLive do
       |> assign(:invite_form, invite_form())
       |> assign(:edit_user, nil)
       |> assign(:edit_permissions_form, edit_permissions_form())
+      |> assign(:status_filter, :all)
+      |> assign(:search, "")
+      |> assign(:permission_filter, nil)
+      |> assign(:filter_form, filter_form("", nil))
 
     # No DB queries in disconnected mount — render a loading shell first.
     socket =
       if connected?(socket) do
         load_team(socket)
       else
-        assign(socket, staff: nil, invites: [], session_counts: %{})
+        assign(socket,
+          staff: nil,
+          invites: [],
+          session_counts: %{},
+          presence: %{},
+          visible_staff: [],
+          filter_counts: filter_counts([], [])
+        )
       end
 
     {:ok, socket}
   end
 
+  # Filters are view-only state (no writes), like the close_*_modal events.
   @impl true
+  def handle_event("filter_status", %{"status" => status}, socket) do
+    status = SafeAtom.to_atom_in(status, @status_filters, :all)
+    {:noreply, socket |> assign(:status_filter, status) |> apply_filters()}
+  end
+
+  def handle_event("filter", params, socket) do
+    search = params |> Map.get("search", "") |> String.trim()
+
+    permission =
+      SafeAtom.to_atom_in(Map.get(params, "permission", ""), PlatformPermissions.all(), nil)
+
+    {:noreply,
+     socket
+     |> assign(search: search, permission_filter: permission)
+     |> assign(:filter_form, filter_form(search, permission))
+     |> apply_filters()}
+  end
+
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(status_filter: :all, search: "", permission_filter: nil)
+     |> assign(:filter_form, filter_form("", nil))
+     |> apply_filters()}
+  end
+
   def handle_event("open_invite_modal", _params, socket) do
     authorized(socket, fn socket ->
       {:noreply, assign(socket, invite_modal_open: true, invite_form: invite_form())}
@@ -120,7 +166,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   def handle_event("force_logout", %{"id" => id}, socket) do
     staff_action(socket, id, &PlatformTeam.force_logout/2, fn count ->
-      "Signed out #{count} session(s)."
+      "Signed out #{Emakola.Plural.count(count, "session")}."
     end)
   end
 
@@ -136,6 +182,10 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   def handle_event("reactivate", %{"id" => id}, socket) do
     staff_action(socket, id, &PlatformTeam.reactivate/2, fn _ -> "Staff member reactivated." end)
+  end
+
+  def handle_event("remove", %{"id" => id}, socket) do
+    staff_action(socket, id, &PlatformTeam.remove/2, fn _ -> "Removed from the team." end)
   end
 
   def handle_event("revoke_invite", %{"id" => id}, socket) do
@@ -220,9 +270,9 @@ defmodule EmakolaWeb.Platform.TeamLive do
   defp load_team(socket) do
     staff = ok_or_empty(PlatformTeam.list_staff())
 
-    session_counts =
+    sessions =
       Map.new(staff, fn user ->
-        {user.id, length(ok_or_empty(Sessions.list_active_for_user(user.id)))}
+        {user.id, ok_or_empty(Sessions.list_active_for_user(user.id))}
       end)
 
     # Keep the panel selection across reloads (refreshed from the new list);
@@ -232,9 +282,74 @@ defmodule EmakolaWeb.Platform.TeamLive do
     socket
     |> assign(:staff, staff)
     |> assign(:invites, ok_or_empty(PlatformTeam.list_open_invites()))
-    |> assign(:session_counts, session_counts)
+    |> assign(:session_counts, Map.new(sessions, fn {id, list} -> {id, length(list)} end))
+    |> assign(:presence, Map.new(sessions, fn {id, list} -> {id, presence(list)} end))
     |> assign(:edit_user, selected)
     |> assign(:edit_permissions_form, edit_permissions_form(selected))
+    |> apply_filters()
+  end
+
+  # list_active_for_user sorts most recently seen first.
+  defp presence([]), do: %{state: :offline, last_seen_at: nil}
+
+  defp presence([latest | _]) do
+    threshold = DateTime.add(DateTime.utc_now(), -@online_window_minutes, :minute)
+    state = if DateTime.after?(latest.last_seen_at, threshold), do: :online, else: :away
+    %{state: state, last_seen_at: latest.last_seen_at}
+  end
+
+  defp apply_filters(socket) do
+    %{staff: staff, invites: invites} = socket.assigns
+    staff = staff || []
+
+    visible =
+      staff
+      |> filter_by_status(socket.assigns.status_filter)
+      |> filter_by_search(socket.assigns.search)
+      |> filter_by_permission(socket.assigns.permission_filter)
+
+    socket
+    |> assign(:visible_staff, visible)
+    |> assign(:filter_counts, filter_counts(staff, invites))
+  end
+
+  defp filter_counts(staff, invites) do
+    %{
+      all: length(staff),
+      owners: Enum.count(staff, & &1.is_owner),
+      twofa_off: Enum.count(staff, &(!SecretStorage.totp_configured?(&1))),
+      deactivated: Enum.count(staff, & &1.deactivated_at),
+      invites: length(invites)
+    }
+  end
+
+  defp filter_by_status(staff, :owners), do: Enum.filter(staff, & &1.is_owner)
+
+  defp filter_by_status(staff, :twofa_off),
+    do: Enum.reject(staff, &SecretStorage.totp_configured?/1)
+
+  defp filter_by_status(staff, :deactivated), do: Enum.filter(staff, & &1.deactivated_at)
+  defp filter_by_status(_staff, :invites), do: []
+  defp filter_by_status(staff, _all), do: staff
+
+  defp filter_by_search(staff, ""), do: staff
+
+  defp filter_by_search(staff, query) do
+    query = String.downcase(query)
+
+    Enum.filter(staff, fn user ->
+      haystack = String.downcase("#{user.name} #{user.email}")
+      String.contains?(haystack, query)
+    end)
+  end
+
+  defp filter_by_permission(staff, nil), do: staff
+
+  defp filter_by_permission(staff, permission),
+    do: Enum.filter(staff, &(permission in &1.platform_permissions))
+
+  defp filter_form(search, permission) do
+    to_form(%{"search" => search, "permission" => permission && to_string(permission)})
   end
 
   defp refresh_selection(nil, staff), do: List.first(staff)
@@ -247,6 +362,7 @@ defmodule EmakolaWeb.Platform.TeamLive do
 
   defp error_message(:unauthorized), do: "You don't have permission to manage the team."
   defp error_message(:owner_required), do: "Only platform owners can do that."
+  defp error_message(:cannot_remove_self), do: "You cannot remove yourself from the team."
 
   defp error_message(:email_delivery_failed), do: "Could not send the invite email."
 
@@ -260,8 +376,14 @@ defmodule EmakolaWeb.Platform.TeamLive do
     ~H"""
     <.team_page
       staff={@staff}
+      visible_staff={@visible_staff}
       invites={@invites}
       session_counts={@session_counts}
+      presence={@presence}
+      status_filter={@status_filter}
+      filter_counts={@filter_counts}
+      filter_form={@filter_form}
+      filters_active={@status_filter != :all or @search != "" or @permission_filter != nil}
       owner_actor={@current_user.is_owner}
       invite_modal_open={@invite_modal_open}
       invite_form={@invite_form}

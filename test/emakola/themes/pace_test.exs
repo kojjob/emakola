@@ -170,11 +170,21 @@ defmodule Emakola.Themes.PaceTest do
   end
 
   describe "home render through SectionRenderer" do
-    test "renders all seven sections in order with their landmarks" do
-      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pace"}})
+    test "a full stall with a description renders all seven sections in order with their landmarks" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "pace"},
+          description: "Run gear tested on Accra roads."
+        })
+
       create_category!(store, %{name: "Running"})
       product = create_product!(store, %{title: "Tempo Tee", status: :active})
       create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      for title <- ["Split Shorts", "Pace Cap", "Trail Sock"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 1000, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -193,8 +203,11 @@ defmodule Emakola.Themes.PaceTest do
       assert html =~ "Tempo Tee"
       assert html =~ "GH₵ 123.45"
       assert html =~ "tabular-nums"
-      # About
+      # Every product exactly once: the front runner takes one, the grid the rest
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 5
+      # About carries the merchant's own words
       assert html =~ "About the shop"
+      assert html =~ "Run gear tested on Accra roads."
       # Trust names the real rails; newsletter owns capture — exactly one form
       assert html =~ "MTN MoMo"
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 2
@@ -205,6 +218,24 @@ defmodule Emakola.Themes.PaceTest do
                html,
                ~r/pace-hero-heading.*Product categories.*Featured product.*The Lineup.*About the shop.*We Accept.*pace-newsletter-form/s
              )
+    end
+
+    test "one product: the front runner carries it alone — no lanes, grid, about or newsletter" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pace"}})
+      create_category!(store, %{name: "Running"})
+      product = create_product!(store, %{title: "Tempo Tee", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ ~s(aria-label="Featured product")
+      assert html =~ "Tempo Tee"
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 2
+      refute html =~ ~s(aria-label="Product categories")
+      refute html =~ "The Lineup"
+      refute html =~ "About the shop"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "MTN MoMo"
     end
 
     test "empty products and categories render an intentional empty state, not a blank page" do
@@ -219,7 +250,8 @@ defmodule Emakola.Themes.PaceTest do
       assert html =~ "added any products yet"
       # The hero still opens the page with the store name as its h1
       assert html =~ ~r/<h1[^>]*id="pace-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
-      assert html =~ "About the shop"
+      # Nothing speaks for a merchant who wrote no description
+      refute html =~ "About the shop"
     end
 
     test "a store description renders in the about section" do
@@ -440,7 +472,7 @@ defmodule Emakola.Themes.PaceTest do
   end
 
   describe "product_card/1" do
-    test "looks finished with no image: night gradient, initial, price, add to cart" do
+    test "looks finished with no image: night gradient, pictogram, price, add to cart" do
       html =
         render_component(&Components.product_card/1, %{
           product: component_product(),
@@ -448,9 +480,10 @@ defmodule Emakola.Themes.PaceTest do
         })
 
       refute html =~ "<img"
-      # Night-gradient base with the product's ghost initial
+      # Night-gradient base with the bag pictogram — never the product's initial
       assert html =~ "bg-gradient-to-b"
-      assert html =~ ~r/>\s*S\s*</
+      assert html =~ ~s(data-placeholder="product")
+      refute html =~ ~r/>\s*S\s*</
       assert html =~ "GH₵ 45.50"
       assert html =~ "tabular-nums"
       assert html =~ "Split Shorts"
@@ -598,9 +631,13 @@ defmodule Emakola.Themes.PaceTest do
     end
 
     test "a merchant heading replaces the default" do
+      # Two products: the front runner takes the first, the grid shows the rest
       html =
         render_section(ProductGrid, @component_store, %{"heading" => "Fresh drops"}, %{
-          products: [component_product()]
+          products: [
+            component_product(),
+            component_product(%{id: "prod-2", title: "Pace Cap", slug: "pace-cap"})
+          ]
         })
 
       assert html =~ "Fresh drops"
@@ -674,12 +711,10 @@ defmodule Emakola.Themes.PaceTest do
   end
 
   describe "about section" do
-    test "falls back to the neutral welcome copy without a description" do
+    test "renders nothing without a description" do
       html = render_section(Emakola.Themes.Pace.Sections.About, @component_store)
 
-      assert html =~ "About the shop"
-      assert html =~ "Welcome to Stride Lab."
-      refute html =~ "Chat on WhatsApp"
+      assert String.trim(html) == ""
     end
 
     test "renders the description and WhatsApp CTA when present" do

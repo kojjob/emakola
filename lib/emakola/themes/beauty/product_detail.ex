@@ -73,12 +73,15 @@ defmodule Emakola.Themes.Beauty.ProductDetail do
 
               <%!-- Rating (real review data only) --%>
               <div
-                :if={Map.get(@product, :review_count, 0) > 0}
+                :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
                 class="flex items-center gap-3 mb-6"
               >
                 <span class="text-[#8C5A24]" style="font-size: 16px;">{Shared.stars(@product)}</span>
                 <span class="text-xs text-[#6B4423]/60">
-                  ({Shared.format_rating(@product)} · {@product.review_count} reviews)
+                  ({Shared.format_rating(@product)} · {Emakola.Plural.count(
+                    @product.review_count,
+                    "review"
+                  )})
                 </span>
               </div>
 

@@ -184,7 +184,7 @@ defmodule EmakolaWeb.StorefrontComponents do
             <a
               href={store_path(@store.slug, "/cart")}
               class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors"
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <svg
                 class="w-5 h-5 text-slate-600"

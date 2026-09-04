@@ -9,7 +9,8 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
   designed. Any failure here is a Task 1-6 bug, not a test to weaken.
 
   Landmark literals (Starter theme, Task 5):
-    - Hero: "Your New Favorite Store" (theme default `hero.title`)
+    - Hero: the store's own name in the h1 carrying id "starter-hero-heading"
+      (the theme ships no invented headline)
     - Category Pills: "Shop by Category"
     - Featured Products: "Featured Products"
     - Trust: "Secure Payment"
@@ -39,6 +40,8 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
   } do
     {merchant, store} = create_merchant_with_store!()
     store = set_starter_theme!(store)
+    # A full stall, so the newsletter would render if the layout kept it.
+    for _ <- 1..4, do: create_product!(store, %{status: :active})
 
     defaults = HomeSections.default_layout(Starter)
 
@@ -54,16 +57,18 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
     # Newsletter section was dropped from the saved layout entirely.
     refute html =~ "Stay in the Know"
     # Reversed order: Trust now renders before Hero.
-    assert String.match?(html, ~r/Secure Payment.*Your New Favorite Store/s)
+    assert String.match?(html, ~r/Secure Payment.*starter-hero-heading/s)
   end
 
   test "a store with no saved layout renders the unchanged default home", %{conn: conn} do
     {_merchant, store} = create_merchant_with_store!()
     store = set_starter_theme!(store)
+    # A full stall: the newsletter joins the page at four or more products.
+    for _ <- 1..4, do: create_product!(store, %{status: :active})
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}")
 
-    assert html =~ "Your New Favorite Store"
+    assert html =~ ~s(id="starter-hero-heading")
     assert html =~ "Stay in the Know"
   end
 
@@ -97,7 +102,7 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}")
 
     assert html =~ "PAGE BUILDER OVERRIDE BLOCK"
-    refute html =~ "Your New Favorite Store"
+    refute html =~ "starter-hero-heading"
   end
 
   # Controller-added (closes a deferred review finding): the schema-scoped
@@ -207,9 +212,9 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}")
 
-    # Trust ("Secure Payment") now renders before Hero ("Your New Favorite
-    # Store") on the public storefront — the editor's write path and the
-    # storefront's read path agree.
-    assert String.match?(html, ~r/Secure Payment.*Your New Favorite Store/s)
+    # Trust ("Secure Payment") now renders before Hero (the h1 carrying
+    # "starter-hero-heading") on the public storefront — the editor's write
+    # path and the storefront's read path agree.
+    assert String.match?(html, ~r/Secure Payment.*starter-hero-heading/s)
   end
 end

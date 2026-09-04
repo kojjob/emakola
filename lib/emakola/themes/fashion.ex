@@ -70,10 +70,11 @@ defmodule Emakola.Themes.Fashion do
         # store, telling the shopper who sewed the clothes. Nobody knew.
         title: "The new collection",
         # "designed in Accra, shipped across Ghana" went out under every Fashion
-        # store's hero. The platform knows neither where the goods were designed
-        # nor where this merchant delivers — that is theirs to say (delivery zones
-        # drive the real thing, see Emakola.Themes.Delivery).
-        subtitle: "Ankara, kente and ready-to-wear.",
+        # store's hero, then "Ankara, kente and ready-to-wear." — what the shop
+        # sells, asserted for a shop that may sell shoes. The hero now falls
+        # back to the store's own description. Blank, but the key must stay
+        # (see editorial_intro below).
+        subtitle: nil,
         cta_text: "Shop the Drop",
         cta_url: "/products"
       },

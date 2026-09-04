@@ -3,14 +3,16 @@ defmodule Emakola.Themes.Sika.Sections.Maker do
   Sika home maker's-mark section — the stamp behind the pieces.
 
   The store's initial in a large maker's-mark stamp, the merchant's own
-  story (with a promise-free fallback), and a WhatsApp enquiry when the
-  store has a number — how gold is actually bought in Ghana: you speak
-  with the maker first.
+  story, and a WhatsApp enquiry when the store has a number — how gold is
+  actually bought in Ghana: you speak with the maker first. Renders
+  nothing without a description: no stock sentence speaks for a maker
+  who has not written one.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Sika.Shared
 
   @impl true
@@ -29,9 +31,14 @@ defmodule Emakola.Themes.Sika.Sections.Maker do
       assigns
       |> assign(:heading, Shared.present(assigns.settings["heading"]) || "The maker's mark")
       |> assign(:whatsapp, whatsapp_href(assigns.store))
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
-    <section class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="sika-maker-heading">
+    <section
+      :if={@layout.show_about?}
+      class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
+      aria-labelledby="sika-maker-heading"
+    >
       <div class="mx-auto max-w-2xl text-center">
         <Shared.makers_mark name={@store.name} class="mx-auto h-16 w-16 text-2xl" />
         <h2
@@ -42,9 +49,7 @@ defmodule Emakola.Themes.Sika.Sections.Maker do
         </h2>
         <Shared.caught_light class="mx-auto mt-4 w-16" />
         <p class="mt-5 text-sm leading-relaxed text-[#6E675C] sm:text-base">
-          {if @store.description,
-            do: @store.description,
-            else: "Welcome to #{@store.name} — a small collection, chosen with care."}
+          {@store.description}
         </p>
         <a
           :if={@whatsapp}

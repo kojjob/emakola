@@ -46,6 +46,24 @@ defmodule Emakola.Content.RateLimiter do
   @spec default_limit() :: pos_integer()
   def default_limit, do: Application.get_env(:emakola, :ai_rate_limit_per_day, 50)
 
+  @doc """
+  Seconds until the cap resets, with a minute of slack. The counter is keyed by
+  UTC calendar day, so a job that hit the cap can snooze exactly this long and
+  find room when it wakes.
+  """
+  @spec seconds_until_reset() :: pos_integer()
+  def seconds_until_reset do
+    now = DateTime.utc_now()
+
+    next_midnight =
+      now
+      |> DateTime.to_date()
+      |> Date.add(1)
+      |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+
+    DateTime.diff(next_midnight, now, :second) + 60
+  end
+
   # ── Server ──
 
   @impl true

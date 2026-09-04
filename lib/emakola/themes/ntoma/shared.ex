@@ -152,7 +152,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center text-[#7A6248] hover:bg-[#F0E3CE] hover:text-[#2B1708] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] motion-safe:transition-colors"
             >
               <svg
@@ -549,7 +549,9 @@ defmodule Emakola.Themes.Ntoma.Shared do
 
   @doc """
   The calico panel a card shows when a piece has no photograph: a tonal ground
-  crossed by warp and weft hairlines, carrying the piece's serif initial.
+  crossed by warp and weft hairlines, carrying a quiet bag pictogram in the
+  theme's muted gold. Never the piece's initial — a letter means nothing to a
+  buyer who reads slowly.
 
   Ntoma is the cloth theme, so its empty state is woven rather than blank. This
   is not decoration for its own sake — a merchant's very first look at their own
@@ -559,13 +561,13 @@ defmodule Emakola.Themes.Ntoma.Shared do
   It sits beneath the photograph (`absolute inset-0`) rather than instead of it,
   so a real image simply covers it; nothing has to decide between the two.
   """
-  attr :initial, :string, required: true
   attr :scale, :atom, default: :grid, values: [:grid, :feature]
 
   def weave_tile(assigns) do
     ~H"""
     <div
       class="absolute inset-0 bg-gradient-to-br from-[#F5EBDA] via-[#F0E3CE] to-[#E4D0AF]"
+      data-placeholder="product"
       aria-hidden="true"
     >
       <div class="absolute inset-0 bg-[repeating-linear-gradient(90deg,_rgba(43,23,8,0.055)_0px,_rgba(43,23,8,0.055)_1px,_transparent_1px,_transparent_7px)]">
@@ -573,13 +575,24 @@ defmodule Emakola.Themes.Ntoma.Shared do
       <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,_rgba(43,23,8,0.04)_0px,_rgba(43,23,8,0.04)_1px,_transparent_1px,_transparent_7px)]">
       </div>
       <div class="absolute inset-0 flex items-center justify-center">
-        <span class={[
-          "select-none font-semibold text-[#C6A671] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]",
-          @scale == :feature && "text-9xl",
-          @scale == :grid && "text-7xl"
-        ]}>
-          {@initial}
-        </span>
+        <svg
+          class={[
+            "text-[#C6A671]",
+            @scale == :feature && "h-20 w-20",
+            @scale == :grid && "h-12 w-12"
+          ]}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+          />
+        </svg>
       </div>
     </div>
     """
@@ -608,7 +621,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="relative block aspect-[3/4] overflow-hidden border border-[#E6D5B8] shadow-sm focus-visible:outline-none motion-safe:transition-shadow motion-safe:group-hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2"
       >
-        <.weave_tile initial={String.first(@product.title)} />
+        <.weave_tile />
         <.optimized_image
           :if={@image}
           src={@image}
@@ -702,7 +715,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
         class="relative block aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2B1708] md:aspect-auto md:h-full md:min-h-[360px]"
         aria-label={"View #{@product.title}"}
       >
-        <.weave_tile initial={String.first(@product.title)} scale={:feature} />
+        <.weave_tile scale={:feature} />
         <.optimized_image
           :if={@image}
           src={@image}

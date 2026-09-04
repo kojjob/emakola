@@ -215,9 +215,13 @@ defmodule EmakolaWeb.LandingControllerTest do
     test "renders cited stats", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)
 
-      assert html =~ "500+"
+      # Only claims that are true — no invented merchant counts, no payout
+      # promises the rails don't keep yet.
+      refute html =~ "500+"
+      assert html =~ "storefront looks to choose from"
       assert html =~ "mobile money networks"
-      assert html =~ "from checkout to payout"
+      assert html =~ "to open your shop"
+      refute html =~ "from checkout to payout"
     end
   end
 

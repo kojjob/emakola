@@ -2,9 +2,11 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
   @moduledoc """
   Akwaaba editorial band — a wide photograph with a serif headline laid over it.
 
-  It renders only when the store actually has a photograph to carry it. A big
-  overlay headline on an empty grey box is worse than no section at all, so with
-  no imagery this one simply stands down.
+  It renders only when the merchant has set a photograph for it. It never
+  borrows a product's photo — that picture already appears once on the page,
+  in the grid or the wordmark card. A big overlay headline on an empty grey box
+  is worse than no section at all, so with no image this one simply stands
+  down. The image setting accepts local upload paths only, like the hero.
   """
   @behaviour Emakola.Themes.Section
 
@@ -12,8 +14,6 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
 
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
-
-  alias Emakola.Themes.Akwaaba.Shared
 
   @impl true
   def key, do: "akwaaba/editorial"
@@ -24,20 +24,16 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
   def settings_schema do
     [
       %{key: "headline", type: :string, label: "Headline", default: "New in the shop"},
-      %{key: "cta_label", type: :string, label: "Button label", default: "Explore the shop"}
+      %{key: "cta_label", type: :string, label: "Button label", default: "Explore the shop"},
+      %{key: "image_url", type: :image_url, label: "Image", default: ""}
     ]
   end
 
   @impl true
   def render(assigns) do
-    image =
-      assigns.products
-      |> Enum.map(&Shared.first_image/1)
-      |> Enum.find(&is_binary/1)
-
     assigns =
       assigns
-      |> assign(:image, image)
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
       |> assign(:headline, present(assigns.settings["headline"]) || "New in the shop")
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Explore the shop")
 
@@ -97,4 +93,12 @@ defmodule Emakola.Themes.Akwaaba.Sections.Editorial do
   end
 
   defp present(_value), do: nil
+
+  # Platform-owned media URLs only — a remote URL in a src position sourced from
+  # merchant settings is a stored-XSS sink.
+  defp valid_image(url) when is_binary(url) do
+    if Emakola.Storage.trusted_media_url?(url), do: url, else: nil
+  end
+
+  defp valid_image(_url), do: nil
 end

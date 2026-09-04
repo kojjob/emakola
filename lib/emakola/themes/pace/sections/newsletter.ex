@@ -3,11 +3,14 @@ defmodule Emakola.Themes.Pace.Sections.Newsletter do
   Pace home email capture — a night slab closing the canvas. The form
   fires `subscribe_newsletter`, handled platform-wide by
   `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view handler needed.
-  Copy is honest: updates from this store, nothing else promised.
+  Copy is honest: updates from this store, nothing else promised. Shown
+  only once the lineup is full enough to have news: four or more products.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "pace/newsletter"
@@ -21,8 +24,14 @@ defmodule Emakola.Themes.Pace.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="px-5 py-4 sm:px-8 sm:py-5 lg:px-10" aria-labelledby="pace-newsletter-heading">
+    <section
+      :if={@layout.show_newsletter?}
+      class="px-5 py-4 sm:px-8 sm:py-5 lg:px-10"
+      aria-labelledby="pace-newsletter-heading"
+    >
       <div class="mx-auto max-w-[1280px] rounded-[24px] bg-gradient-to-br from-slate-900 to-slate-950 p-6 text-center text-white sm:p-10">
         <h2
           id="pace-newsletter-heading"

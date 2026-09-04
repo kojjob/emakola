@@ -6,9 +6,10 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
   panel when not, with the store-name chip, headline, subhead and the dual CTA
   (shop + WhatsApp).
 
-  Copy resolution is layered so nothing moves for a store that never opened the
-  editor: a section setting wins, else the theme's `hero.*` config (the old
-  theme customiser), else the legacy fallback. Same for the image.
+  Copy resolution is layered: a section setting wins, else the theme's
+  `hero.*` config (the old theme customiser), else the store's own name and
+  description — never a headline the theme wrote. Same for the image: only
+  one the merchant chose, never a product photo.
   """
   @behaviour Emakola.Themes.Section
 
@@ -39,10 +40,13 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
   def render(assigns) do
     settings = assigns[:settings] || %{}
 
+    custom_title = present(settings["headline"]) || theme_title(assigns)
+
     assigns =
       assigns
       |> assign(:enabled, Shared.section_enabled?(assigns.theme, :hero))
-      |> assign(:hero_title, present(settings["headline"]) || theme_title(assigns))
+      |> assign(:custom_title, custom_title)
+      |> assign(:hero_title, custom_title || assigns.store.name)
       |> assign(:hero_subtitle, present(settings["subheadline"]) || theme_subtitle(assigns))
       |> assign(:hero_image, present(settings["image_url"]) || theme_image(assigns))
       |> assign(:cta_label, present(settings["cta_label"]) || "Shop the collection")
@@ -64,6 +68,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
             title={@hero_title}
             subtitle={@hero_subtitle}
             cta_label={@cta_label}
+            custom_headline={not is_nil(@custom_title)}
           />
         </div>
       <% else %>
@@ -96,6 +101,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
             title={@hero_title}
             subtitle={@hero_subtitle}
             cta_label={@cta_label}
+            custom_headline={not is_nil(@custom_title)}
           />
         </div>
       <% end %>
@@ -107,15 +113,21 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
 
   attr :store, :map, required: true
   attr :title, :string, required: true
-  attr :subtitle, :string, required: true
+  attr :subtitle, :string, default: nil
   attr :cta_label, :string, required: true
+  attr :custom_headline, :boolean, default: false
 
   defp hero_content(assigns) do
     ~H"""
     <div class="absolute inset-0 flex items-end sm:items-center">
       <div class="relative w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div class="max-w-2xl">
-          <span class="inline-flex items-center px-3 py-1.5 text-[11px] font-bold tracking-[0.2em] uppercase text-white bg-white/15 rounded-full mb-4 backdrop-blur-sm border border-white/20">
+          <%!-- The chip names the store over a merchant-written headline; when
+               the headline is the store's name the chip would repeat it. --%>
+          <span
+            :if={@custom_headline}
+            class="inline-flex items-center px-3 py-1.5 text-[11px] font-bold tracking-[0.2em] uppercase text-white bg-white/15 rounded-full mb-4 backdrop-blur-sm border border-white/20"
+          >
             {@store.name}
           </span>
           <h1
@@ -125,6 +137,7 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
             {@title}
           </h1>
           <p
+            :if={@subtitle}
             class="text-base sm:text-lg text-white/85 leading-relaxed mb-7 max-w-lg"
             style="font-family: 'Inter', sans-serif;"
           >
@@ -173,30 +186,17 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
 
   # ── Helpers ──
 
-  defp theme_title(assigns) do
-    case get_in(assigns, [:theme, :hero, :title]) do
-      title when is_binary(title) and title != "" -> title
-      _ -> "Discover #{assigns.store.name}"
-    end
-  end
-
-  defp theme_subtitle(assigns) do
-    cond do
-      title = get_in(assigns, [:theme, :hero, :subtitle]) ->
-        if title != "", do: title, else: store_subtitle(assigns)
-
-      true ->
-        store_subtitle(assigns)
-    end
-  end
-
-  defp store_subtitle(%{store: %{description: desc}}) when is_binary(desc) and desc != "",
-    do: desc
+  # Was "Discover #{store.name}" when the theme had no title; the hero now
+  # reads as the store's name on its own, with no chip repeating it.
+  defp theme_title(assigns), do: present(get_in(assigns, [:theme, :hero, :title]))
 
   # Was "Hand-picked pieces from our latest collection. Crafted with care, ready
-  # to ship." — who selected the goods and how they were made, written for a
-  # merchant who had not filled in their store description.
-  defp store_subtitle(%{store: %{name: name}}), do: "Shop the collection at #{name}."
+  # to ship.", then "Shop the collection at #{name}." — a sentence for a
+  # merchant who had not written one. Now the description, or nothing.
+  defp theme_subtitle(assigns) do
+    present(get_in(assigns, [:theme, :hero, :subtitle])) ||
+      present(Map.get(assigns.store, :description))
+  end
 
   defp theme_image(assigns) do
     case get_in(assigns, [:theme, :hero, :image_url]) do

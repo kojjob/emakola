@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Market.Shared
 
   @impl true
@@ -26,11 +27,14 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
     # The circle used to show a photograph only when the merchant had set
     # `category.image_url`, which nobody does — so the strip was a row of
     # lettered blanks. The store's real category cover fills it now.
-    assigns = assign(assigns, :covers, Map.get(assigns, :category_photos) || %{})
+    assigns =
+      assigns
+      |> assign(:covers, Map.get(assigns, :category_photos) || %{})
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <nav
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="bg-white py-3.5"
       aria-label="Product categories"
     >
@@ -45,6 +49,8 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
           role="listitem"
         >
           <% cover = Shared.category_image(category) || Map.get(@covers, category.id) %>
+          <%!-- A chip without a cover is a plain chip: a lettered circle is
+               nothing to a buyer who reads slowly. --%>
           <%= if cover do %>
             <.optimized_image
               src={cover}
@@ -55,11 +61,7 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
               height={36}
             />
           <% else %>
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-stone-100 to-stone-200">
-              <span class="text-sm font-semibold text-stone-500 [font-family:var(--dt-heading-font,inherit)]">
-                {String.first(category.name)}
-              </span>
-            </span>
+            <span class="block h-9 w-2" aria-hidden="true"></span>
           <% end %>
           <span class="whitespace-nowrap text-[0.8125rem] font-bold text-stone-700 group-hover:text-stone-900">
             {category.name}

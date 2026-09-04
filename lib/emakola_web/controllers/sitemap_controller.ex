@@ -1,7 +1,10 @@
 defmodule EmakolaWeb.SitemapController do
   @moduledoc """
   Generates per-store sitemap.xml for Google and other search engine crawlers.
-  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Makola's own marketing pages.
+  The apex `/sitemap.xml` is a sitemap index: Makola's own marketing pages
+  (`/sitemap-platform.xml`) plus one entry per live shop, so a crawler that
+  reads the apex finds every shop's sitemap instead of only the shops it
+  happens to reach through directory links.
 
   Each Makola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
   The sitemap lists all indexable public pages: store home, product list,
@@ -24,12 +27,48 @@ defmodule EmakolaWeb.SitemapController do
   """
   use EmakolaWeb, :controller
 
+  require Ash.Query
+
   alias EmakolaWeb.Helpers.StoreResolver
   alias EmakolaWeb.Plugs.ResolveStoreHost
   alias EmakolaWeb.SEO.Canonical
 
-  @doc "Platform-level sitemap for the apex domain (marketing pages only)."
+  @doc "Apex sitemap index: the platform pages sitemap plus every live shop's own sitemap."
   def platform(conn, _params) do
+    locs = [Canonical.base() <> "/sitemap-platform.xml" | live_store_sitemap_urls()]
+
+    entries =
+      Enum.map_join(locs, "\n", fn loc ->
+        "  <sitemap><loc>#{xml_escape(loc)}</loc></sitemap>"
+      end)
+
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    #{entries}
+    </sitemapindex>
+    """
+
+    conn
+    |> put_resp_content_type("application/xml")
+    |> send_resp(200, xml)
+  end
+
+  # Live shops with something to sell. A suspended or archived shop answers
+  # with an unavailable page, and an empty shop has only its about, contact
+  # and policies boilerplate — Search Console shows Google indexing exactly
+  # that boilerplate instead of products, so neither gets a crawler sent.
+  defp live_store_sitemap_urls do
+    Emakola.Stores.Store
+    |> Ash.Query.for_read(:list_active)
+    |> Ash.Query.filter(product_count > 0)
+    |> Ash.Query.select([:slug])
+    |> Ash.read!(authorize?: false)
+    |> Enum.map(&Canonical.sitemap_url/1)
+  end
+
+  @doc "Platform pages sitemap for the apex domain (marketing pages only)."
+  def platform_pages(conn, _params) do
     base = EmakolaWeb.Endpoint.url()
 
     marketing_entries =

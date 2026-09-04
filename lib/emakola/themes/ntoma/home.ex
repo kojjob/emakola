@@ -11,11 +11,15 @@ defmodule Emakola.Themes.Ntoma.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Ntoma.Shared
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Ntoma)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Ntoma)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="bg-[#FAF4EA]">

@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Bold.ProductList do
             class="text-sm text-[#94A3B8] mt-2"
             style="font-family: 'Inter', sans-serif;"
           >
-            {@products_count} products
+            {Emakola.Plural.count(@products_count, "product")}
           </p>
         </div>
       </div>

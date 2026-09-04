@@ -58,12 +58,16 @@ defmodule Emakola.Themes.Starter do
         heading: "Inter",
         body: "Inter"
       },
+      # No invented copy: the hero used to open every new Makola shop with
+      # "Your New Favorite Store" and "Quality products, curated for you."
+      # Empty here means the store speaks for itself — its own name is the
+      # h1, its own description the standfirst, nothing where it wrote nothing.
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "Your New Favorite Store",
-        subtitle: "Quality products, curated for you.",
+        title: "",
+        subtitle: "",
         cta_text: "Shop Now",
         cta_url: "/products"
       },

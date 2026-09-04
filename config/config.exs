@@ -15,6 +15,23 @@ config :emakola,
 # Read at compile time by EmakolaWeb.Router (`scope host:` requires a literal)
 # and by Emakola.Stores.Validations.ValidStoreHost, so a merchant can never
 # claim a platform host as a custom domain. One list, two readers.
+# Dev-only: this machine's own LAN addresses, so a phone on the same Wi-Fi
+# (see PHX_LAN in dev.exs) reaches the admin. Compile-time like the rest of
+# the list, and Mix only recompiles on a config FILE change, so a new address
+# means `mix compile --force`. Link-local 169.254.x.x addresses are skipped:
+# a USB or tethering link self-assigns one whenever it comes up, a phone on
+# Wi-Fi never uses it, and every appearance forced that recompile.
+lan_hosts =
+  with true <- config_env() == :dev,
+       {:ok, interfaces} <- :inet.getif() do
+    for {{a, b, c, d}, _broadcast, _netmask} <- interfaces,
+        {a, b, c, d} != {127, 0, 0, 1},
+        {a, b} != {169, 254},
+        do: "#{a}.#{b}.#{c}.#{d}"
+  else
+    _not_dev_or_no_interfaces -> []
+  end
+
 config :emakola,
        :apex_hosts,
        ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1) ++
@@ -22,7 +39,7 @@ config :emakola,
            # Dev-only: containerized browsers and phones on the LAN reach the
            # admin through these; without them every non-localhost host is
            # treated as a store domain and admin routes 404.
-           do: ~w(host.docker.internal),
+           do: ~w(host.docker.internal) ++ lan_hosts,
            else: []
          )
 

@@ -16,7 +16,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
     {:ok, store: store}
   end
 
-  describe "GET /sitemap.xml (platform) — programmatic region pages" do
+  describe "GET /sitemap-platform.xml — programmatic region pages" do
     defp region_store!(region) do
       create_store!(%{
         name: "Shop #{System.unique_integer([:positive])}",
@@ -30,7 +30,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
       for _ <- 1..3, do: region_store!("Greater Accra")
       region_store!("Ashanti")
 
-      body = conn |> get("/sitemap.xml") |> response(200)
+      body = conn |> get("/sitemap-platform.xml") |> response(200)
 
       assert body =~ "/shops/greater-accra"
       refute body =~ "/shops/ashanti"
@@ -309,9 +309,58 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
   end
 
-  describe "platform sitemap" do
-    test "GET /sitemap.xml lists the marketing pages", %{conn: conn} do
+  describe "GET /sitemap.xml (platform sitemap index)" do
+    test "points crawlers at the platform pages sitemap and every live shop's sitemap", %{
+      conn: conn,
+      store: store
+    } do
+      create_product!(store, title: "Kente Cloth", status: :active)
+
       conn = get(conn, "/sitemap.xml")
+      body = response(conn, 200)
+      base = EmakolaWeb.SEO.Canonical.base()
+
+      assert response_content_type(conn, :xml) =~ "xml"
+      assert body =~ ~s(<?xml version="1.0" encoding="UTF-8"?>)
+      assert body =~ "<sitemapindex"
+      refute body =~ "<urlset"
+      assert body =~ "<loc>#{base}/sitemap-platform.xml</loc>"
+      assert body =~ "<loc>#{base}/s/#{store.slug}/sitemap.xml</loc>"
+      assert body =~ "</sitemapindex>"
+    end
+
+    # Search Console shows Google indexing the about/contact/policies
+    # boilerplate of empty shops and almost no products. A shop with nothing
+    # to sell has nothing to index, so the index does not send crawlers there.
+    test "leaves out shops with no active product", %{conn: conn, store: empty_store} do
+      draft_only = create_store!(%{slug: "drafts-#{System.unique_integer([:positive])}"})
+      create_product!(draft_only, title: "Not yet", status: :draft)
+
+      body = conn |> get("/sitemap.xml") |> response(200)
+
+      refute body =~ "/s/#{empty_store.slug}/sitemap.xml"
+      refute body =~ "/s/#{draft_only.slug}/sitemap.xml"
+    end
+
+    test "leaves out shops that are not live", %{conn: conn} do
+      closed =
+        create_store!(%{slug: "closed-#{System.unique_integer([:positive])}", active: false})
+
+      suspended =
+        create_store!(%{slug: "suspended-#{System.unique_integer([:positive])}"})
+        |> Ash.Changeset.for_update(:suspend, %{reason: "test"})
+        |> Ash.update!(authorize?: false)
+
+      body = conn |> get("/sitemap.xml") |> response(200)
+
+      refute body =~ "/s/#{closed.slug}/sitemap.xml"
+      refute body =~ "/s/#{suspended.slug}/sitemap.xml"
+    end
+  end
+
+  describe "GET /sitemap-platform.xml" do
+    test "lists the marketing pages", %{conn: conn} do
+      conn = get(conn, "/sitemap-platform.xml")
       body = response(conn, 200)
 
       assert response_content_type(conn, :xml) =~ "xml"

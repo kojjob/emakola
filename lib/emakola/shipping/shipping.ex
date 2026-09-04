@@ -57,17 +57,46 @@ defmodule Emakola.Shipping do
   @spec find_zone(binary(), binary()) ::
           {:ok, Emakola.Shipping.DeliveryZone.t()} | {:error, :no_zone}
   def find_zone(store_id, region) when is_binary(store_id) and is_binary(region) do
-    normalised_target = normalise_region(region)
-
     Emakola.Shipping.DeliveryZone
     |> Ash.Query.filter(store_id == ^store_id and active == true)
     |> Ash.read!(authorize?: false)
-    |> Enum.find(fn zone -> normalise_region(zone.name) == normalised_target end)
+    |> zone_for_region(region)
     |> case do
       nil -> {:error, :no_zone}
       zone -> {:ok, zone}
     end
   end
+
+  @doc """
+  The zone whose name matches a buyer's region, else the store's catch-all
+  zone if one is among `zones`, else nil. The name match is the one
+  checkout uses: case-insensitive, `_` and space are the same. Pass only
+  active zones when the answer must be sellable.
+  """
+  @spec zone_for_region([Emakola.Shipping.DeliveryZone.t()], binary() | nil) ::
+          Emakola.Shipping.DeliveryZone.t() | nil
+  def zone_for_region(zones, region) when is_list(zones) and is_binary(region) do
+    normalised_target = normalise_region(region)
+
+    Enum.find(zones, fn zone -> normalise_region(zone.name) == normalised_target end) ||
+      Enum.find(zones, & &1.fallback)
+  end
+
+  def zone_for_region(_zones, _region), do: nil
+
+  @doc """
+  A region as a merchant would read it: "greater_accra" becomes
+  "Greater Accra". Nil or blank becomes "Not given".
+  """
+  @spec humanise_region(binary() | nil) :: binary()
+  def humanise_region(region) when is_binary(region) and region != "" do
+    region
+    |> String.replace("_", " ")
+    |> String.split(" ", trim: true)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  def humanise_region(_region), do: "Not given"
 
   @doc """
   Sums cart weight in grams from `%{weight_grams: integer | nil, quantity: integer}`

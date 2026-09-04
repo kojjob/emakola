@@ -45,9 +45,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   end
 
   test "renders an empty connection inbox with a stable invite form", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network/tools")
 
-    assert has_element?(view, "#supply-network-page")
+    assert has_element?(view, "#supply-network-tools")
     assert has_element?(view, "#supply-connection-form")
     assert has_element?(view, "#connections-empty")
     assert has_element?(view, "#connection-count", "0")
@@ -75,7 +75,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
         %{minimum_tier: :starter, max_quantity_per_reseller: 4, reservation_hours: 48}
       )
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
     assert has_element?(view, "#eligible-inventory-policies article", policy.reason_code)
     assert has_element?(view, "#eligible-inventory-policies article", "Requires starter+")
 
@@ -93,7 +93,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   end
 
   test "merchant inspects, refreshes, and appeals passport evidence", ctx do
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
     assert has_element?(view, "#passport-score")
     assert has_element?(view, "#passport-tier", "starter")
     assert has_element?(view, "#commerce-signals article", "Evidence:")
@@ -120,7 +120,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   end
 
   test "requests a reseller connection by partner store slug", ctx do
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> form("#supply-connection-form",
@@ -143,7 +143,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
       Emakola.RateLimit.check_rate("supply_invite:burst:#{ctx.store.id}", 3, 60_000)
     end
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> form("#supply-connection-form",
@@ -155,7 +155,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   end
 
   test "shows a useful error for an unknown store", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network/tools")
 
     html =
       view
@@ -176,7 +176,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
         requested_by_store_id: ctx.partner.id
       })
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
     assert has_element?(view, "#approve-connection-#{pending.id}")
 
     view
@@ -199,7 +199,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
       })
 
     {:ok, active} = Network.approve(ctx.merchant, pending)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> element("#suspend-connection-#{active.id}")
@@ -223,7 +223,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
       })
 
     {:ok, active} = Network.approve(ctx.merchant, pending)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> element("#terminate-connection-#{active.id}")
@@ -237,7 +237,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#earn-catalog")
     assert has_element?(view, "#available-offer-count", "1 available")
@@ -264,7 +264,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
         return_terms: "Faulty goods only, in original packaging."
       })
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#earn-offers article", "7-day returns")
     assert has_element?(view, "#earn-offers article", "6-month warranty")
@@ -275,7 +275,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     create_partner_offer!(ctx)
     connect_partner!(ctx)
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     # Silence here would read as "fine" — the merchant needs to know the gap is
     # theirs to fund before they promise a shopper 30 days.
@@ -285,7 +285,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "creates an income goal and renders an explainable seven-day plan", ctx do
     create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#hustle-autopilot")
     assert has_element?(view, "#income-goal-form")
@@ -323,7 +323,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "adds an offer to the reseller catalog with one action", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> element("#import-offer-#{offer.id}")
@@ -337,10 +337,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
 
   test "wholesaler manages cross-store orders from the supplier inbox", ctx do
     fulfillment = create_inbound_fulfillment!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#supplier-inbox")
-    assert has_element?(view, "#inbound-fulfillment-count", "1 orders")
+    assert has_element?(view, "#inbound-fulfillment-count", "1 order")
     assert has_element?(view, "#inbound-fulfillments article", "Accra")
 
     view
@@ -362,7 +362,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "creates a tracked Sales Kit and advances the First Money journey", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> element("#import-offer-#{offer.id}")
@@ -400,7 +400,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "creates and explicitly approves a supplier-fact-grounded content draft", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view |> element("#import-offer-#{offer.id}") |> render_click()
     {:ok, [listing]} = Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
@@ -426,7 +426,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "previews text or transcribed voice instructions before mutating the store", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     assert has_element?(view, "#business-in-a-box")
     assert has_element?(view, "#voice-command-control")
@@ -453,7 +453,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "builds a starter catalog with tracked links and reviewable content", ctx do
     create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> form("#starter-business-form", starter_business: %{niche: "kente fashion", count: "3"})
@@ -471,7 +471,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   test "opens a protected group buy from an imported variant", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
     view |> element("#import-offer-#{offer.id}") |> render_click()
     {:ok, [listing]} = Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
     mapping = hd(listing.listing_variants)
@@ -497,7 +497,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   end
 
   test "creates a flat team invitation with exact displayed roles and splits", ctx do
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network/tools")
 
     view
     |> form("#sales-team-form",
@@ -550,7 +550,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
       |> init_test_session(%{})
       |> Plug.Conn.put_session(:user_token, token)
 
-    {:ok, view, _html} = live(supplier_conn, ~p"/admin/settings/supply-network")
+    {:ok, view, _html} = live(supplier_conn, ~p"/admin/settings/supply-network/tools")
     assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", ctx.store.name)
     assert has_element?(view, "#approve-franchise-#{enrollment.id}")
 
@@ -559,7 +559,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     |> render_click()
 
     assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "approved")
-    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "1 products active")
+    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "1 product active")
 
     assert {:ok, [listing]} =
              Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)

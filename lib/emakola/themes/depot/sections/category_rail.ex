@@ -2,14 +2,17 @@ defmodule Emakola.Themes.Depot.Sections.CategoryRail do
   @moduledoc """
   Depot home product lines — a flat index of category links, set like
   ledger tabs. Text-only by design: fast, scannable, zero image bytes.
-  Renders nothing when the store has no categories; the order sheet
-  carries the page's empty state.
+  Renders nothing when the store has no categories, or until the sheet
+  is long enough to need an index (four or more products); the order
+  sheet carries the page's empty state.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "depot/category_rail"
@@ -23,9 +26,11 @@ defmodule Emakola.Themes.Depot.Sections.CategoryRail do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <nav
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="border-b border-[#E7E5E1] bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-lines-heading"
     >

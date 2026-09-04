@@ -10,6 +10,26 @@ defmodule Emakola.AITest do
 
   defp store, do: %{id: Ash.UUID.generate(), name: "Ama's Shop", currency: "GHS"}
 
+  test "emoji in the provider's reply never reach the caller" do
+    s = store()
+
+    expect(Emakola.AI.ProviderMock, :complete, fn _request ->
+      {:ok,
+       %Response{
+         text: "Soft shea butter 🧴✨ for dry skin.",
+         parsed: %{"title" => "Shea Butter 🧴", "description" => "Whipped ✨ and unscented"},
+         model: "claude-haiku-4-5",
+         usage: %{input_tokens: 1, output_tokens: 1, cache_read: 0, cache_creation: 0}
+       }}
+    end)
+
+    assert {:ok, %Response{text: text, parsed: parsed}} =
+             Emakola.AI.generate(:seo_meta, %{resource: %{title: "Shea"}, store: s}, store: s)
+
+    assert text == "Soft shea butter for dry skin."
+    assert parsed == %{"title" => "Shea Butter", "description" => "Whipped and unscented"}
+  end
+
   test "generate/3 returns the provider response and records a success usage row" do
     s = store()
 

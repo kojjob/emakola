@@ -3,11 +3,14 @@ defmodule Emakola.Themes.Ntoma.Sections.Newsletter do
   Ntoma home email capture. The form fires `subscribe_newsletter`, handled
   platform-wide by `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view
   handler needed. Copy is honest: updates from this store, nothing else
-  promised.
+  promised. Shown only once the collection is full enough to have news:
+  four or more pieces.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "ntoma/newsletter"
@@ -21,8 +24,14 @@ defmodule Emakola.Themes.Ntoma.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="ntoma-newsletter-heading">
+    <section
+      :if={@layout.show_newsletter?}
+      class="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
+      aria-labelledby="ntoma-newsletter-heading"
+    >
       <div class="mx-auto max-w-[1280px] border border-[#E6D5B8] bg-[#FFFBF2] px-6 py-10 text-center sm:px-10 sm:py-12">
         <h2
           id="ntoma-newsletter-heading"

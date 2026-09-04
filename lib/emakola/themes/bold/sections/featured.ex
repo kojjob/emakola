@@ -3,8 +3,9 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
   Bold home featured block — asymmetric bento grid, one large hero card and
   two stacked cards — extracted verbatim from bold/home.ex.
 
-  The three products were precomputed in `Home.render/1` before the retrofit
-  (`Enum.take(@products, 3)`); the section derives its own slice now.
+  The large card is the shared Layout plan's featured product and the two
+  stacked cards the next two; the grid below takes the rest, so no product
+  appears twice. A lone product fills the block on its own.
   """
   @behaviour Emakola.Themes.Section
 
@@ -14,6 +15,7 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Bold.Shared
+  alias Emakola.Themes.Layout
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
@@ -30,7 +32,7 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
   def render(assigns) do
     assigns =
       assigns
-      |> assign(:featured_products, Enum.take(assigns[:products] || [], 3))
+      |> assign(:featured_products, Shared.bento_products(Layout.of(assigns)))
       |> assign(:heading, heading(assigns[:settings] || %{}))
 
     ~H"""
@@ -51,9 +53,18 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
             <% product = Enum.at(@featured_products, 0) %>
             <a
               href={store_path(@store.slug, "/products/#{product.slug}")}
-              class="group block md:row-span-2"
+              class={[
+                "group block",
+                if(length(@featured_products) == 1,
+                  do: "md:col-span-2 md:mx-auto md:w-full md:max-w-2xl",
+                  else: "md:row-span-2"
+                )
+              ]}
             >
-              <div class="relative overflow-hidden bg-[#F1F5F9] h-full min-h-[400px] md:min-h-0">
+              <div class={[
+                "relative overflow-hidden bg-[#F1F5F9] h-full min-h-[400px]",
+                length(@featured_products) > 1 && "md:min-h-0"
+              ]}>
                 <.optimized_image
                   :if={Shared.first_image(product)}
                   src={Shared.first_image(product)}
@@ -64,6 +75,8 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
                 <div
                   :if={!Shared.first_image(product)}
                   class="w-full h-full flex items-center justify-center min-h-[400px]"
+                  data-placeholder="product"
+                  aria-hidden="true"
                 >
                   <svg
                     class="w-16 h-16 text-[#94A3B8]"
@@ -113,6 +126,8 @@ defmodule Emakola.Themes.Bold.Sections.Featured do
                 <div
                   :if={!Shared.first_image(product)}
                   class="w-full aspect-[4/3] flex items-center justify-center"
+                  data-placeholder="product"
+                  aria-hidden="true"
                 >
                   <svg
                     class="w-12 h-12 text-[#94A3B8]"

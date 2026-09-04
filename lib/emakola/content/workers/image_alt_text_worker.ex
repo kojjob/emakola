@@ -32,7 +32,7 @@ defmodule Emakola.Content.Workers.ImageAltTextWorker do
 
         :ok
       else
-        {:error, :rate_limit_exceeded} -> {:cancel, "store hit its daily AI limit"}
+        {:error, :rate_limit_exceeded} -> {:snooze, RateLimiter.seconds_until_reset()}
         {:error, :not_configured} -> {:cancel, "AI generator not configured"}
         {:error, reason} -> {:error, reason}
       end

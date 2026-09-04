@@ -19,6 +19,62 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
 
   def collaboration(assigns) do
     ~H"""
+    <.collaborative_commerce
+      collaboration_owned_offers={@collaboration_owned_offers}
+      commerce_passport={@commerce_passport}
+      current_store={@current_store}
+      franchise_form={@franchise_form}
+      group_buy_form={@group_buy_form}
+      hustle_listings={@hustle_listings}
+      inventory_policy_form={@inventory_policy_form}
+      inventory_reservation_forms={@inventory_reservation_forms}
+      passport_appeal_forms={@passport_appeal_forms}
+      sales_team_form={@sales_team_form}
+      streams={@streams}
+    />
+    <.commerce_passport
+      collaboration_owned_offers={@collaboration_owned_offers}
+      commerce_passport={@commerce_passport}
+      current_store={@current_store}
+      franchise_form={@franchise_form}
+      group_buy_form={@group_buy_form}
+      hustle_listings={@hustle_listings}
+      inventory_policy_form={@inventory_policy_form}
+      inventory_reservation_forms={@inventory_reservation_forms}
+      passport_appeal_forms={@passport_appeal_forms}
+      sales_team_form={@sales_team_form}
+      streams={@streams}
+    />
+    <.inventory_eligibility
+      collaboration_owned_offers={@collaboration_owned_offers}
+      commerce_passport={@commerce_passport}
+      current_store={@current_store}
+      franchise_form={@franchise_form}
+      group_buy_form={@group_buy_form}
+      hustle_listings={@hustle_listings}
+      inventory_policy_form={@inventory_policy_form}
+      inventory_reservation_forms={@inventory_reservation_forms}
+      passport_appeal_forms={@passport_appeal_forms}
+      sales_team_form={@sales_team_form}
+      streams={@streams}
+    />
+    """
+  end
+
+  attr :collaboration_owned_offers, :list, required: true
+  attr :commerce_passport, :any, required: true
+  attr :current_store, :any, required: true
+  attr :franchise_form, :any, required: true
+  attr :group_buy_form, :any, required: true
+  attr :hustle_listings, :list, required: true
+  attr :inventory_policy_form, :any, required: true
+  attr :inventory_reservation_forms, :map, required: true
+  attr :passport_appeal_forms, :map, required: true
+  attr :sales_team_form, :any, required: true
+  attr :streams, :map, required: true
+
+  def collaborative_commerce(assigns) do
+    ~H"""
     <section
       id="collaborative-commerce"
       aria-labelledby="collaborative-commerce-heading"
@@ -280,7 +336,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
                     Approve and activate catalog
                   </button>
                   <span :if={enrollment.status == :approved} class="font-bold text-emerald-700">
-                    {length(enrollment.activated_listing_ids)} products active
+                    {Emakola.Plural.count(length(enrollment.activated_listing_ids), "product")} active
                   </span>
                 </div>
               </div>
@@ -310,7 +366,23 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
         </div>
       </div>
     </section>
+    """
+  end
 
+  attr :collaboration_owned_offers, :list, required: true
+  attr :commerce_passport, :any, required: true
+  attr :current_store, :any, required: true
+  attr :franchise_form, :any, required: true
+  attr :group_buy_form, :any, required: true
+  attr :hustle_listings, :list, required: true
+  attr :inventory_policy_form, :any, required: true
+  attr :inventory_reservation_forms, :map, required: true
+  attr :passport_appeal_forms, :map, required: true
+  attr :sales_team_form, :any, required: true
+  attr :streams, :map, required: true
+
+  def commerce_passport(assigns) do
+    ~H"""
     <section
       :if={@commerce_passport}
       id="commerce-passport"
@@ -395,7 +467,23 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
         </article>
       </div>
     </section>
+    """
+  end
 
+  attr :collaboration_owned_offers, :list, required: true
+  attr :commerce_passport, :any, required: true
+  attr :current_store, :any, required: true
+  attr :franchise_form, :any, required: true
+  attr :group_buy_form, :any, required: true
+  attr :hustle_listings, :list, required: true
+  attr :inventory_policy_form, :any, required: true
+  attr :inventory_reservation_forms, :map, required: true
+  attr :passport_appeal_forms, :map, required: true
+  attr :sales_team_form, :any, required: true
+  attr :streams, :map, required: true
+
+  def inventory_eligibility(assigns) do
+    ~H"""
     <section
       id="inventory-eligibility"
       class="rounded-3xl border border-amber-200 bg-amber-50/70 p-6 shadow-sm sm:p-8"
@@ -455,7 +543,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.CollaborationComponents do
             >
               <p class="font-bold text-slate-950">{policy.reason_code}</p>
               <p class="mt-1 capitalize">
-                {policy.minimum_tier}+ · up to {policy.max_quantity_per_reseller} units · {policy.reservation_hours}h
+                {policy.minimum_tier}+ · up to {Emakola.Plural.count(
+                  policy.max_quantity_per_reseller,
+                  "unit"
+                )} · {policy.reservation_hours}h
               </p>
             </article>
           </div>

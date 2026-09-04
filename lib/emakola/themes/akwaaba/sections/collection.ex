@@ -2,7 +2,9 @@ defmodule Emakola.Themes.Akwaaba.Sections.Collection do
   @moduledoc """
   Akwaaba product grid — rounded photo cards with quick add.
 
-  A store with no products renders an intentional setting-up state rather than
+  The grid shows the catalogue minus the featured product (the wordmark card
+  carries that one), so nothing on the page appears twice; with a single
+  product the grid stays out of the way. A store with no products renders an intentional setting-up state rather than
   vanishing: a brand-new shop must never look broken to its first visitor, and
   the merchant previewing it is that first visitor.
   """
@@ -13,6 +15,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Collection do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Akwaaba.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "akwaaba/collection"
@@ -26,8 +29,11 @@ defmodule Emakola.Themes.Akwaaba.Sections.Collection do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
+      :if={@layout.grid_products != [] or @layout.count == 0}
       class="bg-white px-5 py-12 [font-family:var(--akwaaba-body)] sm:px-10 sm:py-16"
       aria-labelledby="akwaaba-collection-heading"
     >
@@ -41,7 +47,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Collection do
           </h2>
 
           <a
-            :if={@products != []}
+            :if={@layout.grid_products != []}
             href={store_path(@store.slug, "/products")}
             class="rounded-full border border-zinc-200 px-5 py-2.5 text-sm font-semibold text-[color:var(--akwaaba-ink)] hover:border-[color:var(--akwaaba-sun)] hover:text-[color:var(--akwaaba-sun)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--akwaaba-sun)] motion-safe:transition-colors"
           >
@@ -49,16 +55,19 @@ defmodule Emakola.Themes.Akwaaba.Sections.Collection do
           </a>
         </div>
 
-        <div :if={@products != []} class="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
+        <div
+          :if={@layout.grid_products != []}
+          class="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4"
+        >
           <Shared.product_card
-            :for={product <- Enum.take(@products, 8)}
+            :for={product <- Enum.take(@layout.grid_products, 8)}
             product={product}
             store={@store}
           />
         </div>
 
         <div
-          :if={@products == []}
+          :if={@layout.count == 0}
           class="mt-8 rounded-3xl border border-dashed border-zinc-200 bg-[#F6F4F1] px-6 py-16 text-center"
         >
           <p class="text-2xl text-[color:var(--akwaaba-ink)] [font-family:var(--akwaaba-display)]">

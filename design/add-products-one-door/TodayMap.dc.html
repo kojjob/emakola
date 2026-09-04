@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #059669; } a:hover { color: #047857; }
+    * { box-sizing: border-box; }
+    input::placeholder, textarea::placeholder { color: #94A3B8; font-weight: 500; }
+    button { font-family: inherit; }
+    
+  </style>
+</helmet>
+
+<div style="position: relative; width: 760px; height: 560px; background: #F8FAFC; color: #0F172A; overflow: hidden;">
+  <div style="position: absolute; left: 24px; top: 20px;">
+    <div style="font-size: 18px; font-weight: 800; letter-spacing: -0.01em;">Today: five doors, four pages</div>
+    <div style="font-size: 13px; color: #64748B; margin-top: 3px;">Three of them look nothing like each other.</div>
+  </div>
+  <svg width="760" height="560" viewBox="0 0 760 560" style="position: absolute; inset: 0; pointer-events: none;" aria-hidden="true">
+    <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94A3B8"/></marker></defs>
+    <path d="M380,158 C380,180 380,180 380,202" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/><path d="M380,328 C380,355 138,355 138,382" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/><path d="M380,328 C380,355 380,355 380,382" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/><path d="M380,328 C380,355 622,355 622,382" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </svg>
+  
+  <div style="position: absolute; left: 240px; top: 74px; width: 280px; height: 84px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+    <div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8;">Products page</div>
+    <div style="display: flex; gap: 8px;"><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg><span>Add by photo</span></span><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; background: #059669; color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 014.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0121 8.5v9A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5v-9z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Add products</span></span></div>
+  </div>
+  <div style="position: absolute; left: 180px; top: 204px; width: 400px; height: 124px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+    <div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8;">/admin/products/new</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;"><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; background: #059669; color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 014.5 7h2.2l1.2-2h8.2l1.2 2h2.2A1.5 1.5 0 0121 8.5v9A1.5 1.5 0 0119.5 19h-15A1.5 1.5 0 013 17.5v-9z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Take a photo</span></span><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"/></svg><span>Choose photos</span></span><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg><span>Type it in</span></span><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 9px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #0F172A; font-size: 12.5px; font-weight: 700; white-space: nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg><span>Upload a file</span></span></div>
+  </div>
+  <div style="position: absolute; left: 24px; top: 384px; width: 228px; height: 152px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+    <div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8;">/admin/products/new/form</div>
+    <div style="font-size: 13.5px; line-height: 1.45; color: #334155;">Nine fields. Title, description, category, product type, tags, price, SEO title, SEO description, images. Then Save as draft or Save and activate.</div>
+  </div>
+  <div style="position: absolute; left: 266px; top: 384px; width: 228px; height: 152px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+    <div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8;">/admin/products/snap</div>
+    <div style="font-size: 13.5px; line-height: 1.45; color: #334155;">From the Products page, only when AI is on. The AI fills five fields from the photo; you add the price.</div>
+  </div>
+  <div style="position: absolute; left: 508px; top: 384px; width: 228px; height: 152px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+    <div style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8;">CSV sheet, on Products</div>
+    <div style="font-size: 13.5px; line-height: 1.45; color: #334155;">Upload a file leaves this page for the Products list, which opens the upload sheet there.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

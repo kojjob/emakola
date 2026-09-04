@@ -84,13 +84,19 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
       refute body =~ "/pricing</loc>"
     end
 
-    test "the apex host still serves the platform sitemap", %{conn: conn} do
+    test "the apex host serves the platform sitemap index, listing each shop's subdomain sitemap",
+         %{conn: conn, store: store, origin: origin} do
+      create_product!(store, title: "Kente Cloth", status: :active)
+
       body =
         %{conn | host: "makola.io"}
         |> get("/sitemap.xml")
         |> response(200)
 
-      assert body =~ "/pricing</loc>"
+      assert body =~ "<sitemapindex"
+      assert body =~ "/sitemap-platform.xml</loc>"
+      assert body =~ "<loc>#{origin}/sitemap.xml</loc>"
+      refute body =~ "/products/"
     end
 
     test "an unknown subdomain returns 404", %{conn: conn} do

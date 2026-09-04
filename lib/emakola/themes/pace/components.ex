@@ -7,9 +7,10 @@ defmodule Emakola.Themes.Pace.Components do
   Three rules shape every card here:
 
     * Night-first: the image slot is a dark blue-black gradient carrying
-      the product's ghost initial and a white price pill, so cards look
-      finished before (or without) the photograph. The real image layers
-      over it on arrival, then a bottom gradient wash guarantees the
+      a quiet bag pictogram and a white price pill, so cards look finished
+      before (or without) the photograph. Never the product's initial — a
+      letter means nothing to a buyer who reads slowly. The real image
+      layers over it on arrival, then a bottom gradient wash guarantees the
       price stays legible over any photo.
     * Prices are white pills in the display face with tabular numerals —
       instantly legible on the night base, zero image bytes.
@@ -54,7 +55,7 @@ defmodule Emakola.Themes.Pace.Components do
   end
 
   @doc """
-  Grid product card: night-gradient image slot with the ghost initial and
+  Grid product card: night-gradient image slot with the pictogram and
   the price pill at the lower-left, title row with a quick add-to-cart
   button below.
   """
@@ -73,12 +74,13 @@ defmodule Emakola.Themes.Pace.Components do
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="relative block aspect-[3/4] overflow-hidden rounded-[20px] bg-gradient-to-b from-slate-800 to-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
       >
-        <span
-          class="pace-display absolute inset-0 flex select-none items-center justify-center text-7xl font-bold italic text-white/10"
+        <div
+          class="absolute inset-0 flex items-center justify-center"
+          data-placeholder="product"
           aria-hidden="true"
         >
-          {String.first(@product.title)}
-        </span>
+          <.bag_pictogram class="h-12 w-12 text-white/15" />
+        </div>
         <.optimized_image
           :if={@image}
           src={@image}
@@ -155,8 +157,8 @@ defmodule Emakola.Themes.Pace.Components do
   end
 
   @doc """
-  Front-runner featured card: a wide night slab with the photo (or ghost
-  initial) washed by the dark gradient, oversized price pill, name, and
+  Front-runner featured card: a wide night slab with the photo (or the
+  pictogram) washed by the dark gradient, oversized price pill, name, and
   the page's primary CTA.
   """
   attr :product, :map, required: true
@@ -175,12 +177,13 @@ defmodule Emakola.Themes.Pace.Components do
         class="relative block aspect-[16/10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white md:aspect-auto md:h-full md:min-h-[340px]"
         aria-label={"View #{@product.title}"}
       >
-        <span
-          class="pace-display absolute inset-0 flex select-none items-center justify-center text-9xl font-bold italic text-white/10"
+        <div
+          class="absolute inset-0 flex items-center justify-center"
+          data-placeholder="product"
           aria-hidden="true"
         >
-          {String.first(@product.title)}
-        </span>
+          <.bag_pictogram class="h-20 w-20 text-white/15" />
+        </div>
         <.optimized_image
           :if={@image}
           src={@image}
@@ -240,6 +243,29 @@ defmodule Emakola.Themes.Pace.Components do
         </button>
       </div>
     </div>
+    """
+  end
+
+  # The quiet placeholder mark: a stroke-drawn bag in the muted tone the
+  # caller sets. Decorative; the panel that carries it is aria-hidden.
+  attr :class, :string, required: true
+
+  defp bag_pictogram(assigns) do
+    ~H"""
+    <svg
+      class={@class}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="1.5"
+      aria-hidden="true"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+      />
+    </svg>
     """
   end
 end

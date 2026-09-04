@@ -6,10 +6,11 @@ defmodule Emakola.Themes.Fie.Components do
   photos is a blank page. So every image slot here is a *composed plate*
   before a single image byte lands: a blush ground inside a hairline
   frame, the catalogue index number and price already set in Space
-  Grotesk, and the piece's initial as the typographic ground. The
-  pre-photo state reads as a printed catalogue page — deliberate, priced,
-  scannable — never a grey skeleton. The photograph layers over the plate
-  on arrival.
+  Grotesk, and a quiet bag pictogram in the blush ink as the ground —
+  never the piece's initial, which means nothing to a buyer who reads
+  slowly. The pre-photo state reads as a printed catalogue page —
+  deliberate, priced, scannable — never a grey skeleton. The photograph
+  layers over the plate on arrival.
 
   The index numbers are real structure, not decoration: each plate is
   numbered by its position in the browse order, so the grid scans like
@@ -99,13 +100,25 @@ defmodule Emakola.Themes.Fie.Components do
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="relative block aspect-[4/5] overflow-hidden border border-[#EBDAD3] bg-[#F7ECE7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
       >
-        <div class="absolute inset-0 flex items-center justify-center">
-          <span
-            class="select-none text-6xl font-medium text-[#D8BCB0] [font-family:'Space_Grotesk','Inter',sans-serif]"
+        <div
+          class="absolute inset-0 flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
+        >
+          <svg
+            class="h-12 w-12 text-[#D8BCB0]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
             aria-hidden="true"
           >
-            {String.first(@product.title)}
-          </span>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+            />
+          </svg>
         </div>
         <.optimized_image
           :if={@image}

@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           class="relative inline-flex items-center gap-2 spot-cta rounded-full px-4 py-2 text-sm font-semibold"
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           Cart
           <span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white/25 text-[11px] font-bold">
@@ -81,9 +81,14 @@ defmodule Emakola.Themes.Spotlight.Shared do
       <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
         <div class="col-span-2">
           <div class="spot-heading text-xl font-extrabold">{@store.name}</div>
-          <p class="text-sm text-[#6B675F] mt-3 max-w-sm leading-relaxed">
-            {@store.description ||
-              "One product, done properly — delivered to your door."}
+          <%!-- The merchant's description, or nothing: "One product, done
+               properly — delivered to your door." used to promise delivery on
+               behalf of every store that had written none. --%>
+          <p
+            :if={present?(@store.description)}
+            class="text-sm text-[#6B675F] mt-3 max-w-sm leading-relaxed"
+          >
+            {@store.description}
           </p>
         </div>
         <div>
@@ -121,6 +126,10 @@ defmodule Emakola.Themes.Spotlight.Shared do
   end
 
   # ── Helpers ──
+  @doc "Whether the merchant has written the given text."
+  def present?(value) when is_binary(value), do: String.trim(value) != ""
+  def present?(_value), do: false
+
   def first_image(product) do
     case product.images do
       [%{thumbnail_url: url} | _] when is_binary(url) -> url

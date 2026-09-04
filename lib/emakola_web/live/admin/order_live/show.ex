@@ -13,6 +13,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
   import EmakolaWeb.QRComponents, only: [qr_panel: 1]
 
+  alias EmakolaWeb.Admin.OrderLive.Rails
   alias EmakolaWeb.QR
 
   @impl true
@@ -879,7 +880,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               <div class="space-y-2">
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Paid with</span>
-                  <.payment_rail_chip id="payment-rail-chip" rail={payment_rail(@payment)} />
+                  <.payment_rail_chip id="payment-rail-chip" rail={Rails.for_payment(@payment)} />
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Status</span>
@@ -976,7 +977,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           <.form
             for={@tracking_form}
             id="shipped-order-form"
-            phx-submit="submit_shipped"
+            phx-submit={JS.push("submit_shipped") |> hide_modal("shipped-order-modal")}
             class="space-y-4"
           >
             <p class="text-sm text-slate-600">
@@ -1226,35 +1227,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   defp journey_node_class(:ended),
     do: "bg-red-500 text-white ring-4 ring-red-100"
-
-  # ── Payment rail ──
-
-  # The rail is read from the gateway's stored charge data: Paystack keeps
-  # channel + authorization.bank ("MTN", "Telecel", "AirtelTigo"); Hubtel's
-  # webhook stores neither, so its payments fall back to the gateway chip.
-  defp payment_rail(payment) do
-    gateway_response = payment.gateway_response || %{}
-
-    channel =
-      gateway_response["channel"] || get_in(gateway_response, ["authorization", "channel"])
-
-    cond do
-      channel == "card" -> :card
-      channel == "mobile_money" -> momo_rail(get_in(gateway_response, ["authorization", "bank"]))
-      true -> payment.gateway
-    end
-  end
-
-  defp momo_rail(bank) do
-    bank = String.downcase(to_string(bank))
-
-    cond do
-      bank =~ "mtn" -> :mtn_momo
-      bank =~ "telecel" or bank =~ "vodafone" -> :telecel_cash
-      bank =~ "airtel" or bank =~ "tigo" -> :airteltigo
-      true -> :mobile_money
-    end
-  end
 
   # ── Line item image ──
 

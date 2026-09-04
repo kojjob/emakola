@@ -14,14 +14,32 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   use EmakolaWeb, :live_view
   require Logger
 
+  import EmakolaWeb.Platform.StoreLive.MetricsComponents
   import EmakolaWeb.StoresComponents, only: [store_card: 1]
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
   alias Emakola.Accounts.PlatformPermissions
+  alias Emakola.Platform.Stats
   alias Emakola.Stores.DirectoryCuration
   alias Emakola.Stores.FeaturedRanking
   alias Emakola.Stores.Store
+
+  # Loaded for every row: the facts the list and the glance strip show.
+  @row_loads [:product_count, :last_order_at, :payout_verified, store_memberships: [:merchant]]
+
+  # Loaded for the selected store only.
+  @glance_loads [
+    :card_image_url,
+    :delivered_order_count_90d,
+    :cancelled_order_count_90d,
+    :successful_payment_count_90d,
+    :last_product_published_at,
+    :verified_review_count,
+    :verified_review_rating_sum
+  ]
+
+  @quiet_days 30
 
   @impl true
   def mount(_params, _session, socket) do
@@ -36,6 +54,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       |> assign(:total_count, 0)
       |> assign(:featured_count, 0)
       |> assign(:suspended_count, 0)
+      |> assign(:no_payout_count, 0)
+      |> assign(:quiet_count, 0)
+      |> assign(:platform_stats, nil)
       |> assign(:stores_count, 0)
       |> assign(:stores_loaded?, false)
       |> assign(:selected, nil)
@@ -62,10 +83,30 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       end
 
     if connected?(socket) do
-      {:noreply, load_stores(socket, socket.assigns.search)}
+      {:noreply,
+       socket
+       |> assign(:platform_stats, platform_stats())
+       |> load_stores(socket.assigns.search)}
     else
       {:noreply, socket}
     end
+  end
+
+  # Real platform totals for the tile row — the pills beside the title
+  # count the loaded page, which stops at the list cap.
+  defp platform_stats do
+    %{
+      stores: Stats.total_stores(),
+      live: Stats.active_stores(),
+      merchants: Stats.total_merchants(),
+      multi_store: Stats.merchants_with_multiple_stores(),
+      joined_week: Stats.merchants_joined_since(7),
+      orders: Stats.orders_since(30),
+      gmv: Stats.gmv_since(30),
+      sellers: Stats.stores_with_orders_since(30),
+      featured: Stats.featured_stores(),
+      eligible: Stats.featuring_eligible_stores()
+    }
   end
 
   @impl true
@@ -114,10 +155,20 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   def handle_event("toggle_verified", %{"id" => id}, socket) do
     authorized(socket, fn socket ->
       mutate_store(socket, id, fn store ->
+        granting? = !Map.get(store, :verified, false)
+
+        # A badge with no recorded basis renders nothing (see
+        # `Emakola.Stores.TrustBadge`), so the manual switch has to say what it
+        # is attesting to. Staff turning this on are vouching for the shop's
+        # paperwork, which is what :business_review means.
         result =
           Emakola.Stores.update_store_directory_meta(
             store,
-            %{verified: !Map.get(store, :verified, false)},
+            %{
+              verified: granting?,
+              verified_basis: if(granting?, do: :business_review),
+              verified_basis_at: if(granting?, do: DateTime.utc_now())
+            },
             authorize?: false
           )
 
@@ -256,6 +307,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     stores =
       case Emakola.Stores.list_stores_for_admin(search,
              authorize?: false,
+             load: @row_loads,
              query: [limit: limit + 1]
            ) do
         {:ok, list} -> list
@@ -298,6 +350,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     |> assign(:total_count, length(stores))
     |> assign(:featured_count, Enum.count(stores, &(&1.featured == true)))
     |> assign(:suspended_count, Enum.count(stores, &(!Store.live?(&1))))
+    |> assign(:no_payout_count, Enum.count(stores, &no_payout?/1))
+    |> assign(:quiet_count, Enum.count(stores, &quiet?/1))
     |> assign(:stores_count, length(filtered))
     |> assign(:stores_loaded?, true)
     |> assign(:selected, selected)
@@ -308,11 +362,23 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
   defp apply_filter(stores, :featured), do: Enum.filter(stores, &(&1.featured == true))
   defp apply_filter(stores, :suspended), do: Enum.reject(stores, &Store.live?/1)
+  defp apply_filter(stores, :no_payout), do: Enum.filter(stores, &no_payout?/1)
+  defp apply_filter(stores, :quiet), do: Enum.filter(stores, &quiet?/1)
   defp apply_filter(stores, _all), do: stores
 
   defp parse_filter("featured"), do: :featured
   defp parse_filter("suspended"), do: :suspended
+  defp parse_filter("no_payout"), do: :no_payout
+  defp parse_filter("quiet"), do: :quiet
   defp parse_filter(_), do: :all
+
+  defp no_payout?(store), do: store.payout_verified != true
+
+  # No order in the last 30 days — or ever.
+  defp quiet?(%{last_order_at: nil}), do: true
+
+  defp quiet?(%{last_order_at: at}),
+    do: DateTime.before?(at, DateTime.add(DateTime.utc_now(), -@quiet_days, :day))
 
   defp store_row(store, selected) do
     %{id: store.id, store: store, selected?: selected != nil && selected.id == store.id}
@@ -327,7 +393,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   defp load_preview_image(nil), do: nil
 
   defp load_preview_image(store) do
-    case Ash.load(store, [:card_image_url, :product_count], authorize?: false) do
+    case Ash.load(store, @glance_loads, authorize?: false) do
       {:ok, loaded} -> loaded
       _ -> store
     end
@@ -366,7 +432,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
   defp filter_chip_classes(active?) do
     [
-      "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] transition-colors cursor-pointer",
+      "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] whitespace-nowrap transition-colors cursor-pointer",
       if(active?,
         do: "bg-slate-900 text-white font-semibold",
         else:
@@ -386,10 +452,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
           <p class="text-sm text-gray-500 mt-1">Curate how stores appear on the Makola directory</p>
         </div>
         <div :if={@stores_loaded?} class="flex items-center gap-2">
-          <.severity_pill label={"#{@total_count} stores"} tone="blue" />
+          <.severity_pill label={Emakola.Plural.count(@total_count, "store")} tone="blue" />
           <.severity_pill label={"#{@featured_count} featured"} tone="amber" />
         </div>
       </div>
+
+      <.platform_tiles :if={@platform_stats} stats={@platform_stats} />
 
       <%!-- Split view: list + curation panel --%>
       <div class="flex flex-col lg:flex-row bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden lg:h-[calc(100vh-15rem)] lg:min-h-[520px]">
@@ -416,7 +484,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-[10px] text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
               />
             </.form>
-            <div class="flex items-center gap-1.5 mt-2.5">
+            <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
               <button
                 type="button"
                 id="filter-all"
@@ -443,6 +511,24 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 class={filter_chip_classes(@filter == :suspended)}
               >
                 Suspended <span class="opacity-60 tabular-nums">{@suspended_count}</span>
+              </button>
+              <button
+                type="button"
+                id="filter-no_payout"
+                phx-click="filter"
+                phx-value-filter="no_payout"
+                class={filter_chip_classes(@filter == :no_payout)}
+              >
+                No payout <span class="opacity-60 tabular-nums">{@no_payout_count}</span>
+              </button>
+              <button
+                type="button"
+                id="filter-quiet"
+                phx-click="filter"
+                phx-value-filter="quiet"
+                class={filter_chip_classes(@filter == :quiet)}
+              >
+                Quiet 30d <span class="opacity-60 tabular-nums">{@quiet_count}</span>
               </button>
             </div>
           </div>
@@ -474,6 +560,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
               phx-click="select_store"
               phx-value-id={store.id}
               data-selected={selected?}
+              data-merchants={length(store.store_memberships)}
               class={[
                 "flex items-center gap-3 px-3 py-2.5 rounded-[10px] cursor-pointer transition-colors",
                 if(selected?,
@@ -498,6 +585,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 <p class="text-[11px] text-gray-400 font-mono truncate leading-tight mt-0.5">
                   {store.slug}
                 </p>
+                <.row_meta store={store} />
               </div>
               <.icon
                 :if={store.featured}
@@ -537,6 +625,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     {@selected.name}
                   </h2>
                   <.severity_pill label={status_label(@selected)} tone={status_tone(@selected)} />
+                  <.severity_pill
+                    :if={@selected.payout_verified == true}
+                    label="Payout verified"
+                    tone="emerald"
+                  />
+                  <.severity_pill
+                    :if={@selected.payout_verified != true}
+                    label="No payout"
+                    tone="amber"
+                  />
                 </div>
                 <p class="text-[13px] text-gray-500 mt-0.5 truncate">
                   {if @selected.city, do: "#{@selected.city} · "}<span class="font-mono">{@selected.slug}</span> {"· #{@selected.currency || "GHS"} · Since #{Calendar.strftime(@selected.inserted_at, "%b %d, %Y")}"}
@@ -558,6 +656,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 </.link>
               </div>
             </div>
+
+            <.store_glance store={@selected} />
 
             <%!-- Hidden-from-directory banner --%>
             <div

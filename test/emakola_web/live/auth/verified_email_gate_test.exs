@@ -78,6 +78,22 @@ defmodule EmakolaWeb.VerifiedEmailGateTest do
                })
                |> Ash.create(authorize?: false)
     end
+
+    test "registering sends one email, the one that unlocks the account" do
+      # A "welcome" mail used to go out alongside the confirmation. To a
+      # merchant who does not read well that is the same message twice, and
+      # the one that mattered was the second. The confirmation is the welcome.
+      {:ok, _merchant} =
+        Emakola.Accounts.Merchant
+        |> Ash.Changeset.for_create(:register_with_password, %{
+          email: "efua-#{System.unique_integer([:positive])}@kentekingdom.com",
+          password: "Password123!",
+          password_confirmation: "Password123!"
+        })
+        |> Ash.create(authorize?: false)
+
+      assert ["Confirm your Makola email"] == sent_subjects()
+    end
   end
 
   describe "the verify page" do
@@ -122,6 +138,15 @@ defmodule EmakolaWeb.VerifiedEmailGateTest do
       {conn, _merchant, _store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
 
       assert {:ok, _view, _html} = live(conn, ~p"/admin/products")
+    end
+  end
+
+  # Swoosh's test adapter posts every delivery to the calling process.
+  defp sent_subjects(acc \\ []) do
+    receive do
+      {:email, %Swoosh.Email{subject: subject}} -> sent_subjects([subject | acc])
+    after
+      200 -> Enum.reverse(acc)
     end
   end
 end

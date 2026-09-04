@@ -34,9 +34,23 @@ defmodule EmakolaWeb.Platform.TeamComponents do
     manage_announcements: "Broadcasts to merchants"
   }
 
+  @status_filters [
+    all: "All",
+    owners: "Owners",
+    twofa_off: "2FA off",
+    deactivated: "Deactivated",
+    invites: "Invites"
+  ]
+
   attr :staff, :list, required: true
+  attr :visible_staff, :list, required: true
   attr :invites, :list, required: true
   attr :session_counts, :map, required: true
+  attr :presence, :map, required: true
+  attr :status_filter, :atom, required: true
+  attr :filter_counts, :map, required: true
+  attr :filter_form, :any, required: true
+  attr :filters_active, :boolean, required: true
   attr :owner_actor, :boolean, required: true
   attr :invite_modal_open, :boolean, required: true
   attr :invite_form, :any, required: true
@@ -69,16 +83,22 @@ defmodule EmakolaWeb.Platform.TeamComponents do
       <% else %>
         <div class="flex flex-col lg:flex-row bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden lg:h-[calc(100vh-15rem)] lg:min-h-[560px]">
           <.roster
-            staff={@staff}
+            visible_staff={@visible_staff}
             invites={@invites}
             edit_user={@edit_user}
-            owner_actor={@owner_actor}
+            presence={@presence}
+            status_filter={@status_filter}
+            filter_counts={@filter_counts}
+            filter_form={@filter_form}
+            filters_active={@filters_active}
+            all_permissions={@all_permissions}
           />
           <div class="flex-1 min-w-0 overflow-y-auto">
             <.member_panel
               :if={@edit_user}
               user={@edit_user}
               session_counts={@session_counts}
+              presence={Map.get(@presence, @edit_user.id, %{state: :offline, last_seen_at: nil})}
               owner_actor={@owner_actor}
               form={@edit_permissions_form}
               all_permissions={@all_permissions}
@@ -103,140 +123,279 @@ defmodule EmakolaWeb.Platform.TeamComponents do
     """
   end
 
-  attr :staff, :list, required: true
+  attr :visible_staff, :list, required: true
   attr :invites, :list, required: true
   attr :edit_user, :map, required: true
-  attr :owner_actor, :boolean, required: true
+  attr :presence, :map, required: true
+  attr :status_filter, :atom, required: true
+  attr :filter_counts, :map, required: true
+  attr :filter_form, :any, required: true
+  attr :filters_active, :boolean, required: true
+  attr :all_permissions, :list, required: true
 
   defp roster(assigns) do
+    assigns =
+      assign(assigns,
+        status_filters: @status_filters,
+        hidden_count: assigns.filter_counts.all - length(assigns.visible_staff)
+      )
+
     ~H"""
-    <div class="w-full lg:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col max-h-96 lg:max-h-none overflow-y-auto p-2">
-      <p class="px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em]">
-        Staff · {length(@staff)}
-      </p>
-      <div
-        :for={user <- @staff}
-        id={"staff-#{user.id}"}
-        class={[
-          "flex items-center gap-2 px-3 py-2.5 rounded-[10px] transition-colors",
-          selected?(@edit_user, user) && "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
-          !selected?(@edit_user, user) && "hover:bg-slate-50",
-          user.deactivated_at && "opacity-60"
-        ]}
-      >
-        <button
-          type="button"
-          id={"edit-staff-#{user.id}"}
-          phx-click="open_edit_modal"
-          phx-value-id={user.id}
-          class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+    <div class="w-full lg:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col max-h-96 lg:max-h-none overflow-y-auto">
+      <div class="p-4 border-b border-gray-100 space-y-2.5">
+        <.form
+          for={@filter_form}
+          id="roster-filter-form"
+          phx-change="filter"
+          phx-debounce="300"
+          class="flex gap-2"
         >
-          <span class={[
-            "flex w-9 h-9 rounded-full items-center justify-center text-[13px] font-bold shrink-0",
-            avatar_tint(user)
-          ]}>
-            {initial(user)}
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class={[
-              "block text-[13.5px] font-semibold leading-tight truncate",
-              if(selected?(@edit_user, user), do: "text-gray-900", else: "text-slate-700")
-            ]}>
-              {user.name || user.email}
-            </span>
-            <span class="block text-[11px] text-gray-400 truncate leading-tight mt-0.5">
-              {user.email}
-            </span>
-            <span class="flex flex-wrap gap-1 mt-1">
-              <span
-                :for={perm <- user.platform_permissions}
-                class="inline-flex px-1.5 py-px rounded text-[10px] font-medium bg-slate-100 text-slate-500"
-              >
-                {perm}
-              </span>
-            </span>
-          </span>
-        </button>
-        <span
-          :if={user.is_owner}
-          class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0"
-        >
-          OWNER
-        </span>
-        <span
-          :if={user.deactivated_at}
-          class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 shrink-0"
-        >
-          Deactivated
-        </span>
-        <span :if={SecretStorage.totp_configured?(user)} data-twofa="on" class="shrink-0">
-          <.icon name="hero-shield-check" class="size-3.5 text-green-600" />
-        </span>
-        <span
-          :if={!SecretStorage.totp_configured?(user)}
-          data-twofa="off"
-          class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-600/20 shrink-0"
-        >
-          2FA OFF
-        </span>
+          <div class="relative flex-1 min-w-0">
+            <.icon
+              name="hero-magnifying-glass"
+              class="size-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            />
+            <.input
+              field={@filter_form[:search]}
+              type="search"
+              id="roster-search"
+              placeholder="Search staff…"
+              autocomplete="off"
+              class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-[10px] text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+            />
+          </div>
+          <select
+            name="permission"
+            id="roster-permission"
+            class="h-9 rounded-[10px] border-slate-200 bg-white pr-8 text-[12.5px] font-medium text-gray-700"
+          >
+            <option value="">Any permission</option>
+            <option
+              :for={perm <- @all_permissions}
+              value={perm}
+              selected={@filter_form[:permission].value == to_string(perm)}
+            >
+              {permission_label(perm)}
+            </option>
+          </select>
+        </.form>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            :for={{status, label} <- @status_filters}
+            type="button"
+            id={"filter-#{status}"}
+            phx-click="filter_status"
+            phx-value-status={status}
+            class={chip_classes(@status_filter == status)}
+          >
+            {label}
+            <span class="opacity-60 tabular-nums">{Map.fetch!(@filter_counts, status)}</span>
+          </button>
+        </div>
       </div>
 
-      <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em]">
-        Invites · {length(@invites)}
-      </p>
-      <p :if={@invites == []} class="px-3 py-2 text-[12px] text-gray-400">No open invites.</p>
-      <div
-        :for={invite <- @invites}
-        id={"invite-#{invite.id}"}
-        class="flex items-center gap-3 px-3 py-2.5 rounded-[10px]"
-      >
-        <span class="flex w-9 h-9 rounded-full items-center justify-center bg-slate-50 ring-1 ring-inset ring-slate-200 text-slate-400 shrink-0">
-          <.icon name="hero-envelope" class="size-4" />
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">
-            {invite.email}
-          </p>
-          <p class="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
-            {"Invited #{Calendar.strftime(invite.inserted_at, "%b %d")}"}
-          </p>
+      <div class="p-2">
+        <p
+          id="roster-count"
+          class="flex items-center px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em]"
+        >
+          <span :if={@filters_active}>
+            Staff · {length(@visible_staff)} of {@filter_counts.all}
+          </span>
+          <span :if={!@filters_active}>Staff · {@filter_counts.all}</span>
+          <button
+            :if={@filters_active}
+            type="button"
+            id="clear-filters"
+            phx-click="clear_filters"
+            class="ml-auto normal-case tracking-normal text-[10.5px] font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+          >
+            Clear filter
+          </button>
+        </p>
+        <div
+          :for={user <- @visible_staff}
+          id={"staff-#{user.id}"}
+          class={[
+            "flex items-center gap-2 px-3 py-2.5 rounded-[10px] transition-colors",
+            selected?(@edit_user, user) && "bg-blue-50 shadow-[inset_3px_0_0_#3b82f6]",
+            !selected?(@edit_user, user) && "hover:bg-slate-50",
+            user.deactivated_at && "opacity-60"
+          ]}
+        >
+          <button
+            type="button"
+            id={"edit-staff-#{user.id}"}
+            phx-click="open_edit_modal"
+            phx-value-id={user.id}
+            class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+          >
+            <.presence_avatar user={user} presence={Map.get(@presence, user.id)} />
+            <span class="min-w-0 flex-1">
+              <span class={[
+                "block text-[13.5px] font-semibold leading-tight truncate",
+                if(selected?(@edit_user, user), do: "text-gray-900", else: "text-slate-700")
+              ]}>
+                {user.name || user.email}
+              </span>
+              <span class="block text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+                {user.email}
+              </span>
+              <span class="flex flex-wrap gap-1 mt-1">
+                <span
+                  :for={perm <- user.platform_permissions}
+                  class="inline-flex px-1.5 py-px rounded text-[10px] font-medium bg-slate-100 text-slate-500"
+                >
+                  {perm}
+                </span>
+              </span>
+            </span>
+          </button>
+          <span
+            :if={user.is_owner}
+            class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shrink-0"
+          >
+            OWNER
+          </span>
+          <span
+            :if={user.deactivated_at}
+            class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 shrink-0"
+          >
+            Deactivated
+          </span>
+          <span :if={SecretStorage.totp_configured?(user)} data-twofa="on" class="shrink-0">
+            <.icon name="hero-shield-check" class="size-3.5 text-green-600" />
+          </span>
+          <span
+            :if={!SecretStorage.totp_configured?(user)}
+            data-twofa="off"
+            class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-600/20 shrink-0"
+          >
+            2FA OFF
+          </span>
         </div>
-        <span class={[
-          "inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ring-1 ring-inset",
-          if(invite_days_left(invite) <= 2,
-            do: "bg-rose-50 text-rose-600 ring-rose-600/20",
-            else: "bg-amber-50 text-amber-700 ring-amber-600/20"
-          )
-        ]}>
-          {"Expires in #{invite_days_left(invite)}d"}
-        </span>
-        <button
-          type="button"
-          id={"resend-invite-#{invite.id}"}
-          phx-click="resend_invite"
-          phx-value-id={invite.id}
-          data-confirm="This will invalidate the previous invite link. Resend?"
-          class="text-[11px] font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+        <p
+          :if={@hidden_count > 0}
+          id="roster-hidden"
+          class="flex items-center gap-2 mx-3 mt-2 px-3 py-2 rounded-[10px] bg-slate-50 text-[11.5px] text-gray-500"
         >
-          Resend
-        </button>
-        <button
-          type="button"
-          id={"revoke-invite-#{invite.id}"}
-          phx-click="revoke_invite"
-          phx-value-id={invite.id}
-          data-confirm={"Revoke the invite for #{invite.email}?"}
-          class="text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+          <.icon name="hero-eye-slash" class="size-3.5 text-gray-400" />
+          {@hidden_count} staff hidden by the filter
+        </p>
+
+        <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em]">
+          Invites · {length(@invites)}
+        </p>
+        <p :if={@invites == []} class="px-3 py-2 text-[12px] text-gray-400">No open invites.</p>
+        <div
+          :for={invite <- @invites}
+          id={"invite-#{invite.id}"}
+          class="flex items-center gap-3 px-3 py-2.5 rounded-[10px]"
         >
-          Revoke
-        </button>
+          <span class="flex w-9 h-9 rounded-full items-center justify-center bg-slate-50 ring-1 ring-inset ring-slate-200 text-slate-400 shrink-0">
+            <.icon name="hero-envelope" class="size-4" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-semibold text-slate-700 truncate leading-tight">
+              {invite.email}
+            </p>
+            <p class="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+              {"Invited #{Calendar.strftime(invite.inserted_at, "%b %d")}"}
+            </p>
+          </div>
+          <span class={[
+            "inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ring-1 ring-inset",
+            if(invite_days_left(invite) <= 2,
+              do: "bg-rose-50 text-rose-600 ring-rose-600/20",
+              else: "bg-amber-50 text-amber-700 ring-amber-600/20"
+            )
+          ]}>
+            {"Expires in #{invite_days_left(invite)}d"}
+          </span>
+          <button
+            type="button"
+            id={"resend-invite-#{invite.id}"}
+            phx-click="resend_invite"
+            phx-value-id={invite.id}
+            data-confirm="This will invalidate the previous invite link. Resend?"
+            class="text-[11px] font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+          >
+            Resend
+          </button>
+          <button
+            type="button"
+            id={"revoke-invite-#{invite.id}"}
+            phx-click="revoke_invite"
+            phx-value-id={invite.id}
+            data-confirm={"Revoke the invite for #{invite.email}?"}
+            class="text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+          >
+            Revoke
+          </button>
+        </div>
       </div>
     </div>
     """
   end
 
   attr :user, :map, required: true
+  attr :presence, :map, default: nil
+
+  # The dot is the only place presence shows in the roster: green means
+  # seen in the last few minutes, grey means seen before that, no dot
+  # means no active session at all.
+  defp presence_avatar(assigns) do
+    assigns = assign(assigns, :state, (assigns.presence && assigns.presence.state) || :offline)
+
+    ~H"""
+    <span class="relative shrink-0" data-presence={@state} title={last_seen_label(@presence)}>
+      <span class={[
+        "flex w-9 h-9 rounded-full items-center justify-center text-[13px] font-bold",
+        avatar_tint(@user)
+      ]}>
+        {initial(@user)}
+      </span>
+      <span
+        :if={@state != :offline}
+        class={[
+          "absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full ring-2 ring-white",
+          if(@state == :online, do: "bg-green-500", else: "bg-slate-300")
+        ]}
+      >
+      </span>
+    </span>
+    """
+  end
+
+  defp last_seen_label(%{state: :online}), do: "Online now"
+  defp last_seen_label(%{state: :away, last_seen_at: at}), do: "Last seen #{relative_time(at)}"
+  defp last_seen_label(_), do: "Never signed in"
+
+  defp relative_time(at) do
+    minutes = DateTime.diff(DateTime.utc_now(), at, :minute)
+
+    cond do
+      minutes < 60 -> "#{max(minutes, 1)}m ago"
+      minutes < 1_440 -> "#{div(minutes, 60)}h ago"
+      true -> "#{div(minutes, 1_440)}d ago"
+    end
+  end
+
+  # Mirrors StoreLive.Index's filter chips so the two platform studios match.
+  defp chip_classes(active?) do
+    [
+      "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] transition-colors cursor-pointer",
+      if(active?,
+        do: "bg-slate-900 text-white font-semibold",
+        else:
+          "bg-slate-50 text-slate-600 font-medium ring-1 ring-inset ring-slate-200 hover:bg-slate-100"
+      )
+    ]
+  end
+
+  attr :user, :map, required: true
   attr :session_counts, :map, required: true
+  attr :presence, :map, required: true
   attr :owner_actor, :boolean, required: true
   attr :form, :any, required: true
   attr :all_permissions, :list, required: true
@@ -271,7 +430,13 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             <.severity_pill :if={@user.deactivated_at} label="Deactivated" tone="red" />
           </div>
           <p class="text-[13px] text-gray-500 mt-0.5 truncate">
-            {"#{@user.email} · #{Map.get(@session_counts, @user.id, 0)} active session(s)"}
+            {"#{@user.email} · #{Emakola.Plural.count(Map.get(@session_counts, @user.id, 0), "active session")} · "}
+            <span
+              id="panel-presence"
+              class={if(@presence.state == :online, do: "font-semibold text-green-600")}
+            >
+              {last_seen_label(@presence)}
+            </span>
           </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -315,6 +480,17 @@ defmodule EmakolaWeb.Platform.TeamComponents do
             class="inline-flex items-center px-3.5 py-2 rounded-[10px] text-[12.5px] font-semibold text-green-700 bg-green-50 ring-1 ring-inset ring-green-600/20 hover:bg-green-100 transition-colors cursor-pointer"
           >
             Reactivate
+          </button>
+          <button
+            :if={@owner_actor}
+            type="button"
+            id={"remove-staff-#{@user.id}"}
+            phx-click="remove"
+            phx-value-id={@user.id}
+            data-confirm={"Remove #{@user.email} from the team? They lose every platform permission and are signed out everywhere."}
+            class="inline-flex items-center px-3.5 py-2 rounded-[10px] text-[12.5px] font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer"
+          >
+            Remove from team
           </button>
         </div>
       </div>

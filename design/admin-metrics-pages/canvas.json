@@ -1,0 +1,84 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 1700,
+      "title": "Partners (supply network) — the hub"
+    },
+    {
+      "file": "Mobile.dc.html",
+      "x": 1380,
+      "y": 0,
+      "w": 390,
+      "h": 1950,
+      "title": "Partners — phone"
+    },
+    {
+      "file": "Delivery.dc.html",
+      "x": 0,
+      "y": 1960,
+      "w": 1280,
+      "h": 1110,
+      "title": "Delivery Zones — with metrics"
+    },
+    {
+      "file": "Stores.dc.html",
+      "x": 0,
+      "y": 3330,
+      "w": 1280,
+      "h": 1040,
+      "title": "Platform · Stores — with metrics"
+    },
+    {
+      "file": "Team.dc.html",
+      "x": 0,
+      "y": 4630,
+      "w": 1280,
+      "h": 830,
+      "title": "Platform · Team — filtered roster"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "partners-note",
+      "x": 0,
+      "y": -260,
+      "w": 1280,
+      "text": "PARTNERS (/admin/settings/supply-network) — rebuilt as a hub, not fourteen stacked sections.\n\nWhat a merchant meets, in order: four numbers, the First Money strip with its next step lit, the partners list (an incoming invite is the only row with a coloured edge and two buttons), orders waiting on them, sales kits, then eight doors to the Earn tools. Each door shows one live number so nothing has to be opened to know whether it needs attention.\n\nEvery figure has a source on the page today: connection_count, listing_count, sales_click/order/revenue, inbound_count, goal_progress, radar signals, content_draft_count, group buys, sales teams, franchise enrollments, passport score, reservations.\n\nSAMPLE numbers throughout. Photos are the stores-variations set standing in for supplier photos. The sub-pages behind each door do not exist yet — today those sections render inline; the hub needs routes for them."
+    },
+    {
+      "id": "phone-note",
+      "x": 1380,
+      "y": -200,
+      "w": 390,
+      "text": "Where merchants actually open this. Orders to fulfil moves above the partners list because it is the step lit on the strip. Every tap target clears 44px; the incoming invite gets a full-width Accept."
+    },
+    {
+      "id": "delivery-note",
+      "x": 0,
+      "y": 1780,
+      "w": 1280,
+      "text": "DELIVERY ZONES — the page had settings and no numbers.\n\nAdded: delivered / on the way / to pack (order status, 30 days), fees collected and waived (Order.delivery_fee), zones on, and the one that earns its tile: orders whose region matched NO zone and paid the hard-coded default. The table gains Orders (with a share bar) and Fees per zone; a paused zone says what happens to its buyers.\n\nNot shown, on purpose: on-time rate and average delivery days. Orders carry no delivered_at or shipped_at, so any such number would be invented. The footnote says so. Per-zone order counts are a name match on shipping_address.region — the same reconstruction Reports already does.\n\nOne finding from the checker worth keeping: a zone named \"Other Regions\" matches nothing — find_zone/2 compares names, so Volta buyers still fall to the default fee. The table row says so."
+    },
+    {
+      "id": "stores-note",
+      "x": 0,
+      "y": 3150,
+      "w": 1280,
+      "text": "PLATFORM · STORES — merchants and activity, where before there was only a name and a dot.\n\nThe tile row is Emakola.Platform.Stats (real platform totals), not the 200-row page count the pills use. Each list row now carries its merchants (initials from store_memberships), product_count and last_order_at; two filter chips were added for the questions staff actually ask — No payout, Quiet 30d. The panel gains a \"Store at a glance\" strip from the aggregates Store already defines (product_count, delivered_order_count_90d, cancelled_order_count_90d, last_order_at, successful_payment_count_90d, view_count, verified_review_*), plus the members list.\n\nCost note: Store has no members-count aggregate — add one (count of store_memberships) or load memberships per row. \"Orders · 30 days\" reuses Stats.total_gmv, which counts only successful payments."
+    },
+    {
+      "id": "team-note",
+      "x": 0,
+      "y": 4450,
+      "w": 1280,
+      "text": "PLATFORM · TEAM — see only the people you mean.\n\nA search box, a permission select and five chips with counts: All, Owners, 2FA off, Deactivated, Invites. One chip active narrows the roster and the header says \"3 of 7\"; the hidden count stays visible so nobody thinks staff vanished. Drawn with 2FA off active because that is the filter that leads to an action (Reset 2FA is right there in the panel).\n\nThe roster row, the member panel and the invite modal are unchanged. Chip styling is the Stores page's filter_chip_classes, so the two platform studios read the same."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

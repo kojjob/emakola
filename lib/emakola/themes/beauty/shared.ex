@@ -71,7 +71,7 @@ defmodule Emakola.Themes.Beauty.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E8DBC8]/50")}
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <span
                 class={"material-symbols-outlined " <> if(@on_dark, do: "text-[#FAF6EE]", else: "text-[#6B4423]")}
@@ -110,9 +110,14 @@ defmodule Emakola.Themes.Beauty.Shared do
         <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div class="md:col-span-2">
             <span class="text-2xl font-bold tracking-[0.2em] uppercase">{@store.name}</span>
-            <p class="text-sm text-[#FAF6EE]/70 leading-relaxed mt-4 max-w-md">
-              {@store.description ||
-                "Botanical skincare and beauty essentials — crafted for melanin-rich skin."}
+            <%!-- The merchant's description, or nothing: "Botanical skincare and
+                 beauty essentials — crafted for melanin-rich skin" used to fill
+                 the gap for every store that had written none. --%>
+            <p
+              :if={present?(@store.description)}
+              class="text-sm text-[#FAF6EE]/70 leading-relaxed mt-4 max-w-md"
+            >
+              {@store.description}
             </p>
           </div>
 
@@ -230,13 +235,16 @@ defmodule Emakola.Themes.Beauty.Shared do
           alt={@product.title}
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <span
+        <div
           :if={!first_image(@product)}
-          class="material-symbols-outlined text-[#C9925E]/40"
-          style="font-size: 64px;"
+          class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
         >
-          spa
-        </span>
+          <span class="material-symbols-outlined text-[#C9925E]/40" style="font-size: 64px;">
+            spa
+          </span>
+        </div>
       </div>
       <div class="p-4 sm:p-5">
         <%!-- Rating row (real review data only) --%>
@@ -262,6 +270,10 @@ defmodule Emakola.Themes.Beauty.Shared do
     </a>
     """
   end
+
+  @doc "Whether the merchant has written the given text."
+  def present?(value) when is_binary(value), do: String.trim(value) != ""
+  def present?(_value), do: false
 
   # ── Rating Helpers (real review data) ──
 

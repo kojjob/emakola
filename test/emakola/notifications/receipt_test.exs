@@ -17,7 +17,7 @@ defmodule Emakola.Notifications.ReceiptTest do
       message = Templates.order_confirmed_sms(order, store)
 
       assert message =~ "ORD-20260326-ABC123"
-      assert message =~ "2 item"
+      assert message =~ "2 items"
       assert message =~ "150.00"
       assert message =~ "Kente Kingdom"
     end

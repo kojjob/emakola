@@ -99,6 +99,14 @@ defmodule Emakola.Themes.AdwumaTest do
       assert html =~ "Kwame Beats"
     end
 
+    test "the hero subheading is the store description when the merchant set none" do
+      refute render_section(Hero) =~ "mt-4 max-w-xl"
+
+      html = render_section(Hero, %{store: %{@store | description: "Beats cut in Kumasi."}})
+
+      assert html =~ "Beats cut in Kumasi."
+    end
+
     test "formats derives from the store's own enabled types" do
       assert render_section(Formats) =~ "Downloads"
     end

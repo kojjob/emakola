@@ -332,6 +332,7 @@ defmodule EmakolaWeb.Router do
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :platform
+    get "/sitemap-platform.xml", SitemapController, :platform_pages
     get "/robots.txt", SitemapController, :platform_robots
     get "/llms.txt", SitemapController, :platform_llms
   end
@@ -539,9 +540,8 @@ defmodule EmakolaWeb.Router do
 
       # Merchant admin — catalog management
       live "/admin/products", Admin.ProductLive.Index
-      live "/admin/products/bulk", Admin.ProductLive.BulkPhoto
-      live "/admin/products/new", Admin.ProductLive.Form, :new
-      live "/admin/products/snap", Admin.ProductLive.Snap
+      live "/admin/products/bulk", Admin.ProductLive.AddProducts
+      live "/admin/products/new", Admin.ProductLive.AddProducts
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
       live "/admin/products/:id/files", Admin.ProductLive.DigitalFiles
       live "/admin/categories", Admin.CategoryLive.Index
@@ -586,6 +586,8 @@ defmodule EmakolaWeb.Router do
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
       live "/admin/settings/supply-network", Admin.SupplyNetworkLive
+      live "/admin/settings/supply-network/tools", Admin.SupplyToolLive
+      live "/admin/settings/supply-network/tools/:tool", Admin.SupplyToolLive
       live "/admin/supply/catalog", Admin.SupplyCatalogLive.Index
       live "/admin/supply/catalog/:offer_id", Admin.SupplyCatalogLive.Show
       live "/admin/supply/offers", Admin.SupplyOffersLive.Index

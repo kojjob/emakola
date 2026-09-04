@@ -11,11 +11,15 @@ defmodule Emakola.Themes.Market.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.SectionRenderer
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Market)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Market)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div>

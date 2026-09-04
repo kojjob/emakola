@@ -86,7 +86,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class="relative w-11 h-11 rounded-full hover:bg-[#A7E5C5]/30 flex items-center justify-center transition-colors"
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <span class="material-symbols-outlined text-[#14543E]" style="font-size: 22px;">
                 shopping_bag
@@ -131,9 +131,14 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             </div>
             <%!-- Fell back to "Verified pharmacy. Genuine medicines." for any
                  store that had written no description — certifying a licence and
-                 a supply chain on behalf of a merchant who never claimed either. --%>
-            <p class="text-sm text-[#F9F6F0]/80 leading-relaxed">
-              {@store.description || "Health and wellbeing products from #{@store.name}."}
+                 a supply chain on behalf of a merchant who never claimed either.
+                 Then to "Health and wellbeing products from ...", which was still
+                 a sentence about the store it never wrote. Now: nothing. --%>
+            <p
+              :if={@store.description not in [nil, ""]}
+              class="text-sm text-[#F9F6F0]/80 leading-relaxed"
+            >
+              {@store.description}
             </p>
           </div>
 
@@ -307,13 +312,15 @@ defmodule Emakola.Themes.Pharmacy.Shared do
           alt={@product.title}
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <span
+        <div
           :if={!first_image(@product)}
-          class="material-symbols-outlined text-[#A7E5C5]"
-          style="font-size: 56px;"
+          class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
         >
-          medication
-        </span>
+          <span class="material-symbols-outlined text-[#A7E5C5]" style="font-size: 56px;">
+            medication
+          </span>
+        </div>
       </div>
       <div class="p-4 sm:p-5">
         <%!-- Rating row (real review data only) --%>

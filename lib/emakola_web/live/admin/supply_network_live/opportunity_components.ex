@@ -13,6 +13,31 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.OpportunityComponents do
 
   def opportunities(assigns) do
     ~H"""
+    <.opportunity_radar
+      business_command_form={@business_command_form}
+      pending_business_command={@pending_business_command}
+      starter_business_form={@starter_business_form}
+      streams={@streams}
+      supplier_demand_alert_count={@supplier_demand_alert_count}
+    />
+    <.business_in_a_box
+      business_command_form={@business_command_form}
+      pending_business_command={@pending_business_command}
+      starter_business_form={@starter_business_form}
+      streams={@streams}
+      supplier_demand_alert_count={@supplier_demand_alert_count}
+    />
+    """
+  end
+
+  attr :business_command_form, :any, required: true
+  attr :pending_business_command, :any, required: true
+  attr :starter_business_form, :any, required: true
+  attr :streams, :map, required: true
+  attr :supplier_demand_alert_count, :integer, required: true
+
+  def opportunity_radar(assigns) do
+    ~H"""
     <section
       id="opportunity-radar"
       aria-labelledby="opportunity-radar-heading"
@@ -118,14 +143,27 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive.OpportunityComponents do
             class="rounded-xl bg-white p-3 text-sm text-slate-700 shadow-sm"
           >
             <span class="font-bold">{alert.metadata["title"]}</span>
-            received {alert.metadata["views"]} views and {alert.metadata["matched_searches"]} matched searches but no orders in the {alert.metadata[
+            received {Emakola.Plural.count(alert.metadata["views"], "view")} and {Emakola.Plural.count(
+              alert.metadata["matched_searches"],
+              "matched search"
+            )} but no orders in the {alert.metadata[
               "window_days"
             ]}-day window. Review price, content, availability, or trust signals.
           </article>
         </div>
       </div>
     </section>
+    """
+  end
 
+  attr :business_command_form, :any, required: true
+  attr :pending_business_command, :any, required: true
+  attr :starter_business_form, :any, required: true
+  attr :streams, :map, required: true
+  attr :supplier_demand_alert_count, :integer, required: true
+
+  def business_in_a_box(assigns) do
+    ~H"""
     <section
       id="business-in-a-box"
       aria-labelledby="business-command-heading"

@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Vibrant.Home do
   """
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
   alias Emakola.Themes.Vibrant.Shared
 
@@ -33,7 +34,10 @@ defmodule Emakola.Themes.Vibrant.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Vibrant)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Vibrant)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
@@ -42,7 +46,13 @@ defmodule Emakola.Themes.Vibrant.Home do
 
       {SectionRenderer.home(assigns)}
 
-      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+      <%!-- The borrowed footer carries its own capture form; like the
+           newsletter section it waits for a full stall. --%>
+      <Emakola.Themes.Atelier.Shared.footer
+        store={@store}
+        categories={@categories}
+        hide_newsletter={!@layout.show_newsletter?}
+      />
     </div>
     """
   end

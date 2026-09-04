@@ -19,7 +19,7 @@ defmodule Emakola.Suppliers.BusinessCommand do
            count: count,
            original: text,
            preview:
-             "Add up to #{count} top-ranked partner #{plural(count, "product")} to your store."
+             "Add up to #{count} top-ranked partner #{Emakola.Plural.noun(count, "product")} to your store."
          }}
 
       Regex.match?(~r/\b(content|caption|advert|ad)\b/u, normalized) ->
@@ -65,6 +65,4 @@ defmodule Emakola.Suppliers.BusinessCommand do
   defp number("nine"), do: 9
   defp number("ten"), do: 10
   defp number(number), do: String.to_integer(number)
-  defp plural(1, noun), do: noun
-  defp plural(_count, noun), do: noun <> "s"
 end

@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :totp_failed,
     :sessions_force_revoked,
     :staff_deactivated,
+    :staff_removed,
     :store_blocked,
     :store_archived,
     :verification_rejected,

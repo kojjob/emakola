@@ -68,7 +68,7 @@ defmodule Emakola.Themes.Sika.ProductDetail do
               thumb_idle_class="border-[#E8E3D9] opacity-70 hover:opacity-100"
             >
               <:placeholder>
-                <Shared.tray name={@product.title} />
+                <Shared.tray />
               </:placeholder>
             </Gallery.product_gallery>
           </div>

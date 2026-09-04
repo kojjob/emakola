@@ -74,9 +74,12 @@ defmodule Emakola.Themes.Beauty do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Elevate Your Essence",
-        subtitle:
-          "Botanical skincare and beauty essentials — crafted for melanin-rich skin and the rituals you love.",
+        # "Elevate Your Essence" and "Botanical skincare and beauty essentials —
+        # crafted for melanin-rich skin and the rituals you love." stood over
+        # every Beauty store. The hero now carries the store's name and its own
+        # description. Blank, but the keys must stay (see trust/why_us below).
+        title: nil,
+        subtitle: nil,
         cta_text: "Shop the Collection",
         cta_url: "/products"
       },
@@ -116,47 +119,13 @@ defmodule Emakola.Themes.Beauty do
       faq: %{
         title: "Frequently Asked Questions",
         subtitle: "Got questions? We've got answers.",
-        items: [
-          # Two questions used to sit here that no default could answer honestly,
-          # because the question presupposes the answer:
-          #
-          #   "Are your products tested for skin compatibility?" — "Yes, every
-          #   product is tested … and reformulated with feedback from our beauty
-          #   community." (a safety-testing claim)
-          #
-          #   "Are your ingredients ethically sourced?" — "All our shea, cocoa,
-          #   and baobab is sourced directly from West African women's
-          #   cooperatives. Fair trade, every batch." (a supply-chain claim that
-          #   named a sourcing model the merchant may have no connection to)
-          #
-          # Neither can be softened into a neutral default the way the delivery
-          # and returns answers below can — there is no honest way to half-answer
-          # "is this tested?". A merchant who tests, or who sources this way, adds
-          # the question back and answers it in their own words. It is then their
-          # claim, which is the only thing that makes it worth anything.
-          #
-          # This shipped answering "within 1–4 business days. Free delivery on
-          # orders over GHS 200" for every Beauty store, none of which had set
-          # either number. The FAQ is merchant-editable, so the honest default
-          # is to point at the delivery terms the merchant actually configures
-          # rather than to invent some.
-          %{
-            question: "Do you ship across Ghana?",
-            answer:
-              "Our delivery zones, fees and times are listed on our policies page and shown at checkout."
-          },
-          # This answer used to read "Unopened products can be returned within 14
-          # days. We also offer a satisfaction guarantee on first-time purchases."
-          # — a returns window and a guarantee shipped as a theme default, so
-          # every Beauty store made both promises without a merchant ever
-          # agreeing to honour either. A merchant's real window now comes from
-          # their own terms (see `Emakola.Themes.Terms`) and is stated on the
-          # product page; the policies page carries the detail.
-          %{
-            question: "What is your return policy?",
-            answer: "Our returns window and warranty terms are listed on our policies page."
-          }
-        ]
+        # No default questions. Two used to sit here that presupposed their
+        # answers ("Are your products tested for skin compatibility?", "Are
+        # your ingredients ethically sourced?"), then two softer ones ("Do you
+        # ship across Ghana?", "What is your return policy?") that still spoke
+        # for a merchant who had said nothing. A question is the merchant's to
+        # ask and answer; with none written the section does not render.
+        items: []
       },
       newsletter: %{
         title: "Join the list",

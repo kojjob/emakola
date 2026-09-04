@@ -3,14 +3,17 @@ defmodule Emakola.Themes.Market.Sections.ProductGrid do
   Market home "Shop All" grid — 2 / 3 / 4 columns. Cards carry the
   placeholder-first treatment, the price chip, and add-to-cart.
 
-  A store with zero products renders an intentional setting-up state
-  instead of nothing — a brand-new stall must never look broken to its
-  first visitor (or to the merchant previewing it).
+  The grid shows the catalogue minus the featured product, so nothing on the
+  page appears twice; with a single product the featured card carries it and
+  the grid stays out of the way. A store with zero products renders an
+  intentional setting-up state instead of nothing — a brand-new stall must
+  never look broken to its first visitor (or to the merchant previewing it).
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Market.Components
 
   @impl true
@@ -25,9 +28,11 @@ defmodule Emakola.Themes.Market.Sections.ProductGrid do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={@products != []}
+      :if={@layout.grid_products != []}
       class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
       aria-labelledby="shop-all-heading"
     >
@@ -36,12 +41,16 @@ defmodule Emakola.Themes.Market.Sections.ProductGrid do
           {if @settings["heading"] not in [nil, ""], do: @settings["heading"], else: "Shop All"}
         </h2>
         <div class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5">
-          <Components.product_card :for={product <- @products} product={product} store={@store} />
+          <Components.product_card
+            :for={product <- @layout.grid_products}
+            product={product}
+            store={@store}
+          />
         </div>
       </div>
     </section>
     <section
-      :if={@products == []}
+      :if={@layout.count == 0}
       class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
       aria-labelledby="market-grid-empty-heading"
     >

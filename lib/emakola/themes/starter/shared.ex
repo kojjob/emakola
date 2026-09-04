@@ -82,7 +82,7 @@ defmodule Emakola.Themes.Starter.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class="relative p-2.5 rounded-xl hover:bg-gray-50 transition-colors"
-              aria-label={"Shopping cart, #{@cart_count} items"}
+              aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <svg
                 class="w-5 h-5 text-[#64748B]"
@@ -132,7 +132,11 @@ defmodule Emakola.Themes.Starter.Shared do
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover"
         />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-gray-100">
+        <div
+          :if={!@image}
+          class="w-full aspect-[3/4] flex items-center justify-center bg-gray-100"
+          data-placeholder="product"
+        >
           <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

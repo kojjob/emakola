@@ -370,7 +370,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
                 </div>
                 <div class="flex flex-col gap-0.5">
                   <span class="text-sm font-bold text-text">
-                    {@offer.returns_window_days} days to return
+                    {Emakola.Plural.count(@offer.returns_window_days, "day")} to return
                   </span>
                   <span :if={@offer.return_terms} class="text-[13px] leading-relaxed text-text-muted">
                     {@offer.return_terms}
@@ -383,7 +383,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
                 </div>
                 <div class="flex flex-col gap-0.5">
                   <span class="text-sm font-bold text-text">
-                    {@offer.warranty_months} months warranty
+                    {Emakola.Plural.count(@offer.warranty_months, "month")} warranty
                   </span>
                   <span
                     :if={@offer.warranty_terms}

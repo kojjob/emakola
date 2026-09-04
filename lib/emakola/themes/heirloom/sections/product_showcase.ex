@@ -1,6 +1,10 @@
 defmodule Emakola.Themes.Heirloom.Sections.ProductShowcase do
   @moduledoc """
-  The store's products as a row of tiles, under its category names.
+  The store's products as a row of tiles, under its category names. The
+  tiles are the catalogue minus the hero's featured card
+  (`Emakola.Themes.Layout`), so nothing on the page is shown twice and a
+  one-product shop is carried by the hero card alone; the category names
+  join once the stall is full enough to need sorting (four or more).
 
   The reference put superscript counts on each category tab
   (`Living room¹²`) and made them filter in place. Neither is reproduced
@@ -22,6 +26,7 @@ defmodule Emakola.Themes.Heirloom.Sections.ProductShowcase do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Heirloom.ProductList
+  alias Emakola.Themes.Layout
 
   @default_limit 5
 
@@ -41,12 +46,12 @@ defmodule Emakola.Themes.Heirloom.Sections.ProductShowcase do
 
   @impl true
   def render(assigns) do
-    products = Map.get(assigns, :products) || []
-    categories = Map.get(assigns, :categories) || []
+    layout = Layout.of(assigns)
+    categories = if layout.show_categories?, do: Map.get(assigns, :categories) || [], else: []
 
     assigns =
       assigns
-      |> assign(:showcase, Enum.take(products, limit(assigns.settings["limit"])))
+      |> assign(:showcase, Enum.take(layout.grid_products, limit(assigns.settings["limit"])))
       |> assign(:tabs, Enum.take(categories, 4))
       |> assign(:heading, present(assigns.settings["heading"]))
 

@@ -164,11 +164,15 @@ defmodule Emakola.Accounts do
 
     with {:ok, merchant} <- merchant_by_email(email),
          false <- access_allowed?(merchant),
+         # The same token registration issues. A resend changes nothing, so the
+         # stored changes are empty and confirming only stamps confirmed_at.
+         # (`confirmation_token_for_link` is the OAuth identity-link variant; its
+         # empty payload made every resent link crash on confirm.)
          {:ok, token} <-
-           AshAuthentication.AddOn.Confirmation.confirmation_token_for_link(
+           AshAuthentication.AddOn.Confirmation.confirmation_token(
              strategy,
-             merchant,
-             %{}
+             Ash.Changeset.new(merchant),
+             merchant
            ) do
       Emakola.Accounts.Senders.ConfirmationSender.send(merchant, token, [])
     end

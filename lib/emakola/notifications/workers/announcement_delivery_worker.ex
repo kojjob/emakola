@@ -68,11 +68,30 @@ defmodule Emakola.Notifications.Workers.AnnouncementDeliveryWorker do
     |> Swoosh.Email.to({store.name || "", email})
     |> Swoosh.Email.from(Emakola.Mailer.from_address("Makola"))
     |> Swoosh.Email.subject(ann.title)
+    |> Swoosh.Email.html_body(
+      Emakola.Notifications.Emails.MarketingEmail.update(email_assigns(ann))
+    )
     |> Swoosh.Email.text_body(ann.body)
     |> Emakola.Mailer.deliver()
   end
 
   defp maybe_send_email(_ann, _store), do: :ok
+
+  # The announcement rides the "update" marketing template: title as the lead,
+  # body as the story, severity as the eyebrow, one action back into the shop.
+  defp email_assigns(ann) do
+    %{
+      update_type: severity_label(ann.severity),
+      month: ann.publish_at && Calendar.strftime(ann.publish_at, "%B %Y"),
+      headline: ann.title,
+      body: ann.body,
+      action: %{label: "Open my shop", url: EmakolaWeb.Endpoint.url() <> "/admin"}
+    }
+  end
+
+  defp severity_label(:critical), do: "Urgent"
+  defp severity_label(:warning), do: "Important"
+  defp severity_label(_info), do: "Update"
 
   defp maybe_send_whatsapp(ann, %{whatsapp_number: number} = store)
        when is_binary(number) and number != "" do

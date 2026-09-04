@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
              |> LazyHTML.query(~s(meta[name="robots"][content="noindex, nofollow"]))
              |> Enum.any?()
 
-      assert has_element?(view, "button", "New Product")
+      assert has_element?(view, ~s{a[href="/admin/products/new"]}, "Add products")
     end
 
     test "merchant without store gets nil current_store", %{conn: conn} do
@@ -85,6 +85,28 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
         |> Plug.Conn.put_session(:platform_session_token, signed)
 
       {:ok, _view, _html} = live(conn, "/platform")
+
+      {:ok, reloaded} = Ash.get(Emakola.Accounts.UserSession, session.id, authorize?: false)
+      assert DateTime.after?(reloaded.last_seen_at, stale)
+    end
+
+    test "a heartbeat keeps a page that stays open reading as online", %{conn: conn} do
+      user = Factory.create_platform_owner!()
+      session = Factory.create_user_session!(user)
+      signed = EmakolaWeb.AuthTokens.sign_platform_session(session.id)
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:platform_session_token, signed)
+
+      {:ok, view, _html} = live(conn, "/platform")
+
+      # Ten minutes pass on the same page, no navigation, then the timer fires.
+      stale = DateTime.add(DateTime.utc_now(), -10, :minute)
+      Ash.Seed.update!(session, %{last_seen_at: stale})
+      send(view.pid, {:platform_session_heartbeat, session.id})
+      render(view)
 
       {:ok, reloaded} = Ash.get(Emakola.Accounts.UserSession, session.id, authorize?: false)
       assert DateTime.after?(reloaded.last_seen_at, stale)

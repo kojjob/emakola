@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Atelier.Sections.FeaturedProducts do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "atelier/featured_products"
@@ -20,17 +21,18 @@ defmodule Emakola.Themes.Atelier.Sections.FeaturedProducts do
 
   @impl true
   def render(assigns) do
-    hero = List.first(assigns.products)
-    grid_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
+    # The bento takes the featured product and up to four more. Whatever is
+    # left goes to "More from the shop", so no product appears twice.
+    layout = Layout.of(assigns)
 
     assigns =
       assigns
-      |> assign(:hero, hero)
-      |> assign(:grid_products, grid_products)
+      |> assign(:hero, layout.featured)
+      |> assign(:grid_products, Enum.take(layout.grid_products, 4))
 
     ~H"""
     <section
-      :if={Shared.section_enabled?(@theme, :featured_products) and @products != []}
+      :if={Shared.section_enabled?(@theme, :featured_products) and @hero != nil}
       class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24"
     >
       <%!-- Section Header --%>

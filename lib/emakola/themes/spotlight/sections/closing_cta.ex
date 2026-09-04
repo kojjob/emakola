@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Spotlight.Sections.ClosingCta do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Spotlight.Shared
 
   @impl true
@@ -35,7 +36,7 @@ defmodule Emakola.Themes.Spotlight.Sections.ClosingCta do
 
     assigns =
       assigns
-      |> assign(:hero_product, assigns |> Map.get(:products, []) |> List.first())
+      |> assign(:hero_product, Layout.of(assigns).featured)
       |> assign(
         :heading,
         present(assigns.settings["heading"]) ||

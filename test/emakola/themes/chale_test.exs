@@ -137,11 +137,14 @@ defmodule Emakola.Themes.ChaleTest do
   end
 
   describe "home render through SectionRenderer" do
-    test "renders all six sections in order with their landmarks" do
+    test "a full rack renders all six sections in order with their landmarks" do
       {_merchant, store} = create_merchant_with_store!()
       create_category!(store, %{name: "Snapbacks"})
-      product = create_product!(store, %{title: "Jamestown Hoodie", status: :active})
-      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      for title <- ["Osu Tee", "Labadi Cap", "Kokrobite Shorts", "Jamestown Hoodie"] do
+        product = create_product!(store, %{title: title, status: :active})
+        create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+      end
 
       html = render_home(store)
 
@@ -162,6 +165,8 @@ defmodule Emakola.Themes.ChaleTest do
       # Trust names the real rails; newsletter owns capture — exactly one form
       assert html =~ "MTN MoMo"
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 2
+      # The drop leaves the grid, so every product appears once
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 5
 
       # Flat sibling order: hero -> categories -> drop -> grid -> trust
       # -> newsletter
@@ -169,6 +174,24 @@ defmodule Emakola.Themes.ChaleTest do
                html,
                ~r/chale-hero-heading.*Product categories.*chale-drop-heading.*chale-grid-heading.*chale-trust-heading.*chale-newsletter-form/s
              )
+    end
+
+    test "one product: the drop carries it alone — no grid, rail or newsletter" do
+      {_merchant, store} = create_merchant_with_store!()
+      create_category!(store, %{name: "Snapbacks"})
+      product = create_product!(store, %{title: "Jamestown Hoodie", status: :active})
+      create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ ~s(id="chale-drop-heading")
+      assert html =~ "Jamestown Hoodie"
+      assert length(String.split(html, ~s(phx-value-product-id=))) == 2
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~s(id="chale-grid-heading")
+      refute html =~ ~s(aria-label="Product categories")
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ "MTN MoMo"
     end
 
     test "empty products and categories render an intentional empty state, not a blank page" do
@@ -396,6 +419,18 @@ defmodule Emakola.Themes.ChaleTest do
       assert html =~ ~s(aria-hidden="true")
     end
 
+    test "never borrows a product photo: the image comes only from the merchant's own setting" do
+      html =
+        render_component(&Hero.render/1, %{
+          store: @component_store,
+          products: [component_product(%{images: [%{thumbnail_url: "/uploads/osu-tee.jpg"}]})],
+          settings: settings_for(Hero)
+        })
+
+      refute html =~ "<img"
+      refute html =~ "osu-tee"
+    end
+
     test "renders a local upload as the hero image with alt text" do
       html = render_hero(@component_store, %{"image_url" => "/uploads/wall.jpg"})
 
@@ -490,6 +525,19 @@ defmodule Emakola.Themes.ChaleTest do
       refute html =~ "chale-drop-heading"
     end
 
+    test "a drop without a photo gets one pictogram placeholder, never a letter" do
+      html =
+        render_component(&Drop.render/1, %{
+          store: @component_store,
+          products: [component_product()],
+          settings: settings_for(Drop)
+        })
+
+      refute html =~ "<img"
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*O\s*</
+    end
+
     test "a merchant heading replaces the default" do
       html =
         render_component(&Drop.render/1, %{
@@ -504,11 +552,16 @@ defmodule Emakola.Themes.ChaleTest do
   end
 
   describe "grid section" do
+    # The drop takes the first product; these hang on the rack behind it.
+    defp on_the_rack(products) do
+      [component_product(%{id: "drop", title: "Jamestown Hoodie", slug: "jamestown"}) | products]
+    end
+
     test "renders product cards with quick add-to-cart" do
       html =
         render_component(&Grid.render/1, %{
           store: @component_store,
-          products: [component_product()],
+          products: on_the_rack([component_product()]),
           settings: settings_for(Grid)
         })
 
@@ -520,16 +573,38 @@ defmodule Emakola.Themes.ChaleTest do
       assert html =~ ~s(aria-label="Add Osu Tee to cart")
     end
 
-    test "cards look finished with no image: initial and price stamp, no <img>" do
+    test "the grid leaves the drop to the drop section" do
       html =
+        render_component(&Grid.render/1, %{
+          store: @component_store,
+          products: on_the_rack([component_product()]),
+          settings: settings_for(Grid)
+        })
+
+      refute html =~ "Jamestown Hoodie"
+
+      alone =
         render_component(&Grid.render/1, %{
           store: @component_store,
           products: [component_product()],
           settings: settings_for(Grid)
         })
 
+      refute alone =~ "Shop all"
+      refute alone =~ "Osu Tee"
+    end
+
+    test "cards look finished with no image: pictogram and price stamp, no <img>" do
+      html =
+        render_component(&Grid.render/1, %{
+          store: @component_store,
+          products: on_the_rack([component_product()]),
+          settings: settings_for(Grid)
+        })
+
       refute html =~ "<img"
-      assert html =~ ~r/>\s*O\s*</
+      assert length(String.split(html, ~s(data-placeholder="product"))) == 2
+      refute html =~ ~r/>\s*O\s*</
       assert html =~ "GH₵ 150"
     end
 
@@ -544,7 +619,7 @@ defmodule Emakola.Themes.ChaleTest do
       html =
         render_component(&Grid.render/1, %{
           store: @component_store,
-          products: [product],
+          products: on_the_rack([product]),
           settings: settings_for(Grid)
         })
 
@@ -564,7 +639,7 @@ defmodule Emakola.Themes.ChaleTest do
       html =
         render_component(&Grid.render/1, %{
           store: @component_store,
-          products: [product],
+          products: on_the_rack([product]),
           settings: settings_for(Grid)
         })
 
@@ -654,6 +729,24 @@ defmodule Emakola.Themes.ChaleTest do
 
       assert html =~ "Join the crew"
       refute html =~ "Don&#39;t miss the next drop"
+    end
+
+    test "waits for a full rack: no form under four products" do
+      one = [component_product()]
+
+      refute render_component(&Newsletter.render/1, %{
+               store: @component_store,
+               products: one,
+               settings: settings_for(Newsletter)
+             }) =~ "<form"
+
+      four = Enum.map(1..4, &component_product(%{id: "p#{&1}", slug: "p#{&1}"}))
+
+      assert render_component(&Newsletter.render/1, %{
+               store: @component_store,
+               products: four,
+               settings: settings_for(Newsletter)
+             }) =~ "<form"
     end
   end
 

@@ -131,6 +131,21 @@ defmodule Emakola.Accounts.SessionsTest do
     end
   end
 
+  describe "touch_by_id/1" do
+    test "touches a stale session by id" do
+      user = create_platform_owner!()
+      stale = DateTime.add(DateTime.utc_now(), -10, :minute)
+      session = create_user_session!(user, %{last_seen_at: stale})
+
+      assert {:ok, touched} = Sessions.touch_by_id(session.id)
+      assert DateTime.after?(touched.last_seen_at, stale)
+    end
+
+    test "an unknown or revoked id is not an error worth crashing a heartbeat" do
+      assert {:error, :not_found} = Sessions.touch_by_id(Ecto.UUID.generate())
+    end
+  end
+
   describe "revoke/1" do
     test "revokes a session struct without writing an audit row" do
       user = create_platform_owner!()

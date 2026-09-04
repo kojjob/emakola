@@ -20,7 +20,6 @@ defmodule Emakola.Stores.DirectoryScoreTest do
         review_rating_sum_centi: 0,
         product_count: 0,
         days_since_last_publish: nil,
-        kyc_approved?: false,
         taken_down_products_90d: 0,
         merchant_fault_returns_90d: 0,
         staff_refunded_holds_90d: 0
@@ -89,8 +88,7 @@ defmodule Emakola.Stores.DirectoryScoreTest do
           review_count: 200,
           review_rating_sum_centi: 200 * 500,
           product_count: 100,
-          days_since_last_publish: 1,
-          kyc_approved?: true
+          days_since_last_publish: 1
         })
       )
 
@@ -119,7 +117,7 @@ defmodule Emakola.Stores.DirectoryScoreTest do
     for overrides <- [
           %{},
           %{delivered_orders_90d: 12, cancelled_orders_90d: 2},
-          %{review_count: 7, review_rating_sum_centi: 7 * 480, kyc_approved?: true},
+          %{review_count: 7, review_rating_sum_centi: 7 * 480},
           %{refunded_payments_90d: 40, successful_payments_90d: 2, taken_down_products_90d: 4}
         ] do
       {score, breakdown} = DirectoryScore.compute(signals(overrides))
@@ -146,13 +144,39 @@ defmodule Emakola.Stores.DirectoryScoreTest do
     assert fresh > stale
   end
 
-  test "KYC approval is worth points but is not required to score" do
-    {without, _} = DirectoryScore.compute(signals(%{delivered_orders_90d: 5}))
+  test "identity is not scored — an approved KYC record earns nothing" do
+    # L.I. 2523 retired the national-ID flow, so a `verified_trust` component
+    # would only reward stores onboarded before June 2026. Passing the old
+    # signal must be inert, not merely unused.
+    {without, breakdown} = DirectoryScore.compute(signals(%{delivered_orders_90d: 5}))
 
     {with_kyc, _} =
       DirectoryScore.compute(signals(%{delivered_orders_90d: 5, kyc_approved?: true}))
 
-    assert with_kyc > without
+    assert with_kyc == without
     assert without > 0
+    refute Map.has_key?(breakdown, :verified_trust)
+  end
+
+  test "the perfect-shop ceiling is unchanged by dropping the identity component" do
+    {ceiling, _} =
+      DirectoryScore.compute(
+        signals(%{
+          delivered_orders_90d: 500,
+          cancelled_orders_90d: 0,
+          successful_payments_90d: 500,
+          review_count: 200,
+          review_rating_sum_centi: 200 * 500,
+          product_count: 100,
+          days_since_last_publish: 1
+        })
+      )
+
+    # 892, not 900: the review prior means 200 five-star reviews land at 192
+    # of the 200 available points, and that headroom is the prior working.
+    # The number is identical before and after the redistribution
+    # (250+200+192+150+100 = 300+250+192+150), which is the point — dropping
+    # the identity component moved weight around without moving the ceiling.
+    assert ceiling == 892
   end
 end

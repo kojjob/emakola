@@ -137,7 +137,7 @@ defmodule Emakola.Themes.Dede.Shared do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               class="relative flex h-11 w-11 items-center justify-center rounded-full text-[#6B6355] hover:bg-[#26211A]/5 hover:text-[#26211A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#26211A] motion-safe:transition-colors"
             >
               <svg
@@ -242,7 +242,7 @@ defmodule Emakola.Themes.Dede.Shared do
         <a
           href={store_path(@store.slug, "/cart")}
           class="relative flex flex-col items-center gap-0.5 rounded px-3 py-1 text-[#A8BAA5] hover:text-[#F3EDDF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EDDF]"
-          aria-label={"Cart, #{@cart_count} items"}
+          aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
         >
           <span class="relative">
             <svg
@@ -306,6 +306,7 @@ defmodule Emakola.Themes.Dede.Shared do
         height={56}
         class="h-14 w-14 flex-shrink-0 rounded-full border-2 border-[#F3EDDF]/15 object-cover"
       />
+      <.dish_placeholder :if={!@image} class="h-14 w-14" />
       <a
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="min-w-0 flex-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EDDF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B2E23]"
@@ -552,6 +553,42 @@ defmodule Emakola.Themes.Dede.Shared do
   end
 
   @doc """
+  The round photo slot a dish shows when it has no photograph: a quiet bag
+  pictogram in chalk on the board's ground, marked `data-placeholder`.
+  Never the dish's initial — a letter means nothing to a buyer who reads
+  slowly.
+  """
+  attr :class, :string, default: nil
+
+  def dish_placeholder(assigns) do
+    ~H"""
+    <span
+      class={[
+        "flex flex-shrink-0 items-center justify-center rounded-full border-2 border-[#F3EDDF]/15 bg-[#F3EDDF]/10 text-[#A8BAA5]",
+        @class
+      ]}
+      data-placeholder="product"
+      aria-hidden="true"
+    >
+      <svg
+        class="h-[45%] w-[45%]"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+        />
+      </svg>
+    </span>
+    """
+  end
+
+  @doc """
   True when every loaded variant is out of stock —
   `Emakola.Catalog.Variant.in_stock?/1` is the single purchasability rule.
   Products whose variants aren't loaded (or that have none) fail open to
@@ -566,6 +603,24 @@ defmodule Emakola.Themes.Dede.Shared do
 
   defp loaded_variants(%{variants: variants}) when is_list(variants), do: variants
   defp loaded_variants(_product), do: []
+
+  @doc """
+  Today's special: the first available dish, or nil when every dish is
+  sold out — a sold-out dish never headlines.
+  """
+  def special(products), do: Enum.find(products, &(!sold_out?(&1)))
+
+  @doc """
+  The dishes chalked on the board: every product except today's special,
+  which the special section already carries. When nothing is available
+  the whole menu stays on the board, struck through.
+  """
+  def board(products) do
+    case special(products) do
+      nil -> products
+      special -> Enum.reject(products, &(&1.id == special.id))
+    end
+  end
 
   @doc """
   First image URL from a product's images — thumbnail_url, then url, else nil.

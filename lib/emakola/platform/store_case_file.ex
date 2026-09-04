@@ -50,9 +50,12 @@ defmodule Emakola.Platform.StoreCaseFile do
     }
   end
 
+  # The platform's one GMV rule, shared with the dashboard tiles.
   defp settled_gmv(payments) do
+    statuses = Emakola.Platform.Stats.gmv_statuses()
+
     payments
-    |> Enum.filter(&(&1.status in [:success, :refunded, :partially_refunded]))
+    |> Enum.filter(&(&1.status in statuses))
     |> Enum.map(& &1.amount)
     |> Enum.sum()
   end

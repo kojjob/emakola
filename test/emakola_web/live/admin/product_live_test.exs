@@ -95,23 +95,11 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       assert has_element?(view, "#product-empty-state", "Add your first product")
 
       # One obvious thing to do — the artboard's rule. The tour lives on
-      # Customers, where there is no action to take yet.
-      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']") or
-               has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-
+      # Customers, where there is no action to take yet, and the AI fill
+      # lives inside the one door rather than as a second one.
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']")
+      refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
       refute has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
-    end
-
-    test "the camera is offered as the first way in when AI is on", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      # Photo-first beats form-first for a merchant who reads slowly — and the
-      # snap flow only exists when the AI key is configured.
-      if EmakolaWeb.AiGate.enabled?() do
-        assert has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-      else
-        refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-      end
     end
 
     test "a search that matches nothing still says so", %{conn: conn, store: store} do
@@ -139,7 +127,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       {:ok, view, html} = live(conn, ~p"/admin/products")
 
       assert html =~ "Products"
-      assert has_element?(view, "button", "New Product")
+      assert has_element?(view, ~s{a[href="/admin/products/new"]}, "Add products")
     end
 
     test "caps the product list at 100 rows", %{conn: conn, store: store} do
@@ -249,15 +237,17 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
-    test "renders new product form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+    test "renders the edit form", %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Kente Stole"})
 
-      assert html =~ "New Product"
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      assert html =~ "Edit Product"
       assert html =~ "Title"
       assert html =~ "Save as Draft"
     end
 
-    test "does not render the platform announcement banner", %{conn: conn} do
+    test "does not render the platform announcement banner", %{conn: conn, store: store} do
       {:ok, ann} =
         Emakola.Notifications.create_announcement(
           %{
@@ -272,34 +262,10 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      product = Factory.create_product!(store, %{title: "Kente Stole"})
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       refute html =~ "Welcome to Makola Payouts"
-    end
-  end
-
-  describe "ProductLive.Form create (authenticated merchant)" do
-    setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    # Regression: form saves were silently denied after the H2 policy
-    # tightening because create_product was called without authorize?: false.
-    test "submitting the form creates a draft product", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
-
-      view
-      |> element("form[phx-submit=\"save_product\"]")
-      |> render_submit(%{"product" => %{"title" => "Bolga Basket", "description" => "Handwoven"}})
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.title == "Bolga Basket"
-      assert product.status == :draft
     end
   end
 
@@ -430,125 +396,6 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       assert html =~ "Edit Product"
       assert html =~ (image.thumbnail_url || image.url)
-    end
-  end
-
-  describe "ProductLive.Index slide-over create (authenticated merchant)" do
-    setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    test "creating with price and Save & Activate publishes the product",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view
-      |> element(~s{button[phx-click*="open_new_product"]})
-      |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{
-            "title" => "Kente Cloth",
-            "price" => "25.00",
-            "_action" => "activate"
-          }
-        })
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :active
-
-      loaded = Ash.load!(product, [:variants], authorize?: false)
-      assert [%{price: 2500}] = loaded.variants
-
-      assert html =~ "Product published"
-    end
-
-    test "creating without price saves a draft and shows draft flash",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view
-      |> element(~s{button[phx-click*="open_new_product"]})
-      |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{
-            "title" => "Kente Cloth",
-            "_action" => "activate"
-          }
-        })
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :draft
-      assert html =~ "Saved as draft"
-    end
-  end
-
-  describe "ProductLive.Index slide-over zero price boundary" do
-    setup %{conn: conn} do
-      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    test "slide-over price '0' → no product created, error rendered",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{"title" => "Zero", "price" => "0", "_action" => "activate"}
-        })
-
-      assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
-    end
-
-    test "slide-over price '0.00' → no product created, error rendered",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
-
-      html =
-        view
-        |> element("#product-slide-over-form")
-        |> render_submit(%{
-          "product" => %{"title" => "Zero", "price" => "0.00", "_action" => "activate"}
-        })
-
-      assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id: store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
     end
   end
 

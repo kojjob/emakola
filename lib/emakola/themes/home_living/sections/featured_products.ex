@@ -3,8 +3,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.FeaturedProducts do
   Home Living "Popular products" grid — extracted verbatim from
   home_living/home.ex.
 
-  Shows the first `limit` products (8 before the retrofit, the default here)
-  and, like the original, renders nothing at all when the store has none.
+  Shows up to `limit` products (8 before the retrofit, the default here) of
+  the catalogue minus the featured pick (`Emakola.Themes.Layout`), so nothing
+  is shown twice; a one-product shop is carried by the pick alone. Like the
+  original, it renders nothing at all when there is nothing to show.
   Still gated by the legacy `@theme.sections.featured_products` toggle
   underneath the section editor's own `enabled` flag.
   """
@@ -15,6 +17,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.FeaturedProducts do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Layout
 
   @default_limit 8
 
@@ -34,11 +37,14 @@ defmodule Emakola.Themes.HomeLiving.Sections.FeaturedProducts do
 
   @impl true
   def render(assigns) do
-    products = Map.get(assigns, :products) || []
+    layout = Layout.of(assigns)
 
     assigns =
       assigns
-      |> assign(:featured_products, Enum.take(products, limit(assigns.settings["limit"])))
+      |> assign(
+        :featured_products,
+        Enum.take(layout.grid_products, limit(assigns.settings["limit"]))
+      )
       |> assign(:eyebrow, present(assigns.settings["eyebrow"]) || "From the shop")
       |> assign(:heading, present(assigns.settings["heading"]) || "Featured products")
 

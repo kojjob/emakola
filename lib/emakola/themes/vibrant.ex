@@ -66,11 +66,13 @@ defmodule Emakola.Themes.Vibrant do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Discover Unique Finds",
-        # Was "Handcrafted with Love" — a claim about how every product in every
-        # Vibrant store was made. The hero subtitle is merchant-editable, so the
-        # honest default describes the page, not the goods.
-        subtitle: "Shop the collection",
+        # Was "Discover Unique Finds" over "Handcrafted with Love", then "Shop
+        # the collection". Blank, the hero reads as the store's own name and
+        # description until the merchant writes a headline. The keys stay:
+        # ThemeResolver.deep_merge_atomize/2 drops any override whose key is
+        # absent from the defaults.
+        title: nil,
+        subtitle: nil,
         cta_text: "Explore Now",
         cta_url: "/products"
       },

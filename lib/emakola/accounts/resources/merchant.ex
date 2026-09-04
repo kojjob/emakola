@@ -199,6 +199,15 @@ defmodule Emakola.Accounts.Merchant do
     identity(:unique_phone, [:phone])
   end
 
+  changes do
+    # The one email after confirmation: the picture-first "set up my shop"
+    # nudge. Registration itself sends only the confirmation (#597).
+    change(Emakola.Accounts.Changes.SendShopReadyEmail,
+      on: [:update],
+      where: [action_is(:confirm)]
+    )
+  end
+
   policies do
     # Authentication interactions (login, register, etc.) always allowed
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
@@ -219,13 +228,6 @@ defmodule Emakola.Accounts.Merchant do
     policy action_type([:update, :destroy]) do
       authorize_if(expr(id == ^actor(:id)))
     end
-  end
-
-  changes do
-    change(Emakola.Accounts.Changes.SendWelcomeEmail,
-      on: [:create],
-      where: [action_is(:register_with_password)]
-    )
   end
 
   actions do

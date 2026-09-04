@@ -16,6 +16,7 @@ defmodule Emakola.Themes.Fashion.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   attr :store, :map, required: true
@@ -25,7 +26,10 @@ defmodule Emakola.Themes.Fashion.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Fashion)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Fashion)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="fashion-body min-h-screen">

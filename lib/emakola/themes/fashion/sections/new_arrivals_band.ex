@@ -1,5 +1,9 @@
 defmodule Emakola.Themes.Fashion.Sections.NewArrivalsBand do
-  @moduledoc "Fashion home new-arrivals band (aubergine) — extracted verbatim from fashion/home.ex."
+  @moduledoc """
+  Fashion home new-arrivals band (aubergine) — extracted verbatim from
+  fashion/home.ex. Shows the catalogue after the edit grid's eight, so it
+  never repeats a product the page already carries.
+  """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
@@ -7,6 +11,7 @@ defmodule Emakola.Themes.Fashion.Sections.NewArrivalsBand do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fashion/new_arrivals_band"
@@ -19,9 +24,7 @@ defmodule Emakola.Themes.Fashion.Sections.NewArrivalsBand do
 
   @impl true
   def render(assigns) do
-    products = assigns[:products] || []
-
-    assigns = assign(assigns, :new_arrivals, Enum.take(Enum.drop(products, 4), 4))
+    assigns = assign(assigns, :new_arrivals, Shared.band_products(Layout.of(assigns)))
 
     ~H"""
     <section
@@ -60,7 +63,10 @@ defmodule Emakola.Themes.Fashion.Sections.NewArrivalsBand do
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               <% else %>
-                <div class="w-full h-full flex items-center justify-center">
+                <div
+                  class="w-full h-full flex items-center justify-center"
+                  data-placeholder="product"
+                >
                   <span class="material-symbols-outlined text-[#D97706]/40" style="font-size: 56px;">
                     checkroom
                   </span>

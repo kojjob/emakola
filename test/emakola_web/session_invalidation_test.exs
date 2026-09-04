@@ -42,7 +42,10 @@ defmodule EmakolaWeb.SessionInvalidationTest do
     # The "attacker's" cookie: a perfectly valid session minted pre-reset.
     stolen = AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
-    assert {:ok, _view, _html} = live(conn_with_session(conn, stolen), ~p"/dashboard")
+    # Recognised: a store-less merchant is sent to onboarding — not to login,
+    # which is what an unrecognised session gets.
+    assert {:error, {:live_redirect, %{to: "/onboarding"}}} =
+             live(conn_with_session(conn, stolen), ~p"/dashboard")
 
     :ok = Emakola.Accounts.revoke_all_sessions_for(merchant)
 
@@ -81,7 +84,9 @@ defmodule EmakolaWeb.SessionInvalidationTest do
     merchant = Ash.get!(Merchant, merchant.id, authorize?: false)
     fresh = AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
-    assert {:ok, _view, _html} = live(conn_with_session(conn, fresh), ~p"/dashboard")
+    # Recognised again: onboarding, not the login page.
+    assert {:error, {:live_redirect, %{to: "/onboarding"}}} =
+             live(conn_with_session(conn, fresh), ~p"/dashboard")
   end
 
   describe "unreadable token payloads" do

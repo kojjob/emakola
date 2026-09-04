@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Spotlight.Home do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
   alias Emakola.Themes.Spotlight.Shared
 
@@ -22,7 +23,10 @@ defmodule Emakola.Themes.Spotlight.Home do
   attr :categories, :list, default: []
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Spotlight)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Spotlight)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="spot-body min-h-screen">

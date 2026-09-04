@@ -423,7 +423,10 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
     """
   end
 
-  defp status_colors(:pending), do: {"bg-amber-50", "text-amber-700", "Awaiting Payment"}
+  # "Order Received", not "Awaiting Payment": most orders here are pay-on-
+  # delivery, and that badge told the buyer something had gone wrong with
+  # money they intend to hand over at the door.
+  defp status_colors(:pending), do: {"bg-amber-50", "text-amber-700", "Order Received"}
   defp status_colors(:confirmed), do: {"bg-green-50", "text-green-700", "Order Confirmed"}
   defp status_colors(:processing), do: {"bg-blue-50", "text-blue-700", "Processing"}
   defp status_colors(:shipped), do: {"bg-purple-50", "text-purple-700", "Shipped"}

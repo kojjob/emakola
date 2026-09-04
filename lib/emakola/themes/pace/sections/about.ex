@@ -1,11 +1,14 @@
 defmodule Emakola.Themes.Pace.Sections.About do
   @moduledoc """
-  Pace home store story — start-block avatar, description (neutral
-  fallback), WhatsApp CTA when the store has a number.
+  Pace home store story — the merchant's description and a WhatsApp CTA
+  when the store has a number. Renders nothing when the merchant has not
+  written a description: no stock sentence speaks for them.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "pace/about"
@@ -17,14 +20,15 @@ defmodule Emakola.Themes.Pace.Sections.About do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <section class="px-5 py-4 sm:px-8 sm:py-5 lg:px-10" aria-labelledby="pace-about-heading">
+    <section
+      :if={@layout.show_about?}
+      class="px-5 py-4 sm:px-8 sm:py-5 lg:px-10"
+      aria-labelledby="pace-about-heading"
+    >
       <div class="mx-auto max-w-[1280px] rounded-[24px] bg-[#F1F6FA] p-6 text-center sm:p-8">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950">
-          <span class="pace-display text-2xl font-bold italic text-white">
-            {String.first(@store.name)}
-          </span>
-        </div>
         <h2
           id="pace-about-heading"
           class="pace-display mb-2 text-xl font-bold uppercase italic tracking-tight text-slate-950"
@@ -32,9 +36,7 @@ defmodule Emakola.Themes.Pace.Sections.About do
           About the shop
         </h2>
         <p class="mx-auto mb-4 max-w-[480px] text-sm leading-relaxed text-slate-600">
-          {if @store.description,
-            do: @store.description,
-            else: "Welcome to #{@store.name}. Browse the lineup — quality gear, picked for you."}
+          {@store.description}
         </p>
         <a
           :if={Map.get(@store, :whatsapp_number)}

@@ -3,11 +3,14 @@ defmodule Emakola.Themes.Fie.Sections.Newsletter do
   Fie home email capture. The form fires `subscribe_newsletter`, handled
   platform-wide by `EmakolaWeb.Hooks.NewsletterSubscription` — no per-view
   handler needed. Copy is honest: new catalogue pages from this store,
-  nothing else promised.
+  nothing else promised. Shown only once the catalogue is full enough to
+  have news: four or more pieces.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "fie/newsletter"
@@ -21,8 +24,11 @@ defmodule Emakola.Themes.Fie.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
+      :if={@layout.show_newsletter?}
       class="border-t border-[#EBDAD3] bg-[#FDFCFB]"
       aria-labelledby="fie-newsletter-heading"
     >

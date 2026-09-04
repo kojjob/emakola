@@ -112,13 +112,6 @@ defmodule Emakola.Accounts.User do
     end
   end
 
-  changes do
-    change(Emakola.Accounts.Changes.SendWelcomeEmail,
-      on: [:create],
-      where: [action_is(:register_with_password)]
-    )
-  end
-
   actions do
     defaults([:read])
 
@@ -241,6 +234,28 @@ defmodule Emakola.Accounts.User do
       change(
         after_action(fn _changeset, user, ctx ->
           Emakola.Accounts.PlatformAudit.log(:staff_deactivated, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
+    end
+
+    # Leaves the platform team: no ownership, no permissions. The user row
+    # stays so audit entries keep resolving to a person.
+    update :remove_from_platform_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:is_owner, false))
+      change(set_attribute(:platform_permissions, []))
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_removed, ctx.actor, %{
             user_id: user.id,
             email: to_string(user.email)
           })

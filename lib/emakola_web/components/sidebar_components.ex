@@ -417,8 +417,8 @@ defmodule EmakolaWeb.SidebarComponents do
         />
         <.sidebar_link
           href="/admin/verification"
-          title="Verification"
-          icon="shield"
+          title="Business details"
+          icon="folder"
           active={@active_nav == :verification}
         />
         <.sidebar_link

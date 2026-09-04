@@ -1,8 +1,9 @@
 defmodule Emakola.Themes.Pharmacy.Sections.HighlightCards do
   @moduledoc """
-  Pharmacy home highlight cards — three pastel blocks showcasing the first
-  three products. Extracted verbatim from `pharmacy/home.ex`, along with the
-  card component and its pastel palette.
+  Pharmacy home highlight cards — three pastel blocks showcasing the three
+  products after the ones "From our shelves" took (the featured product plus
+  three), so nothing on the home appears twice. Carries the card component
+  and its pastel palette.
   """
   @behaviour Emakola.Themes.Section
 
@@ -10,6 +11,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.HighlightCards do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -23,8 +25,9 @@ defmodule Emakola.Themes.Pharmacy.Sections.HighlightCards do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assign(assigns, :highlight_products, Enum.take(Map.get(assigns, :products) || [], 3))
+    highlights = Layout.of(assigns).grid_products |> Enum.drop(3) |> Enum.take(3)
+
+    assigns = assign(assigns, :highlight_products, highlights)
 
     ~H"""
     <section
@@ -83,6 +86,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.HighlightCards do
         <div
           class="absolute right-2 sm:right-4 bottom-2 sm:bottom-4 w-32 h-32 sm:w-44 sm:h-44 flex items-center justify-center"
           style={"color: #{@palette.icon};"}
+          data-placeholder="product"
         >
           <span class="material-symbols-outlined" style="font-size: 100px;">medication</span>
         </div>

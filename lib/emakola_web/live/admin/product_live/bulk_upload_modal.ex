@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
   attr :csv_preview, :list, default: [], doc: "rows parsed and ready to import"
   attr :csv_errors, :list, default: [], doc: "user-readable error strings"
   attr :bulk_importing, :boolean, default: false, doc: "true while import is running"
+  attr :show, :boolean, default: false, doc: "open on mount (the ?upload=csv arrival)"
 
   def bulk_upload_modal(assigns) do
     ~H"""
@@ -29,6 +30,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
       id="bulk-upload-modal"
       title="Bulk Upload Products"
       kind={:slide_over}
+      show={@show}
       on_cancel={JS.push("cancel_bulk_upload")}
     >
       <div class="space-y-5">
@@ -147,7 +149,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
         <%!-- CSV Preview Table --%>
         <div :if={@csv_preview != []} class="space-y-2">
           <h3 class="text-sm font-semibold text-slate-700">
-            Preview ({length(@csv_preview)} products)
+            Preview ({Emakola.Plural.count(length(@csv_preview), "product")})
           </h3>
           <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg">
             <table class="min-w-full text-xs">

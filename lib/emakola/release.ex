@@ -35,6 +35,45 @@ defmodule Emakola.Release do
   end
 
   @doc """
+  Deletes the documents the retired verification flows stored.
+
+  Every ID image and business paper went into the public bucket, which cannot
+  be made private per object on Tigris — and under L.I. 2523 retaining the ID
+  image is itself the offence. Dry run first; it lists counts and writes nothing:
+
+      bin/emakola rpc 'Emakola.Release.purge_verification_documents(true)'
+      bin/emakola rpc 'Emakola.Release.purge_verification_documents()'
+
+  Returns counts only — no keys — so it is safe in a deploy log.
+  """
+  @spec purge_verification_documents(boolean()) ::
+          Emakola.Stores.VerificationDocumentPurge.result()
+  def purge_verification_documents(dry_run? \\ false) do
+    Emakola.Stores.VerificationDocumentPurge.run(dry_run?: dry_run?)
+  end
+
+  @doc """
+  ||||||| ece79f78
+  Grandfathers trading merchants past the verification gate.
+
+  Access is gated on a verified address, so the merchants who signed up while
+  production ran on a dead mail key — and have been selling ever since — are
+  locked out on deploy until this runs. It has to run HERE rather than as a
+  Mix task: production runs a release, and a release ships no Mix.
+
+  Dry run first; it writes nothing and prints the same split:
+
+      bin/emakola rpc 'Emakola.Release.backfill_verified_merchants(true)'
+      bin/emakola rpc 'Emakola.Release.backfill_verified_merchants()'
+
+  Returns counts only — no addresses, so it is safe in a deploy log.
+  """
+  @spec backfill_verified_merchants(boolean()) :: Emakola.Accounts.VerificationBackfill.result()
+  def backfill_verified_merchants(dry_run? \\ false) do
+    Emakola.Accounts.VerificationBackfill.run(dry_run?: dry_run?)
+  end
+
+  @doc """
   Reconciles encrypted shadows after all old nodes have drained.
 
       bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'

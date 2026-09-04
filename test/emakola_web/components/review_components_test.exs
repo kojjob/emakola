@@ -269,7 +269,7 @@ defmodule EmakolaWeb.ReviewComponentsTest do
       assert html =~ "Really loved this item"
       assert html =~ "Verified Purchase"
       assert html =~ "Kwame"
-      assert html =~ "1 hours ago"
+      assert html =~ "1 hour ago"
     end
 
     test "renders section header with avg rating when reviews exist" do

@@ -2,13 +2,16 @@ defmodule Emakola.Themes.Dede.Sections.Categories do
   @moduledoc """
   Category chips — a thumb-height rail (44px minimum) linking to category
   pages. Food sells by kind: rice dishes, soups, drinks. Hidden entirely
-  when the store has no categories.
+  when the store has no categories, and until the menu is long enough to
+  sort: four or more dishes.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Layout
 
   @impl true
   def key, do: "dede/categories"
@@ -20,9 +23,11 @@ defmodule Emakola.Themes.Dede.Sections.Categories do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <nav
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8"
       aria-label="Product categories"
     >

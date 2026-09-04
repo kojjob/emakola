@@ -264,6 +264,43 @@ Reports may remain empty for several days while Google and Bing collect data.
 **Done when:** Google accepts the main sitemap and Bing lists the imported
 website and sitemap.
 
+### 2.7 Connect the Search Console API to Makola
+
+Makola can pull Search Console data itself (`Emakola.Analytics.GscFetcher`,
+run daily by `GscSyncWorker`). It ships dark until a service account key is
+set. Without it, the fetcher returns nothing and logs nothing.
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) with the
+   same Google account that owns the Search Console property.
+2. Create a project (or pick an existing one), then open
+   **APIs & Services → Library**, search for **Google Search Console API**,
+   and click **Enable**.
+3. Open **IAM & Admin → Service Accounts → Create service account**. Name it
+   `makola-gsc`. It needs no project roles. Finish.
+4. Open the new service account, go to **Keys → Add key → Create new key →
+   JSON**. A file downloads. Keep it private; it is a credential.
+5. Back in Search Console, open **Settings → Users and permissions → Add
+   user**. Paste the service account's email address (it ends in
+   `.iam.gserviceaccount.com`). Permission **Full**. Save.
+6. Set the key as a Fly secret, from Terminal, on one line:
+
+```bash
+fly secrets set -a emakola GSC_SERVICE_ACCOUNT_JSON="$(cat ~/Downloads/makola-gsc-*.json)"
+```
+
+`GSC_SITE_URL` needs no value: it defaults to `sc-domain:makola.io`, which
+is the form a Domain property requires. The URL-prefix form returns 403.
+
+7. Verify after the app restarts:
+
+```bash
+fly ssh console -a emakola -C "/app/bin/emakola rpc 'IO.inspect(Emakola.Analytics.GscFetcher.fetch(nil))'"
+```
+
+`{:ok, [...]}` with rows means it works. `{:ok, []}` with the secret set means
+the service account is not yet a user on the property (step 5), or the
+property has no data yet.
+
 ## 3. Set up Google Merchant Center
 
 Begin with one high-quality pilot merchant. Do not place every independent

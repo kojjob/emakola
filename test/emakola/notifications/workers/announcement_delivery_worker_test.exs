@@ -38,6 +38,24 @@ defmodule Emakola.Notifications.Workers.AnnouncementDeliveryWorkerTest do
     assert :ok = perform_job(Worker, %{"announcement_id" => ann.id, "store_id" => store.id})
   end
 
+  test "sends the email channel in the update template with a text fallback" do
+    store = Factory.create_store!(%{contact_email: "owner@example.com"})
+    ann = announcement!([:email])
+
+    assert :ok = perform_job(Worker, %{"announcement_id" => ann.id, "store_id" => store.id})
+
+    Swoosh.TestAssertions.assert_email_sent(fn email ->
+      assert {_, "owner@example.com"} = hd(email.to)
+      assert email.subject == "Heads up"
+      assert email.html_body =~ "cowrie-coin.png"
+      assert email.html_body =~ "Heads up"
+      assert email.html_body =~ "Big news for your store."
+      assert email.html_body =~ "June 2026"
+      assert email.html_body =~ "Open my shop"
+      assert email.text_body =~ "Big news for your store."
+    end)
+  end
+
   test "skips SMS when the store has no contact phone" do
     store = Factory.create_store!(%{contact_phone: nil, contact_email: nil})
     ann = announcement!([:sms])

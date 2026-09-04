@@ -81,7 +81,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#F3F4F6]")}
-              aria-label={"Cart, #{@cart_count} items"}
+              aria-label={"Cart, #{Emakola.Plural.count(@cart_count, "item")}"}
             >
               <span
                 class={"material-symbols-outlined " <> if(@on_dark, do: "text-white", else: "text-[#134E4A]")}
@@ -209,6 +209,8 @@ defmodule Emakola.Themes.Electronics.Shared do
         <div
           :if={!first_image(@product)}
           class="w-full h-full flex items-center justify-center"
+          data-placeholder="product"
+          aria-hidden="true"
         >
           <span class="material-symbols-outlined text-[#134E4A]/20" style="font-size: 64px;">
             devices

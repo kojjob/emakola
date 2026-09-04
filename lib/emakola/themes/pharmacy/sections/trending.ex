@@ -1,7 +1,8 @@
 defmodule Emakola.Themes.Pharmacy.Sections.Trending do
   @moduledoc """
-  Pharmacy home trending strip — the first four products, on the cream band.
-  Extracted verbatim from `pharmacy/home.ex`.
+  Pharmacy home "From our shelves" strip — the featured product and up to
+  three more, on the cream band. The highlight cards and the grid take what
+  is left, so no product is shown twice on the home.
 
   Still gated by the legacy `@theme.sections.featured_products` toggle it
   shared with the product grid, so a merchant who switched featured products
@@ -13,6 +14,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.Trending do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -28,8 +30,14 @@ defmodule Emakola.Themes.Pharmacy.Sections.Trending do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assign(assigns, :featured_products, Enum.take(Map.get(assigns, :products) || [], 4))
+    layout = Layout.of(assigns)
+
+    shelf =
+      if layout.featured,
+        do: [layout.featured | Enum.take(layout.grid_products, 3)],
+        else: []
+
+    assigns = assign(assigns, :featured_products, shelf)
 
     ~H"""
     <section

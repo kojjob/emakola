@@ -20,8 +20,19 @@ defmodule EmakolaWeb.DashboardLive do
   @periods ~w(today week month all)
 
   def mount(_params, _session, socket) do
-    store_id = get_store_id(socket)
+    case get_store_id(socket) do
+      nil ->
+        # A merchant with no store yet has nothing to glance at. Before this,
+        # their first screen after verifying was a full dashboard — "GHS 0.00 ·
+        # Nothing to do — nice work" — with nothing pointing at onboarding.
+        {:ok, push_navigate(socket, to: ~p"/onboarding")}
 
+      store_id ->
+        mount_dashboard(socket, store_id)
+    end
+  end
+
+  defp mount_dashboard(socket, store_id) do
     socket =
       socket
       |> assign(
@@ -257,6 +268,11 @@ defmodule EmakolaWeb.DashboardLive do
         greeting={@greeting}
         merchant_name={@merchant_name}
       />
+
+      <%!-- Platform announcements: first thing under the greeting, where the
+            merchant is already looking. Loaded and dismissed by
+            EmakolaWeb.Hooks.MerchantAnnouncements. --%>
+      <.announcement_banner :for={announcement <- @announcements} announcement={announcement} />
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
       <.setup_checklist

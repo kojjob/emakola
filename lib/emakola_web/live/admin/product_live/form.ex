@@ -1,11 +1,13 @@
 defmodule EmakolaWeb.Admin.ProductLive.Form do
   @moduledoc """
-  Create and edit product form with inline validation.
-  Supports "Save as Draft" and "Save & Activate" actions.
+  Edit product form with inline validation.
+
+  Creating happens on the one-door page (`AddProducts`); this page keeps
+  everything a product gains once it exists: description, category, tags,
+  product type, SEO, images and the shelf label. Supports "Save as Draft"
+  and "Save & Activate" actions.
   """
   use EmakolaWeb, :live_view
-
-  require Logger
 
   import EmakolaWeb.QRComponents, only: [qr_panel: 1]
 
@@ -21,60 +23,31 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   @impl true
   def mount(params, _session, socket) do
     store_id = get_store_id(socket)
+    product = load_product(params["id"], socket)
 
-    case socket.assigns.live_action do
-      :edit ->
-        product = load_product(params["id"], socket)
+    if is_nil(product) || product.store_id != store_id do
+      {:ok,
+       socket
+       |> put_flash(:error, "Product not found.")
+       |> redirect(to: ~p"/admin/products")}
+    else
+      socket =
+        socket
+        |> assign(
+          page_title: "Edit Product",
+          active_nav: :products,
+          product: product,
+          form_data: product_to_form_data(product),
+          form: to_form(product_to_form_data(product), as: :product),
+          errors: %{},
+          categories: Shared.load_store_categories(store_id),
+          store_id: store_id,
+          show_price_field: product.variants == [],
+          existing_images: product.images
+        )
+        |> allow_upload(:product_images, @upload_opts)
 
-        if is_nil(product) || product.store_id != store_id do
-          {:ok,
-           socket
-           |> put_flash(:error, "Product not found.")
-           |> redirect(to: ~p"/admin/products")}
-        else
-          categories = load_store_categories(store_id)
-
-          socket =
-            socket
-            |> assign(
-              page_title: "Edit Product",
-              active_nav: :products,
-              product: product,
-              form_data: product_to_form_data(product),
-              form: to_form(product_to_form_data(product), as: :product),
-              errors: %{},
-              categories: categories,
-              store_id: store_id,
-              is_edit: true,
-              show_price_field: product.variants == [],
-              existing_images: product.images
-            )
-            |> allow_upload(:product_images, @upload_opts)
-
-          {:ok, socket}
-        end
-
-      :new ->
-        categories = load_store_categories(store_id)
-
-        socket =
-          socket
-          |> assign(
-            page_title: "New Product",
-            active_nav: :products,
-            product: nil,
-            form_data: empty_form_data(),
-            form: to_form(empty_form_data(), as: :product),
-            errors: %{},
-            categories: categories,
-            store_id: store_id,
-            is_edit: false,
-            show_price_field: true,
-            existing_images: []
-          )
-          |> allow_upload(:product_images, @upload_opts)
-
-        {:ok, socket}
+      {:ok, socket}
     end
   end
 
@@ -109,12 +82,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       {:ok, image} when image.store_id == store_id ->
         Emakola.Catalog.destroy_image!(image, authorize?: false)
 
-        updated_images =
-          if product = socket.assigns.product do
-            Ash.load!(product, [:images], authorize?: false).images
-          else
-            []
-          end
+        updated_images = Ash.load!(socket.assigns.product, [:images], authorize?: false).images
 
         {:noreply, assign(socket, existing_images: updated_images)}
 
@@ -137,12 +105,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           <.icon name="hero-arrow-left" class="size-5 text-slate-500" />
         </.link>
         <div>
-          <h1 class="text-2xl font-bold font-headline tracking-tight">
-            {if @is_edit, do: "Edit Product", else: "New Product"}
-          </h1>
-          <p class="text-sm text-slate-500 mt-0.5">
-            {if @is_edit, do: "Update product details", else: "Add a new product to your catalog"}
-          </p>
+          <h1 class="text-2xl font-bold font-headline tracking-tight">Edit Product</h1>
+          <p class="text-sm text-slate-500 mt-0.5">Update product details</p>
         </div>
       </div>
 
@@ -166,7 +130,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               field={@form[:title]}
               type="text"
               id="product_title"
-              placeholder="e.g., Ankara Print Fabric"
+              placeholder="e.g. Oraimo FreePods 3 earbuds"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
                 if(@errors[:title],
@@ -191,6 +155,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
+            <p
+              :if={@product.description_written_by_ai}
+              class="mt-1.5 text-xs font-medium text-amber-700"
+            >
+              Makola wrote this. Change what is wrong.
+            </p>
           </div>
 
           <div>
@@ -236,7 +206,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               >settings</.link>.
             </p>
             <p
-              :if={@is_edit && @form_data["product_type"] == "digital_download"}
+              :if={@form_data["product_type"] == "digital_download"}
               class="text-xs text-slate-500 mt-1.5"
             >
               <.link
@@ -264,7 +234,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
           </div>
 
-          <%!-- Price field: always on :new; on :edit only when no variants yet --%>
+          <%!-- Price field: only while the product has no variants yet --%>
           <div :if={@show_price_field}>
             <label for="product_price" class="block text-sm font-medium mb-1.5">
               Price (GHS)
@@ -356,11 +326,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             value="activate"
             class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white
                    hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
-            title={
-              if @is_edit,
-                do: "Save and activate this product",
-                else: "Save and activate (requires variants)"
-            }
+            title="Save and activate this product"
           >
             Save &amp; Activate
           </button>
@@ -369,9 +335,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
       <%!-- Shelf label. Printed and stuck on the bin, it does double duty: a
             customer scans it to read about the item, and the merchant scans it
-            on the stock page to pull this product up without typing its name.
-            Edit only — a product being created has no slug to point at yet. --%>
-      <.admin_card :if={@is_edit && @current_store} id="product-shelf-label" class="print-sheet">
+            on the stock page to pull this product up without typing its name. --%>
+      <.admin_card :if={@current_store} id="product-shelf-label" class="print-sheet">
         <.qr_panel
           id="product-qr"
           svg={QR.product_svg(@current_store, @product)}
@@ -428,12 +393,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
       pesewas = pesewas_from_price_result(price_result)
 
-      result =
-        if socket.assigns.is_edit do
-          Shared.update_product_with_price(socket.assigns.product, attrs, pesewas, action)
-        else
-          Shared.create_product_with_price(attrs, pesewas, action)
-        end
+      result = Shared.update_product_with_price(socket.assigns.product, attrs, pesewas, action)
 
       case result do
         {:ok, product, result_atom} ->
@@ -534,19 +494,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp load_store_categories(store_id) do
-    try do
-      Emakola.Catalog.list_categories_by_store!(store_id)
-    rescue
-      exception ->
-        Logger.error(
-          "[product_live.form] load_store_categories loading store categories raised: #{Exception.message(exception)}"
-        )
-
-        []
-    end
-  end
-
   defp product_to_form_data(product) do
     %{
       "title" => product.title || "",
@@ -556,18 +503,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       "seo_title" => product.seo_title || "",
       "seo_description" => product.seo_description || "",
       "product_type" => to_string(product.product_type),
-      "price" => ""
-    }
-  end
-
-  defp empty_form_data do
-    %{
-      "title" => "",
-      "description" => "",
-      "category_id" => "",
-      "tags" => "",
-      "seo_title" => "",
-      "seo_description" => "",
       "price" => ""
     }
   end

@@ -77,26 +77,9 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
           description="Try adjusting your search or filters"
         />
         <%!-- Photo first: a merchant who reads slowly can point a camera long
-              before they can fill a form. The snap flow only exists when the
-              AI key is set, so fall back to the form as the primary. --%>
+              before they can fill a form. --%>
         <.empty_state
-          :if={
-            not filtering?(@search_query, @status_filter, @category_filter) and
-              EmakolaWeb.AiGate.enabled?()
-          }
-          icon="hero-camera"
-          tone={:warning}
-          title="Add your first product"
-          description="Take a photo — Makola writes the listing"
-          action_label="Snap a photo"
-          action_icon="hero-camera"
-          action_path="/admin/products/snap"
-        />
-        <.empty_state
-          :if={
-            not filtering?(@search_query, @status_filter, @category_filter) and
-              not EmakolaWeb.AiGate.enabled?()
-          }
+          :if={not filtering?(@search_query, @status_filter, @category_filter)}
           icon="hero-camera"
           tone={:warning}
           title="Add your first product"
@@ -135,6 +118,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                     <p class="text-xs text-slate-400 truncate">
                       {category_name(product.category_id, @categories)}
                     </p>
+                    <.ai_description_chip :if={product.description_written_by_ai} />
                   </div>
                 </div>
               </td>
@@ -145,7 +129,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 <.stock_meter quantity={total_stock(product)} tracked={tracks_stock?(product)} />
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
-                {variant_count(product)} variants
+                {Emakola.Plural.count(variant_count(product), "variant")}
               </td>
               <td class="px-4 py-3 text-sm text-right font-mono font-medium">
                 {price_range(product)}
@@ -214,6 +198,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 <p class="text-xs text-slate-400">
                   {category_name(product.category_id, @categories)}
                 </p>
+                <.ai_description_chip :if={product.description_written_by_ai} />
               </div>
             </div>
             <.status_badge status={product.status} variant={:product} />
@@ -272,6 +257,16 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
         </div>
       </div>
     <% end %>
+    """
+  end
+
+  # The merchant who gets AI descriptions adds products through the photo
+  # cards and never opens the edit form, so the mark lives in the list too.
+  def ai_description_chip(assigns) do
+    ~H"""
+    <span class="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700">
+      Makola wrote this
+    </span>
     """
   end
 
@@ -421,6 +416,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   attr :categories_list, :list, required: true
   attr :uploads, :any, required: true
   attr :bulk_upload_form, :any, required: true
+  attr :show_bulk_upload, :boolean, required: true
   attr :csv_preview, :any, required: true
   attr :csv_errors, :list, required: true
   attr :bulk_importing, :boolean, required: true
@@ -431,7 +427,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
       <%!-- Product Form Slide-Over --%>
       <.modal
         id="product-form-modal"
-        title={if @editing_product, do: "Edit Product", else: "New Product"}
+        title="Edit Product"
         kind={:slide_over}
         on_cancel={JS.push("cancel_product_form")}
       >
@@ -519,33 +515,6 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                        bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
               <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
-            </div>
-
-            <%!-- Price field: only when creating a new product --%>
-            <div :if={is_nil(@editing_product)}>
-              <label for="pf_price" class="block text-sm font-medium text-slate-700 mb-1.5">
-                Price (GHS)
-              </label>
-              <.input
-                field={@product_form[:price]}
-                type="text"
-                inputmode="decimal"
-                id="pf_price"
-                placeholder="e.g. 25.00"
-                class={[
-                  "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
-                  if(@form_errors[:price],
-                    do: "border-red-300 bg-red-50",
-                    else: "border-slate-300 bg-white"
-                  )
-                ]}
-              />
-              <p :if={@form_errors[:price]} class="mt-1 text-xs text-red-600">
-                {@form_errors[:price]}
-              </p>
-              <p :if={!@form_errors[:price]} class="mt-1 text-xs text-slate-500">
-                Required to publish. You can add more pricing options later.
-              </p>
             </div>
           </div>
 
@@ -695,6 +664,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
 
       <.bulk_upload_modal
         form={@bulk_upload_form}
+        show={@show_bulk_upload}
         uploads={@uploads}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}

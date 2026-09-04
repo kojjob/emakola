@@ -91,7 +91,7 @@ defmodule Emakola.Themes.Bold.Shared do
               <a
                 href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 text-slate-400 hover:text-white transition-colors"
-                aria-label={"Shopping cart, #{@cart_count} items"}
+                aria-label={"Shopping cart, #{Emakola.Plural.count(@cart_count, "item")}"}
               >
                 <svg
                   class="w-5 h-5"
@@ -142,7 +142,12 @@ defmodule Emakola.Themes.Bold.Shared do
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#F1F5F9]">
+        <div
+          :if={!@image}
+          class="w-full aspect-[3/4] flex items-center justify-center bg-[#F1F5F9]"
+          data-placeholder="product"
+          aria-hidden="true"
+        >
           <svg class="w-12 h-12 text-[#94A3B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -203,6 +208,10 @@ defmodule Emakola.Themes.Bold.Shared do
   attr :store, :map, required: true
   attr :categories, :list, default: []
 
+  attr :newsletter, :boolean,
+    default: true,
+    doc: "whether the mini subscribe form shows; the home passes the Layout plan's answer"
+
   def footer(assigns) do
     ~H"""
     <footer class="bg-[#0F172A] text-slate-400">
@@ -216,10 +225,15 @@ defmodule Emakola.Themes.Bold.Shared do
             >
               {@store.name}
             </h3>
-            <p class="text-sm leading-relaxed" style="font-family: 'Inter', sans-serif;">
-              {if @store.description,
-                do: @store.description,
-                else: "Curated goods for the discerning eye."}
+            <%!-- The merchant's description, or nothing: "Curated goods for the
+                 discerning eye." used to fill the gap for every store that had
+                 written none. --%>
+            <p
+              :if={present?(@store.description)}
+              class="text-sm leading-relaxed"
+              style="font-family: 'Inter', sans-serif;"
+            >
+              {@store.description}
             </p>
           </div>
 
@@ -282,7 +296,7 @@ defmodule Emakola.Themes.Bold.Shared do
           </div>
 
           <%!-- Newsletter Mini --%>
-          <div>
+          <div :if={@newsletter}>
             <h4
               class="text-xs font-bold tracking-[0.2em] uppercase text-slate-500 mb-4"
               style="font-family: 'Outfit', sans-serif;"
@@ -323,6 +337,24 @@ defmodule Emakola.Themes.Bold.Shared do
   end
 
   # ── Helpers ──
+
+  # How the home divides the catalogue so no product appears twice: the
+  # featured bento takes the plan's featured product and the next two; the
+  # grid takes the rest.
+  @bento_supporting 2
+
+  @doc "The featured bento's products: the plan's featured product, then up to two more."
+  def bento_products(%{featured: nil}), do: []
+
+  def bento_products(layout),
+    do: [layout.featured | Enum.take(layout.grid_products, @bento_supporting)]
+
+  @doc "The grid's products — the catalogue after the bento's."
+  def grid_products(layout), do: Enum.drop(layout.grid_products, @bento_supporting)
+
+  @doc "Whether the merchant has written the given text."
+  def present?(value) when is_binary(value), do: String.trim(value) != ""
+  def present?(_value), do: false
 
   @doc """
   Whether a legacy `@theme.sections.<name>` toggle is on. Absent toggles

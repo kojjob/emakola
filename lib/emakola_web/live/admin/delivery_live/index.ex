@@ -5,10 +5,17 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Admin.DeliveryLive.MetricsComponents
+
+  alias Emakola.Shipping.DeliveryMetrics
+  alias EmakolaWeb.Helpers.Currency
+
+  # "Other Regions" is the catch-all: zones match by name, so without the
+  # flag a buyer from Volta would fall to checkout's hard-coded default.
   @ghana_defaults [
     %{name: "Greater Accra", fee: 1500, estimated_days: 1},
     %{name: "Kumasi/Ashanti", fee: 2500, estimated_days: 2},
-    %{name: "Other Regions", fee: 3500, estimated_days: 4}
+    %{name: "Other Regions", fee: 3500, estimated_days: 4, fallback: true}
   ]
 
   @impl true
@@ -22,7 +29,9 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
         active_nav: :delivery,
         store: store,
         zones: [],
+        metrics: nil,
         editing_zone: nil,
+        prefill_name: nil,
         show_form: false
       )
       |> load_zones()
@@ -30,9 +39,11 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     {:ok, socket}
   end
 
+  # The "Add zone for Volta" button on the unmatched row seeds the name.
   @impl true
-  def handle_event("show_form", _params, socket) do
-    {:noreply, assign(socket, show_form: true, editing_zone: nil)}
+  def handle_event("show_form", params, socket) do
+    {:noreply,
+     assign(socket, show_form: true, editing_zone: nil, prefill_name: Map.get(params, "name"))}
   end
 
   @impl true
@@ -52,7 +63,8 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       fee: fee_pesewas,
       estimated_days: estimated_days,
       free_above_pesewas: parse_optional_fee(params["free_above"]),
-      per_kg_fee_pesewas: parse_optional_fee(params["per_kg_fee"])
+      per_kg_fee_pesewas: parse_optional_fee(params["per_kg_fee"]),
+      fallback: params["fallback"] == "true"
     }
 
     case socket.assigns.editing_zone do
@@ -153,9 +165,9 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
 
     if store do
       zones = Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
-      assign(socket, zones: zones)
+      assign(socket, zones: zones, metrics: DeliveryMetrics.for_store(store.id, zones))
     else
-      assign(socket, zones: [])
+      assign(socket, zones: [], metrics: nil)
     end
   end
 
@@ -235,6 +247,8 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
         </div>
       </.admin_page_header>
 
+      <.metric_tiles :if={@metrics} metrics={@metrics} zones={@zones} />
+
       <%!-- Add/Edit form --%>
       <div
         :if={@show_form}
@@ -250,7 +264,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
               <input
                 type="text"
                 name="zone[name]"
-                value={@editing_zone && @editing_zone.name}
+                value={(@editing_zone && @editing_zone.name) || @prefill_name}
                 placeholder="e.g. Greater Accra"
                 required
                 class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
@@ -316,6 +330,22 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
                 class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
+            <label class="flex items-center gap-3 sm:col-span-3 rounded-xl border border-slate-200 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors">
+              <input type="hidden" name="zone[fallback]" value="false" />
+              <input
+                type="checkbox"
+                name="zone[fallback]"
+                value="true"
+                checked={@editing_zone && @editing_zone.fallback}
+                class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30"
+              />
+              <span>
+                <span class="block text-sm font-semibold text-slate-800">Catch-all zone</span>
+                <span class="block text-xs text-slate-500">
+                  Any region no other zone names is delivered at this fee
+                </span>
+              </span>
+            </label>
           </div>
           <div class="flex justify-end gap-2 mt-4">
             <button
@@ -346,6 +376,10 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
           </p>
         </div>
 
+        <div :if={@zones != []} class="flex items-center gap-2 px-6 pt-5 pb-1">
+          <h3 class="text-base font-bold text-slate-900">Your zones</h3>
+          <span class="ml-auto text-xs text-slate-500">Orders and fees are the last 30 days</span>
+        </div>
         <table :if={@zones != []} class="w-full">
           <thead class="bg-slate-50 border-b border-slate-200">
             <tr>
@@ -356,10 +390,19 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
                 Fee
               </th>
               <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">
-                Est. Days
+                Promise
               </th>
               <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">
-                Status
+                Free above
+              </th>
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3 w-56">
+                Orders
+              </th>
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">
+                Fees
+              </th>
+              <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">
+                On
               </th>
               <th class="text-right text-xs font-semibold text-slate-500 uppercase tracking-wide px-6 py-3">
                 Actions
@@ -367,18 +410,65 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr :for={zone <- @zones} class="hover:bg-slate-50/50 transition-colors">
+            <tr
+              :for={zone <- @zones}
+              class={[
+                "hover:bg-slate-50/50 transition-colors",
+                !zone.active && "bg-slate-50/60"
+              ]}
+            >
               <td class="px-6 py-4">
-                <span class="text-sm font-medium text-slate-900">{zone.name}</span>
+                <span class={[
+                  "text-sm font-semibold",
+                  if(zone.active, do: "text-slate-900", else: "text-slate-500")
+                ]}>
+                  {zone.name}
+                </span>
+                <span
+                  :if={zone.fallback}
+                  id={"zone-catch-all-#{zone.id}"}
+                  class="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                >
+                  Catch-all
+                </span>
+                <p :if={!zone.active} class="text-[11.5px] font-semibold text-amber-700 mt-0.5">
+                  Paused · buyers here pay the default fee
+                </p>
               </td>
               <td class="px-6 py-4">
-                <span class="text-sm font-mono text-slate-700">
-                  GH&#8373; {format_fee(zone.fee)}
+                <span class="text-sm font-semibold text-slate-900 tabular-nums">
+                  {Currency.format_price(zone.fee)}
                 </span>
               </td>
               <td class="px-6 py-4">
                 <span class="text-sm text-slate-600">
                   {zone.estimated_days} {if zone.estimated_days == 1, do: "day", else: "days"}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span class="text-sm text-slate-600 tabular-nums">
+                  {if zone.free_above_pesewas,
+                    do: Currency.format_price(zone.free_above_pesewas),
+                    else: "—"}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <.share_bar
+                  id={"zone-orders-#{zone.id}"}
+                  count={zone_metric(@metrics, zone, :orders)}
+                  total={(@metrics && @metrics.total_orders) || 0}
+                  muted={!zone.active}
+                />
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  id={"zone-fees-#{zone.id}"}
+                  class={[
+                    "text-sm font-semibold tabular-nums",
+                    if(zone.active, do: "text-emerald-700", else: "text-slate-500")
+                  ]}
+                >
+                  {Currency.format_price(zone_metric(@metrics, zone, :fees))}
                 </span>
               </td>
               <td class="px-6 py-4">
@@ -420,10 +510,25 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
                 </div>
               </td>
             </tr>
+            <.unmatched_row
+              :if={@metrics}
+              unmatched={@metrics.unmatched}
+              total_orders={@metrics.total_orders}
+            />
           </tbody>
         </table>
+      </div>
+
+      <div :if={@metrics} class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <.orders_by_zone metrics={@metrics} zones={@zones} />
+        <.buyer_costs metrics={@metrics} zones={@zones} />
       </div>
     </div>
     """
   end
+
+  defp zone_metric(nil, _zone, _key), do: 0
+
+  defp zone_metric(metrics, zone, key),
+    do: metrics.per_zone |> Map.get(zone.id, %{}) |> Map.get(key, 0)
 end

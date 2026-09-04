@@ -23,50 +23,11 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     # so form/3 cannot resolve it. element + render_submit targets the form by
     # id="product-form" (still browser-faithful; fails if the id is absent).
     # Flash is a signed token in the live_redirect tuple; follow_redirect decodes it.
-    test "creating with price + activate → active product, 2500-pesewas variant, storefront visible, published flash",
+    test "activating without price → stays a draft, honest flash",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Draft Product"})
 
-      {:ok, _redirect_view, html} =
-        view
-        |> element("#product-form")
-        |> render_submit(%{
-          "product" => %{"title" => "Kente Cloth", "price" => "25.00", "_action" => "activate"}
-        })
-        |> follow_redirect(conn)
-
-      assert html =~ "Product published"
-
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :active
-
-      variants =
-        Emakola.Catalog.Variant
-        |> Ash.Query.filter(product_id == ^product.id)
-        |> Ash.read!(authorize?: false)
-
-      # Sellable by default — the default variant is untracked, so the product
-      # is immediately purchasable without the merchant setting a stock count.
-      assert [%{price: 2500, track_inventory: false}] = variants
-
-      active_products =
-        Emakola.Catalog.Product
-        |> Ash.Query.for_read(:list_by_store_and_status, %{
-          store_id: store.id,
-          status: :active
-        })
-        |> Ash.read!(authorize?: false)
-
-      assert Enum.any?(active_products, &(&1.id == product.id))
-    end
-
-    test "activating without price → draft product, honest flash",
-         %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       {:ok, _redirect_view, html} =
         view
@@ -78,17 +39,15 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
 
       assert html =~ "Saved as draft"
 
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.status == :draft
+      updated = Ash.get!(Emakola.Catalog.Product, product.id, authorize?: false)
+      assert updated.status == :draft
     end
 
-    test "invalid price → no product created, validation error rendered",
+    test "invalid price → no variant created, validation error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Ankara Print"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       html =
         view
@@ -98,13 +57,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         })
 
       assert html =~ "must be a valid amount"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
+      assert variants_of(product) == []
     end
   end
 
@@ -154,12 +107,9 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       updated = Ash.get!(Emakola.Catalog.Product, product.id, authorize?: false)
       assert updated.status == :active
 
-      variants =
-        Emakola.Catalog.Variant
-        |> Ash.Query.filter(product_id == ^product.id)
-        |> Ash.read!(authorize?: false)
-
-      assert [%{price: 3000}] = variants
+      # Sellable by default — the default variant is untracked, so the product
+      # is immediately purchasable without the merchant setting a stock count.
+      assert [%{price: 3000, track_inventory: false}] = variants_of(product)
     end
 
     test "edit: product with variants + activate → :active status, published flash",
@@ -202,9 +152,11 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       %{conn: conn, store: store}
     end
 
-    test "price '0' → no product created, error rendered",
+    test "price '0' → no variant created, error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Zero Price"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       html =
         view
@@ -214,18 +166,14 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         })
 
       assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
+      assert variants_of(product) == []
     end
 
-    test "price '0.00' → no product created, error rendered",
+    test "price '0.00' → no variant created, error rendered",
          %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Zero Price"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       html =
         view
@@ -235,13 +183,7 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         })
 
       assert html =~ "must be greater than 0.00"
-
-      products =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!(authorize?: false)
-
-      assert products == []
+      assert variants_of(product) == []
     end
   end
 
@@ -252,12 +194,13 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     end
 
     test "browse-files control renders the file input as a tappable overlay, not clipped sr-only",
-         %{conn: conn} do
+         %{conn: conn, store: store} do
       # iOS Safari fails to open the file picker for an input that is hidden by
       # clipping it to 1px (`sr-only`) and triggered only through its wrapping
       # label. The input must instead be a full-size transparent overlay so the
       # tap lands on the <input type="file"> directly.
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store)
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
       input_tag = Regex.run(~r/<input[^>]*name="product_images"[^>]*>/, html) |> List.first()
 
       assert input_tag, "expected a product_images file input on the form"
@@ -269,13 +212,14 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
              "file input should be a transparent full-size tap overlay"
     end
 
-    test "uploading an image on create → Image record linked to product",
+    test "uploading an image on edit → Image record linked to product",
          %{conn: conn, store: store} do
       stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->
         {:ok, "https://s3.example.com/test/shirt.png"}
       end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Image Product"})
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -291,13 +235,6 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         "product" => %{"title" => "Image Product", "price" => "10.00", "_action" => "draft"}
       })
 
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product != nil
-
       images =
         Emakola.Catalog.Image
         |> Ash.Query.filter(product_id == ^product.id)
@@ -311,7 +248,8 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
          %{conn: conn, store: store} do
       stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts -> {:error, :boom} end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Upload Fail"})
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -329,12 +267,6 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         })
         |> follow_redirect(conn)
 
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product != nil
       assert html =~ "Some images failed to upload"
 
       images =
@@ -354,7 +286,8 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         raise "boom from storage client"
       end)
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      product = create_product!(store, %{title: "Upload Raise"})
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
       Mox.allow(Emakola.StorageMock, self(), view.pid)
 
       upload =
@@ -372,13 +305,10 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         })
         |> follow_redirect(conn)
 
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read_one!(authorize?: false)
-
-      assert product != nil
       assert html =~ "Some images failed to upload"
+
+      assert Ash.get!(Emakola.Catalog.Product, product.id, authorize?: false).title ==
+               "Upload Raise"
     end
 
     test "edit: existing image renders; delete_image removes it",
@@ -418,9 +348,10 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     end
 
     test "a store with digital enabled is offered both types", %{conn: conn, store: store} do
-      enable_digital!(store)
+      store = enable_digital!(store)
+      product = create_product!(store)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       assert html =~ "product[product_type]"
       assert html =~ "digital_download"
@@ -429,17 +360,22 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
     # Store.accepts?/2 exists precisely to gate the merchant admin's type
     # picker. Offering a type the store cannot accept would fail server-side
     # in ProductTypeAcceptedByStore with no explanation.
-    test "a store without digital enabled is not offered it", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+    test "a store without digital enabled is not offered it", %{conn: conn, store: store} do
+      product = create_product!(store)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       refute html =~ "digital_download"
       assert html =~ ~p"/admin/settings"
     end
 
+    # A product starts physical on the cards page; the edit page is where it
+    # becomes a digital download.
     test "submitting the type persists it", %{conn: conn, store: store} do
-      enable_digital!(store)
+      store = enable_digital!(store)
+      product = create_product!(store, %{title: "Highlife Sample Pack"})
 
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      {:ok, view, _html} = live(conn, ~p"/admin/products/#{product.id}/edit")
 
       view
       |> element("#product-form")
@@ -451,12 +387,8 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         }
       })
 
-      product =
-        Emakola.Catalog.Product
-        |> Ash.Query.filter(store_id == ^store.id and title == "Highlife Sample Pack")
-        |> Ash.read_one!(authorize?: false)
-
-      assert product.product_type == :digital_download
+      reloaded = Ash.get!(Emakola.Catalog.Product, product.id, authorize?: false)
+      assert reloaded.product_type == :digital_download
     end
 
     # /admin/products/:id/files has existed and been routed since the feature
@@ -513,13 +445,11 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
                "#product-qr-url[value='#{EmakolaWeb.QR.product_url(store, product)}']"
              )
     end
+  end
 
-    test "a product being created has no label yet", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
-
-      # Nothing to point at: the slug the code would carry does not exist until
-      # the product is saved.
-      refute has_element?(view, "#product-qr svg")
-    end
+  defp variants_of(product) do
+    Emakola.Catalog.Variant
+    |> Ash.Query.filter(product_id == ^product.id)
+    |> Ash.read!(authorize?: false)
   end
 end

@@ -45,7 +45,7 @@ defmodule EmakolaWeb.ShopsLive do
     |> assign(:page_title, "Online Shops in #{region}, Ghana | Makola")
     |> assign(
       :meta_description,
-      "Discover #{count} online #{plural("shop", count)} in #{region}, Ghana. " <>
+      "Discover #{count} online #{Emakola.Plural.noun(count, "shop")} in #{region}, Ghana. " <>
         "Buy from local sellers and pay with MTN MoMo, Telecel Cash and more on Makola."
     )
     |> assign(:canonical_url, Canonical.url("/shops/#{slug}"))
@@ -92,9 +92,6 @@ defmodule EmakolaWeb.ShopsLive do
     |> Enum.map(fn r -> {r, Regions.slug(r)} end)
     |> Enum.reject(fn {_r, s} -> s == current_slug end)
   end
-
-  defp plural(word, 1), do: word
-  defp plural(word, _), do: word <> "s"
 
   @impl true
   def render(assigns) do

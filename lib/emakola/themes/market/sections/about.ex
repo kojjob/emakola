@@ -1,12 +1,14 @@
 defmodule Emakola.Themes.Market.Sections.About do
   @moduledoc """
-  Market home store story — initial avatar, description (neutral fallback),
-  WhatsApp CTA when the store has a number.
+  Market home store story — the merchant's description and a WhatsApp CTA
+  when the store has a number. Renders nothing when the merchant has not
+  written a description: no stock sentence speaks for them.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Market.Components
 
   @impl true
@@ -19,8 +21,10 @@ defmodule Emakola.Themes.Market.Sections.About do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
-    <div class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+    <div :if={@layout.show_about?} class="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
       <div class="mx-auto max-w-[1280px]">
         <Components.about_card store={@store} />
       </div>

@@ -5,9 +5,11 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
 
   Tiles cycle through a five-step span pattern on a six-column grid: a
   double-height lead tile, two stacked companions, then a wide/narrow pair.
-  Each tile is finished before any photography arrives — calico panel, an
-  oversized serif initial as watermark, the category name and an arrow.
-  A category image, when present, layers over the panel.
+  Each tile is finished before any photography arrives — calico panel, the
+  category name and an arrow. A category image, when present, layers over
+  the panel. No lettered tile: an initial means nothing to a buyer who
+  reads slowly. The strip joins the page once the collection is full enough
+  to sort: four or more pieces.
   """
   @behaviour Emakola.Themes.Section
 
@@ -16,6 +18,7 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Ntoma.Shared
 
   # Cycle of five: lead tile spans 4x2, two 2-wide companions stack beside
@@ -41,11 +44,14 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :photos, photos_by_category(assigns))
+    assigns =
+      assigns
+      |> assign(:photos, photos_by_category(assigns))
+      |> assign(:layout, Layout.of(assigns))
 
     ~H"""
     <section
-      :if={@categories != []}
+      :if={@categories != [] and @layout.show_categories?}
       class="border-b border-[#E6D5B8] bg-[#FAF4EA] px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
       aria-labelledby="ntoma-categories-heading"
     >
@@ -68,12 +74,6 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
                 tile_span(index)
               ]}
             >
-              <span
-                class="pointer-events-none absolute -bottom-5 -right-2 select-none text-[6rem] font-semibold leading-none text-[#E2CCA4] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]"
-                aria-hidden="true"
-              >
-                {String.first(category.name)}
-              </span>
               <% photo = tile_photo(category, @photos) %>
               <%= if photo do %>
                 <.optimized_image

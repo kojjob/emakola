@@ -15,6 +15,7 @@ defmodule Emakola.Themes.Electronics.Home do
   use Phoenix.Component
 
   alias Emakola.Themes.Electronics.Shared
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.SectionRenderer
 
   attr :store, :map, required: true
@@ -24,7 +25,10 @@ defmodule Emakola.Themes.Electronics.Home do
   attr :cart_count, :integer, default: 0
 
   def render(assigns) do
-    assigns = assign(assigns, :theme_module, Emakola.Themes.Electronics)
+    assigns =
+      assigns
+      |> assign(:theme_module, Emakola.Themes.Electronics)
+      |> assign(:layout, Layout.plan(assigns))
 
     ~H"""
     <div class="electronics-body min-h-screen">

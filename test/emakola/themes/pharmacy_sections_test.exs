@@ -50,6 +50,9 @@ defmodule Emakola.Themes.PharmacySectionsTest do
     ]
   }
 
+  # Ten products: "From our shelves" takes four, the highlight cards the next
+  # three, and the grid the last three — every block renders, and no product
+  # is on the page twice.
   defp seed_store! do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pharmacy"}})
 
@@ -61,7 +64,11 @@ defmodule Emakola.Themes.PharmacySectionsTest do
           {"Digital Thermometer", 8900},
           {"Antiseptic Wipes", 1500},
           {"Blood Pressure Monitor", 45_000},
-          {"Herbal Throat Lozenges", 900}
+          {"Herbal Throat Lozenges", 900},
+          {"Zinc Tablets", 1800},
+          {"Hand Sanitiser", 1100},
+          {"Cotton Wool", 600},
+          {"Oral Rehydration Salts", 400}
         ] do
       product = create_product!(store, %{title: title, status: :active})
       create_variant!(product, store, %{price: price, stock_quantity: 5})
@@ -105,17 +112,17 @@ defmodule Emakola.Themes.PharmacySectionsTest do
   describe "home render" do
     test "renders every block with today's copy, in today's order, under one h1" do
       store = seed_store!()
-      # The grid renders the products the trending strip dropped
-      # (Enum.drop(products, 4)), so the fifth product's title is the grid's
-      # own landmark.
-      grid_title = store |> load_products() |> Enum.at(4) |> Map.fetch!(:title)
+      # The grid renders the products neither the shelves (four) nor the
+      # highlight cards (three) took, so the eighth product's title is the
+      # grid's own landmark.
+      grid_title = store |> load_products() |> Enum.at(7) |> Map.fetch!(:title)
 
       html =
         render_home(store, %{"stats" => %{"items" => @stat_items}, "trust" => @merchant_trust})
 
-      # Hero — the page's single h1
-      assert html =~ "Here to help"
-      assert html =~ "Everything you need, in one place"
+      # Hero — the page's single h1 is the store's own name; the theme ships
+      # no invented headline.
+      assert html =~ ~r/<h1[^>]*id="pharmacy-hero-heading"[^>]*>\s*#{Regex.escape(store.name)}/
       assert length(String.split(html, "<h1")) == 2
 
       # Stats strip (renders only because the fixture supplies real numbers)
@@ -151,7 +158,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # -> grid -> trust -> newsletter
       assert String.match?(
                html,
-               ~r/Here to help.*Your Trusted Healthcare Service.*From our shelves.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
+               ~r/pharmacy-hero-heading.*Your Trusted Healthcare Service.*From our shelves.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
              )
     end
 
@@ -206,10 +213,49 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       refute html =~ "From our shelves"
       refute html =~ "Shop now"
-      # Hero, trust, newsletter and the chrome still stand
-      assert html =~ "Everything you need, in one place"
+      # A bare store has no news to sign up for.
+      refute html =~ "Stay healthy, stay informed"
+      # Hero, trust and the chrome still stand
+      assert html =~ ~s(id="pharmacy-hero-heading")
       assert html =~ "Registered with the Pharmacy Council"
-      assert html =~ "Stay healthy, stay informed"
+    end
+
+    test "one product: the shelves carry it alone" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pharmacy"}})
+      create_category!(store, %{name: "Cough Syrups"})
+      product = create_product!(store, %{title: "Paracetamol 500mg", status: :active})
+      create_variant!(product, store, %{price: 1200, stock_quantity: 5})
+
+      html = render_home(store)
+
+      assert html =~ "From our shelves"
+      assert html =~ "Paracetamol 500mg"
+      # No highlight card, no category strip, no newsletter on a bare stall
+      refute html =~ "Shop now"
+      refute html =~ "Cough Syrups"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+    end
+
+    test "ten products: no product is on the page twice" do
+      store = seed_store!()
+
+      html = render_home(store)
+
+      for product <- load_products(store) do
+        assert length(String.split(html, product.title)) == 2,
+               "#{product.title} is shown more than once"
+      end
+    end
+
+    test "a store with no description gets no invented headline, standfirst or footer blurb" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "pharmacy"}, description: nil})
+
+      html = render_home(store)
+
+      refute html =~ "Everything you need, in one place"
+      refute html =~ ~r/here to help/i
+      refute html =~ "Health and wellbeing products from"
     end
 
     test "carries Pharmacy's own chrome: nav and forest-green footer" do
@@ -279,8 +325,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
           ]
         )
 
-      assert html =~ "Your neighbourhood chemist"
-      refute html =~ "Everything you need, in one place"
+      assert html =~ ~r/<h1[^>]*>\s*Your neighbourhood chemist\s*<\/h1>/
       assert html =~ "By the numbers"
       assert html =~ "In demand this week"
       assert html =~ "Regulated and registered"
@@ -298,7 +343,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       assert String.match?(
                html,
-               ~r/Registered with the Pharmacy Council.*Here to help.*From our shelves/s
+               ~r/Registered with the Pharmacy Council.*pharmacy-hero-heading.*From our shelves/s
              )
 
       refute html =~ "Stay healthy, stay informed"

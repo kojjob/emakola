@@ -2,9 +2,13 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
   @moduledoc """
   Home Living home hero — extracted verbatim from home_living/home.ex.
 
-  The dark charcoal, photographic signboard: bold uppercase headline, lime
-  CTA, and two floating product tiles overlaid bottom-right. It carries the
-  page's single `<h1>`.
+  The dark charcoal, photographic signboard: bold uppercase headline and
+  lime CTA. It carries the page's single `<h1>`, which reads as the store's
+  own name until the merchant writes a headline. The two floating product
+  tiles that used to sit bottom-right are gone: they showed the first two
+  products, which the grid and the featured pick below already carry, and a
+  home must not show the same photo twice. The background is only ever an
+  image the merchant chose.
 
   It also carries the theme's nav. That is where the nav has always lived —
   the header is a transparent, `on_dark` overlay laid over the hero's own
@@ -43,24 +47,23 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
   @impl true
   def render(assigns) do
     hero = get_in(assigns.theme, [:hero]) || %{}
-    products = Map.get(assigns, :products) || []
 
     assigns =
       assigns
       |> assign(:cart_count, Map.get(assigns, :cart_count) || 0)
-      |> assign(:tile_products, Enum.take(products, 2))
       |> assign(
         :hero_image_url,
         present(assigns.settings["image_url"]) || theme_hero_image_url(assigns.theme)
       )
       |> assign(
         :headline,
-        present(assigns.settings["headline"]) || Map.get(hero, :title) ||
-          "For the way you live"
+        present(assigns.settings["headline"]) || present(Map.get(hero, :title)) ||
+          assigns.store.name
       )
       |> assign(
         :subheadline,
-        present(assigns.settings["subheadline"]) || Map.get(hero, :subtitle)
+        present(assigns.settings["subheadline"]) || present(Map.get(hero, :subtitle)) ||
+          present(Map.get(assigns.store, :description))
       )
       |> assign(
         :cta_label,
@@ -76,9 +79,11 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
 
       <%!-- Background photographic layer --%>
       <%= if @hero_image_url do %>
+        <%!-- Decorative: the headline sits on top of it, so it carries no
+             alt text — and no theme-written one like "Home interior". --%>
         <img
           src={@hero_image_url}
-          alt="Home interior"
+          alt=""
           class="absolute inset-0 w-full h-full object-cover opacity-60"
         />
         <div class="absolute inset-0 bg-gradient-to-br from-[#1F2937]/90 via-[#1F2937]/60 to-transparent">
@@ -107,43 +112,6 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
             <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
           </a>
         </div>
-
-        <%!-- Floating feature tiles overlay (bottom-right) — Furniora --%>
-        <div
-          :if={@tile_products != []}
-          class="hidden md:flex absolute bottom-8 right-8 lg:bottom-12 lg:right-12 gap-3"
-        >
-          <a
-            :for={{product, idx} <- Enum.with_index(@tile_products)}
-            href={store_path(@store.slug, "/products/#{product.slug}")}
-            class="block w-40 h-40 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md ring-1 ring-white/20 group hover:ring-[#84CC16] transition-all"
-          >
-            <div class="relative w-full h-full">
-              <img
-                :if={Shared.first_image(product)}
-                src={Shared.first_image(product)}
-                alt={product.title}
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div
-                :if={!Shared.first_image(product)}
-                class="w-full h-full flex items-center justify-center bg-[#374151]"
-              >
-                <span class="material-symbols-outlined text-white/40" style="font-size: 56px;">
-                  {tile_icon(idx)}
-                </span>
-              </div>
-              <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#1F2937] to-transparent p-3">
-                <p class="text-xs font-semibold text-white truncate">
-                  {product.title}
-                </p>
-                <span class="material-symbols-outlined text-[#84CC16]" style="font-size: 14px;">
-                  arrow_outward
-                </span>
-              </div>
-            </div>
-          </a>
-        </div>
       </div>
     </section>
     """
@@ -163,9 +131,6 @@ defmodule Emakola.Themes.HomeLiving.Sections.Hero do
         end
     end
   end
-
-  defp tile_icon(0), do: "lightbulb"
-  defp tile_icon(_idx), do: "weekend"
 
   defp present(value) when is_binary(value) do
     if String.trim(value) == "", do: nil, else: value

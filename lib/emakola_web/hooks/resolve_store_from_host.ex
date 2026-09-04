@@ -60,6 +60,9 @@ defmodule EmakolaWeb.Hooks.ResolveStoreFromHost do
     {:halt, redirect(socket, external: EmakolaWeb.Endpoint.url() <> "/store-unavailable")}
   end
 
+  # 410, not a redirect: search engines drop a gone shop on the next crawl.
+  defp bail({:error, :gone}, _socket), do: raise(EmakolaWeb.StoreGone)
+
   defp bail(_error, socket) do
     {:halt,
      socket

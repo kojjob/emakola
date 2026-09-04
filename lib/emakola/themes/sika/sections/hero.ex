@@ -9,10 +9,11 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
   deep malachite and caught gold, set in Marcellus — so it reads as a jeweller's
   window rather than a fashion shop.
 
-  **Photo-fallback, not photo-optional.** The image resolves: the merchant's own
-  upload → the first piece's photograph → type alone. The hero used to render an
-  image only when a merchant had set one in the editor, which no new store has —
-  so in practice every Sika storefront opened on an empty slab of type.
+  **Photo-optional.** The vitrine holds the merchant's own upload, or nothing:
+  the hero never borrows a piece's photograph, because the collection below
+  already carries it and a piece's photo appears once on the page. Without an
+  image the panel is the pitch alone — eyebrow, headline, the merchant's words,
+  the rails and the way in.
 
   The CTA always links to the server-generated products path: a
   merchant-controlled href would be a stored-XSS sink, so no URL setting exists,
@@ -26,7 +27,6 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Sika.Shared
-  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def key, do: "sika/hero"
@@ -45,7 +45,6 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    hero_product = assigns |> Map.get(:products, []) |> List.first()
     custom_headline = Shared.present(assigns.settings["headline"])
 
     assigns =
@@ -63,12 +62,7 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
         :cta_label,
         Shared.present(assigns.settings["cta_label"]) || "View the collection"
       )
-      |> assign(:hero_product, hero_product)
-      |> assign(
-        :image,
-        valid_image(assigns.settings["image_url"]) ||
-          (hero_product && Shared.first_image(hero_product))
-      )
+      |> assign(:image, valid_image(assigns.settings["image_url"]))
 
     ~H"""
     <section class="bg-[#FBFAF7] px-3 pt-3 sm:px-5 sm:pt-5" aria-labelledby="sika-hero-heading">
@@ -128,30 +122,12 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
             <div class="border border-[#C2A15B]/30 p-2">
               <.optimized_image
                 src={@image}
-                alt={(@hero_product && @hero_product.title) || @store.name}
+                alt={@store.name}
                 priority={:high}
                 width={720}
                 height={900}
                 class="aspect-[4/5] w-full object-cover"
               />
-            </div>
-
-            <%!-- The price tag, not a second picture: the piece is already in
-            the frame it hangs off. --%>
-            <div
-              :if={@hero_product}
-              class="absolute -bottom-4 -left-4 max-w-[14rem] border border-[#C2A15B]/40 bg-[#FBFAF7] px-5 py-3 shadow-lg"
-            >
-              <p class="truncate text-sm text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)]">
-                {@hero_product.title}
-              </p>
-              <p class="mt-0.5 text-sm font-semibold tabular-nums text-[#6E675C]">
-                {Currency.format_price_range(
-                  @hero_product.min_price,
-                  @hero_product.max_price,
-                  @store.currency
-                )}
-              </p>
             </div>
           </div>
         </div>

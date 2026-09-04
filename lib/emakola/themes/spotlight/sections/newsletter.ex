@@ -7,12 +7,15 @@ defmodule Emakola.Themes.Spotlight.Sections.Newsletter do
   of the six: no `phx-submit`, no `name` on the input, and a `type="button"`
   submit that would not even have submitted the form. Still gated by the legacy
   `@theme.sections.newsletter` toggle underneath the section editor's own
-  `enabled` flag.
+  `enabled` flag. Shown only once the shop is full enough to have news: four
+  or more products, per the shared `Layout` plan — a one-product shop, the
+  theme's whole premise, asks for no email.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Layout
   alias Emakola.Themes.Spotlight.Shared
 
   @impl true
@@ -31,9 +34,11 @@ defmodule Emakola.Themes.Spotlight.Sections.Newsletter do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :layout, Layout.of(assigns))
+
     ~H"""
     <section
-      :if={Shared.section_enabled?(@theme, :newsletter)}
+      :if={@layout.show_newsletter? && Shared.section_enabled?(@theme, :newsletter)}
       class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center"
     >
       <h2 class="spot-heading text-2xl font-bold">
