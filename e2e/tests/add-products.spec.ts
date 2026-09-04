@@ -3,12 +3,13 @@ import { MERCHANT_STORAGE_STATE } from "../support/auth-state";
 import { waitForLiveView } from "../support/live-view";
 
 /**
- * /admin/products/new is the photo-cards page: a photo becomes a card, a
- * card needs a name and a price, one button puts the finished cards in the
- * shop. Two things about it only a browser can check:
+ * /admin/products/new is the one door: a photo becomes a card, so does a
+ * typed product, a card needs a name and a price, one button puts the
+ * finished cards in the shop. Two things about it only a browser can check:
  *
- * - the photo inputs are full-size transparent overlays under the tiles
- *   (iOS Safari will not open the picker for a clipped input), and
+ * - the photo inputs are full-size transparent overlays under the tile and
+ *   its Gallery pill (iOS Safari will not open the picker for a clipped
+ *   input), and
  * - a big photo is shrunk on the phone before it uploads, which is the
  *   difference between a usable page and a stalled one on a market data
  *   plan.
@@ -51,8 +52,9 @@ test("the camera and the gallery are under the thumb, not behind a label", async
   for (const name of ["camera", "photos"]) {
     const input = page.locator(`input[name="${name}"]`);
     await expect(input).toHaveCount(1);
-    // The tile is the tap target, so the input must cover it (inside the
-    // tile's 2px dashed border, hence the 4px allowance).
+    // The tile body (camera) and the Gallery pill (photos) are the tap
+    // targets, so each input must cover its label (inside the tile's 2px
+    // dashed border, hence the 4px allowance).
     const tile = await input.locator("xpath=..").boundingBox();
     const box = await input.boundingBox();
     expect(box).not.toBeNull();
@@ -62,6 +64,18 @@ test("the camera and the gallery are under the thumb, not behind a label", async
   }
 
   await expect(page.locator('input[name="camera"]')).toHaveAttribute("capture", "environment");
+});
+
+test("typing a product makes a card on this page, without a photo", async ({ page }) => {
+  // The phone shows a button under the tile, the desktop a tile beside it;
+  // whichever is visible is the one the merchant taps.
+  await page.locator("#typed-button:visible, #typed-tile:visible").first().click();
+
+  const card = page.locator("#card-typed-1");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("No photo yet");
+  await expect(card.locator('input[name="card_name"]')).toBeVisible();
+  await expect(page.locator("h1")).toContainText("1 item");
 });
 
 test("a big photo is shrunk on the phone before it uploads", async ({ page }) => {
