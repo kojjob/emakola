@@ -283,6 +283,9 @@ Required environment variables (see `.env.example` for full list):
 
 ## Quick Reference
 
+Production operations (deploy, rollback, seed the blog, secrets, archive a
+shop, Search Console) are in `docs/RUNBOOK.md`, one pasteable command each.
+
 ```bash
 # Development
 mix phx.server                  # Start dev server

@@ -43,9 +43,9 @@ defmodule EmakolaWeb.Helpers.StoreResolverTest do
       assert {:error, :unavailable} = StoreResolver.resolve(store.slug)
     end
 
-    test "an archived store is hidden as not found" do
+    test "an archived store is gone, which callers turn into a 410" do
       {:ok, store} = Stores.archive_store(Factory.create_store!(), %{}, authorize?: false)
-      assert {:error, :not_found} = StoreResolver.resolve(store.slug)
+      assert {:error, :gone} = StoreResolver.resolve(store.slug)
     end
   end
 end

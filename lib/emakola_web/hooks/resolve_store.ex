@@ -57,6 +57,9 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
       {:error, :unavailable} ->
         {:halt, redirect(socket, to: "/store-unavailable")}
 
+      {:error, :gone} ->
+        raise EmakolaWeb.StoreGone
+
       {:error, :not_found} ->
         {:halt,
          socket

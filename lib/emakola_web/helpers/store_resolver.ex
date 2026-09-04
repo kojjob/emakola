@@ -16,15 +16,16 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
     * `{:error, :unavailable}` — the store exists but is not live (suspended,
       blocked, or the merchant has closed it). Callers should show a neutral
       "store unavailable" page; the reason is never exposed publicly.
-    * `{:error, :not_found}` — the slug matches no store, OR the store is
-      archived. Archived stores are hidden as if they never existed.
+    * `{:error, :gone}` — the store is archived. Callers answer 410 so search
+      engines drop its URLs; the reason is still never exposed.
+    * `{:error, :not_found}` — the slug matches no store.
 
   Storefront LiveViews mount under the `ResolveStore` on_mount hook, which
   halts non-live stores before their `mount/3` runs — so only the hook and
   non-LiveView callers (e.g. the sitemap/feed controllers) need to handle the
   `:unavailable` value.
   """
-  @spec resolve(String.t()) :: {:ok, Store.t()} | {:error, :not_found | :unavailable}
+  @spec resolve(String.t()) :: {:ok, Store.t()} | {:error, :not_found | :unavailable | :gone}
   def resolve(slug) when is_binary(slug) do
     case Emakola.Stores.get_store_by_slug(slug, authorize?: false) do
       {:ok, nil} ->
@@ -33,7 +34,7 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
       {:ok, store} ->
         cond do
           Store.live?(store) -> {:ok, store}
-          store.status == :archived -> {:error, :not_found}
+          store.status == :archived -> {:error, :gone}
           true -> {:error, :unavailable}
         end
 
