@@ -10,9 +10,9 @@ defmodule Emakola.Content.PlatformBlogSeederTest do
 
   alias Emakola.Content.PlatformBlogSeeder
 
-  test "seeds four published platform blog posts with SEO fields and hero images" do
+  test "seeds five published platform blog posts with SEO fields and hero images" do
     assert {:ok, posts} = PlatformBlogSeeder.seed()
-    assert length(posts) == 4
+    assert length(posts) == 5
 
     for post <- posts do
       assert is_nil(post.store_id)
@@ -39,7 +39,7 @@ defmodule Emakola.Content.PlatformBlogSeederTest do
       Emakola.Content.list_platform_published_posts!(authorize?: false)
       |> length()
 
-    assert total == 4
+    assert total == 5
   end
 
   test "re-running the seeder refreshes stale content from the source files" do

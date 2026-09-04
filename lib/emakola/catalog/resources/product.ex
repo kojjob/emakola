@@ -289,6 +289,7 @@ defmodule Emakola.Catalog.Product do
       validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
+      change(Emakola.Catalog.Changes.BackfillDescription)
     end
 
     update :update do

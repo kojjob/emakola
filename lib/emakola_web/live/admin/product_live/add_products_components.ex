@@ -323,7 +323,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
             phx-value-upload={@item.upload}
             phx-value-ref={@item.ref}
             phx-value-field="name"
-            placeholder="What is it?"
+            placeholder="What is it? e.g. Oraimo FreePods 3 earbuds"
             data-missing={@item.missing_name? || nil}
             class={card_field_classes(@item.missing_name?)}
           />

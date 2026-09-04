@@ -19,6 +19,15 @@ defmodule Emakola.Content.PlatformBlogSeeder do
 
   @posts [
     %{
+      title: "How to Put Your Shop on Google Maps",
+      seo_title: "How to Put Your Shop on Google Maps in Ghana (Free)",
+      seo_description:
+        "Buyers in Ghana search for shops on Google Maps. A free Google Business Profile puts your shop there, with your Makola link so they can pay. Step by step.",
+      excerpt:
+        "Type \"sneakers shop in Accra\" into Google and a map comes first. Getting your shop onto it is free and takes one evening. Then give the pin a link buyers can pay on.",
+      tags: ["google maps", "local search", "ghana"]
+    },
+    %{
       title: "Best Ecommerce Platform in Ghana",
       seo_title: "Best Ecommerce Platform in Ghana: 2026 Comparison",
       seo_description:

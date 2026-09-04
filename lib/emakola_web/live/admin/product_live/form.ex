@@ -166,7 +166,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               field={@form[:title]}
               type="text"
               id="product_title"
-              placeholder="e.g., Ankara Print Fabric"
+              placeholder="e.g. Oraimo FreePods 3 earbuds"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
                 if(@errors[:title],
