@@ -169,6 +169,85 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
     end
   end
 
+  describe "more" do
+    test "More opens in place with the store's categories and a description", %{
+      conn: conn,
+      store: store
+    } do
+      category = Emakola.Factory.create_category!(store, %{name: "Beauty"})
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      [ref] = upload_photos(view, ["gloss.png"])
+
+      refute has_element?(view, "#card-photos-#{ref} textarea")
+
+      view |> element("#more-photos-#{ref}") |> render_click()
+
+      assert has_element?(view, ~s{#card-photos-#{ref} textarea[name="card_description"]})
+
+      assert has_element?(
+               view,
+               ~s{#card-photos-#{ref} button[data-category="#{category.id}"]},
+               "Beauty"
+             )
+    end
+
+    test "a chosen category shows on the closed row and both are saved with the product", %{
+      conn: conn,
+      store: store
+    } do
+      stub_storage()
+      category = Emakola.Factory.create_category!(store, %{name: "Beauty"})
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+      [ref] = upload_photos(view, ["gloss.png"])
+
+      view |> element("#more-photos-#{ref}") |> render_click()
+
+      view
+      |> element(~s{#card-photos-#{ref} button[data-category="#{category.id}"]})
+      |> render_click()
+
+      set_card(view, ref, "description", "Six shades in one set.")
+      view |> element("#more-photos-#{ref}") |> render_click()
+
+      assert has_element?(view, "#more-photos-#{ref}", "Beauty")
+      refute has_element?(view, "#card-photos-#{ref} textarea")
+
+      set_card(view, ref, "name", "Lip gloss set")
+      set_card(view, ref, "price", "60")
+      view |> element("#add-products-form") |> render_submit()
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Lip gloss set")
+        |> Ash.read_one!(authorize?: false)
+
+      assert product.category_id == category.id
+      assert product.description == "Six shades in one set."
+      refute product.description_written_by_ai
+    end
+
+    test "tapping the chosen category again clears it, and a stranger's id is ignored", %{
+      conn: conn,
+      store: store
+    } do
+      category = Emakola.Factory.create_category!(store, %{name: "Beauty"})
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      [ref] = upload_photos(view, ["gloss.png"])
+      view |> element("#more-photos-#{ref}") |> render_click()
+
+      chip = ~s{#card-photos-#{ref} button[data-category="#{category.id}"]}
+      view |> element(chip) |> render_click()
+      assert has_element?(view, chip <> "[data-on]")
+
+      view |> element(chip) |> render_click()
+      refute has_element?(view, chip <> "[data-on]")
+
+      set_card(view, ref, "category_id", Ecto.UUID.generate())
+      refute has_element?(view, "#card-photos-#{ref} [data-on]")
+    end
+  end
+
   describe "publish" do
     setup :verify_on_exit!
 

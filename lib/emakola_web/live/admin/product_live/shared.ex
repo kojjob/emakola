@@ -189,6 +189,23 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   end
 
   @doc """
+  The store's categories for a chip row or a select. A failure to load them
+  is logged and reads as "no categories": the page still works without them.
+  """
+  def load_store_categories(store_id) do
+    Emakola.Catalog.list_categories_by_store!(store_id)
+  rescue
+    exception ->
+      require Logger
+
+      Logger.error(
+        "[product_live] loading store categories raised: #{Exception.message(exception)}"
+      )
+
+      []
+  end
+
+  @doc """
   Parses a GHS decimal string into integer pesewas.
 
   Returns `{:ok, pesewas}` on success (pesewas > 0), `:skip` for blank input,

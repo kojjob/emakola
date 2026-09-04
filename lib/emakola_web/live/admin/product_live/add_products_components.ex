@@ -289,6 +289,8 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
   attr :number, :integer, required: true
   attr :currency, :string, required: true
   attr :last_price, :string, default: nil, doc: "offered to a card whose price is still empty"
+  attr :categories, :list, required: true
+  attr :ai_enabled, :boolean, required: true
 
   def photo_card(assigns) do
     assigns =
@@ -379,6 +381,88 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         </button>
       </div>
       <p :for={problem <- @item.problems} class="px-3.5 pb-3 text-xs text-red-600">{problem}</p>
+      <.more_row item={@item} categories={@categories} ai_enabled={@ai_enabled} />
+    </div>
+    """
+  end
+
+  # More, inside the card: a category and a description, opening in place.
+  # Two things, not nine; everything else waits for the edit page.
+  attr :item, :map, required: true
+  attr :categories, :list, required: true
+  attr :ai_enabled, :boolean, required: true
+
+  defp more_row(assigns) do
+    ~H"""
+    <button
+      type="button"
+      id={"more-#{@item.key}"}
+      phx-click="toggle_more"
+      phx-value-upload={@item.upload}
+      phx-value-ref={@item.ref}
+      class="w-full h-11 border-t border-slate-100 px-3.5 lg:px-3 flex items-center justify-between cursor-pointer"
+    >
+      <span class={[
+        "flex items-center gap-2 text-[14.5px] font-bold",
+        (@item.open? && "text-text") || "text-text-muted"
+      ]}>
+        <.icon name="hero-bars-3-bottom-left" class="size-[18px]" /> More
+        <span
+          :if={!@item.open? and @item.category_name}
+          class="ml-0.5 px-2.5 py-0.5 rounded-full bg-primary-soft text-primary-hover text-[12.5px] font-bold"
+        >
+          {@item.category_name}
+        </span>
+      </span>
+      <.icon
+        name={(@item.open? && "hero-chevron-up") || "hero-chevron-down"}
+        class="size-[18px] text-slate-400"
+      />
+    </button>
+    <div :if={@item.open?} class="px-3.5 pb-4 lg:px-3 lg:pb-3.5 flex flex-col gap-3.5">
+      <div :if={@categories != []} class="flex flex-col gap-2">
+        <span class="text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-slate-400">
+          Category
+        </span>
+        <div class="flex flex-wrap gap-2">
+          <button
+            :for={category <- @categories}
+            type="button"
+            phx-click="set_card"
+            phx-value-upload={@item.upload}
+            phx-value-ref={@item.ref}
+            phx-value-field="category_id"
+            phx-value-value={(@item.category_id == category.id && "") || category.id}
+            data-category={category.id}
+            data-on={(@item.category_id == category.id && "true") || nil}
+            class={[
+              "h-[42px] lg:h-9 px-4 lg:px-3.5 rounded-full border-[1.5px] text-[14.5px] lg:text-[13.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors",
+              (@item.category_id == category.id &&
+                 "border-primary bg-primary-soft text-primary-hover") ||
+                "border-border bg-white text-text hover:bg-surface-subtle"
+            ]}
+          >
+            <.icon :if={@item.category_id == category.id} name="hero-check" class="size-4" />
+            {category.name}
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <span class="text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-slate-400">
+          Description
+        </span>
+        <textarea
+          name="card_description"
+          id={"card-description-#{@item.key}"}
+          rows="3"
+          phx-blur="set_card"
+          phx-value-upload={@item.upload}
+          phx-value-ref={@item.ref}
+          phx-value-field="description"
+          placeholder={(@ai_enabled && "Leave it, Makola writes one") || "Say more about it"}
+          class="w-full min-h-24 lg:min-h-[84px] rounded-[13px] lg:rounded-[11px] border-2 border-border bg-white px-4 py-3 lg:px-3 text-base lg:text-[14.5px] font-medium text-text placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none"
+        >{@item.description}</textarea>
+      </div>
     </div>
     """
   end

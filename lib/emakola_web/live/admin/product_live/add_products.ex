@@ -24,6 +24,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   @max_photos 30
   @upload_names [:camera, :photos]
   @sources @upload_names ++ [:typed]
+  @card_fields [:name, :price, :category_id, :description]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -38,7 +39,11 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
        currency: store.currency || "GHS",
        shop_url: EmakolaWeb.SEO.Canonical.store_url(store),
        max_photos: @max_photos,
+       categories: Shared.load_store_categories(store.id),
+       ai_enabled: EmakolaWeb.AiGate.enabled?(),
        cards: %{},
+       # Keys of the cards whose More row is open.
+       open: MapSet.new(),
        # The most recent valid price typed: offered to unpriced cards as a
        # chip, because a stall that prices everything alike should not type
        # the number thirty times.
@@ -99,6 +104,8 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
             number={number}
             currency={@currency}
             last_price={@last_price}
+            categories={@categories}
+            ai_enabled={@ai_enabled}
           />
         </div>
 
@@ -129,13 +136,28 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   def handle_event("set_card", %{"upload" => upload, "ref" => ref} = params, socket) do
     case card_key(upload, ref) do
       {:ok, _name, key} ->
-        field = Emakola.SafeAtom.to_atom_in(params["field"], [:name, :price], :name)
-        value = params["value"] || ""
+        field = Emakola.SafeAtom.to_atom_in(params["field"], @card_fields, :name)
+        value = card_value(field, params["value"] || "", socket.assigns.categories)
 
         cards =
           Map.update(socket.assigns.cards, key, %{field => value}, &Map.put(&1, field, value))
 
         {:noreply, socket |> assign(:cards, cards) |> remember_price(field, value)}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("toggle_more", %{"upload" => upload, "ref" => ref}, socket) do
+    case card_key(upload, ref) do
+      {:ok, _name, key} ->
+        open = socket.assigns.open
+
+        open =
+          if MapSet.member?(open, key), do: MapSet.delete(open, key), else: MapSet.put(open, key)
+
+        {:noreply, assign(socket, :open, open)}
 
       :error ->
         {:noreply, socket}
@@ -246,7 +268,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   defp create_product(item, store_id) do
     {:ok, pesewas} = Shared.parse_price_input(item.price)
-    attrs = %{title: String.trim(item.name), store_id: store_id}
+
+    attrs = %{
+      title: String.trim(item.name),
+      store_id: store_id,
+      description: blank_to_nil(item.description),
+      category_id: blank_to_nil(item.category_id)
+    }
 
     case Shared.create_product_with_price(attrs, pesewas, :active) do
       {:ok, product, _result} -> [{item, product}]
@@ -300,18 +328,34 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   defp remember_price(socket, _field, _value), do: socket
 
+  # A category id is only ever one of this store's own; anything else reads
+  # as "no category", so a crafted event cannot file a product under another
+  # store's category.
+  defp card_value(:category_id, value, categories) do
+    if Enum.any?(categories, &(&1.id == value)), do: value, else: ""
+  end
+
+  defp card_value(_field, value, _categories), do: value
+
+  defp blank_to_nil(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
   # ── Cards ──
 
   # One item per card: every uploaded photo across both inputs, then every
   # typed card, with the card's state worked out here so the template only
   # renders it.
-  defp card_items(%{uploads: uploads, cards: cards, consumed: consumed, typed: typed}) do
+  defp card_items(%{uploads: uploads, consumed: consumed, typed: typed} = assigns) do
     photo_items =
       for name <- @upload_names,
           entry <- uploads[name].entries,
           key = "#{name}-#{entry.ref}",
           not MapSet.member?(consumed, key) do
-        card_item(key, name, entry.ref, entry, cards, %{
+        card_item(key, name, entry.ref, entry, assigns, %{
           problems: Enum.map(upload_errors(uploads[name], entry), &upload_problem/1)
         })
       end
@@ -319,14 +363,15 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
     typed_items =
       for key <- typed do
         "typed-" <> ref = key
-        card_item(key, :typed, ref, nil, cards, %{problems: []})
+        card_item(key, :typed, ref, nil, assigns, %{problems: []})
       end
 
     photo_items ++ typed_items
   end
 
-  defp card_item(key, source, ref, entry, cards, extra) do
+  defp card_item(key, source, ref, entry, %{cards: cards, open: open} = assigns, extra) do
     card = Map.get(cards, key)
+    category_id = card_field(card, :category_id)
 
     Map.merge(
       %{
@@ -336,12 +381,25 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         entry: entry,
         name: card_field(card, :name),
         price: card_field(card, :price),
+        description: card_field(card, :description),
+        category_id: category_id,
+        category_name: category_name(assigns.categories, category_id),
+        open?: MapSet.member?(open, key),
         state: card_state(card),
         missing_name?: card != nil and card_name(card) == "",
         missing_price?: card != nil and not priced?(card)
       },
       extra
     )
+  end
+
+  defp category_name(_categories, ""), do: nil
+
+  defp category_name(categories, id) do
+    case Enum.find(categories, &(&1.id == id)) do
+      nil -> nil
+      category -> category.name
+    end
   end
 
   defp card_key(upload, ref) do
