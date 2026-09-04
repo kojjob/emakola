@@ -234,7 +234,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
           </div>
 
-          <%!-- Price field: always on :new; on :edit only when no variants yet --%>
+          <%!-- Price field: only while the product has no variants yet --%>
           <div :if={@show_price_field}>
             <label for="product_price" class="block text-sm font-medium mb-1.5">
               Price (GHS)

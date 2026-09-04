@@ -454,7 +454,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
             phx-value-upload={@item.upload}
             phx-value-ref={@item.ref}
             phx-value-field="category_id"
-            phx-value-value={(@item.category_id == category.id && "") || category.id}
+            phx-value-category={(@item.category_id == category.id && "") || category.id}
             data-category={category.id}
             data-on={(@item.category_id == category.id && "true") || nil}
             class={[

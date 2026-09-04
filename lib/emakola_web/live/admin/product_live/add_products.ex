@@ -145,7 +145,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
     case card_key(upload, ref) do
       {:ok, _name, key} ->
         field = Emakola.SafeAtom.to_atom_in(params["field"], @card_fields, :name)
-        value = card_value(field, params["value"] || "", socket.assigns.categories)
+        value = card_value(field, card_param(field, params), socket.assigns.categories)
 
         cards =
           Map.update(socket.assigns.cards, key, %{field => value}, &Map.put(&1, field, value))
@@ -192,7 +192,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
       {:ok, name, key} ->
         {:noreply,
          socket
-         |> cancel_upload(name, ref)
+         |> cancel_if_present(name, ref)
          |> update(:cards, &Map.delete(&1, key))}
 
       :error ->
@@ -220,8 +220,9 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   def handle_event("fill_card", %{"upload" => upload, "ref" => ref}, socket) do
     with {:ok, name, key} when name in @upload_names <- card_key(upload, ref),
          true <- socket.assigns.ai_enabled and not MapSet.member?(socket.assigns.filling, key),
+         %{} = entry <- uploaded_entry(socket, name, ref),
          :ok <- Emakola.Content.RateLimiter.check_and_increment(socket.assigns.store_id),
-         url when is_binary(url) <- snap_photo_url(socket, name, ref) do
+         url when is_binary(url) <- snap_photo_url(socket, entry) do
       {:noreply, socket |> update(:filling, &MapSet.put(&1, key)) |> start_fill(key, url)}
     else
       {:error, :rate_limit_exceeded} ->
@@ -362,7 +363,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
           {item, product} ->
             Shared.store_product_image(store_id, product.id, tmp_path, entry,
-              alt_text: item.ai && item.ai.alt_text
+              alt_text: ai_alt_text(item)
             )
 
             {:ok, :attached}
@@ -370,6 +371,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
       end)
     end
   end
+
+  # An empty alt text from the AI must not beat the filename fallback.
+  defp ai_alt_text(%{ai: %{alt_text: alt_text}}) do
+    if blank?(alt_text), do: nil, else: alt_text
+  end
+
+  defp ai_alt_text(_item), do: nil
 
   # The Real-photo badge: a camera photo the AI found clean. Awarded after
   # the image is attached, because attaching an image revokes the badge
@@ -389,18 +397,29 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   # ── Fill it in ──
 
-  defp snap_photo_url(socket, name, ref) do
+  # A second tap on Remove before the first one's patch lands would make
+  # `cancel_upload/3` raise and remount the page, losing every card on it.
+  defp cancel_if_present(socket, name, ref) do
+    if Enum.any?(socket.assigns.uploads[name].entries, &(&1.ref == ref)) do
+      cancel_upload(socket, name, ref)
+    else
+      socket
+    end
+  end
+
+  # Only a finished upload has a file to read; checked before the AI credit
+  # is spent, so a tap on a still-uploading photo costs nothing.
+  defp uploaded_entry(socket, name, ref) do
+    Enum.find(socket.assigns.uploads[name].entries, &(&1.ref == ref and &1.done?)) ||
+      :not_uploaded
+  end
+
+  defp snap_photo_url(socket, entry) do
     store_id = socket.assigns.store_id
 
-    case Enum.find(socket.assigns.uploads[name].entries, &(&1.ref == ref and &1.done?)) do
-      nil ->
-        :not_uploaded
-
-      entry ->
-        consume_uploaded_entry(socket, entry, fn %{path: tmp_path} ->
-          {:postpone, Shared.upload_snap_photo(store_id, tmp_path, entry)}
-        end)
-    end
+    consume_uploaded_entry(socket, entry, fn %{path: tmp_path} ->
+      {:postpone, Shared.upload_snap_photo(store_id, tmp_path, entry)}
+    end)
   end
 
   defp start_fill(socket, key, url) do
@@ -489,6 +508,16 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   end
 
   defp remember_price(socket, _field, _value), do: socket
+
+  # A chip sends its choice as `category`, never as `value`: the browser
+  # replaces a button's `value` param with the button's own empty .value
+  # before the event leaves the page. Typed fields arrive as `value` from
+  # phx-blur, where the .value IS the text.
+  defp card_param(:category_id, %{"category" => category}) when is_binary(category),
+    do: category
+
+  defp card_param(_field, %{"value" => value}) when is_binary(value), do: value
+  defp card_param(_field, _params), do: ""
 
   # A category id is only ever one of this store's own; anything else reads
   # as "no category", so a crafted event cannot file a product under another

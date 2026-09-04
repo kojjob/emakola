@@ -243,8 +243,37 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsTest do
       view |> element(chip) |> render_click()
       refute has_element?(view, chip <> "[data-on]")
 
-      set_card(view, ref, "category_id", Ecto.UUID.generate())
+      # A browser sends the button's own empty .value as "value"; the chip's
+      # choice travels as "category", and a stranger's id reads as none.
+      render_hook(view, "set_card", %{
+        "upload" => "photos",
+        "ref" => ref,
+        "field" => "category_id",
+        "value" => "",
+        "category" => Ecto.UUID.generate()
+      })
+
       refute has_element?(view, "#card-photos-#{ref} [data-on]")
+
+      render_hook(view, "set_card", %{
+        "upload" => "photos",
+        "ref" => ref,
+        "field" => "category_id",
+        "value" => "",
+        "category" => category.id
+      })
+
+      assert has_element?(view, chip <> "[data-on]")
+    end
+
+    test "a second Remove on a photo already gone does not crash the page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      [ref] = upload_photos(view, ["gone.png"])
+
+      view |> render_hook("remove_photo", %{"upload" => "photos", "ref" => ref})
+      view |> render_hook("remove_photo", %{"upload" => "photos", "ref" => ref})
+
+      assert render(view) =~ "Add photos"
     end
   end
 
