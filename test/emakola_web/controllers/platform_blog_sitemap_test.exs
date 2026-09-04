@@ -19,16 +19,16 @@ defmodule EmakolaWeb.PlatformBlogSitemapTest do
     |> Ash.update!(authorize?: false)
   end
 
-  test "GET /sitemap.xml lists /blog and published platform posts", %{conn: conn} do
+  test "GET /sitemap-platform.xml lists /blog and published platform posts", %{conn: conn} do
     published_platform_post!("Sitemap Visible Post")
 
-    body = conn |> get("/sitemap.xml") |> response(200)
+    body = conn |> get("/sitemap-platform.xml") |> response(200)
 
     assert body =~ "<loc>http://localhost:4000/blog</loc>"
     assert body =~ "<loc>http://localhost:4000/blog/sitemap-visible-post</loc>"
   end
 
-  test "GET /sitemap.xml omits unpublished platform posts", %{conn: conn} do
+  test "GET /sitemap-platform.xml omits unpublished platform posts", %{conn: conn} do
     Emakola.Content.Post
     |> Ash.Changeset.for_create(:create, %{
       type: :blog_post,
@@ -37,7 +37,7 @@ defmodule EmakolaWeb.PlatformBlogSitemapTest do
     })
     |> Ash.create!(authorize?: false)
 
-    body = conn |> get("/sitemap.xml") |> response(200)
+    body = conn |> get("/sitemap-platform.xml") |> response(200)
 
     refute body =~ "sitemap-hidden-draft"
   end
