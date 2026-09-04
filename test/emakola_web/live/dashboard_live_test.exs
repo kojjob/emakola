@@ -425,9 +425,17 @@ defmodule EmakolaWeb.DashboardLiveTest do
 
       {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/dashboard")
+      {:ok, view, html} = live(conn, ~p"/dashboard")
 
       assert html =~ "Welcome to Makola Payouts"
+
+      # A card in the page, first thing under the greeting, with one big
+      # button: not a strip in the chrome above the top bar.
+      assert has_element?(view, ~s{#announcement-#{ann.id}[data-severity="info"]}, "Got it")
+
+      {greeting_at, _} = :binary.match(html, "dashboard-greeting")
+      {banner_at, _} = :binary.match(html, "announcement-#{ann.id}")
+      assert greeting_at < banner_at
     end
   end
 

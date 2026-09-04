@@ -53,6 +53,29 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       assert_enqueued(worker: AnnouncementPublishWorker, args: %{"announcement_id" => ann.id})
     end
 
+    test "the composer previews the card merchants will see, as staff type", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/platform/announcements")
+
+      assert has_element?(view, ~s{#announcement-preview[data-severity="info"]})
+      assert html =~ "What merchants see"
+
+      html =
+        view
+        |> form("#announcement-form", %{
+          "announcement" => %{
+            "title" => "Payouts pause on Friday",
+            "body" => "MTN MoMo maintenance, 10pm to 2am.",
+            "severity" => "warning"
+          }
+        })
+        |> render_change()
+
+      assert has_element?(view, ~s{#announcement-preview[data-severity="warning"]})
+      assert html =~ "Payouts pause on Friday"
+      assert html =~ "hero-exclamation-triangle"
+      refute has_element?(view, ~s{#announcement-preview [phx-click="dismiss_announcement"]})
+    end
+
     test "timeline entries show status, channels, and the message body", %{conn: conn} do
       {:ok, ann} =
         Notifications.create_announcement(
