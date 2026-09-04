@@ -70,6 +70,15 @@ defmodule Emakola.Catalog.Product do
       constraints(max_length: 5_000)
     end
 
+    # True while the shop is showing words the AI wrote and the merchant has
+    # not yet touched; the product form uses it to ask them to read it. Cleared
+    # the moment the merchant changes the description themselves.
+    attribute :description_written_by_ai, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     attribute :status, :atom do
       constraints(one_of: [:draft, :active, :archived])
       default(:draft)
@@ -309,6 +318,16 @@ defmodule Emakola.Catalog.Product do
       validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change(Emakola.Catalog.Changes.UntrackVariantsOnTypeChange)
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
+      change(set_attribute(:description_written_by_ai, false), where: [changing(:description)])
+    end
+
+    # The AI backfill's own door: it writes the description and marks it as
+    # the AI's, so the merchant-facing :update never has to know the flag.
+    update :backfill_description do
+      require_atomic?(false)
+      accept([:description])
+      change(set_attribute(:description_written_by_ai, true))
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 

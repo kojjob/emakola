@@ -9,6 +9,11 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
   import Mox
   import Emakola.Factory
 
+  # render_async waits 100ms by default. Under a full parallel suite the mocked
+  # AI round-trip has missed that with nothing broken; two seconds is still
+  # instant when it passes and stops the false reds.
+  @async_timeout 2_000
+
   @small_png Base.decode64!(
                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
              )
@@ -103,7 +108,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
       ])
 
     render_upload(upload, "p.png")
-    render_async(view)
+    render_async(view, @async_timeout)
 
     view
   end
@@ -153,7 +158,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       html = render(view)
       assert html =~ "Handwoven Stole"
@@ -174,7 +179,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       assert :sys.get_state(view.pid).socket.assigns.source == :gallery
     end
@@ -192,7 +197,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       assert :sys.get_state(view.pid).socket.assigns.source == :camera
     end
@@ -232,7 +237,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       assigns = :sys.get_state(view.pid).socket.assigns
       assert assigns.category_id == category.id
@@ -272,7 +277,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       assert :sys.get_state(view.pid).socket.assigns.flags_clean? == false
     end
@@ -388,7 +393,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(second_upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       assert render(view) =~ "Handwoven Stole"
     end
@@ -407,7 +412,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(first_upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
       assert :sys.get_state(view.pid).socket.assigns.state == :retry
 
       view |> element("button[phx-click=retry_photo]") |> render_click()
@@ -422,7 +427,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(second_upload, "q.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       html = render(view)
       refute html =~ "Only one photo at a time"
@@ -444,7 +449,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       html = render(view)
       assert html =~ "Try a clearer photo"
@@ -464,7 +469,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       html = view |> element("button[phx-click=retry_photo]") |> render_click()
       assert html =~ ~s(id="snap-form")
@@ -485,7 +490,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       html = render(view)
       assert html =~ "Try a clearer photo"
@@ -649,7 +654,7 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
         ])
 
       render_upload(upload, "p.png")
-      render_async(view)
+      render_async(view, @async_timeout)
 
       view
       |> form("#snap-review-form", %{"price" => "180.00"})
