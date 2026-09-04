@@ -385,7 +385,7 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
-  describe "snap quick-action" do
+  describe "one door to add products" do
     setup do
       Application.put_env(:emakola, :anthropic_api_key, "test-key")
       on_exit(fn -> Application.delete_env(:emakola, :anthropic_api_key) end)
@@ -396,27 +396,11 @@ defmodule EmakolaWeb.DashboardLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
-    test "shows the Add by photo quick-action when AI is enabled", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/dashboard")
-
-      assert has_element?(view, ~s{a[href="/admin/products/snap"]})
-    end
-  end
-
-  describe "snap quick-action when AI is disabled" do
-    setup do
-      Application.delete_env(:emakola, :anthropic_api_key)
-    end
-
-    setup %{conn: conn} do
-      {conn, merchant, store} = setup_authenticated_merchant(conn)
-      %{conn: conn, merchant: merchant, store: store}
-    end
-
-    test "does not show the Add by photo quick-action", %{conn: conn} do
+    test "no separate Add by photo quick-action, even with AI on", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard")
 
       refute has_element?(view, ~s{a[href="/admin/products/snap"]})
+      assert has_element?(view, ~s{a[href="/admin/products/new"]})
     end
   end
 

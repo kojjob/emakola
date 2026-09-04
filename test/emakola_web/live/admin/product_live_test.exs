@@ -95,23 +95,11 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       assert has_element?(view, "#product-empty-state", "Add your first product")
 
       # One obvious thing to do — the artboard's rule. The tour lives on
-      # Customers, where there is no action to take yet.
-      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']") or
-               has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-
+      # Customers, where there is no action to take yet, and the AI fill
+      # lives inside the one door rather than as a second one.
+      assert has_element?(view, "#product-empty-state a[href='/admin/products/new']")
+      refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
       refute has_element?(view, "#product-empty-state a[href='/how-it-works/tour']")
-    end
-
-    test "the camera is offered as the first way in when AI is on", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/admin/products")
-
-      # Photo-first beats form-first for a merchant who reads slowly — and the
-      # snap flow only exists when the AI key is configured.
-      if EmakolaWeb.AiGate.enabled?() do
-        assert has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-      else
-        refute has_element?(view, "#product-empty-state a[href='/admin/products/snap']")
-      end
     end
 
     test "a search that matches nothing still says so", %{conn: conn, store: store} do
