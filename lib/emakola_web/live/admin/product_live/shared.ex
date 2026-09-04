@@ -154,7 +154,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   Returns `:ok` on success, `:error` on any failure. Raises from the storage
   client are contained so a flaky client does not crash the upload channel.
   """
-  def store_product_image(store_id, product_id, tmp_path, entry) do
+  def store_product_image(store_id, product_id, tmp_path, entry, opts \\ []) do
     ext = Path.extname(entry.client_name)
     filename = "#{Ecto.UUID.generate()}#{ext}"
     s3_path = "stores/#{store_id}/products/#{filename}"
@@ -172,7 +172,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
                  store_id: store_id,
                  content_type: entry.client_type,
                  file_size_bytes: entry.client_size,
-                 alt_text: Path.rootname(entry.client_name)
+                 alt_text: Keyword.get(opts, :alt_text) || Path.rootname(entry.client_name)
                },
                authorize?: false
              ) do
@@ -186,6 +186,26 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
         Logger.error("Product image upload failed: #{Exception.message(exception)}")
         :error
     end
+  end
+
+  @doc """
+  Uploads a photo for the AI to read and returns its URL, or nil when storage
+  fails. The photo lands under `stores/<id>/snap/`; the product's own image
+  is stored separately when the card is published.
+  """
+  def upload_snap_photo(store_id, tmp_path, entry) do
+    ext = Path.extname(entry.client_name)
+    s3_path = "stores/#{store_id}/snap/#{Ecto.UUID.generate()}#{ext}"
+
+    case Emakola.Storage.upload(File.read!(tmp_path), s3_path, content_type: entry.client_type) do
+      {:ok, url} -> url
+      {:error, _reason} -> nil
+    end
+  rescue
+    exception ->
+      require Logger
+      Logger.error("[product_live] snap photo upload failed: #{Exception.message(exception)}")
+      nil
   end
 
   @doc """

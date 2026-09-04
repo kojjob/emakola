@@ -311,6 +311,21 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         <.live_img_preview entry={@item.entry} class="w-full h-full object-cover" />
         <.remove_button item={@item} />
         <.card_badge state={@item.state} number={@number} />
+        <%!-- The AI snap page, folded into the photo: only when AI is on,
+              and only until it has read this photo. --%>
+        <button
+          :if={@ai_enabled and is_nil(@item.ai)}
+          type="button"
+          id={"fill-#{@item.key}"}
+          phx-click="fill_card"
+          phx-value-upload={@item.upload}
+          phx-value-ref={@item.ref}
+          disabled={@item.filling? or @item.entry.progress < 100}
+          class="absolute left-2.5 bottom-2.5 h-[34px] pl-2.5 pr-3 rounded-full bg-white/95 text-primary-hover text-[13px] font-extrabold inline-flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-70 disabled:cursor-wait"
+        >
+          <.icon name="hero-sparkles" class="size-4 text-primary" />
+          {if @item.filling?, do: "Reading…", else: "Fill it in"}
+        </button>
         <div
           :if={@item.entry.progress < 100}
           class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200"
@@ -366,6 +381,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
           />
         </div>
       </div>
+      <p
+        :if={@item.wrote_name? or @item.wrote_description?}
+        class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-amber-700"
+      >
+        <.icon name="hero-sparkles" class="size-3.5 text-amber-600" />
+        Makola wrote this. Change what is wrong.
+      </p>
       <div :if={@offer_price} class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1">
         <button
           type="button"

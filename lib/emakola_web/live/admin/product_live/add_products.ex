@@ -19,6 +19,8 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   import EmakolaWeb.Admin.ProductLive.AddProductsComponents
 
+  require Logger
+
   alias EmakolaWeb.Admin.ProductLive.Shared
 
   @max_photos 30
@@ -44,6 +46,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
        cards: %{},
        # Keys of the cards whose More row is open.
        open: MapSet.new(),
+       # What the AI read from a card's photo, by key: the texts it wrote
+       # (so the amber line can tell a merchant's edit from the AI's words),
+       # the alt text for the image, and whether the photo looked real.
+       ai: %{},
+       # Keys of the cards whose photo the AI is reading right now.
+       filling: MapSet.new(),
        # The most recent valid price typed: offered to unpriced cards as a
        # chip, because a stall that prices everything alike should not type
        # the number thirty times.
@@ -206,6 +214,27 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
     {:noreply, assign(socket, :published, [])}
   end
 
+  # The AI reads one card's photo. The photo goes to storage first because
+  # the vision model is handed a URL; the upload entry itself is postponed,
+  # not consumed, so the card keeps its preview until it is published.
+  def handle_event("fill_card", %{"upload" => upload, "ref" => ref}, socket) do
+    with {:ok, name, key} when name in @upload_names <- card_key(upload, ref),
+         true <- socket.assigns.ai_enabled and not MapSet.member?(socket.assigns.filling, key),
+         :ok <- Emakola.Content.RateLimiter.check_and_increment(socket.assigns.store_id),
+         url when is_binary(url) <- snap_photo_url(socket, name, ref) do
+      {:noreply, socket |> update(:filling, &MapSet.put(&1, key)) |> start_fill(key, url)}
+    else
+      {:error, :rate_limit_exceeded} ->
+        {:noreply, put_flash(socket, :error, "Daily AI limit reached")}
+
+      nil ->
+        {:noreply, put_flash(socket, :error, "Try a clearer photo")}
+
+      _not_fillable ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("publish_all", _params, socket) do
     items = card_items(socket.assigns)
 
@@ -219,6 +248,27 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
       true ->
         publish_ready(socket, items)
     end
+  end
+
+  @impl true
+  def handle_async(
+        {:fill, key},
+        {:ok, {:ok, %Emakola.AI.Response{parsed: %{"identified" => true} = parsed}}},
+        socket
+      ) do
+    {:noreply, socket |> update(:filling, &MapSet.delete(&1, key)) |> apply_fill(key, parsed)}
+  end
+
+  def handle_async({:fill, key}, result, socket) do
+    case result do
+      {:ok, {:ok, %Emakola.AI.Response{}}} -> :ok
+      other -> Logger.warning("[product_live.add_products] fill failed: #{inspect(other)}")
+    end
+
+    {:noreply,
+     socket
+     |> update(:filling, &MapSet.delete(&1, key))
+     |> put_flash(:error, "Try a clearer photo")}
   end
 
   # ── Publishing ──
@@ -235,7 +285,8 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
       |> Enum.flat_map(&create_product(&1, store_id))
 
     products_by_key = Map.new(created, fn {item, product} -> {item.key, product} end)
-    attach_photos(socket, products_by_key, store_id)
+    attach_photos(socket, created, store_id)
+    award_badges(created, store_id)
     Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
 
     remaining = Enum.reject(items, &Map.has_key?(products_by_key, &1.key))
@@ -277,27 +328,138 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
     }
 
     case Shared.create_product_with_price(attrs, pesewas, :active) do
-      {:ok, product, _result} -> [{item, product}]
+      {:ok, product, _result} -> [{item, mark_ai_description(product, item)}]
       {:error, _error} -> []
     end
   end
 
+  # A description the AI wrote and the merchant left alone is saved as
+  # AI-written, the same mark the backfill worker leaves, so the product
+  # list can say "Makola wrote this" and the edit page can ask them to read
+  # it. `:backfill_description` is the one action that sets the flag.
+  defp mark_ai_description(product, %{wrote_description?: true, description: description}) do
+    product
+    |> Ash.Changeset.for_update(:backfill_description, %{description: description})
+    |> Ash.update(authorize?: false)
+    |> case do
+      {:ok, marked} -> marked
+      {:error, _error} -> product
+    end
+  end
+
+  defp mark_ai_description(product, _item), do: product
+
   # Attach each published card's photo to its product; a card that was not
   # published keeps its photo on the page (postponed, not consumed).
-  defp attach_photos(socket, products_by_key, store_id) do
+  defp attach_photos(socket, created, store_id) do
+    by_key = Map.new(created, fn {item, product} -> {item.key, {item, product}} end)
+
     for name <- @upload_names do
       consume_uploaded_entries(socket, name, fn %{path: tmp_path}, entry ->
-        case Map.get(products_by_key, "#{name}-#{entry.ref}") do
+        case Map.get(by_key, "#{name}-#{entry.ref}") do
           nil ->
             {:postpone, :skipped}
 
-          product ->
-            Shared.store_product_image(store_id, product.id, tmp_path, entry)
+          {item, product} ->
+            Shared.store_product_image(store_id, product.id, tmp_path, entry,
+              alt_text: item.ai && item.ai.alt_text
+            )
+
             {:ok, :attached}
         end
       end)
     end
   end
+
+  # The Real-photo badge: a camera photo the AI found clean. Awarded after
+  # the image is attached, because attaching an image revokes the badge
+  # (Emakola.Catalog.Changes.RevokeSnapVerified). `:set_snap_verified` is
+  # forbidden to every actor by policy, so this is the one write that runs
+  # with authorize?: false.
+  defp award_badges(created, store_id) do
+    for {%{upload: :camera, ai: %{flags_clean?: true}}, product} <- created do
+      product
+      |> Ash.Changeset.for_update(:set_snap_verified, %{snap_verified: true},
+        tenant: store_id,
+        authorize?: false
+      )
+      |> Ash.update()
+    end
+  end
+
+  # ── Fill it in ──
+
+  defp snap_photo_url(socket, name, ref) do
+    store_id = socket.assigns.store_id
+
+    case Enum.find(socket.assigns.uploads[name].entries, &(&1.ref == ref and &1.done?)) do
+      nil ->
+        :not_uploaded
+
+      entry ->
+        consume_uploaded_entry(socket, entry, fn %{path: tmp_path} ->
+          {:postpone, Shared.upload_snap_photo(store_id, tmp_path, entry)}
+        end)
+    end
+  end
+
+  defp start_fill(socket, key, url) do
+    store = socket.assigns.current_store
+    merchant_id = socket.assigns.current_merchant.id
+    category_names = Enum.map(socket.assigns.categories, & &1.name)
+
+    start_async(socket, {:fill, key}, fn ->
+      Emakola.AI.generate(
+        :snap_to_shop,
+        %{image_url: url, store: store, category_names: category_names},
+        store: store,
+        actor_id: merchant_id
+      )
+    end)
+  end
+
+  # The AI fills only what is still empty: a name the merchant typed first
+  # stays theirs.
+  defp apply_fill(socket, key, parsed) do
+    card = Map.get(socket.assigns.cards, key, %{})
+    category_id = resolve_category_id(parsed["category"], socket.assigns.categories)
+
+    card =
+      [name: parsed["title"], description: parsed["description"], category_id: category_id]
+      |> Enum.reject(fn {_field, value} -> blank?(value) end)
+      |> Enum.reduce(card, fn {field, value}, card ->
+        if blank?(Map.get(card, field)), do: Map.put(card, field, value), else: card
+      end)
+
+    ai = %{
+      name: parsed["title"],
+      description: parsed["description"],
+      alt_text: parsed["alt_text"],
+      flags_clean?: flags_clean?(parsed["photo_flags"])
+    }
+
+    socket
+    |> update(:cards, &Map.put(&1, key, card))
+    |> update(:ai, &Map.put(&1, key, ai))
+  end
+
+  defp resolve_category_id(nil, _categories), do: nil
+
+  defp resolve_category_id(name, categories) do
+    case Enum.find(categories, &(&1.name == name)) do
+      nil -> nil
+      category -> category.id
+    end
+  end
+
+  # Fail closed: the badge depends on this, so anything but an explicit
+  # all-clear reads as "not clean".
+  defp flags_clean?(%{"stock_photo" => false, "watermark" => false, "screenshot" => false}),
+    do: true
+
+  defp flags_clean?(_flags), do: false
+
+  defp blank?(value), do: not is_binary(value) or String.trim(value) == ""
 
   # What the done screen shows: the product as a buyer will see it.
   defp published_summary(created, store_id) do
@@ -372,6 +534,9 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
   defp card_item(key, source, ref, entry, %{cards: cards, open: open} = assigns, extra) do
     card = Map.get(cards, key)
     category_id = card_field(card, :category_id)
+    ai = Map.get(assigns.ai, key)
+    name = card_field(card, :name)
+    description = card_field(card, :description)
 
     Map.merge(
       %{
@@ -379,12 +544,17 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         upload: source,
         ref: ref,
         entry: entry,
-        name: card_field(card, :name),
+        name: name,
         price: card_field(card, :price),
-        description: card_field(card, :description),
+        description: description,
         category_id: category_id,
         category_name: category_name(assigns.categories, category_id),
         open?: MapSet.member?(open, key),
+        ai: ai,
+        filling?: MapSet.member?(assigns.filling, key),
+        wrote_name?: ai != nil and not blank?(ai.name) and name == ai.name,
+        wrote_description?:
+          ai != nil and not blank?(ai.description) and description == ai.description,
         state: card_state(card),
         missing_name?: card != nil and card_name(card) == "",
         missing_price?: card != nil and not priced?(card)
