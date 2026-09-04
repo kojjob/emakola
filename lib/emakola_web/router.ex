@@ -538,7 +538,6 @@ defmodule EmakolaWeb.Router do
       live "/admin/products", Admin.ProductLive.Index
       live "/admin/products/bulk", Admin.ProductLive.AddProducts
       live "/admin/products/new", Admin.ProductLive.AddProducts
-      live "/admin/products/new/form", Admin.ProductLive.Form, :new
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
       live "/admin/products/:id/files", Admin.ProductLive.DigitalFiles
       live "/admin/categories", Admin.CategoryLive.Index
