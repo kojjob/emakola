@@ -83,6 +83,28 @@ defmodule Emakola.AI.PromptsTest do
     assert recipe.json_schema.properties.ingredients.items.additionalProperties == false
   end
 
+  test "every prompt carries the house rule: no emoji, in one place" do
+    store = %{name: "Ama's Shop", currency: "GHS"}
+    product = %{title: "Basket", description: "Two handles", tags: []}
+
+    requests = [
+      Prompts.build(:product_description, %{product: product, store: store}),
+      Prompts.build(:seo_meta, %{resource: product, store: store}),
+      Prompts.build(:blog_post, %{topic: "Shea butter", store: store, type: "guide"}),
+      Prompts.build(:image_alt_text, %{image_url: "https://example.test/b.jpg"}),
+      Prompts.build(:recipe, %{product: product, store: store}),
+      Prompts.build(:snap_to_shop, %{
+        image_url: "https://example.test/b.jpg",
+        store: store,
+        category_names: ["Fabrics"]
+      })
+    ]
+
+    for request <- requests do
+      assert request.system =~ "never use emoji"
+    end
+  end
+
   test "free-text prompts carry no schema" do
     assert Prompts.build(:product_description, %{product: %{}, store: %{}}).json_schema == nil
     assert Prompts.build(:image_alt_text, %{image_url: "https://x.test/i.jpg"}).json_schema == nil
