@@ -314,6 +314,8 @@ defmodule EmakolaWeb.SitemapControllerTest do
       conn: conn,
       store: store
     } do
+      create_product!(store, title: "Kente Cloth", status: :active)
+
       conn = get(conn, "/sitemap.xml")
       body = response(conn, 200)
       base = EmakolaWeb.SEO.Canonical.base()
@@ -325,6 +327,19 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "<loc>#{base}/sitemap-platform.xml</loc>"
       assert body =~ "<loc>#{base}/s/#{store.slug}/sitemap.xml</loc>"
       assert body =~ "</sitemapindex>"
+    end
+
+    # Search Console shows Google indexing the about/contact/policies
+    # boilerplate of empty shops and almost no products. A shop with nothing
+    # to sell has nothing to index, so the index does not send crawlers there.
+    test "leaves out shops with no active product", %{conn: conn, store: empty_store} do
+      draft_only = create_store!(%{slug: "drafts-#{System.unique_integer([:positive])}"})
+      create_product!(draft_only, title: "Not yet", status: :draft)
+
+      body = conn |> get("/sitemap.xml") |> response(200)
+
+      refute body =~ "/s/#{empty_store.slug}/sitemap.xml"
+      refute body =~ "/s/#{draft_only.slug}/sitemap.xml"
     end
 
     test "leaves out shops that are not live", %{conn: conn} do

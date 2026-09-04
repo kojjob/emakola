@@ -85,7 +85,9 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
     end
 
     test "the apex host serves the platform sitemap index, listing each shop's subdomain sitemap",
-         %{conn: conn, origin: origin} do
+         %{conn: conn, store: store, origin: origin} do
+      create_product!(store, title: "Kente Cloth", status: :active)
+
       body =
         %{conn | host: "makola.io"}
         |> get("/sitemap.xml")

@@ -27,6 +27,8 @@ defmodule EmakolaWeb.SitemapController do
   """
   use EmakolaWeb, :controller
 
+  require Ash.Query
+
   alias EmakolaWeb.Helpers.StoreResolver
   alias EmakolaWeb.Plugs.ResolveStoreHost
   alias EmakolaWeb.SEO.Canonical
@@ -52,12 +54,14 @@ defmodule EmakolaWeb.SitemapController do
     |> send_resp(200, xml)
   end
 
-  # Live shops only — the same set the public directory lists. A suspended or
-  # archived shop answers with an unavailable page, which is not a URL to hand
-  # a crawler.
+  # Live shops with something to sell. A suspended or archived shop answers
+  # with an unavailable page, and an empty shop has only its about, contact
+  # and policies boilerplate — Search Console shows Google indexing exactly
+  # that boilerplate instead of products, so neither gets a crawler sent.
   defp live_store_sitemap_urls do
     Emakola.Stores.Store
     |> Ash.Query.for_read(:list_active)
+    |> Ash.Query.filter(product_count > 0)
     |> Ash.Query.select([:slug])
     |> Ash.read!(authorize?: false)
     |> Enum.map(&Canonical.sitemap_url/1)
