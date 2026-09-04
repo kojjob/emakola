@@ -173,4 +173,48 @@ defmodule EmakolaWeb.CustomDomainRoutingTest do
       assert location == "http://kentekingdom.com/products?page=2"
     end
   end
+
+  # The short URL is the one merchants share, so it is the one that must
+  # carry ranking across when the shop moves to its own domain. The reserved
+  # list is what keeps this from sending the pricing page to a merchant.
+  describe "the short URL moves to a live custom domain" do
+    setup do
+      Application.put_env(:emakola, :store_subdomain_base, "makola.io")
+      :ok
+    end
+
+    test "makola.io/:slug 301s to the domain, keeping path and query", %{
+      conn: conn,
+      store: store
+    } do
+      _ = live_domain!(store, "kentekingdom.com", primary?: true)
+
+      conn =
+        %{conn | host: "makola.io", path_info: [store.slug, "products"], query_string: "page=2"}
+        |> Map.put(:request_path, "/#{store.slug}/products")
+        |> EmakolaWeb.Plugs.ResolveStoreByHost.call([])
+
+      assert conn.halted
+      assert conn.status == 301
+
+      assert ["http://kentekingdom.com/products?page=2"] =
+               Plug.Conn.get_resp_header(conn, "location")
+    end
+
+    test "a platform page is never mistaken for a shop", %{conn: conn} do
+      conn =
+        %{conn | host: "makola.io", path_info: ["pricing"], request_path: "/pricing"}
+        |> EmakolaWeb.Plugs.ResolveStoreByHost.call([])
+
+      refute conn.halted
+    end
+
+    test "a shop without a custom domain stays where it is", %{conn: conn, store: store} do
+      conn =
+        %{conn | host: "makola.io", path_info: [store.slug], request_path: "/#{store.slug}"}
+        |> EmakolaWeb.Plugs.ResolveStoreByHost.call([])
+
+      refute conn.halted
+    end
+  end
 end
