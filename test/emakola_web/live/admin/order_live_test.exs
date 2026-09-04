@@ -105,12 +105,28 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ "Your orders will show here"
     end
 
-    test "caps the order list at 50 rows", %{conn: conn, store: store, customer: customer} do
-      for _ <- 1..51, do: create_order!(store.id, customer.id, :pending)
+    test "caps the list of finished orders at 50 rows", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      for _ <- 1..51, do: create_order!(store.id, customer.id, :confirmed)
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
       assert length(String.split(html, ~s(id="order-row-))) - 1 == 50
+    end
+
+    test "waiting orders are never cut by the window", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      for _ <- 1..51, do: create_order!(store.id, customer.id, :pending)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      assert length(String.split(html, ~s(id="order-row-))) - 1 == 51
     end
 
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
@@ -175,24 +191,25 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
   end
 
   describe "OrderLive.Index redesign" do
-    test "renders KPI tiles for today, pending, revenue and delivered", %{
+    test "the tiles count the waiting, the on the way, today's money and the week's done", %{
       conn: conn,
       store: store,
       customer: customer
     } do
       create_order!(store.id, customer.id, :pending, total: 10_000)
       create_order!(store.id, customer.id, :pending, total: 10_000)
+      create_order!(store.id, customer.id, :shipped, total: 5_000)
       create_order!(store.id, customer.id, :delivered, total: 30_000)
       create_order!(store.id, customer.id, :cancelled, total: 99_900)
 
       {:ok, view, html} = live(conn, ~p"/admin/orders")
 
-      assert html =~ "Orders today"
-      assert has_element?(view, "#stat-orders-today", "4")
-      assert has_element?(view, "#stat-orders-pending", "2")
-      # Cancelled money never counts as revenue.
-      assert has_element?(view, "#stat-orders-revenue", "GH₵ 500")
-      assert has_element?(view, "#stat-orders-delivered", "1")
+      assert html =~ "Waiting"
+      assert has_element?(view, "#stat-orders-waiting", "2")
+      assert has_element?(view, "#stat-orders-on-the-way", "1")
+      # Cancelled money never counts.
+      assert has_element?(view, "#stat-orders-money-today", "GH₵ 550")
+      assert has_element?(view, "#stat-orders-done", "1")
     end
 
     test "filter tabs carry store-wide status counts", %{
@@ -228,6 +245,88 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert has_element?(view, "#orders-filter-tabs button[phx-value-status=all]", "2")
       assert render(view) =~ pending.order_number
       refute render(view) =~ delivered.order_number
+    end
+  end
+
+  describe "do these now" do
+    test "waiting orders come first, as cards with the photo, WhatsApp and Send it", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      image = create_line_item_with_image!(store, order)
+
+      create_paid_payment!(store, order, %{
+        "channel" => "mobile_money",
+        "authorization" => %{"channel" => "mobile_money", "bank" => "MTN"}
+      })
+
+      shipped = create_order!(store.id, customer.id, :shipped)
+      done = create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, html} = live(conn, ~p"/admin/orders")
+
+      assert html =~ "1 waiting for you"
+      card = "#do-these-now #order-row-#{order.id}"
+      assert has_element?(view, "#{card} img[src='#{image.url}']")
+      assert has_element?(view, card, "Kente Scarf")
+      assert has_element?(view, "#{card} a[href^='https://wa.me/233240000000']")
+      assert has_element?(view, card, "MTN MoMo")
+      assert has_element?(view, "#{card} a[href='/admin/orders/#{order.id}']", "Send it")
+
+      assert has_element?(view, "#on-the-way #order-row-#{shipped.id}")
+      assert has_element?(view, "#done #order-row-#{done.id}")
+      refute has_element?(view, "#on-the-way #order-row-#{order.id}")
+    end
+
+    test "an order nobody has paid for says so, and one without a picture keeps initials", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      card = "#do-these-now #order-row-#{order.id}"
+      assert has_element?(view, card, "Not paid yet")
+      assert has_element?(view, card, "TC")
+      refute has_element?(view, "#{card} img")
+    end
+
+    test "a waiting order older than the window still comes first", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      old = create_order!(store.id, customer.id, :pending)
+      for _ <- 1..50, do: create_order!(store.id, customer.id, :confirmed)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+
+      assert has_element?(view, "#do-these-now #order-row-#{old.id}")
+      assert has_element?(view, "#load-more-orders")
+    end
+
+    test "a tab or a search shows one flat list, not the sections", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      pending = create_order!(store.id, customer.id, :pending)
+      create_order!(store.id, customer.id, :delivered)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders")
+      assert has_element?(view, "#do-these-now")
+
+      view
+      |> element("#orders-filter-tabs button[phx-value-status=pending]")
+      |> render_click()
+
+      refute has_element?(view, "#do-these-now")
+      refute has_element?(view, "#done")
+      assert has_element?(view, "#order-row-#{pending.id}", "Send it")
     end
   end
 
