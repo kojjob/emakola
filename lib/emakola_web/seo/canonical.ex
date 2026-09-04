@@ -45,6 +45,18 @@ defmodule EmakolaWeb.SEO.Canonical do
   def recipe_url(store, %{slug: slug}), do: path(store, "/recipes/" <> slug)
   def page_url(store, %{slug: slug}), do: path(store, "/p/" <> slug)
 
+  @doc """
+  The sitemap a store's own robots.txt declares: `<origin>/sitemap.xml` on its
+  custom domain or platform subdomain. The apex subfolder form has no
+  `/:slug/sitemap.xml` route, so there it is the `/s/:slug/sitemap.xml` route.
+  """
+  def sitemap_url(%{slug: slug} = store) do
+    case own_origin(store) do
+      nil -> base() <> "/s/" <> slug <> "/sitemap.xml"
+      origin -> origin <> "/sitemap.xml"
+    end
+  end
+
   # The SEO-primary origin for a store, best first:
   #
   #   1. its own live, primary custom domain — a merchant paying for
@@ -60,23 +72,24 @@ defmodule EmakolaWeb.SEO.Canonical do
   #
   # The scheme is taken from the endpoint (https in prod), and the port is
   # intentionally dropped — prod branded hosts are served on :443.
-  defp store_base(%{slug: slug}) do
+  defp store_base(%{slug: slug} = store), do: own_origin(store) || base() <> "/" <> slug
+
+  # An origin that belongs to this store alone — its custom domain, else its
+  # platform subdomain — or nil in the apex subfolder fallback. The fallback is
+  # the short form, not `/s/:slug`: both route, but only one is a URL a merchant
+  # can read down a phone line, and `ResolveStoreByHost` now 301s the `/s/` form
+  # there anyway, so emitting it would just cost a hop.
+  defp own_origin(%{slug: slug}) do
     case Emakola.Stores.DomainResolver.primary_host(slug) do
       host when is_binary(host) -> "#{scheme()}://#{host}"
-      _ -> platform_store_base(slug)
+      _ -> subdomain_origin(slug)
     end
   end
 
-  defp platform_store_base(slug) do
+  defp subdomain_origin(slug) do
     case Application.get_env(:emakola, :store_subdomain_base) do
-      sub_base when is_binary(sub_base) and sub_base != "" ->
-        "#{scheme()}://#{slug}.#{sub_base}"
-
-      _ ->
-        # The short form, not `/s/:slug`. Both route, but only one is a URL a
-        # merchant can read down a phone line — and `ResolveStoreByHost` now
-        # 301s the `/s/` form here anyway, so emitting it would just cost a hop.
-        base() <> "/" <> slug
+      sub_base when is_binary(sub_base) and sub_base != "" -> "#{scheme()}://#{slug}.#{sub_base}"
+      _ -> nil
     end
   end
 
