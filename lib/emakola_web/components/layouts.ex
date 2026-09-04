@@ -124,8 +124,6 @@ defmodule EmakolaWeb.Layouts do
   defdelegate notification_icon(type), to: EmakolaWeb.LayoutHelpers
   defdelegate relative_time(datetime), to: EmakolaWeb.LayoutHelpers
 
-  @doc false
-  # Severity tint for the merchant announcement banner in app.html.heex.
   # Embed all files in layouts/* within this module.
   # The app.html.heex template requires: @flash, @inner_content, @active_nav, @current_user
   # The root.html.heex template provides the HTML skeleton.

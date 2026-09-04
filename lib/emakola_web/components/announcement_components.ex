@@ -53,6 +53,7 @@ defmodule EmakolaWeb.AnnouncementComponents do
         type="button"
         phx-click={!@preview && "dismiss_announcement"}
         phx-value-id={!@preview && @announcement.id}
+        disabled={@preview}
         class={[
           "h-12 w-full lg:w-[150px] shrink-0 rounded-[13px] text-white text-[15.5px] font-extrabold",
           "inline-flex items-center justify-center gap-2 shadow-lg transition-colors cursor-pointer",

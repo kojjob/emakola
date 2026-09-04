@@ -62,5 +62,6 @@ defmodule EmakolaWeb.AnnouncementComponentsTest do
     assert html =~ "Got it"
     refute html =~ "dismiss_announcement"
     refute html =~ "phx-value-id"
+    assert html =~ ~s(disabled)
   end
 end
