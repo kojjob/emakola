@@ -135,6 +135,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                     <p class="text-xs text-slate-400 truncate">
                       {category_name(product.category_id, @categories)}
                     </p>
+                    <.ai_description_chip :if={product.description_written_by_ai} />
                   </div>
                 </div>
               </td>
@@ -214,6 +215,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 <p class="text-xs text-slate-400">
                   {category_name(product.category_id, @categories)}
                 </p>
+                <.ai_description_chip :if={product.description_written_by_ai} />
               </div>
             </div>
             <.status_badge status={product.status} variant={:product} />
@@ -272,6 +274,16 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
         </div>
       </div>
     <% end %>
+    """
+  end
+
+  # The merchant who gets AI descriptions adds products through the photo
+  # cards and never opens the edit form, so the mark lives in the list too.
+  def ai_description_chip(assigns) do
+    ~H"""
+    <span class="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700">
+      Makola wrote this
+    </span>
     """
   end
 
