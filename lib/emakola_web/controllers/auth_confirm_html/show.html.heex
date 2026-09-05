@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" class="[scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Confirm your email</title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+  </head>
+  <body class="bg-surface-subtle">
+    <div class="min-h-screen flex items-center justify-center px-4">
+      <div class="w-full max-w-md rounded-card border border-border bg-surface shadow-sm p-8 flex flex-col gap-5">
+        <div class="w-14 h-14 rounded-control bg-primary-soft text-primary flex items-center justify-center">
+          <svg
+            class="w-7 h-7"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        </div>
+
+        <h1 class="text-2xl font-extrabold tracking-tight text-text">One more tap</h1>
+        <p class="text-sm leading-relaxed text-text-muted">Tap below to confirm this is you.</p>
+
+        <%!-- A real CSRF token, which is the whole reason this page exists: the
+               framework's own version omits it, so the POST was refused and nobody
+               could ever finish signing up. --%>
+        <form method="post" action="/oauth/merchant/confirm_new_merchant">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="confirm" value={@token} />
+          <button
+            type="submit"
+            class="w-full min-h-12 rounded-control bg-primary hover:bg-primary-hover text-white text-[15px] font-bold transition-colors cursor-pointer"
+          >
+            Confirm my email
+          </button>
+        </form>
+
+        <p class="text-xs text-text-muted">
+          If you did not sign up for Makola, close this page and nothing happens.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

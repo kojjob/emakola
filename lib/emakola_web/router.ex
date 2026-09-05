@@ -222,6 +222,10 @@ defmodule EmakolaWeb.Router do
   scope "/auth", EmakolaWeb.Auth do
     pipe_through [:browser, :auth_rate_limit]
 
+    # Our own confirmation page. ash_authentication's generated one carries no
+    # CSRF token, so its POST is refused and confirmation can never complete.
+    get "/confirm", ConfirmController, :show
+
     live_session :merchant_auth,
       on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
       live "/login", LoginLive

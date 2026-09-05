@@ -68,8 +68,19 @@ defmodule EmakolaWeb.ExportController do
 
       {:ok, subject} ->
         case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
-          {:ok, merchant} -> {:ok, merchant}
-          _ -> {:error, :unauthenticated}
+          # Unverified is refused here, not just in the LiveViews. Every other
+          # merchant surface sits behind Hooks.RequireAuth; this route is a
+          # plain controller and never meets that hook, so without this clause
+          # a merchant locked out of the app could still pull a report out of
+          # it. 401 rather than a redirect to /auth/verify: nothing links here
+          # except /admin/reports, which they cannot reach either way.
+          {:ok, merchant} ->
+            if Emakola.Accounts.access_allowed?(merchant),
+              do: {:ok, merchant},
+              else: {:error, :unauthenticated}
+
+          _ ->
+            {:error, :unauthenticated}
         end
     end
   end
