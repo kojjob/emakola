@@ -1,15 +1,13 @@
 defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
   @moduledoc """
-  Implementation for the Customer find_or_create generic action.
+  Finds the customer a checkout belongs to, or creates one.
 
-  Looks up a customer by email + store_id. Returns the existing customer
-  if found, otherwise creates a new one with the provided attributes.
-
-  Handles concurrent race conditions: if two checkouts for the same
-  new email arrive simultaneously, the loser's create hits the
-  unique_store_email constraint. We rescue and retry the lookup.
+  Phone first: the storefront is phone-first, and `unique_store_phone` means a
+  second row for a known number cannot be created anyway. Email second, for
+  buyers who never gave a phone. The phone is normalised to E.164 before both
+  the lookup and the create, so "020 111 2222" and "+233201112222" are one
+  person.
   """
-
   use Ash.Resource.Actions.Implementation
 
   require Ash.Query
@@ -19,10 +17,10 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
     email = input.arguments.email
     store_id = input.arguments.store_id
     name = input.arguments[:name]
-    phone = input.arguments[:phone]
+    phone = normalize_phone(input.arguments[:phone])
     resource = input.resource
 
-    case find_existing(resource, email, store_id) do
+    case find_existing(resource, email, phone, store_id) do
       nil ->
         create_or_find_on_conflict(resource, email, store_id, name, phone)
 
@@ -31,7 +29,26 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
     end
   end
 
-  defp find_existing(resource, email, store_id) do
+  defp normalize_phone(nil), do: nil
+  defp normalize_phone(""), do: nil
+
+  defp normalize_phone(phone) when is_binary(phone),
+    do: Emakola.Accounts.PhoneAuth.normalize(phone)
+
+  defp find_existing(resource, email, phone, store_id) do
+    by_phone(resource, phone, store_id) || by_email(resource, email, store_id)
+  end
+
+  defp by_phone(_resource, nil, _store_id), do: nil
+
+  defp by_phone(resource, phone, store_id) do
+    resource
+    |> Ash.Query.filter(phone == ^phone and store_id == ^store_id)
+    |> Ash.read!(authorize?: false)
+    |> List.first()
+  end
+
+  defp by_email(resource, email, store_id) do
     resource
     |> Ash.Query.filter(email == ^email and store_id == ^store_id)
     |> Ash.read!(authorize?: false)
@@ -52,8 +69,7 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
 
       {:error, %Ash.Error.Invalid{errors: errors}} ->
         if uniqueness_error?(errors) do
-          # Another process created this customer concurrently — find it
-          case find_existing(resource, email, store_id) do
+          case find_existing(resource, email, phone, store_id) do
             nil -> {:error, :customer_creation_failed}
             customer -> {:ok, customer}
           end
