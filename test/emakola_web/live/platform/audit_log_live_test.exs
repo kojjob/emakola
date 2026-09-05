@@ -18,6 +18,17 @@ defmodule EmakolaWeb.Platform.AuditLogLiveTest do
     end
   end
 
+  defp backdate!(entry, days) do
+    import Ecto.Query
+    at = DateTime.utc_now() |> DateTime.add(-days, :day) |> DateTime.truncate(:second)
+
+    {1, _} =
+      Emakola.Repo.update_all(
+        from(l in Emakola.Accounts.PlatformAuditLog, where: l.id == ^entry.id),
+        set: [inserted_at: at]
+      )
+  end
+
   defp set_permissions!(user, permissions) do
     user
     |> Ash.Changeset.for_update(:set_platform_permissions, %{platform_permissions: permissions})
@@ -156,6 +167,137 @@ defmodule EmakolaWeb.Platform.AuditLogLiveTest do
 
       refute html =~ "row-01"
       assert html =~ "Could not verify your access"
+    end
+  end
+
+  describe "ledger filters" do
+    setup %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      {:ok, _} = PlatformAudit.log(:store_suspended, nil, %{"store_slug" => "osu-sneaker-loft"})
+      {:ok, _} = PlatformAudit.log(:sign_out, nil, %{}, "10.9.8.7")
+      {:ok, _} = PlatformAudit.log(:payout_approved, nil, %{"amount" => "1250"})
+      %{conn: conn}
+    end
+
+    test "family in the URL narrows the ledger and marks the chip", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/platform/audit-log?family=stores")
+
+      assert html =~ "Store suspended"
+      refute view |> element("#audit-entries") |> render() =~ "Sign out"
+      assert has_element?(view, "#audit-families button.bg-white", "Stores")
+    end
+
+    test "clicking a family chip patches the URL", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/audit-log")
+
+      html = view |> element("#audit-families button[phx-value-family=finance]") |> render_click()
+
+      assert_patch(view, "/platform/audit-log?family=finance")
+      assert html =~ "Payout approved"
+      refute html =~ "Store suspended"
+    end
+
+    test "severity and range selects patch the URL together", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/audit-log")
+
+      html =
+        view
+        |> form("#audit-filters", %{"severity" => "amber", "range" => "week"})
+        |> render_change()
+
+      assert_patch(view, "/platform/audit-log?range=week&severity=amber")
+      assert html =~ "Store suspended"
+      refute view |> element("#audit-entries") |> render() =~ "Sign out"
+    end
+
+    test "search matches ip and metadata and patches the URL", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/audit-log")
+
+      html = view |> form("#audit-search", %{"q" => "10.9"}) |> render_change()
+
+      assert_patch(view, "/platform/audit-log?q=10.9")
+      assert html =~ "Sign out"
+      refute html =~ "Store suspended"
+    end
+
+    test "chips carry counts and the footer says how many are shown", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/platform/audit-log")
+
+      assert has_element?(view, "#audit-families button", "Stores")
+      assert has_element?(view, "#audit-families button .tab-count", "1")
+      # Creating the owner audits too, so the exact total is not fixed;
+      # everything fits on one page, so shown equals total.
+      assert view |> element("#audit-total") |> render() =~ ~r/Showing (\d+) of \1\b/
+      refute html =~ "Showing 0 of"
+    end
+
+    test "an empty result shows an empty state instead of a bare table", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/platform/audit-log?family=moderation")
+
+      assert html =~ "No events match"
+    end
+
+    test "the export link carries the current filters", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/platform/audit-log?family=stores")
+
+      assert has_element?(view, "#audit-export[href='/platform/audit-log/export?family=stores']")
+    end
+  end
+
+  describe "day bands" do
+    test "one band per day, today named", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      {:ok, _} = PlatformAudit.log(:sign_out, nil)
+      {:ok, _} = PlatformAudit.log(:sign_in_succeeded, nil)
+      {:ok, old} = PlatformAudit.log(:totp_enabled, nil)
+      backdate!(old, 3)
+
+      {:ok, view, html} = live(conn, "/platform/audit-log")
+
+      today = Date.to_iso8601(Date.utc_today())
+      assert has_element?(view, "#audit-entries #entries-band-#{today}", "Today")
+      assert length(Regex.scan(~r/id="entries-band-/, html)) == 2
+    end
+  end
+
+  describe "targets and details" do
+    test "metadata becomes a named target, a first detail, and a folded remainder",
+         %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+
+      {:ok, entry} =
+        PlatformAudit.log(:store_suspended, nil, %{
+          "store_name" => "Osu Sneaker Loft",
+          "store_slug" => "osu-sneaker-loft",
+          "reason" => "Counterfeit listings",
+          "store_id" => Ash.UUID.generate()
+        })
+
+      {:ok, view, html} = live(conn, "/platform/audit-log")
+
+      assert html =~ "Osu Sneaker Loft"
+      assert html =~ "Counterfeit listings"
+      assert has_element?(view, "#entries-#{entry.id} .detail-more", "+1")
+      assert has_element?(view, "#entries-#{entry.id}-meta.hidden")
+    end
+  end
+
+  describe "live updates" do
+    test "a matching new entry is counted and shown on demand", %{conn: conn} do
+      {conn, _owner, _session} = setup_platform_staff(conn)
+      {:ok, view, html} = live(conn, "/platform/audit-log?family=stores")
+      refute html =~ "Store blocked"
+
+      {:ok, _} = PlatformAudit.log(:store_blocked, nil)
+      {:ok, _} = PlatformAudit.log(:sign_out, nil)
+
+      html = render(view)
+      assert html =~ "1 new"
+      refute html =~ "Store blocked"
+
+      html = view |> element("#show-new") |> render_click()
+      assert html =~ "Store blocked"
+      refute html =~ "1 new"
     end
   end
 end
