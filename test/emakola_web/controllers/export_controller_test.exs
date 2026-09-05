@@ -59,4 +59,35 @@ defmodule EmakolaWeb.ExportControllerTest do
       assert Phoenix.Flash.get(conn.assigns.flash, :error)
     end
   end
+
+  describe "GET /admin/export/analytics.pdf as an unverified merchant" do
+    # Every other merchant surface is a LiveView behind Hooks.RequireAuth, so
+    # the verification gate lives there. This route is a plain controller and
+    # never passes through that hook. A merchant who registered before the gate
+    # and never traded is left unverified by the backfill, still owns a store,
+    # and still holds a session — so without this check they could keep pulling
+    # their analytics out of an account they are otherwise locked out of.
+    test "is refused rather than handed a report", %{conn: conn} do
+      merchant = Emakola.Factory.create_merchant!(confirmed_at: nil)
+      store = Emakola.Factory.create_store!()
+
+      Emakola.Accounts.StoreMembership
+      |> Ash.Changeset.for_create(:create, %{
+        merchant_id: merchant.id,
+        store_id: store.id,
+        role: :owner
+      })
+      |> Ash.create!(authorize?: false)
+
+      signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session(:user_token, signed)
+        |> get(@export_path)
+
+      assert response(conn, 401) == "Unauthorized"
+    end
+  end
 end
