@@ -589,6 +589,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         wrote_name?: ai != nil and not blank?(ai.name) and name == ai.name,
         wrote_description?:
           ai != nil and not blank?(ai.description) and description == ai.description,
+        badge_lost?: source == :camera and ai != nil and not ai.flags_clean?,
         state: card_state(card),
         missing_name?: card != nil and card_name(card) == "",
         missing_price?: card != nil and not priced?(card)

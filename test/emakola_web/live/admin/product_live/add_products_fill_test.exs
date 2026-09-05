@@ -93,6 +93,34 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       assert has_element?(view, "#fill-photos-#{ref}")
     end
 
+    test "a camera photo of a screen says the badge is lost and how to earn it", %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> screen_photo_payload() end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      allow_mocks(view)
+      ref = upload_photo(view, :camera, "screen.png")
+
+      view |> element("#fill-camera-#{ref}") |> render_click()
+      html = render_async(view, @async_timeout)
+
+      assert html =~ "No Real photo badge. Snap the item itself."
+    end
+
+    test "a gallery photo says nothing about the badge", %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> screen_photo_payload() end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      allow_mocks(view)
+      ref = upload_photo(view, :photos, "screen.png")
+
+      view |> element("#fill-photos-#{ref}") |> render_click()
+      html = render_async(view, @async_timeout)
+
+      refute html =~ "No Real photo badge"
+    end
+
     test "past the daily AI limit the page says so and no call is made", %{
       conn: conn,
       store: store

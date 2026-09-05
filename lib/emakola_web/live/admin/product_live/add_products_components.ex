@@ -388,6 +388,15 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsComponents do
         <.icon name="hero-sparkles" class="size-3.5 text-amber-600" />
         Makola wrote this. Change what is wrong.
       </p>
+      <%!-- A camera photo the AI flagged (a screen, a catalogue shot, a
+            watermark) publishes fine but earns no Real-photo badge. --%>
+      <p
+        :if={@item.badge_lost?}
+        class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-amber-700"
+      >
+        <.icon name="hero-camera" class="size-3.5 text-amber-600" />
+        No Real photo badge. Snap the item itself.
+      </p>
       <div :if={@offer_price} class="px-3.5 pb-3.5 lg:px-3 lg:pb-3 -mt-1">
         <button
           type="button"
