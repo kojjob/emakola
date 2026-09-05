@@ -169,5 +169,12 @@ defmodule Emakola.AI.PromptsTest do
       assert req.json_schema["additionalProperties"] == false
       assert "photo_flags" in req.json_schema["required"]
     end
+
+    test "asks for a screen_photo flag so a photo of a display cannot pass as real", %{req: req} do
+      flags = req.json_schema["properties"]["photo_flags"]
+      assert "screen_photo" in flags["required"]
+      assert flags["properties"]["screen_photo"] == %{"type" => "boolean"}
+      assert req.system =~ "screen_photo when the photo was taken of a display"
+    end
   end
 end

@@ -378,6 +378,12 @@ reuses protection's held-funds ledger, addressing is independent.
       never guessed.
       Spec: `docs/superpowers/specs/2026-08-05-snap-to-shop-design.md` ✅ specced
       → implemented (PR pending)
+      - [ ] Supplier provenance (open question, 2026-09-05): a reseller's
+            imported listing never inherits the supplier's Real-photo badge,
+            because the badge means "this shop held the item". Decide whether
+            a separate "Real photo from the supplier" signal belongs on the
+            reseller PDP. New trust claim; spec it with the TC series, do not
+            bolt it onto snap_verified.
 - [ ] Brainstorm shortlist (not specced): WhatsApp AI shop assistant (chat →
       pay-link checkout; gated on Meta approval), Instagram shop importer
       (IG screenshots → products), one-tap AI shop designer (rides section

@@ -93,6 +93,34 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       assert has_element?(view, "#fill-photos-#{ref}")
     end
 
+    test "a camera photo of a screen says the badge is lost and how to earn it", %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> screen_photo_payload() end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      allow_mocks(view)
+      ref = upload_photo(view, :camera, "screen.png")
+
+      view |> element("#fill-camera-#{ref}") |> render_click()
+      html = render_async(view, @async_timeout)
+
+      assert html =~ "No Real photo badge. Snap the item itself."
+    end
+
+    test "a gallery photo says nothing about the badge", %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> screen_photo_payload() end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/new")
+      allow_mocks(view)
+      ref = upload_photo(view, :photos, "screen.png")
+
+      view |> element("#fill-photos-#{ref}") |> render_click()
+      html = render_async(view, @async_timeout)
+
+      refute html =~ "No Real photo badge"
+    end
+
     test "past the daily AI limit the page says so and no call is made", %{
       conn: conn,
       store: store
@@ -142,6 +170,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
 
     test "a flagged photo earns no badge even from the camera", %{conn: conn, store: store} do
       product = fill_and_publish(conn, store, :camera, flagged_payload())
+
+      refute product.snap_verified
+    end
+
+    test "a camera photo of a screen earns no badge", %{conn: conn, store: store} do
+      product = fill_and_publish(conn, store, :camera, screen_photo_payload())
 
       refute product.snap_verified
     end
@@ -219,7 +253,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => Keyword.get(opts, :category),
       "tags" => ["stole"],
       "alt_text" => "Colourful woven stole",
-      "photo_flags" => %{"stock_photo" => false, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
     })
   end
 
@@ -231,7 +270,30 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => nil,
       "tags" => ["stole"],
       "alt_text" => "Colourful woven stole",
-      "photo_flags" => %{"stock_photo" => true, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => true,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
+    })
+  end
+
+  # Every other flag is clear: only the re-photographed display gives it away.
+  defp screen_photo_payload do
+    response(%{
+      "identified" => true,
+      "title" => "Handwoven Stole",
+      "description" => "A colourful woven stole.",
+      "category" => nil,
+      "tags" => ["stole"],
+      "alt_text" => "Colourful woven stole",
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => true
+      }
     })
   end
 
@@ -243,7 +305,12 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProductsFillTest do
       "category" => nil,
       "tags" => [],
       "alt_text" => "",
-      "photo_flags" => %{"stock_photo" => false, "watermark" => false, "screenshot" => false}
+      "photo_flags" => %{
+        "stock_photo" => false,
+        "watermark" => false,
+        "screenshot" => false,
+        "screen_photo" => false
+      }
     })
   end
 

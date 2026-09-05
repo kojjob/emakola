@@ -473,8 +473,13 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
 
   # Fail closed: the badge depends on this, so anything but an explicit
   # all-clear reads as "not clean".
-  defp flags_clean?(%{"stock_photo" => false, "watermark" => false, "screenshot" => false}),
-    do: true
+  defp flags_clean?(%{
+         "stock_photo" => false,
+         "watermark" => false,
+         "screenshot" => false,
+         "screen_photo" => false
+       }),
+       do: true
 
   defp flags_clean?(_flags), do: false
 
@@ -584,6 +589,7 @@ defmodule EmakolaWeb.Admin.ProductLive.AddProducts do
         wrote_name?: ai != nil and not blank?(ai.name) and name == ai.name,
         wrote_description?:
           ai != nil and not blank?(ai.description) and description == ai.description,
+        badge_lost?: source == :camera and ai != nil and not ai.flags_clean?,
         state: card_state(card),
         missing_name?: card != nil and card_name(card) == "",
         missing_price?: card != nil and not priced?(card)
