@@ -23,6 +23,7 @@ defmodule Emakola.Customers do
       )
 
       define(:register_customer, action: :register_with_password)
+      define(:count_bought_again, action: :bought_again_by_store, args: [:store_id])
     end
 
     resource(Emakola.Customers.CustomerToken)
@@ -45,6 +46,11 @@ defmodule Emakola.Customers do
       define(:create_note, action: :create)
       define(:destroy_note, action: :destroy)
       define(:list_notes_by_customer, action: :list_by_customer, args: [:customer_id])
+
+      define(:list_notes_by_customer_and_store,
+        action: :list_by_customer,
+        args: [:customer_id, :store_id]
+      )
     end
 
     resource Emakola.Customers.WishlistItem do

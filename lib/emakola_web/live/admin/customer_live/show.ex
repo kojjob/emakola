@@ -1,7 +1,7 @@
 defmodule EmakolaWeb.Admin.CustomerLive.Show do
   @moduledoc """
   Customer detail page: header info, order history, total spent,
-  edit customer info, and notes placeholder.
+  edit customer info, and notes.
   """
   use EmakolaWeb, :live_view
 
@@ -9,12 +9,32 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
+  import EmakolaWeb.Admin.CustomerLive.Components,
+    only: [
+      customer_initials: 1,
+      order_status_badge: 1,
+      delivery_and_problems: 1,
+      notes_panel: 1
+    ]
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    case load_customer(id, socket.assigns.current_store.id) do
+    store_id = socket.assigns.current_store.id
+
+    case load_customer(id, store_id) do
       {:ok, customer} ->
         orders = load_orders(customer.id, customer.store_id)
-        total_spent = Enum.reduce(orders, 0, fn order, acc -> acc + (order.total || 0) end)
+        paid_orders = Enum.filter(orders, &(&1.status in Emakola.Orders.Order.paid_statuses()))
+        total_spent = paid_orders |> Enum.map(& &1.total) |> Enum.sum()
+        paid_count = length(paid_orders)
+        cancelled_count = Enum.count(orders, &(&1.status == :cancelled))
+
+        addresses =
+          Emakola.Customers.list_addresses_by_customer_and_store!(customer.id, store_id,
+            authorize?: false
+          )
+
+        address = Enum.find(addresses, & &1.is_default) || List.first(addresses)
 
         socket =
           socket
@@ -23,7 +43,15 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
             active_nav: :customers,
             customer: customer,
             orders: orders,
+            show_all_orders?: false,
             total_spent: total_spent,
+            paid_count: paid_count,
+            cancelled_count: cancelled_count,
+            address: address,
+            returns_count: count_returns(customer.id, store_id),
+            failed_payments: count_failed_payments(customer, store_id),
+            notes: list_notes(customer.id, store_id),
+            note_form: blank_note_form(),
             editing: false
           )
 
@@ -40,6 +68,57 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   @impl true
   def handle_event("toggle_edit", _params, socket) do
     {:noreply, assign(socket, editing: !socket.assigns.editing)}
+  end
+
+  def handle_event("show_all_orders", _params, socket) do
+    {:noreply, assign(socket, show_all_orders?: true)}
+  end
+
+  def handle_event("add_note", %{"note" => %{"content" => content}}, socket) do
+    %{customer: customer, current_store: store, current_merchant: merchant} = socket.assigns
+
+    case Emakola.Customers.create_note(
+           %{
+             customer_id: customer.id,
+             store_id: store.id,
+             author_id: merchant.id,
+             content: content
+           },
+           authorize?: false
+         ) do
+      {:ok, _note} -> {:noreply, socket |> reload_notes() |> assign(note_form: blank_note_form())}
+      {:error, _error} -> {:noreply, put_flash(socket, :error, "Write something first")}
+    end
+  end
+
+  def handle_event("remove_note", %{"id" => id}, socket) do
+    %{customer: customer, current_store: store} = socket.assigns
+
+    socket.assigns.notes
+    |> Enum.find(&(&1.id == id and &1.customer_id == customer.id and &1.store_id == store.id))
+    |> case do
+      nil ->
+        {:noreply, socket}
+
+      note ->
+        case destroy_note(note) do
+          :ok ->
+            {:noreply, reload_notes(socket)}
+
+          {:error, error} ->
+            Logger.warning(
+              "[customer_live.show] failed to remove note #{note.id} (store #{store.id}): #{Exception.message(error)}"
+            )
+
+            {:noreply, put_flash(socket, :error, "Could not remove that note")}
+        end
+    end
+  end
+
+  def handle_event("open_thread", _params, socket) do
+    %{customer: customer, current_store: store} = socket.assigns
+    {:ok, thread} = Emakola.Conversations.open_shop_thread(store.id, customer.id)
+    {:noreply, push_navigate(socket, to: ~p"/admin/messages/#{thread.id}")}
   end
 
   @impl true
@@ -86,14 +165,51 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
               <p class="text-xs text-slate-400 mt-1">
                 Member since {Calendar.strftime(@customer.inserted_at, "%B %d, %Y")}
               </p>
+              <p :if={@customer.last_order_at} class="text-sm text-slate-500">
+                Last bought {Calendar.strftime(@customer.last_order_at, "%d %b %Y")}
+              </p>
+              <p
+                :if={@customer.marketing_opt_out_at}
+                id="customer-opt-out"
+                class="text-xs font-semibold text-amber-700 mt-1"
+              >
+                No marketing messages
+              </p>
+              <div :if={@customer.tags != []} id="customer-tags" class="flex flex-wrap gap-1.5 mt-2">
+                <span
+                  :for={tag <- @customer.tags}
+                  class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700"
+                >
+                  {tag}
+                </span>
+              </div>
             </div>
           </div>
-          <button
-            phx-click="toggle_edit"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <.icon name="hero-pencil-square" class="size-4" /> Edit
-          </button>
+          <div class="flex items-center gap-2">
+            <a
+              :if={@customer.phone}
+              href={"https://wa.me/#{String.replace(@customer.phone, ~r/\D/, "")}"}
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <.icon name="hero-chat-bubble-left-ellipsis" class="size-4" /> WhatsApp
+            </a>
+            <button
+              id="customer-message"
+              type="button"
+              phx-click="open_thread"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
+            >
+              <.icon name="hero-chat-bubble-left-right" class="size-4" /> Message
+            </button>
+            <button
+              phx-click="toggle_edit"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <.icon name="hero-pencil-square" class="size-4" /> Edit
+            </button>
+          </div>
         </div>
 
         <%!-- Edit form --%>
@@ -146,19 +262,26 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
         </div>
         <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Total Orders
+            Paid Orders
           </span>
-          <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{length(@orders)}</p>
+          <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{@paid_count}</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Avg. Order
           </span>
           <p class="text-2xl font-bold text-slate-900 font-mono mt-2">
-            {format_avg_order(@total_spent, length(@orders))}
+            {format_avg_order(@total_spent, @paid_count)}
           </p>
         </div>
       </div>
+
+      <.delivery_and_problems
+        address={@address}
+        returns_count={@returns_count}
+        cancelled_count={@cancelled_count}
+        failed_payments={@failed_payments}
+      />
 
       <%!-- Order History --%>
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -191,7 +314,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
               </thead>
               <tbody>
                 <tr
-                  :for={order <- @orders}
+                  :for={order <- visible_orders(@orders, @show_all_orders?)}
                   class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 >
                   <td class="px-6 py-3 font-mono font-medium text-slate-800">{order.order_number}</td>
@@ -208,39 +331,19 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
               </tbody>
             </table>
           </div>
+          <div :if={not @show_all_orders? and length(@orders) > 20} class="px-6 py-4 text-center">
+            <.admin_button id="show-all-orders" variant={:secondary} phx-click="show_all_orders">
+              Show all
+            </.admin_button>
+          </div>
         <% end %>
       </div>
 
-      <%!-- Notes Section (placeholder) --%>
-      <div class="bg-white rounded-2xl shadow-sm p-6">
-        <h2 class="text-base font-bold text-slate-900 mb-4">Notes</h2>
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-          <p class="text-sm text-slate-400 italic">No notes yet. Notes feature coming soon.</p>
-        </div>
-      </div>
+      <%!-- Notes --%>
+      <.notes_panel note_form={@note_form} notes={@notes} />
     </div>
     """
   end
-
-  # ── Components ──
-
-  attr :status, :atom, required: true
-
-  defp order_status_badge(assigns) do
-    ~H"""
-    <span class={"inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full #{status_class(@status)}"}>
-      {@status |> to_string() |> String.capitalize()}
-    </span>
-    """
-  end
-
-  defp status_class(:pending), do: "text-amber-700 bg-amber-50"
-  defp status_class(:confirmed), do: "text-blue-700 bg-blue-50"
-  defp status_class(:processing), do: "text-violet-700 bg-violet-50"
-  defp status_class(:shipped), do: "text-indigo-700 bg-indigo-50"
-  defp status_class(:delivered), do: "text-emerald-700 bg-emerald-50"
-  defp status_class(:cancelled), do: "text-red-700 bg-red-50"
-  defp status_class(_), do: "text-slate-700 bg-slate-50"
 
   # ── Data Loading ──
 
@@ -259,19 +362,74 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
       []
   end
 
-  # ── Helpers ──
-
-  defp customer_initials(nil), do: "?"
-
-  defp customer_initials(name) do
-    name
-    |> String.split(" ", trim: true)
-    |> Enum.take(2)
-    |> Enum.map(&String.first/1)
-    |> Enum.join()
-    |> String.upcase()
+  defp list_notes(customer_id, store_id) do
+    Emakola.Customers.list_notes_by_customer_and_store!(customer_id, store_id, authorize?: false)
   end
+
+  defp count_returns(customer_id, store_id) do
+    customer_id
+    |> Emakola.Orders.list_returns_by_customer_and_store!(store_id, authorize?: false)
+    |> length()
+  end
+
+  defp count_failed_payments(%{email: nil}, _store_id), do: 0
+
+  defp count_failed_payments(customer, store_id) do
+    require Ash.Query
+
+    # customer_email is whatever case the buyer typed at checkout; Customer's
+    # email is a :ci_string. Compare lowercased so a case difference doesn't
+    # silently undercount.
+    Emakola.Payments.Payment
+    |> Ash.Query.filter(
+      store_id == ^store_id and
+        fragment("lower(?)", customer_email) == ^String.downcase(to_string(customer.email)) and
+        status == :failed
+    )
+    |> Ash.count!(authorize?: false)
+  end
+
+  defp reload_notes(socket) do
+    %{customer: customer, current_store: store} = socket.assigns
+    assign(socket, notes: list_notes(customer.id, store.id))
+  end
+
+  defp blank_note_form, do: to_form(%{"content" => ""}, as: :note)
+
+  defp destroy_note(note) do
+    case Emakola.Customers.destroy_note(note, authorize?: false) do
+      :ok ->
+        :ok
+
+      {:ok, _note} ->
+        :ok
+
+      {:error, error} ->
+        if stale_or_not_found?(error) do
+          # Already gone (e.g. removed from another session) — nothing left
+          # to do.
+          :ok
+        else
+          {:error, error}
+        end
+    end
+  end
+
+  defp stale_or_not_found?(%Ash.Error.Invalid{errors: errors}) do
+    Enum.any?(errors, fn
+      %Ash.Error.Changes.StaleRecord{} -> true
+      %Ash.Error.Query.NotFound{} -> true
+      _ -> false
+    end)
+  end
+
+  defp stale_or_not_found?(_error), do: false
+
+  # ── Helpers ──
 
   defp format_avg_order(_total, 0), do: format_price(0)
   defp format_avg_order(total, count), do: format_price(div(total, count))
+
+  defp visible_orders(orders, true), do: orders
+  defp visible_orders(orders, false), do: Enum.take(orders, 20)
 end
