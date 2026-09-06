@@ -33,11 +33,13 @@ defmodule EmakolaWeb.Admin.StoredCountsTest do
     assert has_element?(view, "#want-#{product.id}", "2 people want this")
   end
 
-  # Production gate: WishlistLive's toggle_wishlist path writes the acting
-  # store's store_id without checking the product belongs to that store, so
-  # a wishlist row for someone else's product can end up tagged with a
-  # foreign store_id. The aggregate must not count it against this store's
-  # product.
+  # Production gate, defence in depth: `Emakola.Customers.Validations.ProductInStore`
+  # now refuses to *write* a wishlist row for another store's product (see
+  # test/emakola/customers/wishlist_item_test.exs), so the aggregate can no
+  # longer be exercised through the public `:add` action. A row mistagged
+  # before that validation existed (or written some other way) must still
+  # not inflate this store's count — planted directly with `Ash.Seed`,
+  # bypassing the action entirely, the way such a legacy row would look.
   test "a wishlist row mistagged with another store's id does not inflate the count", ctx do
     product = Factory.create_product!(ctx.store, title: "Shea Butter")
     customer = Factory.create_customer!(ctx.store)
@@ -49,11 +51,15 @@ defmodule EmakolaWeb.Admin.StoredCountsTest do
 
     {_other_merchant, other_store} = Factory.create_merchant_with_store!()
     other_customer = Factory.create_customer!(other_store)
+    other_product = Factory.create_product!(other_store)
 
-    Emakola.Customers.add_to_wishlist(
-      %{customer_id: other_customer.id, product_id: product.id, store_id: other_store.id},
-      authorize?: false
-    )
+    {:ok, mistagged} =
+      Emakola.Customers.add_to_wishlist(
+        %{customer_id: other_customer.id, product_id: other_product.id, store_id: other_store.id},
+        authorize?: false
+      )
+
+    Ash.Seed.update!(mistagged, %{product_id: product.id})
 
     {:ok, view, _html} = live(ctx.conn, ~p"/admin/products")
 
@@ -154,9 +160,12 @@ defmodule EmakolaWeb.Admin.StoredCountsTest do
     |> Ash.Changeset.for_update(:record_result, %{sent_count: 0, failed_count: 1})
     |> Ash.update!(authorize?: false)
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+    {:ok, view, html} = live(ctx.conn, ~p"/admin/campaigns")
 
     assert has_element?(view, "#campaign-#{campaign.id}-failed", "+233201111111")
-    assert has_element?(view, "#campaign-#{campaign.id}-failed", "Number not on network")
+    assert has_element?(view, "#campaign-#{campaign.id}-failed", "Not delivered")
+    # The gateway's own error text is platform detail (account ids, balance
+    # messages) — it is stored but never shown to the merchant.
+    refute html =~ "Number not on network"
   end
 end

@@ -14,7 +14,9 @@ defmodule Emakola.Marketing.Campaigns do
   require Ash.Query
 
   alias Emakola.Customers.Customer
-  alias Emakola.Marketing.Campaign
+  alias Emakola.Marketing.{Campaign, CampaignRecipient}
+
+  @failed_recipients_limit 50
 
   @doc "Drafts a campaign. Nothing is sent until the send worker runs."
   def create(_actor, store_id, attrs) when is_binary(store_id) do
@@ -74,6 +76,25 @@ defmodule Emakola.Marketing.Campaigns do
   # A crafted id (e.g. id[]=x) arrives as a list/map, not a string — reject
   # it the same way as an unknown id, rather than crashing the LiveView.
   def get_for_store(_store_id, _campaign_id), do: {:error, :not_found}
+
+  @doc """
+  Up to #{@failed_recipients_limit} of a campaign's failed recipients.
+
+  `CampaignRecipient` carries no `store_id` of its own — isolation comes from
+  confirming the campaign belongs to this store first, the same structural
+  check `get_for_store/2` already does. Capped so a store with thousands of
+  customers on a failed campaign doesn't pull every row into a LiveView.
+  """
+  def failed_recipients(store_id, campaign_id) do
+    with {:ok, campaign} <- get_for_store(store_id, campaign_id) do
+      CampaignRecipient
+      |> Ash.Query.for_read(:for_campaign, %{campaign_id: campaign.id})
+      |> Ash.Query.filter(status == :failed)
+      |> Ash.Query.sort(inserted_at: :asc)
+      |> Ash.Query.limit(@failed_recipients_limit)
+      |> Ash.read(authorize?: false)
+    end
+  end
 
   @doc "Marks a draft campaign as sending, with its audience size at the moment of sending."
   def mark_sending(%Campaign{} = campaign, audience_size) do

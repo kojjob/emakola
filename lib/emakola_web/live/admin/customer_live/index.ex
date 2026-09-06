@@ -535,9 +535,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
       store_id ->
         count =
-          store_id
-          |> Emakola.Customers.list_newsletter_subscribers_by_store!(authorize?: false)
-          |> length()
+          Emakola.Customers.NewsletterSubscriber
+          |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
+          |> Ash.count!(authorize?: false)
 
         assign(socket, newsletter_count: count)
     end

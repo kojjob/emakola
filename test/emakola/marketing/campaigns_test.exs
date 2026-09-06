@@ -136,6 +136,47 @@ defmodule Emakola.Marketing.CampaignsTest do
     end
   end
 
+  describe "failed_recipients/2" do
+    test "caps at 50 rows even when more failed", %{merchant: merchant, store: store} do
+      {:ok, campaign} =
+        Campaigns.create(merchant, store.id, %{name: "Sale", channel: :sms, body: "Sale on."})
+
+      for i <- 1..60 do
+        customer =
+          create_customer!(store, %{phone: "+23320000#{String.pad_leading("#{i}", 4, "0")}"})
+
+        {:ok, recipient} =
+          Emakola.Marketing.CampaignRecipient
+          |> Ash.Changeset.for_create(:claim, %{
+            campaign_id: campaign.id,
+            customer_id: customer.id,
+            phone: customer.phone
+          })
+          |> Ash.create(authorize?: false)
+
+        recipient
+        |> Ash.Changeset.for_update(:mark_failed, %{error: "boom"})
+        |> Ash.update!(authorize?: false)
+      end
+
+      assert {:ok, recipients} = Campaigns.failed_recipients(store.id, campaign.id)
+      assert length(recipients) == 50
+    end
+
+    test "not found for another store's campaign", %{store: store} do
+      {other_merchant, other_store} = create_merchant_with_store!()
+
+      {:ok, theirs} =
+        Campaigns.create(other_merchant, other_store.id, %{
+          name: "Theirs",
+          channel: :sms,
+          body: "hello"
+        })
+
+      assert {:error, :not_found} = Campaigns.failed_recipients(store.id, theirs.id)
+    end
+  end
+
   describe "mark_sending/2" do
     test "moves a draft to sending with the given audience size", %{
       merchant: merchant,

@@ -99,6 +99,8 @@ defmodule Emakola.Customers.WishlistItem do
 
       upsert?(true)
       upsert_identity(:unique_customer_product_store)
+
+      validate(Emakola.Customers.Validations.ProductInStore)
     end
 
     action :list_by_customer, {:array, :struct} do

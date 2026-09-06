@@ -11,46 +11,31 @@ defmodule EmakolaWeb.CustomerExportController do
   @newsletter_header ~w(email subscribed_at)
 
   def customers_csv(conn, _params) do
-    with {:ok, merchant} <- resolve_merchant(conn),
-         {:ok, store} <- resolve_store(merchant),
-         :ok <- check_store_active(store) do
+    export(conn, "customers", fn store ->
       customers = Emakola.Customers.list_customers_by_store!(store.id, authorize?: false)
-
-      body =
-        [@header | Enum.map(customers, &row/1)]
-        |> EmakolaWeb.CustomerCsv.dump_to_iodata()
-        |> IO.iodata_to_binary()
-
-      conn
-      |> put_resp_content_type("text/csv")
-      |> put_resp_header(
-        "content-disposition",
-        ~s(attachment; filename="#{export_filename(store.slug, "customers")}")
-      )
-      |> send_resp(200, body)
-    else
-      {:error, :unauthenticated} ->
-        conn |> put_status(401) |> text("Unauthorized")
-
-      {:error, :no_store} ->
-        conn
-        |> put_flash(:error, "No store found. Complete onboarding first.")
-        |> redirect(to: "/dashboard")
-
-      {:error, :store_locked} ->
-        conn |> put_status(403) |> text("Store locked")
-    end
+      [@header | Enum.map(customers, &row/1)]
+    end)
   end
 
   def newsletter_csv(conn, _params) do
-    with {:ok, merchant} <- resolve_merchant(conn),
-         {:ok, store} <- resolve_store(merchant),
-         :ok <- check_store_active(store) do
+    export(conn, "newsletter", fn store ->
       subscribers =
         Emakola.Customers.list_newsletter_subscribers_by_store!(store.id, authorize?: false)
 
+      [@newsletter_header | Enum.map(subscribers, &newsletter_row/1)]
+    end)
+  end
+
+  # Shared auth chain, locked-store gate, and CSV response for every export
+  # this controller serves. `build_rows` receives the resolved store and
+  # returns the full row list, header included.
+  defp export(conn, filename_suffix, build_rows) do
+    with {:ok, merchant} <- resolve_merchant(conn),
+         {:ok, store} <- resolve_store(merchant),
+         :ok <- check_store_active(store) do
       body =
-        [@newsletter_header | Enum.map(subscribers, &newsletter_row/1)]
+        store
+        |> build_rows.()
         |> EmakolaWeb.CustomerCsv.dump_to_iodata()
         |> IO.iodata_to_binary()
 
@@ -58,7 +43,7 @@ defmodule EmakolaWeb.CustomerExportController do
       |> put_resp_content_type("text/csv")
       |> put_resp_header(
         "content-disposition",
-        ~s(attachment; filename="#{export_filename(store.slug, "newsletter")}")
+        ~s(attachment; filename="#{export_filename(store.slug, filename_suffix)}")
       )
       |> send_resp(200, body)
     else

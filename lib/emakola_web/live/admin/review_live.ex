@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   @statuses [:all, :published, :hidden]
 
   @impl true
@@ -250,16 +252,18 @@ defmodule EmakolaWeb.Admin.ReviewLive do
     require Ash.Query
     store_id = socket.assigns.store_id
 
-    published =
+    query =
       Emakola.Catalog.Review
       |> Ash.Query.filter(store_id == ^store_id and status == :published)
-      |> Ash.Query.select([:rating])
-      |> Ash.read!(authorize?: false)
 
-    count = length(published)
-    average = if count == 0, do: nil, else: Enum.sum(Enum.map(published, & &1.rating)) / count
+    count = Ash.count!(query, authorize?: false)
+    average = if count > 0, do: Ash.avg!(query, :rating, authorize?: false), else: nil
 
     assign(socket, review_count: count, rating: average)
+  rescue
+    exception ->
+      Logger.error("[review_live] rating failed: #{Exception.message(exception)}")
+      assign(socket, review_count: 0, rating: nil)
   end
 
   defp find_review(id, store_id) do

@@ -73,6 +73,29 @@ defmodule Emakola.Customers.WishlistItemTest do
                  store_id: store.id
                })
     end
+
+    # WishlistLive.toggle_wishlist writes store_id from the acting storefront
+    # without checking the client-supplied product_id belongs to it — this is
+    # the write-time gate that closes that gap (the wishlist_count aggregate's
+    # parent(store_id) filter is defence in depth on the read side).
+    test "refuses a product that belongs to another store", %{
+      store: store,
+      customer: customer
+    } do
+      other_store =
+        Factory.create_store!(%{name: "Other Store", slug: "other-store", currency: "GHS"})
+
+      foreign_product = Factory.create_product!(other_store, %{title: "Foreign Product"})
+
+      assert {:error, error} =
+               Emakola.Customers.add_to_wishlist(%{
+                 customer_id: customer.id,
+                 product_id: foreign_product.id,
+                 store_id: store.id
+               })
+
+      assert Exception.message(error) =~ "not in this shop"
+    end
   end
 
   describe "remove_from_wishlist/1" do

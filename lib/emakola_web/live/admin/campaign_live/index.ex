@@ -56,7 +56,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
       campaigns: campaigns,
       audience_count: audience_count,
       draft_audience_counts: draft_audience_counts,
-      failed_recipients: failed_recipients(campaigns)
+      failed_recipients: failed_recipients_by_campaign(store, campaigns)
     )
   end
 
@@ -75,19 +75,32 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   defp count_for(socket, campaign),
     do: Map.get(socket.assigns.draft_audience_counts, campaign.id, 0)
 
-  # The numbers a campaign was attempted on and failed — one lookup per sent
-  # campaign, not per row, since the page renders at most a handful.
-  defp failed_recipients(campaigns) do
+  # The numbers a campaign was attempted on and failed — one bounded lookup
+  # per sent campaign, not per row, and never more than
+  # Campaigns.failed_recipients/2's own cap even on a store with thousands
+  # of failures. Only campaigns whose lookup actually returns rows appear in
+  # the map at all — the template gates on that, not on `failed_count > 0`,
+  # so a lookup error or a stale `failed_count` never renders an empty list.
+  defp failed_recipients_by_campaign(nil, _campaigns), do: %{}
+
+  defp failed_recipients_by_campaign(store, campaigns) do
     campaigns
     |> Enum.filter(&(&1.failed_count > 0))
-    |> Map.new(fn campaign ->
-      {:ok, recipients} =
-        Emakola.Marketing.CampaignRecipient
-        |> Ash.Query.for_read(:for_campaign, %{campaign_id: campaign.id})
-        |> Ash.read(authorize?: false)
+    |> Map.new(&{&1.id, failed_summary(store.id, &1)})
+    |> Map.reject(fn {_id, summary} -> is_nil(summary) end)
+  end
 
-      {campaign.id, Enum.filter(recipients, &(&1.status == :failed))}
-    end)
+  defp failed_summary(store_id, campaign) do
+    case Campaigns.failed_recipients(store_id, campaign.id) do
+      {:ok, []} ->
+        nil
+
+      {:ok, recipients} ->
+        %{recipients: recipients, more: max(campaign.failed_count - length(recipients), 0)}
+
+      {:error, _} ->
+        nil
+    end
   end
 
   @impl true
@@ -323,15 +336,15 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
               do: " · #{campaign.failed_count} failed"}
           </p>
 
+          <% failed = Map.get(@failed_recipients, campaign.id) %>
           <ul
-            :if={campaign.failed_count > 0}
+            :if={failed}
             id={"campaign-#{campaign.id}-failed"}
             class="mt-2 space-y-1 text-xs text-slate-500"
           >
             <li class="font-semibold text-slate-700">Numbers that did not get it</li>
-            <li :for={r <- Map.get(@failed_recipients, campaign.id, [])}>
-              {r.phone}: {r.error || "Not delivered"}
-            </li>
+            <li :for={r <- failed.recipients}>{r.phone}: Not delivered</li>
+            <li :if={failed.more > 0}>and {failed.more} more</li>
           </ul>
         </.admin_card>
       </div>

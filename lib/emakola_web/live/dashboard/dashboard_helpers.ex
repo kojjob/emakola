@@ -59,7 +59,9 @@ defmodule EmakolaWeb.DashboardHelpers do
           AsyncSandbox.run_async(fn -> Stats.best_sellers(store_id, day_start, day_end) end),
         failed_payments:
           AsyncSandbox.run_async(fn -> count_failed_payments(store_id, day_start, day_end) end),
-        recent_orders: AsyncSandbox.run_async(fn -> load_recent_orders(store_id) end)
+        recent_orders: AsyncSandbox.run_async(fn -> load_recent_orders(store_id) end),
+        saved_shop_count: AsyncSandbox.run_async(fn -> count_saved_shop(store_id) end),
+        average_delivery_days: AsyncSandbox.run_async(fn -> average_delivery_days(store_id) end)
       ]
       |> Enum.concat(prev_period_tasks(period, store_id, prev_day_start, prev_day_end))
 
@@ -90,8 +92,8 @@ defmodule EmakolaWeb.DashboardHelpers do
       orders_change: orders_change,
       customers_change: customers_change,
       aov_change: aov_change,
-      saved_shop_count: count_saved_shop(store_id),
-      average_delivery_days: average_delivery_days(store_id),
+      saved_shop_count: results.saved_shop_count,
+      average_delivery_days: results.average_delivery_days,
       revenue_chart: build_revenue_chart(results.orders_in_range, dates),
       orders_chart: build_orders_chart(results.orders_in_range, dates),
       customers_chart: build_customers_chart(results.customers_in_range, dates),

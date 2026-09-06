@@ -106,4 +106,42 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
 
     refute html =~ "Their private campaign"
   end
+
+  test "a campaign with 60 failed recipients shows 50 and says how many more", ctx do
+    {:ok, campaign} =
+      Campaigns.create(ctx.merchant, ctx.store.id, %{
+        name: "Sale",
+        channel: :sms,
+        body: "Sale on."
+      })
+
+    for i <- 1..60 do
+      customer =
+        create_customer!(ctx.store, %{phone: "+23320000#{String.pad_leading("#{i}", 4, "0")}"})
+
+      {:ok, recipient} =
+        Emakola.Marketing.CampaignRecipient
+        |> Ash.Changeset.for_create(:claim, %{
+          campaign_id: campaign.id,
+          customer_id: customer.id,
+          phone: customer.phone
+        })
+        |> Ash.create(authorize?: false)
+
+      recipient
+      |> Ash.Changeset.for_update(:mark_failed, %{error: "boom"})
+      |> Ash.update!(authorize?: false)
+    end
+
+    campaign
+    |> Ash.Changeset.for_update(:record_result, %{sent_count: 0, failed_count: 60})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    rendered = view |> element("#campaign-#{campaign.id}-failed") |> render()
+    shown = Regex.scan(~r/\+2332000\d{4}/, rendered)
+    assert length(shown) == 50
+    assert rendered =~ "and 10 more"
+  end
 end
