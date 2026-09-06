@@ -909,45 +909,31 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   # before validity, and a non-binary is refused as missing rather than
   # taken down the LiveView.
   defp contact_errors(assigns) do
-    errors = %{}
-
-    errors =
-      cond do
-        not is_binary(assigns.phone) or assigns.phone == "" ->
-          Map.put(errors, :phone, "Phone number is required")
-
-        not Emakola.Accounts.PhoneAuth.valid?(assigns.phone) ->
-          Map.put(errors, :phone, "Enter a valid phone number")
-
-        true ->
-          errors
-      end
-
-    errors =
-      cond do
-        not is_binary(assigns.fullname) or assigns.fullname == "" ->
-          Map.put(errors, :fullname, "Full name is required")
-
-        String.length(assigns.fullname) > 255 ->
-          Map.put(errors, :fullname, "Name is too long")
-
-        true ->
-          errors
-      end
-
-    email = assigns[:email] || ""
-
-    cond do
-      not is_binary(email) ->
-        Map.put(errors, :email, "Email format looks invalid")
-
-      email != "" and not email_format_ok?(email) ->
-        Map.put(errors, :email, "Email format looks invalid")
-
-      true ->
-        errors
-    end
+    %{}
+    |> put_error(:phone, phone_error(assigns.phone))
+    |> put_error(:fullname, name_error(assigns.fullname))
+    |> put_error(:email, email_error(assigns[:email] || ""))
   end
+
+  defp put_error(errors, _field, nil), do: errors
+  defp put_error(errors, field, message), do: Map.put(errors, field, message)
+
+  defp phone_error(phone) when not is_binary(phone), do: "Phone number is required"
+  defp phone_error(""), do: "Phone number is required"
+
+  defp phone_error(phone) do
+    if Emakola.Accounts.PhoneAuth.valid?(phone), do: nil, else: "Enter a valid phone number"
+  end
+
+  defp name_error(name) when not is_binary(name), do: "Full name is required"
+  defp name_error(""), do: "Full name is required"
+  defp name_error(name), do: if(String.length(name) > 255, do: "Name is too long")
+
+  defp email_error(email) when not is_binary(email), do: "Email format looks invalid"
+  defp email_error(""), do: nil
+
+  defp email_error(email),
+    do: if(email_format_ok?(email), do: nil, else: "Email format looks invalid")
 
   # What step 2 can answer for. A cart of downloads has nothing to deliver, so
   # it has nothing to fail on here either.
