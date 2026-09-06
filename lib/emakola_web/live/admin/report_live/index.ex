@@ -523,7 +523,12 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         </.admin_card>
       </div>
 
-      <.admin_card :if={@repeat.returning + @repeat.new > 0} id="reports-repeat" padding={:none} class="p-5">
+      <.admin_card
+        :if={@repeat.returning + @repeat.new > 0}
+        id="reports-repeat"
+        padding={:none}
+        class="p-5"
+      >
         <h2 class="text-base font-bold text-slate-800">Bought again</h2>
         <p class="text-sm text-slate-500 mt-1">Buyers in this period who had bought before</p>
         <p class="mt-3 text-2xl font-bold font-mono text-slate-900">{@repeat.share || "0.0"}%</p>
