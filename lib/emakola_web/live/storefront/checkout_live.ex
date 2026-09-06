@@ -302,11 +302,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         case create_order(socket) do
           {:ok, order} ->
             if cart_session_id = socket.assigns[:cart_session_id] do
-              Emakola.Orders.AbandonedCheckouts.recover(
-                socket.assigns.store.id,
-                cart_session_id,
-                order.id
-              )
+              recover_quietly(socket.assigns.store.id, cart_session_id, order.id)
             end
 
             socket = assign(socket, :order, order)
@@ -539,24 +535,49 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     # after their order already cleared it (CartStore.clear_cart) should not
     # get a junk "GH₵ 0, nothing" row on the merchant's page.
     if cart_session_id && socket.assigns.cart != [] do
-      Emakola.Orders.AbandonedCheckouts.touch(store.id, cart_session_id, %{
-        phone: socket.assigns.phone,
-        name: socket.assigns.fullname,
-        items:
-          Enum.map(socket.assigns.cart, fn item ->
-            %{
-              "title" => item.product_title,
-              "quantity" => item.quantity,
-              "unit_price" => item.unit_price
-            }
-          end),
-        cart_total: Enum.reduce(socket.assigns.cart, 0, &(&1.unit_price * &1.quantity + &2))
-      })
+      result =
+        Emakola.Orders.AbandonedCheckouts.touch(store.id, cart_session_id, %{
+          phone: socket.assigns.phone,
+          name: socket.assigns.fullname,
+          items:
+            Enum.map(socket.assigns.cart, fn item ->
+              %{
+                "title" => item.product_title,
+                "quantity" => item.quantity,
+                "unit_price" => item.unit_price
+              }
+            end),
+          # Same formula the mount assign was computed with, and nothing
+          # between mount and here reassigns :cart — so this always matches.
+          cart_total: socket.assigns.cart_total
+        })
+
+      case result do
+        {:ok, _checkout} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning(
+            "[checkout_live] touch abandoned checkout failed for store #{store.id} cart #{cart_session_id}: #{inspect(reason)}"
+          )
+      end
     end
   rescue
     exception ->
       Logger.warning(
         "[checkout_live] touch abandoned checkout raised: #{Exception.message(exception)}"
+      )
+  end
+
+  # Bounded and best-effort, same posture as touch_abandoned_checkout/1: a
+  # row pruned or already recovered between the order landing and this call
+  # must not raise into a checkout whose order already exists.
+  defp recover_quietly(store_id, cart_session_id, order_id) do
+    Emakola.Orders.AbandonedCheckouts.recover(store_id, cart_session_id, order_id)
+  rescue
+    exception ->
+      Logger.warning(
+        "[checkout_live] recover abandoned checkout raised for order #{order_id} store #{store_id}: #{Exception.message(exception)}"
       )
   end
 

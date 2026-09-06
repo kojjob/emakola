@@ -21,14 +21,18 @@ defmodule Emakola.Orders.AbandonedCheckoutsTest do
     cart_total: 10_000
   }
 
-  defp seen_hours_ago!(checkout, hours) do
-    at = DateTime.add(DateTime.utc_now(), -hours * 3600, :second)
+  defp seen_hours_ago!(checkout, hours), do: seen_seconds_ago!(checkout, hours * 3600)
+
+  defp seen_seconds_ago!(checkout, seconds) do
+    at = DateTime.add(DateTime.utc_now(), -seconds, :second)
 
     Emakola.Repo.query!("update abandoned_checkouts set last_seen_at = $1 where id = $2", [
       at,
       Ecto.UUID.dump!(checkout.id)
     ])
   end
+
+  defp all_rows, do: Ash.read!(Emakola.Orders.AbandonedCheckout, authorize?: false)
 
   test "touching twice keeps one row per cart, with the latest contents", %{store: store} do
     {:ok, first} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
@@ -96,7 +100,64 @@ defmodule Emakola.Orders.AbandonedCheckoutsTest do
 
     assert :ok = Emakola.Orders.Workers.AbandonedCheckoutPruneWorker.perform(%Oban.Job{})
 
-    ids = Emakola.Orders.AbandonedCheckout |> Ash.read!(authorize?: false) |> Enum.map(& &1.id)
-    assert ids == [recent.id]
+    assert Enum.map(all_rows(), & &1.id) == [recent.id]
+  end
+
+  test "the prune worker on an empty table returns :ok" do
+    assert :ok = Emakola.Orders.Workers.AbandonedCheckoutPruneWorker.perform(%Oban.Job{})
+  end
+
+  test "touch refuses a phone that fails PhoneAuth.valid?/1 and writes nothing", %{store: store} do
+    assert {:error, :invalid_phone} =
+             AbandonedCheckouts.touch(store.id, "cart-bad-phone", %{@cart | phone: "abc"})
+
+    refute Enum.any?(all_rows(), &(&1.cart_session_id == "cart-bad-phone"))
+  end
+
+  test "a name with control characters (a newline) is stored clean", %{store: store} do
+    {:ok, checkout} =
+      AbandonedCheckouts.touch(store.id, "cart-1", %{@cart | name: "Kojo\nDankwa"})
+
+    refute checkout.name =~ "\n"
+    assert checkout.name == "KojoDankwa"
+  end
+
+  test "recovering a row deleted between the read and the write does not raise", %{
+    store: store
+  } do
+    {:ok, checkout} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+    seen_hours_ago!(checkout, 3)
+
+    Emakola.Repo.query!("delete from abandoned_checkouts where id = $1", [
+      Ecto.UUID.dump!(checkout.id)
+    ])
+
+    order = create_order!(store, %{subtotal: 100, total: 100})
+    assert :ok = AbandonedCheckouts.recover(store.id, "cart-1", order.id)
+  end
+
+  test "a row older than seven days is not recovered", %{store: store} do
+    {:ok, checkout} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+    seen_hours_ago!(checkout, 24 * 8)
+    order = create_order!(store, %{subtotal: 100, total: 100})
+
+    :ok = AbandonedCheckouts.recover(store.id, "cart-1", order.id)
+
+    row = Enum.find(all_rows(), &(&1.id == checkout.id))
+    assert row.recovered_at == nil
+  end
+
+  test "a checkout last seen exactly two hours ago is listed", %{store: store} do
+    {:ok, checkout} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+    seen_hours_ago!(checkout, 2)
+
+    assert Enum.map(AbandonedCheckouts.left_behind(store.id), & &1.id) == [checkout.id]
+  end
+
+  test "a checkout last seen just past seven days is not listed", %{store: store} do
+    {:ok, checkout} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+    seen_seconds_ago!(checkout, 7 * 86_400 + 1)
+
+    assert AbandonedCheckouts.left_behind(store.id) == []
   end
 end
