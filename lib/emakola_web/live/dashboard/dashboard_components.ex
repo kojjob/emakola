@@ -74,12 +74,13 @@ defmodule EmakolaWeb.DashboardComponents do
   attr :sold_out_count, :integer, required: true
   attr :open_returns, :integer, required: true
   attr :suppliers_to_chase, :integer, default: 0
+  attr :carts_left_behind, :integer, default: 0
 
   def work_queue(assigns) do
     ~H"""
     <section :if={
       @pending_orders > 0 or @sold_out_count > 0 or @open_returns > 0 or
-        @suppliers_to_chase > 0
+        @suppliers_to_chase > 0 or @carts_left_behind > 0
     }>
       <div class="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
         <.work_tile
@@ -128,13 +129,24 @@ defmodule EmakolaWeb.DashboardComponents do
           action="Answer"
           href="/admin/returns"
         />
+        <.work_tile
+          :if={@carts_left_behind > 0}
+          id="work-queue-carts"
+          icon="hero-shopping-cart"
+          tint="bg-sky-100 text-sky-700"
+          edge="shadow-[inset_4px_0_0_theme(colors.sky.600)]"
+          label="Carts left behind"
+          count={@carts_left_behind}
+          action="Message"
+          href="/admin/carts"
+        />
       </div>
     </section>
 
     <div
       :if={
         @pending_orders == 0 and @sold_out_count == 0 and @open_returns == 0 and
-          @suppliers_to_chase == 0
+          @suppliers_to_chase == 0 and @carts_left_behind == 0
       }
       id="work-queue-all-clear"
       class="flex items-center gap-4 rounded-card border border-border bg-surface px-6 py-4"

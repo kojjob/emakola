@@ -295,4 +295,60 @@ defmodule Emakola.Dashboard.StatsTest do
       assert Stats.count_buyers(store.id, from, to) == 1
     end
   end
+
+  defp line_item!(order, store, variant, quantity) do
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: store.id,
+      variant_id: variant.id,
+      quantity: quantity
+    })
+    |> Ash.create!(authorize?: false)
+  end
+
+  describe "top_line_items_chart/3" do
+    test "counts units from paid orders only, not pending or cancelled", %{store: store} do
+      product = Factory.create_product!(store, %{title: "Widget"})
+      variant = Factory.create_variant!(product, store)
+
+      cancelled = Factory.create_order!(store, %{total: 10_000, status: :cancelled})
+      pending = Factory.create_order!(store, %{total: 10_000, status: :pending})
+      confirmed = Factory.create_order!(store, %{total: 10_000, status: :confirmed})
+
+      # The cancelled and pending quantities are the biggest by far, so if
+      # either counted, the chart's total would be far more than 3.
+      line_item!(cancelled, store, variant, 50)
+      line_item!(pending, store, variant, 7)
+      line_item!(confirmed, store, variant, 3)
+
+      from = DateTime.add(DateTime.utc_now(), -1, :day)
+      to = DateTime.add(DateTime.utc_now(), 1, :day)
+
+      chart = Stats.top_line_items_chart(store.id, from, to)
+
+      assert chart.labels == ["Widget"]
+      assert chart.values == [3]
+    end
+  end
+
+  describe "best_sellers/4" do
+    test "counts units from paid orders only, not pending or cancelled", %{store: store} do
+      product = Factory.create_product!(store, %{title: "Widget"})
+      variant = Factory.create_variant!(product, store)
+
+      cancelled = Factory.create_order!(store, %{total: 10_000, status: :cancelled})
+      pending = Factory.create_order!(store, %{total: 10_000, status: :pending})
+      confirmed = Factory.create_order!(store, %{total: 10_000, status: :confirmed})
+
+      line_item!(cancelled, store, variant, 50)
+      line_item!(pending, store, variant, 7)
+      line_item!(confirmed, store, variant, 3)
+
+      from = DateTime.add(DateTime.utc_now(), -1, :day)
+      to = DateTime.add(DateTime.utc_now(), 1, :day)
+
+      assert [%{title: "Widget", quantity: 3}] = Stats.best_sellers(store.id, from, to)
+    end
+  end
 end

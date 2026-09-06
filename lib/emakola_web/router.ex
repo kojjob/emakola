@@ -561,6 +561,9 @@ defmodule EmakolaWeb.Router do
       # Merchant admin — returns
       live "/admin/returns", Admin.ReturnLive
 
+      # Merchant admin — carts left behind
+      live "/admin/carts", Admin.CartLive
+
       # Merchant admin — payment reconciliation
       live "/admin/payments", Admin.PaymentsLive
 

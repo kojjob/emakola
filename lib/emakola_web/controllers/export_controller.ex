@@ -21,6 +21,7 @@ defmodule EmakolaWeb.ExportController do
   def analytics_pdf(conn, params) do
     with {:ok, merchant} <- resolve_merchant(conn),
          {:ok, store} <- resolve_store(merchant),
+         :ok <- check_store_active(store),
          {:ok, date_range} <- parse_date_range(params) do
       case Emakola.Analytics.PdfReport.generate(store, date_range) do
         {:ok, pdf_base64} ->
@@ -51,6 +52,9 @@ defmodule EmakolaWeb.ExportController do
         conn
         |> put_flash(:error, "No store found. Complete onboarding first.")
         |> redirect(to: "/dashboard")
+
+      {:error, :store_locked} ->
+        conn |> put_status(403) |> text("Store locked")
 
       {:error, :invalid_dates} ->
         conn
@@ -94,6 +98,14 @@ defmodule EmakolaWeb.ExportController do
       _ -> {:error, :no_store}
     end
   end
+
+  # Mirrors CustomerExportController.check_store_active/1 (private there, so
+  # not importable) and Hooks.RequireActiveStore's gate — only the platform
+  # lifecycle `status` locks the export, same as it locks the admin LiveViews.
+  defp check_store_active(%{status: status}) when status in [:suspended, :blocked, :archived],
+    do: {:error, :store_locked}
+
+  defp check_store_active(_store), do: :ok
 
   defp parse_date_range(params) do
     today = Date.utc_today()
