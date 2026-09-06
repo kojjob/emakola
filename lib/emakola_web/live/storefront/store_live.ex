@@ -31,7 +31,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
     # unconditionally on failure grounds: a visit that cannot be written is not
     # worth failing a storefront over.
     if connected?(socket) && cart_session_id do
-      Emakola.Analytics.StoreVisits.record(store.id, cart_session_id, params)
+      Emakola.Analytics.StoreVisits.record(
+        store.id,
+        cart_session_id,
+        Map.put(params, "product_id", nil)
+      )
     end
 
     cart_count =

@@ -41,22 +41,22 @@ defmodule Emakola.Analytics.StoreVisitsTest do
       # here would inflate the denominator and quietly understate every
       # merchant's conversion rate.
       assert StoreVisits.visits(store.id, 30) == 5
-      assert StoreVisits.visitors(store.id, 30) == 1
+      assert StoreVisits.visitors_between(store.id, minutes_ago(1), minutes_from_now(1)) == 1
     end
 
     test "different people are different visitors", %{store: store} do
       StoreVisits.record(store.id, "session-a", %{})
       StoreVisits.record(store.id, "session-b", %{})
 
-      assert StoreVisits.visitors(store.id, 30) == 2
+      assert StoreVisits.visitors_between(store.id, minutes_ago(1), minutes_from_now(1)) == 2
     end
 
     test "one store's traffic is not another's", %{store: store} do
       other = Emakola.Factory.create_store!()
       StoreVisits.record(other.id, "session-a", %{})
 
-      assert StoreVisits.visitors(store.id, 30) == 0
-      assert StoreVisits.visitors(other.id, 30) == 1
+      assert StoreVisits.visitors_between(store.id, minutes_ago(1), minutes_from_now(1)) == 0
+      assert StoreVisits.visitors_between(other.id, minutes_ago(1), minutes_from_now(1)) == 1
     end
   end
 
@@ -125,7 +125,7 @@ defmodule Emakola.Analytics.StoreVisitsTest do
       StoreVisits.record(store.id, "b", %{"utm_source" => "instagram"})
       StoreVisits.record(store.id, "c", %{})
 
-      counts = StoreVisits.by_source(store.id, 30)
+      counts = StoreVisits.by_source_between(store.id, minutes_ago(1), minutes_from_now(1))
 
       assert counts[:instagram] == 2
       assert counts[:direct] == 1
@@ -138,6 +138,9 @@ defmodule Emakola.Analytics.StoreVisitsTest do
       set: [occurred_at: DateTime.add(DateTime.utc_now(), -days_ago * 86_400, :second)]
     )
   end
+
+  defp minutes_ago(n), do: DateTime.add(DateTime.utc_now(), -n * 60, :second)
+  defp minutes_from_now(n), do: DateTime.add(DateTime.utc_now(), n * 60, :second)
 
   import Ecto.Query, only: [from: 2]
 

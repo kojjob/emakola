@@ -898,4 +898,16 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert visit.store_id == store.id
     assert visit.page == :pay_link
   end
+
+  test "a forged ?product_id= on the pay-link page never sticks", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+    product = Emakola.Factory.create_product!(store)
+
+    {:ok, _view, _html} = live(conn, "/pay/#{link.code}?product_id=#{product.id}")
+
+    assert [visit] = Ash.read!(Emakola.Analytics.StoreVisit, authorize?: false)
+    assert visit.page == :pay_link
+    assert visit.product_id == nil
+  end
 end

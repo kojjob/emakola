@@ -8,8 +8,8 @@ defmodule Emakola.Analytics.StoreVisits do
 
   ## Honest counting
 
-  `visits/2` counts page views. `visitors/2` counts distinct people. The
-  difference matters: one person browsing five pages is one visitor, and
+  `visits/2` counts page views. `visitors_between/3` counts distinct people.
+  The difference matters: one person browsing five pages is one visitor, and
   dividing orders by pageviews would understate every merchant's conversion
   rate while looking like the same calculation.
 
@@ -69,11 +69,17 @@ defmodule Emakola.Analytics.StoreVisits do
   never reach `String.to_atom/1` (or a valid-looking one forge a page it never
   visited); anything else is `:home`. `params["product_id"]` is cast with
   `Ecto.UUID.cast/1` for the same reason — anything that is not a real UUID
-  becomes `nil`.
+  becomes `nil` — and is kept only when the validated page is `:product`;
+  a `product_id` alongside `:home` or `:pay_link` (forged, or a stale value a
+  caller forgot to clear) is dropped rather than stored, since
+  `product_visitors/3` is the only reader and a non-product row can never
+  answer that question honestly anyway.
   """
   @spec record(binary(), binary(), map()) :: {:ok, StoreVisit.t()} | {:error, term()}
   def record(store_id, session_id, params)
       when is_binary(store_id) and is_binary(session_id) and is_map(params) do
+    page = page_from(params)
+
     result =
       StoreVisit
       |> Ash.Changeset.for_create(:record, %{
@@ -81,8 +87,8 @@ defmodule Emakola.Analytics.StoreVisits do
         visitor_hash: hash(session_id),
         source: source_from(params),
         occurred_at: DateTime.utc_now(),
-        page: page_from(params),
-        product_id: product_id_from(params)
+        page: page,
+        product_id: product_id_from(params, page)
       })
       |> Ash.create(authorize?: false)
 
@@ -100,12 +106,14 @@ defmodule Emakola.Analytics.StoreVisits do
     end
   end
 
-  defp product_id_from(params) do
+  defp product_id_from(params, :product) do
     case Ecto.UUID.cast(Map.get(params, "product_id")) do
       {:ok, product_id} -> product_id
       :error -> nil
     end
   end
+
+  defp product_id_from(_params, _page), do: nil
 
   # Store.view_count is what the directory's "Most popular" sort reads, and
   # for months nothing wrote it — the sort ordered twenty zeros. Bumping it
@@ -132,21 +140,6 @@ defmodule Emakola.Analytics.StoreVisits do
       from(v in "store_visits",
         where: v.store_id == type(^store_id, :binary_id) and v.occurred_at >= ^since(days),
         select: count(v.id)
-      )
-    ) || 0
-  end
-
-  @doc """
-  Distinct people for a store over the last `days`.
-
-  This is the denominator a conversion rate needs. `visits/2` is not.
-  """
-  @spec visitors(binary(), pos_integer()) :: non_neg_integer()
-  def visitors(store_id, days) do
-    Emakola.Repo.one(
-      from(v in "store_visits",
-        where: v.store_id == type(^store_id, :binary_id) and v.occurred_at >= ^since(days),
-        select: count(fragment("distinct ?", v.visitor_hash))
       )
     ) || 0
   end
@@ -178,11 +171,13 @@ defmodule Emakola.Analytics.StoreVisits do
     |> Map.new()
   end
 
-  @doc "Page views grouped by channel, as a map of source atom to count."
-  @spec by_source(binary(), pos_integer()) :: %{atom() => non_neg_integer()}
-  def by_source(store_id, days) do
+  @doc "Page views grouped by channel between two instants, as a map of source atom to count."
+  @spec by_source_between(binary(), DateTime.t(), DateTime.t()) :: %{atom() => non_neg_integer()}
+  def by_source_between(store_id, from, to) do
     from(v in "store_visits",
-      where: v.store_id == type(^store_id, :binary_id) and v.occurred_at >= ^since(days),
+      where:
+        v.store_id == type(^store_id, :binary_id) and v.occurred_at >= ^from and
+          v.occurred_at < ^to,
       group_by: v.source,
       select: {v.source, count(v.id)}
     )
@@ -193,10 +188,10 @@ defmodule Emakola.Analytics.StoreVisits do
   @doc """
   Store ids ranked by distinct people over the last `days`, busiest first.
 
-  Ranks on visitors rather than page views for the same reason `visitors/2`
-  exists: one person refreshing a page all afternoon is one interested person,
-  and letting that outrank three separate shoppers would put the wrong shop at
-  the top of the directory.
+  Ranks on visitors rather than page views for the same reason
+  `visitors_between/3` exists: one person refreshing a page all afternoon is
+  one interested person, and letting that outrank three separate shoppers
+  would put the wrong shop at the top of the directory.
 
   Returns ids, not stores — the caller loads them through the directory's own
   read action so the live/active filters and the tenant rules still apply.

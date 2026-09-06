@@ -141,13 +141,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       visitors: visitors,
       conversion_rate: conversion_rate(count, visitors),
       order_sources: Emakola.Orders.Source.tally(counted),
-      visit_sources: visit_source_rows(traffic_sources(store_id, range)),
+      visit_sources: visit_source_rows(traffic_sources(store_id, from, to)),
       looked_bought: LookedBought.rows(store_id, from, to, counted)
     )
   end
 
   # The visit buckets share names with order sources. `String.to_existing_atom`
-  # in StoreVisits.by_source keeps this a closed set.
+  # in StoreVisits.by_source_between keeps this a closed set.
   defp visit_source_rows(by_source) when is_map(by_source) do
     by_source
     |> Enum.map(fn {source, count} ->
@@ -159,8 +159,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   defp count_visitors(nil, _from, _to), do: 0
   defp count_visitors(store_id, from, to), do: StoreVisits.visitors_between(store_id, from, to)
 
-  defp traffic_sources(nil, _range), do: %{}
-  defp traffic_sources(store_id, range), do: StoreVisits.by_source(store_id, @ranges[range])
+  defp traffic_sources(nil, _from, _to), do: %{}
+  defp traffic_sources(store_id, from, to), do: StoreVisits.by_source_between(store_id, from, to)
 
   # Percent to one decimal, already rendered as a string.
   #

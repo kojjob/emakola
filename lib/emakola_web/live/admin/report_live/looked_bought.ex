@@ -39,8 +39,13 @@ defmodule EmakolaWeb.Admin.ReportLive.LookedBought do
       if product_ids == [] do
         %{}
       else
+        # Product is `global?(true)` multitenant, so an id-only filter would
+        # read across every store's catalog. `product_ids` should already be
+        # this store's own (from product_visitors/3 and this store's line
+        # items), but pinning store_id here means a bug upstream can't turn
+        # into a title read off someone else's shop.
         Emakola.Catalog.Product
-        |> Ash.Query.filter(id in ^product_ids)
+        |> Ash.Query.filter(id in ^product_ids and store_id == ^store_id)
         |> Ash.read!(authorize?: false)
         |> Map.new(&{&1.id, &1.title})
       end

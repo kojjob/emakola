@@ -73,4 +73,34 @@ defmodule Emakola.Analytics.StoreVisitPagesTest do
     assert StoreVisits.product_visitors(store.id, from, to) == %{product.id => 1}
     assert StoreVisits.visitors_between(store.id, from, to) == 1
   end
+
+  test "a page value that isn't one of the three atoms is the home page", %{store: store} do
+    {:ok, visit} = StoreVisits.record(store.id, "s1", %{"page" => "hacked"})
+    assert visit.page == :home
+  end
+
+  test "a product_id that isn't a real UUID is dropped, not stored", %{store: store} do
+    {:ok, visit} =
+      StoreVisits.record(store.id, "s1", %{"page" => :product, "product_id" => "not-a-uuid"})
+
+    assert visit.product_id == nil
+  end
+
+  test "a valid product_id on a product page is kept", %{store: store, product: product} do
+    {:ok, visit} =
+      StoreVisits.record(store.id, "s1", %{"page" => :product, "product_id" => product.id})
+
+    assert visit.product_id == product.id
+  end
+
+  test "a product_id on a non-product page is dropped, forged or not", %{
+    store: store,
+    product: product
+  } do
+    {:ok, visit} =
+      StoreVisits.record(store.id, "s1", %{"page" => :pay_link, "product_id" => product.id})
+
+    assert visit.page == :pay_link
+    assert visit.product_id == nil
+  end
 end

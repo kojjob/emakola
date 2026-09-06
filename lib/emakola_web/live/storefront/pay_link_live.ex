@@ -38,7 +38,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           Emakola.Analytics.StoreVisits.record(
             store.id,
             cart_session_id,
-            Map.put(params, "page", :pay_link)
+            Map.merge(params, %{"page" => :pay_link, "product_id" => nil})
           )
         end
 
