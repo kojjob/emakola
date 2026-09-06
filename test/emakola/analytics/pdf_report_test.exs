@@ -145,7 +145,22 @@ defmodule Emakola.Analytics.PdfReportTest do
   describe "generate/2" do
     @tag :pdf
     test "renders a valid PDF with the configured Chrome executable", %{store: store} do
-      Factory.create_order!(store, %{total: 10_000})
+      # A line item on a paid order, not just a bare order: exercises the
+      # non-empty render_top_products/1 branch (the %{title:, quantity:}
+      # destructuring), the only path that reaches it outside report_data/2's
+      # own tests.
+      product = Factory.create_product!(store, %{title: "Sold Product"})
+      variant = Factory.create_variant!(product, store)
+      order = Factory.create_order!(store, %{total: 10_000, status: :confirmed})
+
+      Emakola.Orders.LineItem
+      |> Ash.Changeset.for_create(:create, %{
+        order_id: order.id,
+        store_id: store.id,
+        variant_id: variant.id,
+        quantity: 3
+      })
+      |> Ash.create!(authorize?: false)
 
       date_range = Date.range(Date.add(Date.utc_today(), -30), Date.utc_today())
       assert {:ok, pdf_binary} = PdfReport.generate(store, date_range)
