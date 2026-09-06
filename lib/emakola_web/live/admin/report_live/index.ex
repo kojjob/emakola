@@ -81,6 +81,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   alias Emakola.Dashboard.Stats
   alias Emakola.Orders.Order
   alias EmakolaWeb.Admin.ReportLive.LookedBought
+  alias EmakolaWeb.Admin.ReportLive.Repeat
 
   # Windows the pills offer. "custom" silently meant 30 days and there was no
   # date picker anywhere in the file, so it is not offered.
@@ -142,7 +143,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       conversion_rate: conversion_rate(count, visitors),
       order_sources: Emakola.Orders.Source.tally(counted),
       visit_sources: visit_source_rows(traffic_sources(store_id, from, to)),
-      looked_bought: LookedBought.rows(store_id, from, to, counted)
+      looked_bought: LookedBought.rows(store_id, from, to, counted),
+      repeat: Repeat.figures(store_id, from, counted)
     )
   end
 
@@ -520,6 +522,18 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           </table>
         </.admin_card>
       </div>
+
+      <.admin_card
+        :if={@repeat.returning + @repeat.new > 0}
+        id="reports-repeat"
+        padding={:none}
+        class="p-5"
+      >
+        <h2 class="text-base font-bold text-slate-800">Bought again</h2>
+        <p class="text-sm text-slate-500 mt-1">Buyers in this period who had bought before</p>
+        <p class="mt-3 text-2xl font-bold font-mono text-slate-900">{@repeat.share || "0.0"}%</p>
+        <p class="text-sm text-slate-600 mt-1">{@repeat.returning} came back, {@repeat.new} new</p>
+      </.admin_card>
 
       <.admin_card :if={@looked_bought != []} id="reports-looked-bought" padding={:none} class="p-5">
         <h2 class="text-base font-bold text-slate-800">Looked, then bought</h2>

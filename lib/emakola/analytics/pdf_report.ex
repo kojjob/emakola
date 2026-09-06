@@ -36,11 +36,12 @@ defmodule Emakola.Analytics.PdfReport do
   Computes report data for the given store and date range.
 
   Returns a map with:
-  - `:total_revenue` - sum of order totals in minor units
-  - `:order_count` - number of orders
-  - `:avg_order_value` - average order total in minor units
-  - `:top_products` - top 10 active products by title
-  - `:order_status_breakdown` - map of status => count
+  - `:total_revenue` - sum of paid order totals in minor units
+  - `:order_count` - number of paid orders
+  - `:avg_order_value` - average paid order total in minor units
+  - `:top_products` - best sellers in the range, most units sold first
+    (`Dashboard.Stats.best_sellers/4`)
+  - `:order_status_breakdown` - map of status => count, across all orders
   - `:currency` - store currency code
   """
   @spec report_data(%{id: term(), currency: String.t()}, Date.Range.t()) :: map()
@@ -56,8 +57,14 @@ defmodule Emakola.Analytics.PdfReport do
       |> Ash.Query.filter(inserted_at < ^end_dt)
       |> Ash.read!(authorize?: false)
 
-    total_revenue = orders |> Enum.map(& &1.total) |> Enum.sum()
-    order_count = length(orders)
+    # "Paid" matches Reports (Order.paid_statuses/0), so this PDF's revenue
+    # figures never disagree with the screen for the same orders. The status
+    # breakdown below stays over every order — that table is meant to show
+    # where orders in the range currently stand, pending and cancelled
+    # included.
+    counted = Enum.filter(orders, &(&1.status in Emakola.Orders.Order.paid_statuses()))
+    total_revenue = counted |> Enum.map(& &1.total) |> Enum.sum()
+    order_count = length(counted)
 
     avg_order_value =
       if order_count > 0, do: div(total_revenue, order_count), else: 0
@@ -68,13 +75,7 @@ defmodule Emakola.Analytics.PdfReport do
       |> Enum.map(fn {status, group} -> {status, length(group)} end)
       |> Enum.into(%{})
 
-    top_products =
-      Emakola.Catalog.Product
-      |> Ash.Query.filter(store_id == ^store_id and status == :active)
-      |> Ash.Query.sort(inserted_at: :desc)
-      |> Ash.Query.limit(10)
-      |> Ash.read!(authorize?: false)
-      |> Enum.map(& &1.title)
+    top_products = Emakola.Dashboard.Stats.best_sellers(store_id, start_dt, end_dt, 10)
 
     %{
       total_revenue: total_revenue,
@@ -189,8 +190,8 @@ defmodule Emakola.Analytics.PdfReport do
   defp render_top_products([]) do
     """
     <div class="section">
-      <div class="section-title">Top Products</div>
-      <p style="color: #78716c; font-size: 13px;">No active products found.</p>
+      <div class="section-title">Best sellers</div>
+      <p style="color: #78716c; font-size: 13px;">No sales in this period.</p>
     </div>
     """
   end
@@ -199,16 +200,16 @@ defmodule Emakola.Analytics.PdfReport do
     rows =
       products
       |> Enum.with_index(1)
-      |> Enum.map(fn {title, rank} ->
-        "<tr><td>#{rank}</td><td>#{escape_html(title)}</td></tr>"
+      |> Enum.map(fn {%{title: title, quantity: quantity}, rank} ->
+        "<tr><td>#{rank}</td><td>#{escape_html(title)}</td><td style=\"text-align:right\">#{quantity}</td></tr>"
       end)
       |> Enum.join("\n")
 
     """
     <div class="section">
-      <div class="section-title">Top Products</div>
+      <div class="section-title">Best sellers</div>
       <table>
-        <thead><tr><th>#</th><th>Product</th></tr></thead>
+        <thead><tr><th>#</th><th>Product</th><th style="text-align:right">Units</th></tr></thead>
         <tbody>#{rows}</tbody>
       </table>
     </div>

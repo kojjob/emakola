@@ -90,4 +90,28 @@ defmodule EmakolaWeb.ExportControllerTest do
       assert response(conn, 401) == "Unauthorized"
     end
   end
+
+  describe "GET /admin/export/analytics.pdf for a locked store" do
+    # Mirrors CustomerExportController's check_store_active/1: the platform
+    # lifecycle status locks the export the same way it locks the admin
+    # LiveViews (Hooks.RequireActiveStore), so a suspended merchant cannot
+    # keep pulling analytics out of a store the platform has shut down.
+    test "a store suspended by the platform returns 403", %{conn: conn} do
+      {merchant, store} = create_merchant_with_store!()
+
+      store
+      |> Ash.Changeset.for_update(:suspend, %{reason: "policy violation"})
+      |> Ash.update!(authorize?: false)
+
+      signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session(:user_token, signed)
+        |> get(@export_path)
+
+      assert response(conn, 403) == "Store locked"
+    end
+  end
 end

@@ -161,7 +161,12 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       variant2: variant2
     } do
       order =
-        Factory.create_order!(store, customer_id: customer.id, total: 30_000, subtotal: 30_000)
+        Factory.create_order!(store,
+          customer_id: customer.id,
+          total: 30_000,
+          subtotal: 30_000,
+          status: :confirmed
+        )
 
       # variant gets 5 units, variant2 gets 2 units
       Emakola.Orders.LineItem

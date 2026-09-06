@@ -341,6 +341,7 @@ defmodule EmakolaWeb.DashboardLive do
         sold_out_count={@sold_out_count}
         open_returns={@open_returns}
         suppliers_to_chase={@suppliers_to_chase}
+        carts_left_behind={@carts_left_behind}
       />
 
       <.money_row

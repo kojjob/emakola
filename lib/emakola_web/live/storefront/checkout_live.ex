@@ -166,8 +166,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> update_dispatch_fees()
 
     next = if socket.assigns.requires_shipping, do: 2, else: 3
+    errors = validate_contact_step(socket.assigns)
 
-    advance_when_valid(socket, validate_contact_step(socket.assigns), next)
+    {:noreply, socket} = advance_when_valid(socket, errors, next)
+
+    if errors == %{}, do: touch_abandoned_checkout(socket)
+
+    {:noreply, socket}
   end
 
   # Step 2 -> 3.
@@ -296,6 +301,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
         case create_order(socket) do
           {:ok, order} ->
+            if cart_session_id = socket.assigns[:cart_session_id] do
+              recover_quietly(socket.assigns.store.id, cart_session_id, order.id)
+            end
+
             socket = assign(socket, :order, order)
             handle_payment(socket, order)
 
@@ -513,6 +522,63 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     opts = Keyword.merge(opts, EmakolaWeb.Storefront.CheckoutIdentity.opts(socket.assigns))
 
     CheckoutService.checkout!(store.id, items, opts)
+  end
+
+  # Best-effort bookkeeping for the merchant's "carts left behind" list — a
+  # buyer who validated a phone but has not paid yet. Must never break
+  # checkout, so a write failure is logged and swallowed rather than raised.
+  defp touch_abandoned_checkout(socket) do
+    cart_session_id = socket.assigns[:cart_session_id]
+    store = socket.assigns.store
+
+    # An empty cart is not a cart left behind — a buyer who reached this page
+    # after their order already cleared it (CartStore.clear_cart) should not
+    # get a junk "GH₵ 0, nothing" row on the merchant's page.
+    if cart_session_id && socket.assigns.cart != [] do
+      result =
+        Emakola.Orders.AbandonedCheckouts.touch(store.id, cart_session_id, %{
+          phone: socket.assigns.phone,
+          name: socket.assigns.fullname,
+          items:
+            Enum.map(socket.assigns.cart, fn item ->
+              %{
+                "title" => item.product_title,
+                "quantity" => item.quantity,
+                "unit_price" => item.unit_price
+              }
+            end),
+          # Same formula the mount assign was computed with, and nothing
+          # between mount and here reassigns :cart — so this always matches.
+          cart_total: socket.assigns.cart_total
+        })
+
+      case result do
+        {:ok, _checkout} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning(
+            "[checkout_live] touch abandoned checkout failed for store #{store.id} cart #{cart_session_id}: #{inspect(reason)}"
+          )
+      end
+    end
+  rescue
+    exception ->
+      Logger.warning(
+        "[checkout_live] touch abandoned checkout raised: #{Exception.message(exception)}"
+      )
+  end
+
+  # Bounded and best-effort, same posture as touch_abandoned_checkout/1: a
+  # row pruned or already recovered between the order landing and this call
+  # must not raise into a checkout whose order already exists.
+  defp recover_quietly(store_id, cart_session_id, order_id) do
+    Emakola.Orders.AbandonedCheckouts.recover(store_id, cart_session_id, order_id)
+  rescue
+    exception ->
+      Logger.warning(
+        "[checkout_live] recover abandoned checkout raised for order #{order_id} store #{store_id}: #{Exception.message(exception)}"
+      )
   end
 
   defp put_digital_address(map, raw) do

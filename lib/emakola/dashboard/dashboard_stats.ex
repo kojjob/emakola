@@ -166,18 +166,27 @@ defmodule Emakola.Dashboard.Stats do
   formatted as `%{labels: [String.t()], values: [non_neg_integer()]}` for
   chart rendering.
 
-  Query is scoped to `store_id` via the WHERE clause on `li.store_id`.
+  Query is scoped to `store_id` via the WHERE clause on `li.store_id`, and
+  joined to the order to keep units to paid orders only — otherwise a big
+  cancelled or still-pending order would top the chart with sales that
+  never happened. Paid statuses come from `Emakola.Orders.Order.paid_statuses/0`,
+  encoded to strings as `count_buyers/3` does in this module.
   Product titles are truncated to 20 characters to fit chart labels.
   """
   @spec top_line_items_chart(Ash.UUID.t(), DateTime.t(), DateTime.t()) ::
           %{labels: [String.t()], values: [non_neg_integer()]}
   def top_line_items_chart(store_id, from, to) do
+    paid_statuses = Enum.map(Emakola.Orders.Order.paid_statuses(), &Atom.to_string/1)
+
     query =
       from li in Emakola.Orders.LineItem,
+        join: o in "orders",
+        on: o.id == li.order_id,
         where:
           li.store_id == ^store_id and
             li.inserted_at >= ^from and
-            li.inserted_at < ^to,
+            li.inserted_at < ^to and
+            o.status in ^paid_statuses,
         group_by: li.product_title,
         order_by: [desc: sum(li.quantity)],
         limit: 5,
@@ -202,16 +211,24 @@ defmodule Emakola.Dashboard.Stats do
   Grouped by `variant_id` rather than the denormalized `product_title` so each
   row can carry its product photo — merchants recognize their stock by picture
   before they read the name. Custom line items (no variant) are excluded:
-  there is no product record behind them to show.
+  there is no product record behind them to show. Joined to the order and
+  scoped to paid statuses the same way `top_line_items_chart/3` is, so a
+  cancelled order's units cannot lead the list while its revenue is excluded
+  everywhere else.
   """
   def best_sellers(store_id, from, to, limit \\ 4) do
+    paid_statuses = Enum.map(Emakola.Orders.Order.paid_statuses(), &Atom.to_string/1)
+
     query =
       from li in Emakola.Orders.LineItem,
+        join: o in "orders",
+        on: o.id == li.order_id,
         where:
           li.store_id == ^store_id and
             li.inserted_at >= ^from and
             li.inserted_at < ^to and
-            not is_nil(li.variant_id),
+            not is_nil(li.variant_id) and
+            o.status in ^paid_statuses,
         group_by: li.variant_id,
         order_by: [desc: sum(li.quantity)],
         limit: ^limit,

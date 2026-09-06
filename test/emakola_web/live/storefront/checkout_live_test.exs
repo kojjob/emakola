@@ -329,6 +329,57 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  describe "carts left behind" do
+    defp abandoned_checkout_for(session_id) do
+      Emakola.Orders.AbandonedCheckout
+      |> Ash.read!(authorize?: false)
+      |> Enum.find(&(&1.cart_session_id == session_id))
+    end
+
+    test "a validated contact step remembers the cart for the merchant", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      to_shipping_step(view)
+
+      checkout = abandoned_checkout_for(session_id)
+      assert checkout
+      assert checkout.phone == "+233244123456"
+      assert checkout.cart_total == 10_000
+    end
+
+    test "an invalid contact step never writes a row", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "submit_details", %{"phone" => "abc", "fullname" => "Ama Mensah"})
+
+      refute abandoned_checkout_for(session_id)
+    end
+
+    test "an empty cart is never remembered as left behind", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, session_id} = setup_cart_session(conn, variant)
+      CartStore.clear_cart(session_id, store.id)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      to_shipping_step(view)
+
+      refute abandoned_checkout_for(session_id)
+    end
+  end
+
   describe "GhanaPost digital address + landmark" do
     test "valid messy digital address normalizes and lands on the order with the landmark", %{
       conn: conn,

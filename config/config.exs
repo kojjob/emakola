@@ -240,6 +240,7 @@ config :emakola, Oban,
        {"20 * * * *", Emakola.Payments.Workers.SusuExpiryWorker},
        {"0 9 * * *", Emakola.Payments.Workers.SusuNudgeWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker},
+       {"45 3 * * *", Emakola.Orders.Workers.AbandonedCheckoutPruneWorker},
        # GSC reports a 2-3 day lag, so daily is as fresh as the data gets.
        # No-ops until :gsc_credentials is set (runtime.exs).
        # Nightly featuring run — before the 05:00 GSC sync, off-peak for Ghana (UTC+0).
