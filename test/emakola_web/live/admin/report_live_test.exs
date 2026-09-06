@@ -116,11 +116,15 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/reports")
 
+      # "Instagram" and "TikTok" are not on this list: they are now real
+      # source labels on paid orders and visits (Emakola.Orders.Source),
+      # rendered only when data earns them. What is guarded here is the
+      # specific invented donut this page used to show.
       for invented <- [
             "Conversion Rate",
             "Sales by Channel",
-            "Instagram",
-            "TikTok",
+            "Instagram 45%",
+            "TikTok 4%",
             "total visits",
             "AI Insights",
             "Kente Wrap Dress",

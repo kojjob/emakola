@@ -60,6 +60,8 @@ defmodule EmakolaWeb.Admin.ReportSourcesTest do
       attribution: %{"utm_source" => "instagram"}
     })
 
+    StoreVisits.record(ctx.store.id, "mine", %{"utm_source" => "instagram"})
+
     other = Factory.create_store!()
 
     Factory.create_order!(other, %{
@@ -76,6 +78,7 @@ defmodule EmakolaWeb.Admin.ReportSourcesTest do
     assert has_element?(view, "#reports-order-sources", "Instagram")
     refute has_element?(view, "#reports-order-sources", "Facebook")
     refute render(view) =~ "9,000.00"
+    assert has_element?(view, "#reports-visit-sources", "Instagram")
     refute has_element?(view, "#reports-visit-sources", "TikTok")
   end
 end

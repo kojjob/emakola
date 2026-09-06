@@ -38,6 +38,16 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     * **Traffic by channel** counts visits by source, which is the claim the
       words make. It is not orders-by-UTM wearing the same label.
 
+  ## Orders by source came back too, once traffic did
+
+  The objection above was to orders-by-source wearing a *traffic-share*
+  label — "Sales by Channel" implies visits, but the number would have been
+  orders. That was an objection to the label, not to counting orders by
+  source at all. Now that visits are counted for real, the two can sit side
+  by side under their own names instead of one pretending to be the other:
+  **Where orders came from** counts orders; **Where buyers looked** counts
+  visits. Neither claims to be the other.
+
   ## Per-region conversion is not coming back, and this is why
 
   Not a TODO. It was looked at properly and turned down.

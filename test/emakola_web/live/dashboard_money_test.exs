@@ -89,7 +89,10 @@ defmodule EmakolaWeb.DashboardMoneyTest do
       attribution: %{"utm_source" => "instagram"}
     })
 
-    {:ok, view, _html} = live(ctx.conn, ~p"/dashboard?period=today")
+    # Not `~p"/dashboard?period=today"` as in the brief: mount discards
+    # params (see `visit_today/1` above), so that query string is a no-op
+    # and would pass on the default "week" period alone.
+    view = visit_today(ctx.conn)
     render_async(view)
 
     assert has_element?(view, "#top-sources", "Instagram")
