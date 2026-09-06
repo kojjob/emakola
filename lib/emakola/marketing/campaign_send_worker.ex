@@ -26,10 +26,39 @@ defmodule Emakola.Marketing.CampaignSendWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_id" => campaign_id}}) do
     case Ash.get(Campaign, campaign_id, authorize?: false) do
-      {:ok, campaign} -> send_campaign(campaign)
+      {:ok, campaign} -> send_guarding_status(campaign)
       # A deleted campaign is not a failure to retry.
       {:error, _} -> :ok
     end
+  end
+
+  # Mark the row :failed, then re-raise so Oban still records the attempt and
+  # retries. Without this a discarded job left the campaign :sending forever:
+  # the send handler only proceeds from :draft or :failed, so the Send button
+  # never came back and the merchant could not retry from the page at all.
+  #
+  # With max_attempts: 3 the status flips :failed and back to :sending on each
+  # retry, settling on :failed only once the attempts are spent. That flicker
+  # is the honest reading of the state — the send is genuinely being retried.
+  defp send_guarding_status(campaign) do
+    send_campaign(campaign)
+  rescue
+    exception ->
+      mark_failed(campaign)
+      reraise(exception, __STACKTRACE__)
+  end
+
+  defp mark_failed(campaign) do
+    campaign
+    |> Ash.Changeset.for_update(:mark_failed, %{})
+    |> Ash.update(authorize?: false)
+  rescue
+    # Never let the bookkeeping write mask the real failure below it.
+    exception ->
+      Logger.warning(
+        "campaign mark_failed raised campaign=#{campaign.id} " <>
+          "reason=#{inspect(exception.__struct__)}"
+      )
   end
 
   defp send_campaign(%Campaign{status: :sent}), do: :ok

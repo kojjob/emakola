@@ -955,44 +955,51 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
-  # What step 1 can answer for. Phone and full name stay required even for
-  # downloads — the storefront is phone-first and the merchant still has to be
-  # able to reach the buyer.
-  defp validate_contact_step(assigns) do
-    errors = %{}
+  # What step 1 can answer for.
+  defp validate_contact_step(assigns), do: contact_errors(assigns)
 
-    errors =
-      cond do
-        assigns.phone == "" ->
-          Map.put(errors, :phone, "Phone number is required")
-
-        not Emakola.Accounts.PhoneAuth.valid?(assigns.phone) ->
-          Map.put(errors, :phone, "Enter a valid phone number")
-
-        true ->
-          errors
-      end
-
-    errors =
-      cond do
-        assigns.fullname == "" ->
-          Map.put(errors, :fullname, "Full name is required")
-
-        String.length(assigns.fullname) > 255 ->
-          Map.put(errors, :fullname, "Name is too long")
-
-        true ->
-          errors
-      end
-
-    email = assigns[:email] || ""
-
-    if email != "" and not email_format_ok?(email) do
-      Map.put(errors, :email, "Email format looks invalid")
-    else
-      errors
-    end
+  # The contact rules, in one place. Phone and full name stay required even
+  # for downloads — the storefront is phone-first and the merchant still has
+  # to be able to reach the buyer.
+  #
+  # Shared by the step-1 gate and by `validate_contact_fields/1`, which is
+  # what `place_order` runs. place_order is deliberately not gated on the
+  # step, so it must carry these checks itself: when it tested only
+  # `phone == ""`, a crafted event reached checkout with a phone step 1
+  # would have refused, and `CheckoutIdentity` then keyed such a buyer by
+  # the placeholder email — collapsing every buyer in the store who did it
+  # onto one shared customer row.
+  #
+  # A crafted `phone[]=1` arrives as a list, not a binary, and
+  # `PhoneAuth.valid?/1` raises on anything else — so shape is checked
+  # before validity, and a non-binary is refused as missing rather than
+  # taken down the LiveView.
+  defp contact_errors(assigns) do
+    %{}
+    |> put_error(:phone, phone_error(assigns.phone))
+    |> put_error(:fullname, name_error(assigns.fullname))
+    |> put_error(:email, email_error(assigns[:email] || ""))
   end
+
+  defp put_error(errors, _field, nil), do: errors
+  defp put_error(errors, field, message), do: Map.put(errors, field, message)
+
+  defp phone_error(phone) when not is_binary(phone), do: "Phone number is required"
+  defp phone_error(""), do: "Phone number is required"
+
+  defp phone_error(phone) do
+    if Emakola.Accounts.PhoneAuth.valid?(phone), do: nil, else: "Enter a valid phone number"
+  end
+
+  defp name_error(name) when not is_binary(name), do: "Full name is required"
+  defp name_error(""), do: "Full name is required"
+  defp name_error(name), do: if(String.length(name) > 255, do: "Name is too long")
+
+  defp email_error(email) when not is_binary(email), do: "Email format looks invalid"
+  defp email_error(""), do: nil
+
+  defp email_error(email),
+    do: if(email_format_ok?(email), do: nil, else: "Email format looks invalid")
 
   # What step 2 can answer for. A cart of downloads has nothing to deliver, so
   # it has nothing to fail on here either.
@@ -1006,21 +1013,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
+  # Step 1's rules plus what step 2 adds. `validate_delivery_step/1` takes
+  # only the two delivery keys back out of this, so the contact rules here
+  # cannot fail step 2 on a field it does not show.
   defp validate_contact_fields(assigns) do
-    errors = %{}
+    errors = contact_errors(assigns)
 
-    errors =
-      if assigns.phone == "",
-        do: Map.put(errors, :phone, "Phone number is required"),
-        else: errors
-
-    errors =
-      if assigns.fullname == "",
-        do: Map.put(errors, :fullname, "Full name is required"),
-        else: errors
-
-    # Phone and full name stay required even for downloads — the storefront is
-    # phone-first and the merchant still has to be able to reach the buyer.
     ships? = Map.get(assigns, :requires_shipping, true)
 
     errors =
@@ -1028,32 +1026,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         do: Map.put(errors, :address, "Delivery address is required"),
         else: errors
 
-    errors =
-      cond do
-        not ships? ->
-          errors
+    cond do
+      not ships? ->
+        errors
 
-        Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) ->
-          errors
+      Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) ->
+        errors
 
-        true ->
-          Map.put(
-            errors,
-            :digital_address,
-            "Check the digital address — it looks like GA-183-8164"
-          )
-      end
-
-    # Email is optional, but if provided must look like an email address.
-    email = assigns[:email] || ""
-
-    if email != "" and not email_format_ok?(email) do
-      Map.put(errors, :email, "Email format looks invalid")
-    else
-      errors
+      true ->
+        Map.put(
+          errors,
+          :digital_address,
+          "Check the digital address — it looks like GA-183-8164"
+        )
     end
   end
 
+  # Email is optional, but if provided must look like an email address.
   defp email_format_ok?(email) do
     String.contains?(email, "@") and
       String.split(email, "@") |> length() == 2 and

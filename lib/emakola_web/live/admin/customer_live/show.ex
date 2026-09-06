@@ -117,8 +117,17 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
   def handle_event("open_thread", _params, socket) do
     %{customer: customer, current_store: store} = socket.assigns
-    {:ok, thread} = Emakola.Conversations.open_shop_thread(store.id, customer.id)
-    {:noreply, push_navigate(socket, to: ~p"/admin/messages/#{thread.id}")}
+
+    # Matched, not asserted: a hard `{:ok, thread} =` turned any error into a
+    # MatchError that took the whole page down, losing the merchant whatever
+    # else was on it.
+    case Emakola.Conversations.open_shop_thread(store.id, customer.id) do
+      {:ok, thread} ->
+        {:noreply, push_navigate(socket, to: ~p"/admin/messages/#{thread.id}")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Could not open that chat. Please try again.")}
+    end
   end
 
   @impl true

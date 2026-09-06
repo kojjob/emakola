@@ -60,12 +60,15 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     )
   end
 
+  # Every campaign the page offers a send button for — :failed included, or a
+  # retry's confirm dialog would read "Send this to 0 customers?".
+  #
   # The confirm dialog and the per-row "sending to N" flash need the count for
   # THAT campaign's own audience, not whatever segment is currently selected
   # in the draft form above.
   defp draft_audience_counts(store_id, campaigns) do
     campaigns
-    |> Enum.filter(&(&1.status == :draft))
+    |> Enum.filter(&(&1.status in [:draft, :failed]))
     |> Map.new(fn campaign ->
       {:ok, %{count: count}} = Campaigns.audience(nil, store_id, campaign.audience)
       {campaign.id, count}
@@ -179,10 +182,11 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
 
       %{id: store_id} ->
         case Campaigns.get_for_store(store_id, id) do
-          {:ok, %{status: :draft} = campaign} ->
+          # :failed too — a campaign whose job was discarded is retryable.
+          {:ok, %{status: status} = campaign} when status in [:draft, :failed] ->
             send_campaign(socket, campaign)
 
-          {:ok, _not_draft} ->
+          {:ok, _not_sendable} ->
             {:noreply,
              socket
              |> load()
@@ -229,6 +233,11 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     {:ok, %{count: count}} = Campaigns.audience(nil, store.id, audience)
     count
   end
+
+  # A campaign only reaches :failed after a send was attempted and discarded,
+  # so "Send" would read as though nothing had happened yet.
+  defp send_label(:failed), do: "Try again"
+  defp send_label(_status), do: "Send"
 
   defp as_binary(nil), do: {:ok, nil}
   defp as_binary(value) when is_binary(value), do: {:ok, value}
@@ -320,13 +329,13 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
               <.status_badge variant={:campaign} status={campaign.status} />
 
               <.admin_button
-                :if={campaign.status == :draft}
+                :if={campaign.status in [:draft, :failed]}
                 id={"send-campaign-#{campaign.id}"}
                 phx-click="send"
                 phx-value-id={campaign.id}
                 data-confirm={"Send this to #{Emakola.Plural.count(Map.get(@draft_audience_counts, campaign.id, 0), "customer")}? Each message costs money."}
               >
-                <.icon name="hero-paper-airplane" class="size-5" /> Send
+                <.icon name="hero-paper-airplane" class="size-5" />{send_label(campaign.status)}
               </.admin_button>
             </div>
           </div>

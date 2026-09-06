@@ -129,26 +129,38 @@ defmodule Emakola.Marketing.Campaign do
     # disappears immediately) and by the worker itself (with the freshest
     # count) — so :sending must be allowed to re-enter itself, not just
     # :draft -> :sending.
+    #
+    # :failed is allowed in too, so a campaign whose job was discarded can be
+    # retried from the page. Only :sent is a dead end: a campaign that has
+    # already cost the merchant money must never be re-sent by accident.
     update :mark_sending do
       require_atomic?(false)
       accept([:audience_size])
 
       validate(
         {Emakola.Validations.StatusGuard,
-         from: [:draft, :sending], message: "cannot send a campaign that is not a draft"}
+         from: [:draft, :sending, :failed],
+         message: "cannot send a campaign that has already been sent"}
       )
 
-      # Atomic counterpart to the validation above (same pattern as
-      # Coupon.increment_usage, and deliberately mirroring
-      # Emakola.Orders.Changes.RequireStatusIn's WHERE-clause trick rather
-      # than importing that Orders-namespaced module into Marketing):
-      # pushes the guard into the UPDATE's WHERE clause, so two truly
-      # concurrent sends (two tabs, both reading :draft) can't both flip
-      # the status — the loser's write matches zero rows and Ash raises
-      # Ash.Error.Changes.StaleRecord instead of a second paid send being
-      # queued from a stale read.
+      # This filter is NOT the double-send guard, and it cannot be one.
+      # Because :sending is inside the allowed set, a second concurrent
+      # mark_sending matches one row, not zero — it is re-entrant by
+      # construction, deliberately, so the worker can re-enter it with the
+      # freshest audience count.
+      #
+      # **The real gate is the Oban unique insert** in
+      # EmakolaWeb.Admin.CampaignLive.Index: `unique: [period: :infinity,
+      # keys: [:campaign_id], states: :incomplete]` is a partial unique index
+      # in oban_jobs, so a second tab's Oban.insert/1 returns the EXISTING
+      # job and only one send is ever queued. Do not weaken or drop that
+      # option on the strength of this filter — if it goes, sends double and
+      # the merchant pays twice for every SMS.
+      #
+      # What this filter does buy: a campaign already :sent can never be
+      # dragged back to :sending by a stale changeset.
       change(fn changeset, _context ->
-        Ash.Changeset.filter(changeset, expr(status in [:draft, :sending]))
+        Ash.Changeset.filter(changeset, expr(status in [:draft, :sending, :failed]))
       end)
 
       change(set_attribute(:status, :sending))
@@ -162,6 +174,9 @@ defmodule Emakola.Marketing.Campaign do
       change(set_attribute(:sent_at, &DateTime.utc_now/0))
     end
 
+    # Set by CampaignSendWorker when the send raises, so a discarded job
+    # leaves a campaign the merchant can retry rather than one stuck
+    # :sending with no Send button.
     update :mark_failed do
       change(set_attribute(:status, :failed))
     end

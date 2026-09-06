@@ -29,6 +29,12 @@ defmodule EmakolaWeb.CustomerExportController do
   # Shared auth chain, locked-store gate, and CSV response for every export
   # this controller serves. `build_rows` receives the resolved store and
   # returns the full row list, header included.
+  #
+  # **Known ceiling: the whole CSV is built in memory before send_resp.**
+  # `list_customers_by_store!/2` reads every row and loads three aggregates
+  # per row. Fine at today's merchant sizes; when it stops being fine the fix
+  # is `Ash.stream!` into `send_chunked/2`, which is why `build_rows` returns
+  # a list rather than writing to the conn itself.
   defp export(conn, filename_suffix, build_rows) do
     with {:ok, merchant} <- resolve_merchant(conn),
          {:ok, store} <- resolve_store(merchant),

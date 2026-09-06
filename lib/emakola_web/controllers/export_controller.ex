@@ -28,7 +28,8 @@ defmodule EmakolaWeb.ExportController do
           pdf_binary = Base.decode64!(pdf_base64)
 
           filename =
-            "#{store.slug || "store"}-analytics-#{Date.to_string(date_range.first)}-to-#{Date.to_string(date_range.last)}.pdf"
+            "#{slug_segment(store.slug)}-analytics-" <>
+              "#{Date.to_string(date_range.first)}-to-#{Date.to_string(date_range.last)}.pdf"
 
           conn
           |> put_resp_content_type("application/pdf")
@@ -64,6 +65,20 @@ defmodule EmakolaWeb.ExportController do
   end
 
   # ── Private helpers ──────────────────────────────────────────────
+
+  # `Store.slug` carries only a length cap and a unique identity — no format
+  # constraint — and both :create and :update_settings accept it, so its shape
+  # is enforced only by whichever caller happens to slugify. Plug rejects
+  # control characters in header values, so this is not CRLF injection; a
+  # quote in a slug would simply break the filename quoting.
+  #
+  # Deliberately duplicated from CustomerExportController.export_filename/2,
+  # which is private there, rather than extracted: the two controllers sit on
+  # adjacent router lines and must not disagree about this.
+  defp slug_segment(slug) do
+    sanitized = (slug || "") |> String.replace(~r/[^a-zA-Z0-9_-]/, "")
+    if sanitized == "", do: "store", else: sanitized
+  end
 
   defp resolve_merchant(conn) do
     case EmakolaWeb.AuthTokens.verify_subject(get_session(conn, "user_token")) do
