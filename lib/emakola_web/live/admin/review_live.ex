@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   @statuses [:all, :published, :hidden]
 
   @impl true
@@ -31,6 +33,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         statuses: @statuses
       )
       |> load_reviews()
+      |> assign_rating()
 
     {:ok, socket}
   end
@@ -102,6 +105,18 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         title="Reviews"
         subtitle="Manage customer reviews for your products"
       />
+
+      <.stat_card
+        id="reviews-rating"
+        label="Rating"
+        value={if @rating, do: :erlang.float_to_binary(@rating, decimals: 1), else: "No reviews yet"}
+        tone={:info}
+      >
+        <:icon><.icon name="hero-star" class="size-7" /></:icon>
+        <:delta>
+          <p class="text-sm text-slate-500">{Emakola.Plural.count(@review_count, "review")}</p>
+        </:delta>
+      </.stat_card>
 
       <%!-- Status Filter --%>
       <div class="flex gap-2">
@@ -231,6 +246,24 @@ defmodule EmakolaWeb.Admin.ReviewLive do
       |> Ash.read!(authorize?: false)
 
     assign(socket, :reviews, reviews)
+  end
+
+  defp assign_rating(socket) do
+    require Ash.Query
+    store_id = socket.assigns.store_id
+
+    query =
+      Emakola.Catalog.Review
+      |> Ash.Query.filter(store_id == ^store_id and status == :published)
+
+    count = Ash.count!(query, authorize?: false)
+    average = if count > 0, do: Ash.avg!(query, :rating, authorize?: false), else: nil
+
+    assign(socket, review_count: count, rating: average)
+  rescue
+    exception ->
+      Logger.error("[review_live] rating failed: #{Exception.message(exception)}")
+      assign(socket, review_count: 0, rating: nil)
   end
 
   defp find_review(id, store_id) do

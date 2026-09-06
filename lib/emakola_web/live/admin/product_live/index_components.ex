@@ -119,6 +119,13 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                       {category_name(product.category_id, @categories)}
                     </p>
                     <.ai_description_chip :if={product.description_written_by_ai} />
+                    <p
+                      :if={(product.wishlist_count || 0) > 0}
+                      id={"want-#{product.id}"}
+                      class="text-xs font-semibold text-emerald-700 mt-0.5"
+                    >
+                      {Emakola.Plural.count(product.wishlist_count, "person", "people")} want this
+                    </p>
                   </div>
                 </div>
               </td>
@@ -199,6 +206,13 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                   {category_name(product.category_id, @categories)}
                 </p>
                 <.ai_description_chip :if={product.description_written_by_ai} />
+                <p
+                  :if={(product.wishlist_count || 0) > 0}
+                  id={"want-#{product.id}-card"}
+                  class="text-xs font-semibold text-emerald-700 mt-0.5"
+                >
+                  {Emakola.Plural.count(product.wishlist_count, "person", "people")} want this
+                </p>
               </div>
             </div>
             <.status_badge status={product.status} variant={:product} />

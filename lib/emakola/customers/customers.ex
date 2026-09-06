@@ -61,6 +61,11 @@ defmodule Emakola.Customers do
 
     resource Emakola.Customers.NewsletterSubscriber do
       define(:subscribe_to_newsletter, action: :subscribe)
+
+      define(:list_newsletter_subscribers_by_store,
+        action: :list_by_store,
+        args: [:store_id]
+      )
     end
 
     resource Emakola.Customers.FavoriteStore do

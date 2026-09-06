@@ -37,11 +37,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         bought_again: 0,
         segment: :everyone,
         segment_counts: %{},
+        newsletter_count: 0,
         adding?: false,
         add_form: to_form(%{"name" => "", "phone" => "", "email" => ""}, as: :customer)
       )
       |> load_customers()
       |> assign_segment_counts()
+      |> assign_newsletter_count()
 
     {:ok, socket}
   end
@@ -227,6 +229,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           </:delta>
         </.stat_card>
       </div>
+
+      <p id="newsletter-count" class="text-sm text-slate-500">
+        {Emakola.Plural.count(@newsletter_count, "person", "people")} joined your newsletter.
+        <.link href="/admin/export/newsletter.csv" class="font-semibold text-emerald-700">
+          Download the emails
+        </.link>
+      </p>
 
       <.segment_chips segment={@segment} segment_counts={@segment_counts} />
 
@@ -517,6 +526,28 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       Logger.error("[customer_live.index] segment counts failed: #{Exception.message(exception)}")
 
       assign(socket, segment_counts: %{})
+  end
+
+  defp assign_newsletter_count(socket) do
+    case socket.assigns.store_id do
+      nil ->
+        assign(socket, newsletter_count: 0)
+
+      store_id ->
+        count =
+          Emakola.Customers.NewsletterSubscriber
+          |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
+          |> Ash.count!(authorize?: false)
+
+        assign(socket, newsletter_count: count)
+    end
+  rescue
+    exception ->
+      Logger.error(
+        "[customer_live.index] newsletter count failed: #{Exception.message(exception)}"
+      )
+
+      assign(socket, newsletter_count: 0)
   end
 
   # ── Helpers ──

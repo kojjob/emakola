@@ -86,5 +86,11 @@ defmodule Emakola.Customers.NewsletterSubscriber do
       upsert?(true)
       upsert_identity(:unique_store_email)
     end
+
+    read :list_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id)))
+      prepare(build(sort: [subscribed_at: :desc]))
+    end
   end
 end
