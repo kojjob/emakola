@@ -61,6 +61,12 @@ swap_size_mb = 256
     # traffic piled onto one machine while the other stayed suspended.
     # soft_limit 100 makes the proxy spread/wake at the REAL knee, roughly
     # doubling usable capacity. hard_limit stays high as a backstop only.
+    #
+    # Re-benchmarked 2026-09-06 (docs/business-plan/server-capacity-benchmark.md):
+    # the binding limit was memory, not CPU. Idle Bandit connection processes
+    # kept ~0.9MB of garbage each, so a 512MB machine was OOM-killed at 160-250
+    # live visitors while CPU sat under 30%. Fixed by collecting idle
+    # connections (EmakolaWeb.IdleConnectionSweeper) and moving to 1GB below.
     hard_limit = 1000
     soft_limit = 100
 
@@ -84,7 +90,9 @@ swap_size_mb = 256
 # -----------------------------------------------------------------------------
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  # 1GB since 2026-09-06: the app is ~310MB before the first visitor (117MB of
+  # compiled code), and production was swapping at idle on 512MB.
+  memory = "1gb"
   cpus = 1
 
 # -----------------------------------------------------------------------------

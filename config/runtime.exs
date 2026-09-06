@@ -435,7 +435,14 @@ if config_env() == :prod do
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
       # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
       # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      # Collect a keep-alive connection after every response, not every fifth.
+      # The Fly proxy holds long-lived connections to this app, and each one
+      # otherwise keeps up to five renders of garbage (measured 300-670KB per
+      # idle handler on 2026-09-06). Live data is a few KB, so each collection
+      # costs tens of microseconds. WebSocket transports are handled by
+      # EmakolaWeb.IdleConnectionSweeper.
+      http_1_options: [gc_every_n_keepalive_requests: 1]
     ],
     secret_key_base: secret_key_base
 
