@@ -193,6 +193,7 @@ defmodule Emakola.Catalog.Product do
 
     has_many :reviews, Emakola.Catalog.Review
     has_many :digital_files, Emakola.Catalog.DigitalFile
+    has_many :wishlist_items, Emakola.Customers.WishlistItem
   end
 
   aggregates do
@@ -223,6 +224,14 @@ defmodule Emakola.Catalog.Product do
 
     avg :avg_rating, :reviews, :rating do
       filter(expr(status == :published))
+    end
+
+    # WishlistItem carries its own store_id (denormalized from the customer),
+    # never validated against the product it references — see
+    # WishlistLive.toggle_wishlist. `parent(store_id)` keeps a wrongly-tagged
+    # row from inflating another store's product count.
+    count :wishlist_count, :wishlist_items do
+      filter(expr(store_id == parent(store_id)))
     end
   end
 
@@ -547,7 +556,8 @@ defmodule Emakola.Catalog.Product do
             :max_price,
             :total_stock,
             :tracked_variant_count,
-            :images
+            :images,
+            :wishlist_count
           ]
         )
       )
