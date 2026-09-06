@@ -141,7 +141,6 @@ defmodule Emakola.Analytics.PdfReportTest do
     end
   end
 
-  @moduletag :pdf
   describe "generate/2" do
     @tag :pdf
     test "renders a valid PDF with the configured Chrome executable", %{store: store} do
