@@ -10,10 +10,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   require Logger
 
+  alias Emakola.Customers.Segments
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   import EmakolaWeb.Admin.CustomerLive.Components,
-    only: [customer_initials: 1, add_customer_form: 1]
+    only: [customer_initials: 1, add_customer_form: 1, segment_chips: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,10 +35,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         total_customers: 0,
         new_this_month: 0,
         bought_again: 0,
+        segment: :everyone,
+        segment_counts: %{},
         adding?: false,
         add_form: to_form(%{"name" => "", "phone" => "", "email" => ""}, as: :customer)
       )
       |> load_customers()
+      |> assign_segment_counts()
 
     {:ok, socket}
   end
@@ -51,16 +56,38 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
+    # A search overrides any chosen segment (see load_customers/1) — clear it
+    # here so the chip row doesn't keep highlighting a segment the search has
+    # silently stopped applying.
     socket =
       socket
       |> assign(
         search_query: query,
         search_form: to_form(%{"search" => query}),
+        segment: :everyone,
         customers_limit: @customers_limit
       )
       |> load_customers()
 
     {:noreply, socket}
+  end
+
+  # A search in progress ignores the segment (see load_customers/1) — clearing
+  # it here keeps the chip honest about what the list is actually showing,
+  # rather than highlighting a segment the search has silently overridden.
+  def handle_event("segment", %{"segment" => segment_param}, socket) do
+    segment = Emakola.SafeAtom.to_atom_in(segment_param, Segments.all(), :everyone)
+
+    {:noreply,
+     socket
+     |> assign(
+       segment: segment,
+       search_query: "",
+       search_form: to_form(%{"search" => ""}),
+       customers_limit: @customers_limit
+     )
+     |> load_customers()
+     |> assign_segment_counts()}
   end
 
   def handle_event("toggle_add", _params, socket) do
@@ -87,6 +114,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
              socket
              |> assign(adding?: false)
              |> load_customers()
+             |> assign_segment_counts()
              |> put_flash(:info, "Customer saved")}
 
           {:error, error} ->
@@ -199,6 +227,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           </:delta>
         </.stat_card>
       </div>
+
+      <.segment_chips segment={@segment} segment_counts={@segment_counts} />
 
       <%!-- Filter Bar --%>
       <.table_toolbar
@@ -363,23 +393,33 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   defp load_customers(socket) do
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
+    segment = socket.assigns[:segment] || :everyone
     limit = socket.assigns[:customers_limit] || @customers_limit
 
     customers =
-      if store_id do
-        if search_query != "" do
+      cond do
+        is_nil(store_id) ->
+          []
+
+        search_query != "" ->
           Emakola.Customers.search_customers!(store_id, search_query,
             query: [limit: limit + 1],
             authorize?: false
           )
-        else
+
+        segment != :everyone ->
+          store_id
+          |> Segments.query(segment)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:order_count, :paid_total, :paid_order_count])
+          |> Ash.Query.limit(limit + 1)
+          |> Ash.read!(authorize?: false)
+
+        true ->
           Emakola.Customers.list_customers_by_store!(store_id,
             query: [limit: limit + 1],
             authorize?: false
           )
-        end
-      else
-        []
       end
 
     # One row past the window answers "is there more?" without a second COUNT.
@@ -402,7 +442,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         more_customers?: false,
         total_customers: 0,
         new_this_month: 0,
-        bought_again: 0
+        bought_again: 0,
+        segment_counts: %{}
       )
   end
 
@@ -411,7 +452,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   # number changed as they pressed "Load more". These are real counts over the
   # same scope as the list (store, plus the active search).
   defp assign_customer_totals(socket, nil, _search),
-    do: assign(socket, total_customers: 0, new_this_month: 0, bought_again: 0)
+    do:
+      assign(socket,
+        total_customers: 0,
+        new_this_month: 0,
+        bought_again: 0,
+        segment_counts: %{}
+      )
 
   defp assign_customer_totals(socket, store_id, search_query) do
     require Ash.Query
@@ -450,8 +497,26 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       assign(socket,
         total_customers: length(socket.assigns.customers),
         new_this_month: 0,
-        bought_again: 0
+        bought_again: 0,
+        segment_counts: %{}
       )
+  end
+
+  # Segments.counts/1 runs 5 counts plus a full scan of paying customers for
+  # the big-spenders floor — real work, not a free read. Called explicitly
+  # from mount, a segment click, and after adding a customer; NOT from
+  # load_customers/1, so a search keystroke or "Load more" click leaves the
+  # chip counts as they were rather than recomputing them on every one.
+  defp assign_segment_counts(socket) do
+    case socket.assigns.store_id do
+      nil -> assign(socket, segment_counts: %{})
+      store_id -> assign(socket, segment_counts: Segments.counts(store_id))
+    end
+  rescue
+    exception ->
+      Logger.error("[customer_live.index] segment counts failed: #{Exception.message(exception)}")
+
+      assign(socket, segment_counts: %{})
   end
 
   # ── Helpers ──

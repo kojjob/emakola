@@ -108,4 +108,73 @@ defmodule Emakola.Marketing.CampaignsTest do
       assert {:ok, []} = Campaigns.list(merchant, store.id)
     end
   end
+
+  describe "get_for_store/2" do
+    test "returns the campaign when it belongs to the store", %{merchant: merchant, store: store} do
+      {:ok, campaign} =
+        Campaigns.create(merchant, store.id, %{name: "One", channel: :sms, body: "hello"})
+
+      assert {:ok, found} = Campaigns.get_for_store(store.id, campaign.id)
+      assert found.id == campaign.id
+    end
+
+    test "not found for another store's campaign", %{merchant: _merchant, store: store} do
+      {other_merchant, other_store} = create_merchant_with_store!()
+
+      {:ok, theirs} =
+        Campaigns.create(other_merchant, other_store.id, %{
+          name: "Theirs",
+          channel: :sms,
+          body: "hello"
+        })
+
+      assert {:error, :not_found} = Campaigns.get_for_store(store.id, theirs.id)
+    end
+
+    test "not found for a non-UUID id, rather than raising", %{store: store} do
+      assert {:error, :not_found} = Campaigns.get_for_store(store.id, "abc")
+    end
+  end
+
+  describe "mark_sending/2" do
+    test "moves a draft to sending with the given audience size", %{
+      merchant: merchant,
+      store: store
+    } do
+      {:ok, campaign} =
+        Campaigns.create(merchant, store.id, %{name: "One", channel: :sms, body: "hello"})
+
+      assert {:ok, sending} = Campaigns.mark_sending(campaign, 3)
+      assert sending.status == :sending
+      assert sending.audience_size == 3
+    end
+
+    test "sending is allowed to re-enter itself (the worker marks it again)", %{
+      merchant: merchant,
+      store: store
+    } do
+      {:ok, campaign} =
+        Campaigns.create(merchant, store.id, %{name: "One", channel: :sms, body: "hello"})
+
+      {:ok, sending} = Campaigns.mark_sending(campaign, 3)
+
+      assert {:ok, sending_again} = Campaigns.mark_sending(sending, 5)
+      assert sending_again.status == :sending
+      assert sending_again.audience_size == 5
+    end
+
+    test "refuses to re-send an already-sent campaign", %{merchant: merchant, store: store} do
+      {:ok, campaign} =
+        Campaigns.create(merchant, store.id, %{name: "One", channel: :sms, body: "hello"})
+
+      {:ok, sending} = Campaigns.mark_sending(campaign, 0)
+
+      {:ok, sent} =
+        sending
+        |> Ash.Changeset.for_update(:record_result, %{sent_count: 0, failed_count: 0})
+        |> Ash.update(authorize?: false)
+
+      assert {:error, _} = Campaigns.mark_sending(sent, 1)
+    end
+  end
 end
