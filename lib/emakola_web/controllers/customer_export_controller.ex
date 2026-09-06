@@ -11,7 +11,8 @@ defmodule EmakolaWeb.CustomerExportController do
 
   def customers_csv(conn, _params) do
     with {:ok, merchant} <- resolve_merchant(conn),
-         {:ok, store} <- resolve_store(merchant) do
+         {:ok, store} <- resolve_store(merchant),
+         :ok <- check_store_active(store) do
       customers = Emakola.Customers.list_customers_by_store!(store.id, authorize?: false)
 
       body =
@@ -23,7 +24,7 @@ defmodule EmakolaWeb.CustomerExportController do
       |> put_resp_content_type("text/csv")
       |> put_resp_header(
         "content-disposition",
-        ~s(attachment; filename="#{store.slug || "store"}-customers.csv")
+        ~s(attachment; filename="#{export_filename(store.slug)}")
       )
       |> send_resp(200, body)
     else
@@ -34,13 +35,29 @@ defmodule EmakolaWeb.CustomerExportController do
         conn
         |> put_flash(:error, "No store found. Complete onboarding first.")
         |> redirect(to: "/dashboard")
+
+      {:error, :store_locked} ->
+        conn |> put_status(403) |> text("Store locked")
     end
+  end
+
+  # Mirrors Hooks.RequireActiveStore's gate — only the platform lifecycle
+  # `status` locks the export, same as it locks the admin LiveViews.
+  defp check_store_active(%{status: status}) when status in [:suspended, :blocked, :archived],
+    do: {:error, :store_locked}
+
+  defp check_store_active(_store), do: :ok
+
+  defp export_filename(slug) do
+    sanitized = (slug || "") |> String.replace(~r/[^a-zA-Z0-9_-]/, "")
+    name = if sanitized == "", do: "store", else: sanitized
+    "#{name}-customers.csv"
   end
 
   defp row(customer) do
     [
       csv_safe(customer.name || ""),
-      customer.phone || "",
+      phone_cell(customer.phone),
       csv_safe((customer.email && to_string(customer.email)) || ""),
       Integer.to_string(customer.order_count || 0),
       cedis(customer.paid_total || 0),
@@ -48,6 +65,15 @@ defmodule EmakolaWeb.CustomerExportController do
       date(customer.inserted_at)
     ]
   end
+
+  # A valid E.164 number is digits and a leading "+" — never a formula, so it
+  # exports as-is. Anything else (bad data, a formula string typed as a
+  # "phone") goes through the same escape as every other free-text cell.
+  defp phone_cell(phone) when is_binary(phone) do
+    if Emakola.Accounts.PhoneAuth.valid?(phone), do: phone, else: csv_safe(phone)
+  end
+
+  defp phone_cell(_phone), do: ""
 
   # A cell starting with = + - @ is a formula to Excel and LibreOffice, and a
   # buyer types their own name. A leading apostrophe makes it text.

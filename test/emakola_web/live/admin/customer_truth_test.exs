@@ -116,15 +116,50 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
                1
     end
 
+    test "add customer rejects an email that already belongs to a customer", ctx do
+      Factory.create_customer!(ctx.store, %{name: "Ama", email: "ama@example.com"})
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      view |> element("#add-customer-toggle") |> render_click()
+
+      html =
+        view
+        |> form("#add-customer-form", customer: %{name: "Second Ama", email: "ama@example.com"})
+        |> render_submit()
+
+      assert html =~ "That email is already a customer"
+
+      assert length(Emakola.Customers.list_customers_by_store!(ctx.store.id, authorize?: false)) ==
+               1
+    end
+
+    test "add customer survives a crafted non-string param instead of crashing", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      view |> element("#add-customer-toggle") |> render_click()
+
+      html =
+        view
+        |> element("#add-customer-form")
+        |> render_submit(%{"customer" => %{"name" => "Odd", "phone" => ["1"], "email" => ""}})
+
+      assert html =~ "Enter a valid phone number"
+      assert Emakola.Customers.list_customers_by_store!(ctx.store.id, authorize?: false) == []
+    end
+
     test "export is a real link", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
 
       assert has_element?(view, ~s{a[href="/admin/export/customers.csv"]}, "Export")
     end
 
-    test "another store's customer never appears in this store's list", ctx do
+    test "another store's customer never appears in this store's list, or its bought-again count",
+         ctx do
       other_store = Factory.create_store!()
       other_customer = Factory.create_customer!(other_store, %{name: "Not Yours"})
+      # Two paid orders — this customer WOULD count as "bought again" if the
+      # tile ever leaked across stores.
       order!(other_store, other_customer, 5_000, :confirmed)
       order!(other_store, other_customer, 5_000, :confirmed)
 
@@ -132,6 +167,7 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
 
       refute has_element?(view, "#customer-#{other_customer.id}")
       refute render(view) =~ "Not Yours"
+      assert has_element?(view, "#customers-bought-again", "0")
     end
   end
 
@@ -230,6 +266,53 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
 
       assert render(view) =~ oldest_order.order_number
       refute has_element?(view, "#show-all-orders")
+    end
+
+    test "the three money tiles reconcile: total spent, paid orders, and their average", ctx do
+      customer = Factory.create_customer!(ctx.store, %{name: "Ama"})
+      order!(ctx.store, customer, 10_000, :confirmed)
+      order!(ctx.store, customer, 5_000, :delivered)
+      order!(ctx.store, customer, 9_000, :pending)
+      order!(ctx.store, customer, 1_000, :cancelled)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers/#{customer.id}")
+
+      html = render(view)
+      # Paid money only (pending/cancelled excluded): 10_000 + 5_000.
+      assert html =~ "GH₵ 150"
+      assert html =~ "Paid Orders"
+      refute html =~ "Total Orders"
+      # Average of the two paid orders behind that GH₵ 150: 150 / 2 = 75.
+      assert html =~ "GH₵ 75"
+    end
+
+    test "a failed payment counts even when the stored email case differs", ctx do
+      customer = Factory.create_customer!(ctx.store, %{name: "Ama", email: "ama@example.com"})
+
+      payment = Factory.create_payment!(ctx.store, %{customer_email: "AMA@Example.com"})
+      payment |> Ash.Changeset.for_update(:mark_failed, %{}) |> Ash.update!(authorize?: false)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers/#{customer.id}")
+
+      assert has_element?(view, "#customer-problems", "1 failed payment")
+    end
+
+    test "a note over 2,000 characters is refused, not silently truncated", ctx do
+      customer = Factory.create_customer!(ctx.store, %{name: "Ama"})
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers/#{customer.id}")
+
+      too_long = String.duplicate("a", 2_001)
+
+      html =
+        view
+        |> form("#note-form", note: %{content: too_long})
+        |> render_submit()
+
+      assert html =~ "Write something first"
+
+      assert Emakola.Customers.list_notes_by_customer_and_store!(customer.id, ctx.store.id,
+               authorize?: false
+             ) == []
     end
 
     test "message opens the chat thread with this buyer", ctx do

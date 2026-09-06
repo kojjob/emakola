@@ -57,4 +57,46 @@ defmodule EmakolaWeb.CustomerExportControllerTest do
 
     assert body =~ "'=HYPERLINK"
   end
+
+  test "a phone that looks like a formula is exported as text, a real phone is not", %{conn: conn} do
+    {merchant, store} = create_merchant_with_store!()
+    weird = create_customer!(store, %{name: "Weird Phone"})
+
+    weird
+    |> Ash.Changeset.for_update(:update, %{})
+    |> Ash.Changeset.force_change_attribute(:phone, "=cmd")
+    |> Ash.update!(authorize?: false)
+
+    create_customer!(store, %{name: "Ama Serwaa", phone: "+233241111111"})
+
+    signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+    body =
+      conn
+      |> init_test_session(%{})
+      |> put_session(:user_token, signed)
+      |> get(@path)
+      |> response(200)
+
+    assert body =~ "'=cmd"
+    assert body =~ "Ama Serwaa,+233241111111,"
+  end
+
+  test "a store locked by the platform returns 403", %{conn: conn} do
+    {merchant, store} = create_merchant_with_store!()
+
+    store
+    |> Ash.Changeset.for_update(:suspend, %{reason: "policy violation"})
+    |> Ash.update!(authorize?: false)
+
+    signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+    conn =
+      conn
+      |> init_test_session(%{})
+      |> put_session(:user_token, signed)
+      |> get(@path)
+
+    assert response(conn, 403) == "Store locked"
+  end
 end

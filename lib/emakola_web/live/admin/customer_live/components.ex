@@ -103,7 +103,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Components do
     <div class="bg-white rounded-2xl shadow-sm p-6">
       <h2 class="text-base font-bold text-slate-900 mb-4">Notes</h2>
       <.form for={@note_form} id="note-form" phx-submit="add_note" class="flex gap-2">
-        <.input field={@note_form[:content]} placeholder="Only you see this" />
+        <.input field={@note_form[:content]} placeholder="Only you see this" maxlength="2000" />
         <.admin_button type="submit">Add</.admin_button>
       </.form>
       <ul id="notes" class="mt-4 space-y-3">

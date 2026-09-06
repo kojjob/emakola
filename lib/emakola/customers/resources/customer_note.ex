@@ -45,6 +45,7 @@ defmodule Emakola.Customers.CustomerNote do
     attribute :content, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 2_000)
     end
 
     timestamps()

@@ -68,31 +68,42 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   end
 
   def handle_event("add_customer", %{"customer" => params}, socket) do
-    phone = params["phone"]
+    with {:ok, name} <- as_binary(params["name"]),
+         {:ok, phone} <- as_binary(params["phone"]),
+         {:ok, email} <- as_binary(params["email"]) do
+      if phone not in [nil, ""] and not Emakola.Accounts.PhoneAuth.valid?(phone) do
+        {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
+      else
+        attrs = %{
+          store_id: socket.assigns.store_id,
+          name: name,
+          phone: normalize_phone(phone),
+          email: blank_to_nil(email)
+        }
 
-    if phone not in [nil, ""] and not Emakola.Accounts.PhoneAuth.valid?(phone) do
-      {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
-    else
-      attrs = %{
-        store_id: socket.assigns.store_id,
-        name: params["name"],
-        phone: normalize_phone(phone),
-        email: blank_to_nil(params["email"])
-      }
+        case Emakola.Customers.create_customer(attrs, authorize?: false) do
+          {:ok, _customer} ->
+            {:noreply,
+             socket
+             |> assign(adding?: false)
+             |> load_customers()
+             |> put_flash(:info, "Customer saved")}
 
-      case Emakola.Customers.create_customer(attrs, authorize?: false) do
-        {:ok, _customer} ->
-          {:noreply,
-           socket
-           |> assign(adding?: false)
-           |> load_customers()
-           |> put_flash(:info, "Customer saved")}
-
-        {:error, error} ->
-          {:noreply, put_flash(socket, :error, add_customer_error_message(error))}
+          {:error, error} ->
+            {:noreply, put_flash(socket, :error, add_customer_error_message(error))}
+        end
       end
+    else
+      # A crafted param (e.g. customer[phone][]=1) arrives as a list/map, not
+      # a string — reject it the same way as a plain bad phone, rather than
+      # crashing inside PhoneAuth.valid?/1 further down.
+      :error -> {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
     end
   end
+
+  defp as_binary(nil), do: {:ok, nil}
+  defp as_binary(value) when is_binary(value), do: {:ok, value}
+  defp as_binary(_value), do: :error
 
   defp normalize_phone(phone) when is_binary(phone) and phone != "",
     do: Emakola.Accounts.PhoneAuth.normalize(phone)
@@ -105,14 +116,34 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   defp blank_to_nil(_value), do: nil
 
   defp add_customer_error_message(%Ash.Error.Invalid{errors: errors}) do
-    if Enum.any?(errors, fn error -> Exception.message(error) =~ "already been taken" end) do
-      "That phone is already a customer"
-    else
-      "Give a name and a phone or email"
+    cond do
+      Enum.any?(errors, &duplicate_on_constraint?(&1, "email")) ->
+        "That email is already a customer"
+
+      Enum.any?(errors, &duplicate_on_constraint?(&1, "phone")) ->
+        "That phone is already a customer"
+
+      true ->
+        "Give a name and a phone or email"
     end
   end
 
   defp add_customer_error_message(_error), do: "Give a name and a phone or email"
+
+  # AshPostgres attributes a composite unique-index violation (customer
+  # identities are `[:store_id, :phone]` / `[:store_id, :email]`) to
+  # whichever column comes first in the index — always `field: :store_id`
+  # here, never the field the merchant actually typed. The Postgres
+  # constraint name (from the migration: customers_unique_store_<field>_index)
+  # is the reliable signal instead.
+  defp duplicate_on_constraint?(error, substring) do
+    with %{private_vars: vars} when is_list(vars) <- error,
+         name when is_binary(name) <- Keyword.get(vars, :constraint) do
+      name =~ substring
+    else
+      _ -> false
+    end
+  end
 
   @impl true
   def render(assigns) do

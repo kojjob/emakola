@@ -101,8 +101,17 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
         {:noreply, socket}
 
       note ->
-        :ok = destroy_note(note)
-        {:noreply, reload_notes(socket)}
+        case destroy_note(note) do
+          :ok ->
+            {:noreply, reload_notes(socket)}
+
+          {:error, error} ->
+            Logger.warning(
+              "[customer_live.show] failed to remove note #{note.id} (store #{store.id}): #{Exception.message(error)}"
+            )
+
+            {:noreply, put_flash(socket, :error, "Could not remove that note")}
+        end
     end
   end
 
@@ -253,9 +262,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
         </div>
         <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Total Orders
+            Paid Orders
           </span>
-          <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{length(@orders)}</p>
+          <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{@paid_count}</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -368,10 +377,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   defp count_failed_payments(customer, store_id) do
     require Ash.Query
 
+    # customer_email is whatever case the buyer typed at checkout; Customer's
+    # email is a :ci_string. Compare lowercased so a case difference doesn't
+    # silently undercount.
     Emakola.Payments.Payment
     |> Ash.Query.filter(
       store_id == ^store_id and
-        customer_email == ^to_string(customer.email) and
+        fragment("lower(?)", customer_email) == ^String.downcase(to_string(customer.email)) and
         status == :failed
     )
     |> Ash.count!(authorize?: false)
@@ -386,12 +398,32 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
   defp destroy_note(note) do
     case Emakola.Customers.destroy_note(note, authorize?: false) do
-      :ok -> :ok
-      {:ok, _note} -> :ok
-      # Already gone (e.g. removed from another session) — nothing left to do.
-      _error -> :ok
+      :ok ->
+        :ok
+
+      {:ok, _note} ->
+        :ok
+
+      {:error, error} ->
+        if stale_or_not_found?(error) do
+          # Already gone (e.g. removed from another session) — nothing left
+          # to do.
+          :ok
+        else
+          {:error, error}
+        end
     end
   end
+
+  defp stale_or_not_found?(%Ash.Error.Invalid{errors: errors}) do
+    Enum.any?(errors, fn
+      %Ash.Error.Changes.StaleRecord{} -> true
+      %Ash.Error.Query.NotFound{} -> true
+      _ -> false
+    end)
+  end
+
+  defp stale_or_not_found?(_error), do: false
 
   # ── Helpers ──
 
