@@ -217,6 +217,13 @@ defmodule Emakola.Customers.Customer do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
+    # Backfill only — no live actor may call this, not even the customer's
+    # own record. The backfill itself runs with authorize?: false and never
+    # has an actor.
+    policy action(:backdate_last_order) do
+      forbid_if(always())
+    end
+
     # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -344,6 +351,13 @@ defmodule Emakola.Customers.Customer do
 
       argument(:name, :string)
       argument(:phone, :string)
+
+      # An unverified caller (default) must never bind a stranger's guest
+      # checkout to an existing account that holds credentials — see
+      # FindOrCreateCustomer. Only the signed-in path (which uses
+      # customer_id directly, never this action) knows the phone/email is
+      # really that customer's, so callers pass true only there.
+      argument(:verified?, :boolean, default: false)
 
       run(Emakola.Customers.Actions.FindOrCreateCustomer)
     end

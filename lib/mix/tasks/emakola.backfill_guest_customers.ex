@@ -22,6 +22,7 @@ defmodule Mix.Tasks.Emakola.BackfillGuestCustomers do
 
     Mix.shell().info("Guest orders with a phone: #{result.linked}")
     Mix.shell().info("Guest orders without a phone, left alone: #{result.skipped}")
+    Mix.shell().info("Guest orders that failed to link (see logs): #{result.failed}")
 
     if dry_run?,
       do: Mix.shell().info("Dry run. Nothing changed."),

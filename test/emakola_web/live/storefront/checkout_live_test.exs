@@ -293,6 +293,42 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  describe "step 1 contact validation" do
+    test "an over-length name is rejected with a specific message", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html =
+        render_submit(view, "submit_details", %{
+          "phone" => "0244123456",
+          "fullname" => String.duplicate("a", 300)
+        })
+
+      assert html =~ "Name is too long"
+    end
+
+    test "an invalid phone is rejected with a specific message", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html =
+        render_submit(view, "submit_details", %{
+          "phone" => "abc",
+          "fullname" => "Ama Mensah"
+        })
+
+      assert html =~ "Enter a valid phone number"
+    end
+  end
+
   describe "GhanaPost digital address + landmark" do
     test "valid messy digital address normalizes and lands on the order with the landmark", %{
       conn: conn,

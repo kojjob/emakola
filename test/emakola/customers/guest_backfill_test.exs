@@ -113,4 +113,20 @@ defmodule Emakola.Customers.GuestBackfillTest do
     assert %{linked: 1} = GuestBackfill.run(dry_run?: true)
     refute reload_order(order).customer_id
   end
+
+  test "a row that fails validation on create is counted as failed, not raised, and the rest still link",
+       %{store: store} do
+    # The name Customer.name's own max_length: 255 constraint rejects — a
+    # stand-in for any bad historical shipping_address value the sweep might
+    # meet. One bad row must not stop every other order in the batch from
+    # linking, and must not raise out of the sweep.
+    bad = guest_order!(store, "+233241234567", String.duplicate("a", 300))
+    good = guest_order!(store, "+233201234567", "Ama")
+
+    assert %{linked: 1, skipped: 0, failed: 1} = GuestBackfill.run()
+
+    refute reload_order(bad).customer_id
+    assert reload_order(good).customer_id
+    assert Customer |> Ash.count!(authorize?: false) == 1
+  end
 end

@@ -715,15 +715,26 @@ defmodule Emakola.Orders.CheckoutService do
     end
   end
 
+  # A garbage-but-oversized name or phone still fails the Customer resource's
+  # own length constraints. Ash.run_action! would raise that out of this
+  # transaction with nothing to catch it downstream; run/2 plus a rollback
+  # turns it into a checkout error instead, the same way the coupon step
+  # rolls back on an invalid coupon.
   defp find_or_create_customer!(store_id, opts) do
-    Emakola.Customers.Customer
-    |> Ash.ActionInput.for_action(:find_or_create, %{
-      email: Keyword.get(opts, :customer_email),
-      store_id: store_id,
-      name: Keyword.get(opts, :customer_name),
-      phone: Keyword.get(opts, :customer_phone)
-    })
-    |> Ash.run_action!()
+    result =
+      Emakola.Customers.Customer
+      |> Ash.ActionInput.for_action(:find_or_create, %{
+        email: Keyword.get(opts, :customer_email),
+        store_id: store_id,
+        name: Keyword.get(opts, :customer_name),
+        phone: Keyword.get(opts, :customer_phone)
+      })
+      |> Ash.run_action()
+
+    case result do
+      {:ok, customer} -> customer
+      {:error, _reason} -> Emakola.Repo.rollback(:invalid_customer)
+    end
   end
 
   defp resolve_default_address(customer) do

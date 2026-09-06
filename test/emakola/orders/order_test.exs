@@ -183,4 +183,25 @@ defmodule Emakola.Orders.OrderTest do
       assert length(other_orders) == 1
     end
   end
+
+  # -- attach_customer is backfill-only --------------------------------
+
+  describe "attach_customer policy" do
+    test "a merchant with store access cannot call it" do
+      {merchant, store} = create_merchant_with_store!()
+      order = create_order!(store)
+      other_customer = create_customer!(store, email: "other@example.com")
+
+      assert {:error, %Ash.Error.Forbidden{}} =
+               order
+               |> Ash.Changeset.for_update(:attach_customer, %{customer_id: other_customer.id},
+                 actor: merchant
+               )
+               |> Ash.update()
+
+      refute reload_order(order).customer_id
+    end
+  end
+
+  defp reload_order(order), do: Ash.get!(Emakola.Orders.Order, order.id, authorize?: false)
 end

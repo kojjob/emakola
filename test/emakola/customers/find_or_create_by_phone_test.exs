@@ -77,4 +77,74 @@ defmodule Emakola.Customers.FindOrCreateByPhoneTest do
     assert bare_code.phone == nil
     refute whitespace.id == bare_code.id
   end
+
+  describe "an unverified match never reuses a credentialed row" do
+    defp register!(store, phone) do
+      Customer
+      |> Ash.Changeset.for_create(:register_with_password, %{
+        email: "owner-#{System.unique_integer([:positive])}@example.com",
+        name: "Account Owner",
+        phone: phone,
+        store_id: store.id,
+        password: "password123",
+        password_confirmation: "password123"
+      })
+      |> Ash.create!(authorize?: false)
+    end
+
+    test "a guest checkout with the account's phone gets a different, credential-less customer",
+         %{store: store} do
+      owner = register!(store, "+233241234567")
+
+      guest =
+        find_or_create!(store, %{
+          email: CheckoutService.phone_placeholder_email("+233241234567"),
+          name: "Whoever Just Checked Out",
+          phone: "+233241234567"
+        })
+
+      refute guest.id == owner.id
+      assert guest.phone == nil
+      assert to_string(guest.email) == CheckoutService.phone_placeholder_email("+233241234567")
+      assert guest.hashed_password == nil
+    end
+
+    test "a second guest checkout with the same phone reuses the same credential-less row",
+         %{store: store} do
+      register!(store, "+233241234567")
+
+      first =
+        find_or_create!(store, %{
+          email: CheckoutService.phone_placeholder_email("+233241234567"),
+          name: "Guest One",
+          phone: "+233241234567"
+        })
+
+      second =
+        find_or_create!(store, %{
+          email: CheckoutService.phone_placeholder_email("+233241234567"),
+          name: "Guest Two",
+          phone: "+233241234567"
+        })
+
+      assert second.id == first.id
+    end
+
+    test "verified?: true returns the credentialed row itself", %{store: store} do
+      owner = register!(store, "+233241234567")
+
+      found =
+        Customer
+        |> Ash.ActionInput.for_action(:find_or_create, %{
+          email: CheckoutService.phone_placeholder_email("+233241234567"),
+          name: "Account Owner",
+          phone: "+233241234567",
+          store_id: store.id,
+          verified?: true
+        })
+        |> Ash.run_action!()
+
+      assert found.id == owner.id
+    end
+  end
 end

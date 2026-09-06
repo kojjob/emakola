@@ -237,6 +237,12 @@ defmodule Emakola.Orders.Order do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
+    # Backfill only — no live actor may call this, merchant included. The
+    # backfill itself runs with authorize?: false and never has an actor.
+    policy action(:attach_customer) do
+      forbid_if(always())
+    end
+
     # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)

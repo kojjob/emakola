@@ -528,6 +528,20 @@ defmodule Emakola.Orders.CheckoutServiceTest do
 
       assert %DateTime{} = customer.last_order_at
     end
+
+    test "an over-length customer name returns an error instead of crashing the checkout", %{
+      store: store,
+      variant: variant
+    } do
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:error, _reason} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: "toolong@example.com",
+                 customer_name: String.duplicate("a", 300),
+                 customer_phone: "+233240001112"
+               )
+    end
   end
 
   # -- Dispatch fee computation + snapshots -----------------------------

@@ -12,11 +12,16 @@ defmodule Emakola.Customers.GuestBackfill do
   """
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Customers.Customer
   alias Emakola.Orders.{CheckoutService, Order}
 
-  @type result :: %{linked: non_neg_integer(), skipped: non_neg_integer()}
+  @type result :: %{
+          linked: non_neg_integer(),
+          skipped: non_neg_integer(),
+          failed: non_neg_integer()
+        }
 
   @spec run(keyword()) :: result()
   def run(opts \\ []) do
@@ -26,16 +31,36 @@ defmodule Emakola.Customers.GuestBackfill do
     |> Ash.Query.filter(is_nil(customer_id))
     |> Ash.Query.sort(inserted_at: :asc)
     |> Ash.stream!(authorize?: false)
-    |> Enum.reduce(%{linked: 0, skipped: 0}, fn order, acc ->
+    |> Enum.reduce(%{linked: 0, skipped: 0, failed: 0}, fn order, acc ->
       case phone_of(order) do
         nil ->
           %{acc | skipped: acc.skipped + 1}
 
         phone ->
-          if not dry_run?, do: link!(order, phone)
-          %{acc | linked: acc.linked + 1}
+          cond do
+            dry_run? -> %{acc | linked: acc.linked + 1}
+            link_safely(order, phone) -> %{acc | linked: acc.linked + 1}
+            true -> %{acc | failed: acc.failed + 1}
+          end
       end
     end)
+  end
+
+  # One bad historical row (a name or phone that fails a resource
+  # constraint the storefront didn't enforce when it was written) must not
+  # abort the whole sweep. Logs only the order id and the exception's
+  # module — never Exception.message/1, which would put the offending
+  # name/phone value itself into the deploy log.
+  defp link_safely(order, phone) do
+    link!(order, phone)
+    true
+  rescue
+    exception ->
+      Logger.warning(
+        "[guest_backfill] order #{order.id} failed to link: #{inspect(exception.__struct__)}"
+      )
+
+      false
   end
 
   # PhoneAuth.normalize/1 collapses any blank or digit-free phone to the bare
