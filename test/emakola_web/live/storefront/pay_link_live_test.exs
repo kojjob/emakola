@@ -887,4 +887,15 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
 
     assert html =~ "Kente dress"
   end
+
+  test "a connected mount records a pay-link visit", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, _view, _html} = live(conn, "/pay/#{link.code}")
+
+    assert [visit] = Ash.read!(Emakola.Analytics.StoreVisit, authorize?: false)
+    assert visit.store_id == store.id
+    assert visit.page == :pay_link
+  end
 end
