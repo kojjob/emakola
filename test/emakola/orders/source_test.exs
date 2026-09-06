@@ -47,4 +47,11 @@ defmodule Emakola.Orders.SourceTest do
              %{source: :direct, label: "Typed the link or saved it", orders: 1, money: 100}
            ] = rows
   end
+
+  test "every visit bucket StoreVisit can store has a label" do
+    one_of =
+      Ash.Resource.Info.attribute(Emakola.Analytics.StoreVisit, :source).constraints[:one_of]
+
+    assert one_of -- Map.keys(Source.labels()) == []
+  end
 end

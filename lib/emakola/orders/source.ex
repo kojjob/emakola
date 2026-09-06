@@ -65,6 +65,17 @@ defmodule Emakola.Orders.Source do
   @spec label(source()) :: String.t()
   def label(source), do: Map.fetch!(@labels, source)
 
+  @doc """
+  Every source this module can label, source atom to label text.
+
+  `Emakola.Analytics.StoreVisit`'s `:source` attribute shares this atom set;
+  a test asserts that constraint's `one_of` list stays a subset of these
+  keys, so a visit bucket added without a label fails a test instead of
+  raising for a merchant on `/admin/reports`.
+  """
+  @spec labels() :: %{source() => String.t()}
+  def labels, do: @labels
+
   @doc "Orders and money per source, biggest money first."
   @spec tally([Order.t()]) :: [
           %{

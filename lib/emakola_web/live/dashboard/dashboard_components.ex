@@ -226,6 +226,7 @@ defmodule EmakolaWeb.DashboardComponents do
     ~H"""
     <.admin_card :if={@top_sources != []} id="top-sources" padding={:none} class="p-5">
       <h3 class="text-sm font-bold text-slate-800">Where orders came from</h3>
+      <p class="text-sm text-slate-500 mt-1">Paid orders in this period</p>
       <ul class="mt-3 space-y-2">
         <li :for={row <- @top_sources} class="flex items-center justify-between text-sm">
           <span class="text-slate-700">{row.label}</span>
