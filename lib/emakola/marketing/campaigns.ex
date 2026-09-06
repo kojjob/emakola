@@ -58,6 +58,10 @@ defmodule Emakola.Marketing.Campaigns do
     end
   end
 
+  # A crafted id (e.g. id[]=x) arrives as a list/map, not a string — reject
+  # it the same way as an unknown id, rather than crashing the LiveView.
+  def get_for_store(_store_id, _campaign_id), do: {:error, :not_found}
+
   @doc "Records that a customer no longer wants marketing messages."
   def opt_out(%Customer{} = customer) do
     customer

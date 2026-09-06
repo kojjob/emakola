@@ -55,11 +55,15 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
+    # A search overrides any chosen segment (see load_customers/1) — clear it
+    # here so the chip row doesn't keep highlighting a segment the search has
+    # silently stopped applying.
     socket =
       socket
       |> assign(
         search_query: query,
         search_form: to_form(%{"search" => query}),
+        segment: :everyone,
         customers_limit: @customers_limit
       )
       |> load_customers()
@@ -67,12 +71,20 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
     {:noreply, socket}
   end
 
+  # A search in progress ignores the segment (see load_customers/1) — clearing
+  # it here keeps the chip honest about what the list is actually showing,
+  # rather than highlighting a segment the search has silently overridden.
   def handle_event("segment", %{"segment" => segment_param}, socket) do
     segment = Emakola.SafeAtom.to_atom_in(segment_param, Segments.all(), :everyone)
 
     {:noreply,
      socket
-     |> assign(segment: segment, customers_limit: @customers_limit)
+     |> assign(
+       segment: segment,
+       search_query: "",
+       search_form: to_form(%{"search" => ""}),
+       customers_limit: @customers_limit
+     )
      |> load_customers()}
   end
 

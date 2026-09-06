@@ -185,6 +185,31 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
       assert has_element?(view, "#customer-#{twice.id}")
       refute has_element?(view, "#customer-#{once.id}")
     end
+
+    test "a search clears the chosen segment, so the chip stops lying about the list", ctx do
+      twice = Factory.create_customer!(ctx.store, %{name: "Twice Buyer"})
+      once = Factory.create_customer!(ctx.store, %{name: "Once Buyer"})
+      for _ <- 1..2, do: order!(ctx.store, twice, 100, :confirmed)
+      order!(ctx.store, once, 100, :confirmed)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      view
+      |> element(~s{#customer-segments button[phx-value-segment="bought_again"]})
+      |> render_click()
+
+      view
+      |> element("#customer-search-form")
+      |> render_change(%{"search" => "Once"})
+
+      refute has_element?(
+               view,
+               ~s{#customer-segments button[phx-value-segment="bought_again"][data-on]}
+             )
+
+      assert has_element?(view, "#customer-#{once.id}")
+      refute has_element?(view, "#customer-#{twice.id}")
+    end
   end
 
   describe "the detail page" do

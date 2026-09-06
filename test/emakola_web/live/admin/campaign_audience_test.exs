@@ -83,4 +83,12 @@ defmodule EmakolaWeb.Admin.CampaignAudienceTest do
       args: %{"campaign_id" => theirs.id}
     )
   end
+
+  test "a crafted id survives instead of crashing the page", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    render_click(view, "send", %{"id" => ["x"]})
+
+    assert has_element?(view, "#campaign-form")
+  end
 end

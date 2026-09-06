@@ -107,7 +107,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   def handle_event("audience", %{"campaign" => params}, socket) do
     store = socket.assigns[:current_store]
     audience = Emakola.SafeAtom.to_atom_in(params["audience"], Segments.all(), :everyone)
-    {:ok, %{count: count}} = Campaigns.audience(nil, store.id, audience)
+    count = audience_count_for(store, audience)
 
     {:noreply,
      assign(socket,
@@ -142,6 +142,13 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  defp audience_count_for(nil, _audience), do: 0
+
+  defp audience_count_for(store, audience) do
+    {:ok, %{count: count}} = Campaigns.audience(nil, store.id, audience)
+    count
+  end
 
   @impl true
   def render(assigns) do
