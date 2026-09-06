@@ -1,0 +1,186 @@
+{
+ "prices": {
+  "fx": 11.37,
+  "fly_512": 3.62,
+  "fly_1gb": 6.46,
+  "fly_2gb": 12.14,
+  "fly_perf1x_2gb": 35.17,
+  "fly_pg_4gb": 24.2,
+  "fly_pg_8gb_perf": 92.8,
+  "fly_vol_gb": 0.15,
+  "fly_cert_wild": 1.0,
+  "fly_egress_gb": 0.02,
+  "fly_rootfs_gb": 0.15,
+  "tigris_gb": 0.02,
+  "tigris_free_gb": 5,
+  "resend_pro": 20.0,
+  "resend_free": 3000,
+  "sentry_team": 26.0,
+  "domain_makola_io_yr": 75.98,
+  "domain_emakola_com_yr": 17.0,
+  "twilio_number": 1.15,
+  "ai_snap": 0.0057,
+  "ai_snap_sticker": 0.0086,
+  "wa_utility": 0.004,
+  "sms_ghs": 0.0288,
+  "paystack_pct": 0.0195,
+  "paystack_transfer_ghs": 1.0
+ },
+ "now": {
+  "stores": 45,
+  "active": 42,
+  "merchants": 66,
+  "orders_aug": 34,
+  "gmv_aug_ghs": 56957.5,
+  "paid_ghs": 4519.0,
+  "fees_settled_ghs": 9.46,
+  "images": 419,
+  "image_mb": 39.8,
+  "db_mb": 23,
+  "snaps_month": 267,
+  "visits": 719
+ },
+ "tiers": {
+  "now": {
+   "merchants": 45,
+   "orders": 36,
+   "infra": {
+    "App machine 1GB (running)": 6.46,
+    "App machine 1GB (suspended, rootfs)": 0.39,
+    "Postgres 1GB machine": 6.46,
+    "Postgres volume 10GB": 1.5,
+    "Wildcard certificate": 1.0,
+    "Egress + Tigris": 0.1
+   },
+   "infra_total": 15.91,
+   "ai": 1.52,
+   "snaps": 267,
+   "messaging": 0.62,
+   "email": 0.0,
+   "fixed": 8.9,
+   "opex": 26.96,
+   "gateway_borne": 12.35,
+   "transfer_fees": 0.63,
+   "revenue_at_2pct": 12.66,
+   "net_at_2pct": -27.27,
+   "per_merchant_opex": 0.599
+  },
+  "500": {
+   "merchants": 500,
+   "orders": 5000,
+   "infra": {
+    "App machines 2\u00d71GB (always on)": 12.92,
+    "Postgres 2GB machine": 12.14,
+    "Postgres volume 10GB": 1.5,
+    "Wildcard certificate": 1.0,
+    "Egress + Tigris": 0.5
+   },
+   "infra_total": 28.06,
+   "ai": 3.99,
+   "snaps": 700,
+   "messaging": 86.8,
+   "email": 0.0,
+   "fixed": 8.9,
+   "opex": 127.75,
+   "gateway_borne": 1715.04,
+   "transfer_fees": 87.95,
+   "revenue_at_2pct": 1759.01,
+   "net_at_2pct": -171.72,
+   "per_merchant_opex": 0.255
+  },
+  "2000": {
+   "merchants": 2000,
+   "orders": 20000,
+   "infra": {
+    "App machines 2\u00d72GB": 24.28,
+    "Postgres 4GB machine": 24.2,
+    "Postgres volume 20GB": 3.0,
+    "Wildcard certificate": 1.0,
+    "Egress + Tigris": 2.5
+   },
+   "infra_total": 54.98,
+   "ai": 11.97,
+   "snaps": 2100,
+   "messaging": 347.19,
+   "email": 20.0,
+   "fixed": 8.9,
+   "opex": 443.04,
+   "gateway_borne": 6860.16,
+   "transfer_fees": 351.8,
+   "revenue_at_2pct": 7036.06,
+   "net_at_2pct": -618.94,
+   "per_merchant_opex": 0.222
+  },
+  "10000": {
+   "merchants": 10000,
+   "orders": 100000,
+   "infra": {
+    "App machines 4\u00d72GB": 48.56,
+    "Postgres performance 8GB": 92.8,
+    "Postgres volume 50GB": 7.5,
+    "Wildcard certificate": 1.0,
+    "Egress + Tigris": 12.0,
+    "Sentry Team": 26.0,
+    "Fly Standard support": 29.0
+   },
+   "infra_total": 216.86,
+   "ai": 39.9,
+   "snaps": 7000,
+   "messaging": 1735.94,
+   "email": 29.0,
+   "fixed": 8.9,
+   "opex": 2030.6,
+   "gateway_borne": 34300.79,
+   "transfer_fees": 1759.01,
+   "revenue_at_2pct": 35180.3,
+   "net_at_2pct": -2910.1,
+   "per_merchant_opex": 0.203
+  }
+ },
+ "per_order": {
+  "0.02": {
+   "revenue": 0.3518,
+   "gateway": 0.343,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": -0.0262
+  },
+  "0.03": {
+   "revenue": 0.5277,
+   "gateway": 0.343,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": 0.1497
+  },
+  "0.04": {
+   "revenue": 0.7036,
+   "gateway": 0.343,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": 0.3256
+  },
+  "0.05": {
+   "revenue": 0.8795,
+   "gateway": 0.343,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": 0.5016
+  }
+ },
+ "per_order_ghs100": {
+  "0.02": {
+   "revenue": 0.1759,
+   "gateway": 0.1715,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": -0.0306
+  },
+  "0.04": {
+   "revenue": 0.3518,
+   "gateway": 0.1715,
+   "messages": 0.0174,
+   "transfer": 0.0176,
+   "net": 0.1453
+  }
+ }
+}
