@@ -23,9 +23,9 @@ defmodule EmakolaWeb.Admin.ReportLive.Repeat do
   def figures(store_id, from, orders) do
     buyer_ids = orders |> Enum.map(& &1.customer_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
 
-    earlier =
+    earlier_ids =
       if buyer_ids == [] do
-        MapSet.new()
+        []
       else
         Order
         |> Ash.Query.filter(
@@ -34,8 +34,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Repeat do
         )
         |> Ash.Query.select([:customer_id])
         |> Ash.read!(authorize?: false)
-        |> MapSet.new(& &1.customer_id)
+        |> Enum.map(& &1.customer_id)
       end
+
+    # Built from a plain list either way (never the empty-MapSet literal in
+    # one branch and MapSet.new/2 in the other) so dialyzer sees one opaque
+    # type for `earlier`, not a union it can't reconcile.
+    earlier = MapSet.new(earlier_ids)
 
     returning = Enum.count(buyer_ids, &MapSet.member?(earlier, &1))
     total = length(buyer_ids)
@@ -43,7 +48,11 @@ defmodule EmakolaWeb.Admin.ReportLive.Repeat do
     %{
       returning: returning,
       new: total - returning,
-      share: if(total > 0, do: :erlang.float_to_binary(returning / total * 100, decimals: 1), else: nil)
+      share:
+        if(total > 0,
+          do: :erlang.float_to_binary(returning / total * 100, decimals: 1),
+          else: nil
+        )
     }
   end
 end
