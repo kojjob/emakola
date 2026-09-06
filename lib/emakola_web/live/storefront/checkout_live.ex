@@ -166,10 +166,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> update_dispatch_fees()
 
     next = if socket.assigns.requires_shipping, do: 2, else: 3
+    errors = validate_contact_step(socket.assigns)
 
-    {:noreply, socket} = advance_when_valid(socket, validate_contact_step(socket.assigns), next)
+    {:noreply, socket} = advance_when_valid(socket, errors, next)
 
-    if socket.assigns.step != 1, do: touch_abandoned_checkout(socket)
+    if errors == %{}, do: touch_abandoned_checkout(socket)
 
     {:noreply, socket}
   end
@@ -534,7 +535,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     cart_session_id = socket.assigns[:cart_session_id]
     store = socket.assigns.store
 
-    if cart_session_id do
+    # An empty cart is not a cart left behind — a buyer who reached this page
+    # after their order already cleared it (CartStore.clear_cart) should not
+    # get a junk "GH₵ 0, nothing" row on the merchant's page.
+    if cart_session_id && socket.assigns.cart != [] do
       Emakola.Orders.AbandonedCheckouts.touch(store.id, cart_session_id, %{
         phone: socket.assigns.phone,
         name: socket.assigns.fullname,
