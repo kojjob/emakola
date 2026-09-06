@@ -201,6 +201,14 @@ defmodule Emakola.Customers.Customer do
     min :first_paid_order_at, :orders, :inserted_at do
       filter(expr(status in [:confirmed, :processing, :shipped, :delivered]))
     end
+
+    # last_order_at (below) is touched by CheckoutService on EVERY checkout,
+    # paid or not — so a customer who abandoned a checkout yesterday but last
+    # PAID 90 days ago would not read as "gone quiet" against it. This is the
+    # aggregate that segment actually needs.
+    max :last_paid_order_at, :orders, :inserted_at do
+      filter(expr(status in [:confirmed, :processing, :shipped, :delivered]))
+    end
   end
 
   identities do

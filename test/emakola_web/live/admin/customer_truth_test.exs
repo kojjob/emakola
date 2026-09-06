@@ -210,6 +210,21 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
       assert has_element?(view, "#customer-#{once.id}")
       refute has_element?(view, "#customer-#{twice.id}")
     end
+
+    test "segment chip counts are real on the first render, not just after a click", ctx do
+      twice = Factory.create_customer!(ctx.store, %{name: "Twice Buyer"})
+      once = Factory.create_customer!(ctx.store, %{name: "Once Buyer"})
+      for _ <- 1..2, do: order!(ctx.store, twice, 100, :confirmed)
+      order!(ctx.store, once, 100, :confirmed)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      assert has_element?(
+               view,
+               ~s{#customer-segments button[phx-value-segment="bought_again"]},
+               "1"
+             )
+    end
   end
 
   describe "the detail page" do

@@ -10,6 +10,7 @@ defmodule Emakola.Customers.Segments do
   """
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Customers.Customer
 
@@ -48,9 +49,12 @@ defmodule Emakola.Customers.Segments do
   def query(store_id, :gone_quiet) do
     cutoff = days_ago(@quiet_days)
 
+    # last_paid_order_at, not last_order_at — CheckoutService touches
+    # last_order_at on every checkout, including unpaid ones, so a recent
+    # abandoned cart would otherwise hide a customer who hasn't PAID in ages.
     Customer
     |> Ash.Query.filter(
-      store_id == ^store_id and paid_order_count >= 1 and last_order_at < ^cutoff
+      store_id == ^store_id and paid_order_count >= 1 and last_paid_order_at < ^cutoff
     )
   end
 
@@ -61,6 +65,14 @@ defmodule Emakola.Customers.Segments do
     end
   end
 
+  # A stale value (an old campaign's audience, a hand-edited row) is not one
+  # of the five known segments. Never widen to "everyone" for it — that would
+  # silently message a bigger audience than the merchant chose.
+  def query(store_id, other) do
+    Logger.warning("[segments] unknown segment #{inspect(other)}")
+    Customer |> Ash.Query.filter(store_id == ^store_id and id == ^Ash.UUID.generate())
+  end
+
   @spec counts(binary()) :: %{segment() => non_neg_integer()}
   def counts(store_id) do
     Map.new(@segments, fn segment ->
@@ -69,23 +81,29 @@ defmodule Emakola.Customers.Segments do
   end
 
   # The paid_total at the 80th percentile among customers who have paid.
-  # Loads every paying customer's total into memory to sort it — fine at the
-  # scale a single store's paying customers reach; revisit if a store's paying
-  # customer count grows large enough for this to matter.
+  # Two queries, no in-memory load of every paying customer's total: a COUNT
+  # to find where the cutoff sits, then a single row (sorted, offset to that
+  # rank) to read its paid_total.
   defp big_spender_floor(store_id) do
-    totals =
-      Customer
-      |> Ash.Query.filter(store_id == ^store_id and paid_order_count >= 1)
-      |> Ash.Query.load(:paid_total)
-      |> Ash.read!(authorize?: false)
-      |> Enum.map(&(&1.paid_total || 0))
-      |> Enum.sort(:desc)
+    paying = Customer |> Ash.Query.filter(store_id == ^store_id and paid_order_count >= 1)
 
-    if length(totals) < @min_buyers_for_big do
+    n = Ash.count!(paying, authorize?: false)
+
+    if n < @min_buyers_for_big do
       nil
     else
-      keep = max(1, div(length(totals), 5))
-      Enum.at(totals, keep - 1)
+      keep = max(1, div(n, 5))
+
+      paying
+      |> Ash.Query.sort(paid_total: :desc)
+      |> Ash.Query.offset(keep - 1)
+      |> Ash.Query.limit(1)
+      |> Ash.Query.load(:paid_total)
+      |> Ash.read_one!(authorize?: false)
+      |> case do
+        nil -> nil
+        customer -> customer.paid_total || 0
+      end
     end
   end
 

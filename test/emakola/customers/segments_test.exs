@@ -6,6 +6,7 @@ defmodule Emakola.Customers.SegmentsTest do
   use Emakola.DataCase, async: true
 
   import Emakola.Factory
+  import ExUnit.CaptureLog
 
   alias Emakola.Customers.Segments
 
@@ -77,8 +78,13 @@ defmodule Emakola.Customers.SegmentsTest do
     assert ids(Segments.query(store.id, :bought_again)) == [twice.id]
   end
 
-  test "gone quiet: bought before, nothing in 60 days", %{store: store} do
-    quiet = customer_with_orders!(store, "Quiet", [{1_000, :confirmed, 75}])
+  test "gone quiet: last PAID order over 60 days ago, even with a recent unpaid touch",
+       %{store: store} do
+    # The pending order is more recent than the paid one, so last_order_at
+    # (touched by CheckoutService on every checkout, paid or not) reads as
+    # recent. gone_quiet must not be fooled by it — only last_paid_order_at
+    # counts.
+    quiet = customer_with_orders!(store, "Quiet", [{1_000, :confirmed, 75}, {1_000, :pending, 1}])
     _active = customer_with_orders!(store, "Active", [{1_000, :confirmed, 5}])
     _never = create_customer!(store, %{name: "Never"})
 
@@ -101,6 +107,21 @@ defmodule Emakola.Customers.SegmentsTest do
     assert ids(Segments.query(store.id, :big_spenders)) == []
   end
 
+  test "big spenders: the top fifth with ten buyers (keep = 2, not the n = 5 edge case)", %{
+    store: store
+  } do
+    totals = [50_000, 40_000, 30_000, 20_000, 15_000, 10_000, 9_000, 8_000, 7_000, 6_000]
+
+    buyers =
+      for {total, i} <- Enum.with_index(totals) do
+        customer_with_orders!(store, "Buyer#{i}", [{total, :confirmed, 2}])
+      end
+
+    top_two_ids = buyers |> Enum.take(2) |> Enum.map(& &1.id) |> Enum.sort()
+
+    assert ids(Segments.query(store.id, :big_spenders)) == top_two_ids
+  end
+
   test "counts cover every segment and never cross stores", %{store: store} do
     customer_with_orders!(store, "New", [{1_000, :confirmed, 3}])
     other = create_store!()
@@ -108,5 +129,16 @@ defmodule Emakola.Customers.SegmentsTest do
 
     assert %{everyone: 1, new: 1, bought_again: 0, big_spenders: 0, gone_quiet: 0} =
              Segments.counts(store.id)
+  end
+
+  test "an unknown segment atom logs and returns empty, never everyone", %{store: store} do
+    customer_with_orders!(store, "Someone", [{1_000, :confirmed, 3}])
+
+    log =
+      capture_log(fn ->
+        assert ids(Segments.query(store.id, :not_a_real_segment)) == []
+      end)
+
+    assert log =~ "unknown segment"
   end
 end

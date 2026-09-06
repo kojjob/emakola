@@ -101,6 +101,25 @@ defmodule Emakola.Marketing.CampaignSendWorkerTest do
     assert campaign.status == :sent
   end
 
+  test "still sends when the LiveView has already marked it sending", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    # The send handler now flips :draft -> :sending itself before enqueueing
+    # (so the Send button disappears immediately) — the worker must not treat
+    # an already-sending campaign as someone else's job to skip.
+    {:ok, _sending} = Campaigns.mark_sending(ctx.campaign, 1)
+
+    expect(Emakola.SMSProviderMock, :send_sms, 1, fn _to, _body, _opts ->
+      {:ok, %{message_id: "sm_1"}}
+    end)
+
+    assert :ok = perform(ctx.campaign)
+
+    campaign = Ash.get!(Emakola.Marketing.Campaign, ctx.campaign.id, authorize?: false)
+    assert campaign.status == :sent
+    assert campaign.sent_count == 1
+  end
+
   test "a campaign with no reachable customers is not left sending forever", ctx do
     assert :ok = perform(ctx.campaign)
 

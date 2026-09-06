@@ -91,4 +91,63 @@ defmodule EmakolaWeb.Admin.CampaignAudienceTest do
 
     assert has_element?(view, "#campaign-form")
   end
+
+  test "a crafted map for name/body survives create instead of crashing", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    view
+    |> element("#campaign-form")
+    |> render_submit(%{"campaign" => %{"name" => %{"x" => "y"}, "body" => "hi"}})
+
+    assert has_element?(view, "#campaign-form")
+    assert {:ok, []} = Campaigns.list(ctx.merchant, ctx.store.id)
+  end
+
+  test "a second click on the same campaign enqueues nothing new", ctx do
+    {:ok, campaign} =
+      Campaigns.create(ctx.merchant, ctx.store.id, %{
+        name: "Weekend sale",
+        channel: :sms,
+        body: "20% off."
+      })
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    view |> element("#send-campaign-#{campaign.id}") |> render_click()
+    render_click(view, "send", %{"id" => campaign.id})
+
+    assert length(all_enqueued(worker: Emakola.Marketing.CampaignSendWorker)) == 1
+  end
+
+  describe "with no store yet" do
+    setup do
+      merchant = create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        build_conn()
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      %{conn: conn}
+    end
+
+    test "send survives a nil store instead of crashing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
+
+      render_click(view, "send", %{"id" => Ash.UUID.generate()})
+
+      assert has_element?(view, "#campaign-form")
+    end
+
+    test "changing the audience survives a nil store instead of crashing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
+
+      view
+      |> form("#campaign-form", campaign: %{audience: "bought_again"})
+      |> render_change()
+
+      assert has_element?(view, "#campaign-audience-count", "0")
+    end
+  end
 end

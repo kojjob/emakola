@@ -35,25 +35,38 @@ defmodule Emakola.Marketing.Campaigns do
 
   Returned as a map so the caller can show the merchant a count *before* they
   confirm — the previous page let them "send" to an audience it never named.
+  A count, not a full read, of the reachable rows — this is called on every
+  segment change and every draft row, not just at send time.
   """
   def audience(_actor, store_id, audience \\ :everyone) when is_binary(store_id) do
-    with {:ok, customers} <- reachable_customers(store_id, audience) do
-      {:ok, %{count: length(customers)}}
-    end
+    count =
+      store_id
+      |> reachable_query(audience)
+      |> Ash.count!(authorize?: false)
+
+    {:ok, %{count: count}}
   end
 
   @doc "The customer rows a send would target: in the segment, phone present, not opted out."
   def reachable_customers(store_id, audience \\ :everyone) when is_binary(store_id) do
     store_id
+    |> reachable_query(audience)
+    |> Ash.read(authorize?: false)
+  end
+
+  defp reachable_query(store_id, audience) do
+    store_id
     |> Emakola.Customers.Segments.query(audience)
     |> Ash.Query.filter(not is_nil(phone) and phone != "" and is_nil(marketing_opt_out_at))
-    |> Ash.read(authorize?: false)
   end
 
   @doc "One campaign, only if it belongs to the store."
   def get_for_store(store_id, campaign_id) when is_binary(store_id) and is_binary(campaign_id) do
-    case Ash.get(Campaign, campaign_id, authorize?: false) do
-      {:ok, %Campaign{store_id: ^store_id} = campaign} -> {:ok, campaign}
+    with {:ok, _} <- Ecto.UUID.cast(campaign_id),
+         {:ok, %Campaign{store_id: ^store_id} = campaign} <-
+           Ash.get(Campaign, campaign_id, authorize?: false) do
+      {:ok, campaign}
+    else
       _ -> {:error, :not_found}
     end
   end
@@ -61,6 +74,13 @@ defmodule Emakola.Marketing.Campaigns do
   # A crafted id (e.g. id[]=x) arrives as a list/map, not a string — reject
   # it the same way as an unknown id, rather than crashing the LiveView.
   def get_for_store(_store_id, _campaign_id), do: {:error, :not_found}
+
+  @doc "Marks a draft campaign as sending, with its audience size at the moment of sending."
+  def mark_sending(%Campaign{} = campaign, audience_size) do
+    campaign
+    |> Ash.Changeset.for_update(:mark_sending, %{audience_size: audience_size})
+    |> Ash.update(authorize?: false)
+  end
 
   @doc "Records that a customer no longer wants marketing messages."
   def opt_out(%Customer{} = customer) do

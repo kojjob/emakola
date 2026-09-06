@@ -41,6 +41,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         add_form: to_form(%{"name" => "", "phone" => "", "email" => ""}, as: :customer)
       )
       |> load_customers()
+      |> assign_segment_counts()
 
     {:ok, socket}
   end
@@ -85,7 +86,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
        search_form: to_form(%{"search" => ""}),
        customers_limit: @customers_limit
      )
-     |> load_customers()}
+     |> load_customers()
+     |> assign_segment_counts()}
   end
 
   def handle_event("toggle_add", _params, socket) do
@@ -112,6 +114,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
              socket
              |> assign(adding?: false)
              |> load_customers()
+             |> assign_segment_counts()
              |> put_flash(:info, "Customer saved")}
 
           {:error, error} ->
@@ -483,8 +486,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         base
         |> Ash.Query.filter(inserted_at >= ^start_of_month)
         |> Ash.count!(authorize?: false),
-      bought_again: Ash.count!(bought_again_query, authorize?: false),
-      segment_counts: Segments.counts(store_id)
+      bought_again: Ash.count!(bought_again_query, authorize?: false)
     )
   rescue
     exception ->
@@ -498,6 +500,23 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         bought_again: 0,
         segment_counts: %{}
       )
+  end
+
+  # Segments.counts/1 runs 5 counts plus a full scan of paying customers for
+  # the big-spenders floor — real work, not a free read. Called explicitly
+  # from mount, a segment click, and after adding a customer; NOT from
+  # load_customers/1, so a search keystroke or "Load more" click leaves the
+  # chip counts as they were rather than recomputing them on every one.
+  defp assign_segment_counts(socket) do
+    case socket.assigns.store_id do
+      nil -> assign(socket, segment_counts: %{})
+      store_id -> assign(socket, segment_counts: Segments.counts(store_id))
+    end
+  rescue
+    exception ->
+      Logger.error("[customer_live.index] segment counts failed: #{Exception.message(exception)}")
+
+      assign(socket, segment_counts: %{})
   end
 
   # ── Helpers ──

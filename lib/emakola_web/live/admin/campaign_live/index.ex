@@ -77,24 +77,40 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   @impl true
   def handle_event("create", %{"campaign" => params}, socket) do
     store = socket.assigns[:current_store]
-    audience = Emakola.SafeAtom.to_atom_in(params["audience"], Segments.all(), :everyone)
 
-    attrs = %{
-      name: String.trim(params["name"] || ""),
-      channel: :sms,
-      body: String.trim(params["body"] || ""),
-      audience: audience
-    }
+    with {:ok, name} <- as_binary(params["name"]),
+         {:ok, body} <- as_binary(params["body"]),
+         {:ok, audience_param} <- as_binary(params["audience"]) do
+      audience = Emakola.SafeAtom.to_atom_in(audience_param, Segments.all(), :everyone)
 
-    case Campaigns.create(socket.assigns.current_merchant, store.id, attrs) do
-      {:ok, _campaign} ->
-        {:noreply,
-         socket
-         |> assign(form: blank_form(), audience: :everyone)
-         |> load()
-         |> put_flash(:info, "Campaign saved. Send it when you are ready.")}
+      attrs = %{
+        name: String.trim(name || ""),
+        channel: :sms,
+        body: String.trim(body || ""),
+        audience: audience
+      }
 
-      {:error, _error} ->
+      case Campaigns.create(socket.assigns.current_merchant, store.id, attrs) do
+        {:ok, _campaign} ->
+          {:noreply,
+           socket
+           |> assign(form: blank_form(), audience: :everyone)
+           |> load()
+           |> put_flash(:info, "Campaign saved. Send it when you are ready.")}
+
+        {:error, _error} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             "Give the campaign a name, and a message that is not empty or too long."
+           )}
+      end
+    else
+      # A crafted param (e.g. campaign[name][x]=y) arrives as a map, not a
+      # string — reject it the same way as a blank field, rather than
+      # crashing inside String.trim/1.
+      :error ->
         {:noreply,
          put_flash(
            socket,
@@ -105,43 +121,74 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   end
 
   def handle_event("audience", %{"campaign" => params}, socket) do
-    store = socket.assigns[:current_store]
-    audience = Emakola.SafeAtom.to_atom_in(params["audience"], Segments.all(), :everyone)
-    count = audience_count_for(store, audience)
+    with {:ok, _name} <- as_binary(params["name"]),
+         {:ok, _body} <- as_binary(params["body"]),
+         {:ok, audience_param} <- as_binary(params["audience"]) do
+      store = socket.assigns[:current_store]
+      audience = Emakola.SafeAtom.to_atom_in(audience_param, Segments.all(), :everyone)
+      count = audience_count_for(store, audience)
 
-    {:noreply,
-     assign(socket,
-       audience: audience,
-       audience_count: count,
-       form: to_form(params, as: :campaign)
-     )}
+      {:noreply,
+       assign(socket,
+         audience: audience,
+         audience_count: count,
+         form: to_form(params, as: :campaign)
+       )}
+    else
+      :error -> {:noreply, socket}
+    end
   end
 
   def handle_event("send", %{"id" => id}, socket) do
-    store = socket.assigns[:current_store]
+    case socket.assigns[:current_store] do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Create your store first.")}
 
-    case Campaigns.get_for_store(store.id, id) do
-      {:ok, %{status: :draft} = campaign} ->
-        # Fan-out is a paid, retryable job — never inline in the LiveView
-        # process. unique guards a double tap from queuing the same send twice.
-        %{"campaign_id" => campaign.id}
-        |> CampaignSendWorker.new(unique: [period: 300, keys: [:campaign_id]])
-        |> Oban.insert()
+      %{id: store_id} ->
+        case Campaigns.get_for_store(store_id, id) do
+          {:ok, %{status: :draft} = campaign} ->
+            send_campaign(socket, campaign)
 
-        {:noreply,
-         socket
-         |> load()
-         |> put_flash(
-           :info,
-           "Sending to #{Emakola.Plural.count(count_for(socket, campaign), "customer")}."
-         )}
+          {:ok, _not_draft} ->
+            {:noreply,
+             socket
+             |> load()
+             |> put_flash(:error, "That campaign is already sending.")}
 
-      _ ->
-        {:noreply, put_flash(socket, :error, "That campaign is not yours to send.")}
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "That campaign is not yours to send.")}
+        end
     end
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # Insert first, mark :sending only once the job is actually queued — a
+  # failed insert then leaves the campaign exactly as it was, nothing to
+  # revert. states: :incomplete + period: :infinity means an in-flight job
+  # for this campaign blocks a duplicate insert for as long as it takes to
+  # finish, not just for a five-minute window.
+  defp send_campaign(socket, campaign) do
+    count = count_for(socket, campaign)
+
+    %{"campaign_id" => campaign.id}
+    |> CampaignSendWorker.new(
+      unique: [period: :infinity, keys: [:campaign_id], states: :incomplete]
+    )
+    |> Oban.insert()
+    |> case do
+      {:ok, _job} ->
+        Campaigns.mark_sending(campaign, count)
+
+        {:noreply,
+         socket
+         |> load()
+         |> put_flash(:info, "Sending to #{Emakola.Plural.count(count, "customer")}.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "Could not queue this campaign.")}
+    end
+  end
 
   defp audience_count_for(nil, _audience), do: 0
 
@@ -149,6 +196,10 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     {:ok, %{count: count}} = Campaigns.audience(nil, store.id, audience)
     count
   end
+
+  defp as_binary(nil), do: {:ok, nil}
+  defp as_binary(value) when is_binary(value), do: {:ok, value}
+  defp as_binary(_value), do: :error
 
   @impl true
   def render(assigns) do

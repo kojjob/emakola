@@ -63,7 +63,7 @@ defmodule Emakola.Marketing.Campaign do
       allow_nil?(false)
       public?(true)
       default(:everyone)
-      constraints(one_of: [:everyone, :new, :bought_again, :big_spenders, :gone_quiet])
+      constraints(one_of: Emakola.Customers.Segments.all())
     end
 
     attribute :status, :atom do
@@ -125,8 +125,29 @@ defmodule Emakola.Marketing.Campaign do
       accept([:store_id, :name, :channel, :body, :audience])
     end
 
+    # Called both by the send handler (before it enqueues, so the Send button
+    # disappears immediately) and by the worker itself (with the freshest
+    # count) — so :sending must be allowed to re-enter itself, not just
+    # :draft -> :sending.
     update :mark_sending do
+      require_atomic?(false)
       accept([:audience_size])
+
+      validate(
+        {Emakola.Validations.StatusGuard,
+         from: [:draft, :sending], message: "cannot send a campaign that is not a draft"}
+      )
+
+      # Atomic counterpart to the validation above (same pattern as
+      # Coupon.increment_usage): pushes the guard into the UPDATE's WHERE
+      # clause, so two truly concurrent sends (two tabs, both reading
+      # :draft) can't both flip the status — the loser's write matches zero
+      # rows and Ash raises Ash.Error.Changes.StaleRecord instead of a
+      # second paid send being queued from a stale read.
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(status in [:draft, :sending]))
+      end)
+
       change(set_attribute(:status, :sending))
     end
 
