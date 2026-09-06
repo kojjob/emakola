@@ -7,6 +7,14 @@ defmodule Emakola.Accounts.PlatformAuditTest do
   alias Emakola.Accounts.PlatformAudit
 
   describe "log/4" do
+    test "broadcasts the entry on the platform audit topic" do
+      Phoenix.PubSub.subscribe(Emakola.PubSub, PlatformAudit.topic())
+
+      assert {:ok, log} = PlatformAudit.log(:sign_out, nil)
+
+      assert_receive {:platform_audit_logged, ^log}
+    end
+
     test "with a %User{} actor uses the user's id" do
       user = create_user!()
 
