@@ -39,6 +39,17 @@ defmodule Emakola.Orders.AbandonedCheckoutsTest do
     assert second.phone == "+233241234567"
   end
 
+  test "touching again refreshes last_seen_at instead of keeping the stale time", %{
+    store: store
+  } do
+    {:ok, checkout} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+    seen_hours_ago!(checkout, 5)
+
+    {:ok, _touched_again} = AbandonedCheckouts.touch(store.id, "cart-1", @cart)
+
+    assert AbandonedCheckouts.left_behind(store.id) == []
+  end
+
   test "left behind means older than two hours, newer than seven days, not recovered", %{
     store: store
   } do
