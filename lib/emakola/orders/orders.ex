@@ -92,5 +92,7 @@ defmodule Emakola.Orders do
         args: [:customer_id, :store_id]
       )
     end
+
+    resource(Emakola.Orders.AbandonedCheckout)
   end
 end
