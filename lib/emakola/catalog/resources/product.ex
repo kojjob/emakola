@@ -226,10 +226,13 @@ defmodule Emakola.Catalog.Product do
       filter(expr(status == :published))
     end
 
-    # WishlistItem carries its own store_id (denormalized from the customer),
-    # never validated against the product it references — see
-    # WishlistLive.toggle_wishlist. `parent(store_id)` keeps a wrongly-tagged
-    # row from inflating another store's product count.
+    # WishlistItem carries its own store_id, denormalized from the customer.
+    # `Validations.ProductInStore` on `WishlistItem.add` now checks it against
+    # the product being referenced, so this filter is defence in depth behind
+    # that write-time validation rather than the only line: `parent(store_id)`
+    # keeps a row that got tagged wrongly anyway — by a future write path that
+    # skips the validation, or by data written before it existed — from
+    # inflating another store's product count.
     count :wishlist_count, :wishlist_items do
       filter(expr(store_id == parent(store_id)))
     end
