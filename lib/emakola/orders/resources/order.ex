@@ -396,6 +396,12 @@ defmodule Emakola.Orders.Order do
       accept([:notes])
     end
 
+    # Backfill only: links a guest order to the customer its phone belongs to.
+    # customer_id is otherwise fixed at creation.
+    update :attach_customer do
+      accept([:customer_id])
+    end
+
     read :get_by_id do
       argument(:id, :uuid, allow_nil?: false)
 

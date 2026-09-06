@@ -326,6 +326,11 @@ defmodule Emakola.Customers.Customer do
       change(set_attribute(:last_order_at, &DateTime.utc_now/0))
     end
 
+    # Backfill only: a historical order must not stamp "now".
+    update :backdate_last_order do
+      accept([:last_order_at])
+    end
+
     action :find_or_create, :struct do
       constraints(instance_of: __MODULE__)
 

@@ -112,10 +112,15 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
     # customer_messages_live is the same class as account_downloads: a message
     # thread and a text box, not a themed storefront surface.
     #
+    # checkout_identity.ex is not a LiveView at all — a plain helper module
+    # (who a checkout order belongs to) that lives alongside checkout_live.ex
+    # because it exists only for it. It has no render/1 to delegate.
+    #
     # Comments must stay OUT of the sigil — ~w has no comment syntax, so every
     # word of one becomes an entry in the list.
     @exempt ~w(
       checkout_live.ex
+      checkout_identity.ex
       customer_login_live.ex
       customer_register_live.ex
       customer_whats_app_live.ex

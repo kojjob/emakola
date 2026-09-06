@@ -74,6 +74,19 @@ defmodule Emakola.Release do
   end
 
   @doc """
+  Links guest orders to customers by phone. Dry run first:
+
+      bin/emakola rpc 'Emakola.Release.backfill_guest_customers(true)'
+      bin/emakola rpc 'Emakola.Release.backfill_guest_customers()'
+
+  Returns counts only.
+  """
+  @spec backfill_guest_customers(boolean()) :: Emakola.Customers.GuestBackfill.result()
+  def backfill_guest_customers(dry_run? \\ false) do
+    Emakola.Customers.GuestBackfill.run(dry_run?: dry_run?)
+  end
+
+  @doc """
   Reconciles encrypted shadows after all old nodes have drained.
 
       bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
