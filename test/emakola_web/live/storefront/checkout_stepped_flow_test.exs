@@ -14,6 +14,8 @@ defmodule EmakolaWeb.Storefront.CheckoutSteppedFlowTest do
   """
   use EmakolaWeb.ConnCase, async: true
 
+  require Ash.Query
+
   import Phoenix.LiveViewTest
   import Emakola.Factory
 
@@ -256,5 +258,78 @@ defmodule EmakolaWeb.Storefront.CheckoutSteppedFlowTest do
 
       refute has_element?(view, "#phone")
     end
+  end
+
+  describe "place_order carries step 1's contact rules" do
+    # place_order is deliberately not gated on the step (see above), so it has
+    # to apply step 1's checks itself. Before this, it tested only `phone ==
+    # ""`, so a crafted event reached checkout with a phone the step validator
+    # would have refused — and because CheckoutIdentity keys such a buyer by
+    # the placeholder email instead, every buyer in the store who did it
+    # collapsed onto ONE shared customer row, pooling unrelated strangers'
+    # names, addresses and order history.
+    test "an invalid phone is refused and no order is created", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      view = checkout(conn, store, variant)
+
+      html =
+        render_submit(view, "place_order", %{
+          "phone" => "abc",
+          "fullname" => "Ama Mensah",
+          "address" => "House 14, Osu Badu Street",
+          "region" => "greater_accra"
+        })
+
+      assert html =~ "Enter a valid phone number"
+      assert orders_for(store) == []
+    end
+
+    test "a valid phone still places the order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      view = checkout(conn, store, variant)
+
+      render_submit(view, "place_order", %{
+        "phone" => "0244123456",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu Badu Street",
+        "region" => "greater_accra"
+      })
+
+      assert length(orders_for(store)) == 1
+    end
+
+    # A crafted phone[]=1 arrives as a list, and PhoneAuth.valid?/1 raises on
+    # anything but a binary. Refused as missing rather than taking the
+    # LiveView down.
+    test "a phone that is not a string is refused, not crashed on", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      view = checkout(conn, store, variant)
+
+      html =
+        render_submit(view, "place_order", %{
+          "phone" => ["0244123456"],
+          "fullname" => "Ama Mensah",
+          "address" => "House 14, Osu Badu Street",
+          "region" => "greater_accra"
+        })
+
+      assert html =~ "Phone number is required"
+      assert orders_for(store) == []
+    end
+  end
+
+  defp orders_for(store) do
+    Emakola.Orders.Order
+    |> Ash.Query.filter(store_id == ^store.id)
+    |> Ash.read!(authorize?: false, tenant: store.id)
   end
 end
