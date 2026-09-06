@@ -92,6 +92,56 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
     )
   end
 
+  test "a failed campaign offers Try again, and sending it queues the job", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    {:ok, campaign} =
+      Campaigns.create(ctx.merchant, ctx.store.id, %{
+        name: "Weekend sale",
+        channel: :sms,
+        body: "20% off."
+      })
+
+    campaign
+    |> Ash.Changeset.for_update(:mark_failed, %{})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    assert has_element?(view, "#send-campaign-#{campaign.id}", "Try again")
+
+    view |> element("#send-campaign-#{campaign.id}") |> render_click()
+
+    assert_enqueued(
+      worker: Emakola.Marketing.CampaignSendWorker,
+      args: %{"campaign_id" => campaign.id}
+    )
+  end
+
+  # The confirm dialog and the flash both read draft_audience_counts; if that
+  # map only carries drafts, a retried campaign says "Send this to 0
+  # customers?" while the audience is one.
+  test "a failed campaign's retry names the real audience, not zero", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    {:ok, campaign} =
+      Campaigns.create(ctx.merchant, ctx.store.id, %{
+        name: "Weekend sale",
+        channel: :sms,
+        body: "20% off."
+      })
+
+    campaign
+    |> Ash.Changeset.for_update(:mark_failed, %{})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/campaigns")
+
+    assert view
+           |> element("#send-campaign-#{campaign.id}")
+           |> render() =~ "1 customer"
+  end
+
   test "another store's campaigns never appear", ctx do
     {other_merchant, other_store} = create_merchant_with_store!()
 

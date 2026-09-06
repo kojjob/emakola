@@ -129,13 +129,18 @@ defmodule Emakola.Marketing.Campaign do
     # disappears immediately) and by the worker itself (with the freshest
     # count) — so :sending must be allowed to re-enter itself, not just
     # :draft -> :sending.
+    #
+    # :failed is allowed in too, so a campaign whose job was discarded can be
+    # retried from the page. Only :sent is a dead end: a campaign that has
+    # already cost the merchant money must never be re-sent by accident.
     update :mark_sending do
       require_atomic?(false)
       accept([:audience_size])
 
       validate(
         {Emakola.Validations.StatusGuard,
-         from: [:draft, :sending], message: "cannot send a campaign that is not a draft"}
+         from: [:draft, :sending, :failed],
+         message: "cannot send a campaign that has already been sent"}
       )
 
       # This filter is NOT the double-send guard, and it cannot be one.
@@ -155,7 +160,7 @@ defmodule Emakola.Marketing.Campaign do
       # What this filter does buy: a campaign already :sent can never be
       # dragged back to :sending by a stale changeset.
       change(fn changeset, _context ->
-        Ash.Changeset.filter(changeset, expr(status in [:draft, :sending]))
+        Ash.Changeset.filter(changeset, expr(status in [:draft, :sending, :failed]))
       end)
 
       change(set_attribute(:status, :sending))
@@ -169,6 +174,9 @@ defmodule Emakola.Marketing.Campaign do
       change(set_attribute(:sent_at, &DateTime.utc_now/0))
     end
 
+    # Set by CampaignSendWorker when the send raises, so a discarded job
+    # leaves a campaign the merchant can retry rather than one stuck
+    # :sending with no Send button.
     update :mark_failed do
       change(set_attribute(:status, :failed))
     end

@@ -101,6 +101,40 @@ defmodule Emakola.Marketing.CampaignSendWorkerTest do
     assert campaign.status == :sent
   end
 
+  # Without this the row stays :sending forever once Oban discards the job:
+  # the send handler only proceeded from :draft, so the Send button never came
+  # back and the merchant could not retry from the page at all.
+  test "a send that raises leaves the campaign :failed and still fails the job", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    expect(Emakola.SMSProviderMock, :send_sms, fn _to, _body, _opts ->
+      raise "gateway exploded"
+    end)
+
+    assert_raise RuntimeError, "gateway exploded", fn -> perform(ctx.campaign) end
+
+    campaign = Ash.get!(Emakola.Marketing.Campaign, ctx.campaign.id, authorize?: false)
+    assert campaign.status == :failed
+  end
+
+  test "a campaign left :failed can be sent again", ctx do
+    create_customer!(ctx.store, %{phone: "+233201111111"})
+
+    ctx.campaign
+    |> Ash.Changeset.for_update(:mark_failed, %{})
+    |> Ash.update!(authorize?: false)
+
+    expect(Emakola.SMSProviderMock, :send_sms, fn _to, _body, _opts ->
+      {:ok, %{message_id: "sm_1"}}
+    end)
+
+    assert :ok = perform(ctx.campaign)
+
+    campaign = Ash.get!(Emakola.Marketing.Campaign, ctx.campaign.id, authorize?: false)
+    assert campaign.status == :sent
+    assert campaign.sent_count == 1
+  end
+
   test "still sends when the LiveView has already marked it sending", ctx do
     create_customer!(ctx.store, %{phone: "+233201111111"})
 
