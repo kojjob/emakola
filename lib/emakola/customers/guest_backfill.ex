@@ -27,10 +27,24 @@ defmodule Emakola.Customers.GuestBackfill do
   def run(opts \\ []) do
     dry_run? = Keyword.get(opts, :dry_run?, false)
 
+    # Strategy stated, not inferred — this loop mutates `customer_id` on the
+    # very rows the filter selects on, so which strategy Ash lands on is a
+    # correctness question, not a performance one.
+    #
+    # `Order`'s default `:read` declares no pagination (only the named read at
+    # order.ex:532 does), so `:full_read` is what Ash resolves to anyway;
+    # pinning it means a later `pagination` block on that action cannot
+    # silently switch this sweep to `:offset`, which WOULD skip rows — every
+    # linked order leaves the filter, so each offset page would step past as
+    # many unprocessed rows as it just linked.
+    #
+    # The cost is that every customer-less order is materialised at once. That
+    # is the known ceiling here; it is a one-shot migration sweep whose input
+    # set only shrinks, and correctness is worth more than the heap.
     Order
     |> Ash.Query.filter(is_nil(customer_id))
     |> Ash.Query.sort(inserted_at: :asc)
-    |> Ash.stream!(authorize?: false)
+    |> Ash.stream!(authorize?: false, stream_with: :full_read)
     |> Enum.reduce(%{linked: 0, skipped: 0, failed: 0}, fn order, acc ->
       case phone_of(order) do
         nil ->
