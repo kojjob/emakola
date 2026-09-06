@@ -38,6 +38,16 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     * **Traffic by channel** counts visits by source, which is the claim the
       words make. It is not orders-by-UTM wearing the same label.
 
+  ## Orders by source came back too, once traffic did
+
+  The objection above was to orders-by-source wearing a *traffic-share*
+  label — "Sales by Channel" implies visits, but the number would have been
+  orders. That was an objection to the label, not to counting orders by
+  source at all. Now that visits are counted for real, the two can sit side
+  by side under their own names instead of one pretending to be the other:
+  **Where orders came from** counts orders; **Where buyers looked** counts
+  visits. Neither claims to be the other.
+
   ## Per-region conversion is not coming back, and this is why
 
   Not a TODO. It was looked at properly and turned down.
@@ -70,6 +80,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   alias Emakola.Analytics.StoreVisits
   alias Emakola.Dashboard.Stats
   alias Emakola.Orders.Order
+  alias EmakolaWeb.Admin.ReportLive.LookedBought
 
   # Windows the pills offer. "custom" silently meant 30 days and there was no
   # date picker anywhere in the file, so it is not offered.
@@ -109,8 +120,11 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     {from, to} = window(range)
 
     orders = fetch_orders(store_id, from, to)
-    visitors = count_visitors(store_id, range)
-    counted = Enum.reject(orders, &(&1.status == :cancelled))
+    visitors = count_visitors(store_id, from, to)
+    # "Paid" is defined once, on the dashboard (Order.paid_statuses/0), and
+    # reused here so "Money from orders" never disagrees with the dashboard's
+    # own money figure for the same orders.
+    counted = Enum.filter(orders, &(&1.status in Order.paid_statuses()))
     revenue = counted |> Enum.map(&(&1.total || 0)) |> Enum.sum()
     count = length(counted)
 
@@ -126,15 +140,27 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       regions: build_regions(counted),
       visitors: visitors,
       conversion_rate: conversion_rate(count, visitors),
-      traffic_sources: traffic_sources(store_id, range)
+      order_sources: Emakola.Orders.Source.tally(counted),
+      visit_sources: visit_source_rows(traffic_sources(store_id, from, to)),
+      looked_bought: LookedBought.rows(store_id, from, to, counted)
     )
   end
 
-  defp count_visitors(nil, _range), do: 0
-  defp count_visitors(store_id, range), do: StoreVisits.visitors(store_id, @ranges[range])
+  # The visit buckets share names with order sources. `String.to_existing_atom`
+  # in StoreVisits.by_source_between keeps this a closed set.
+  defp visit_source_rows(by_source) when is_map(by_source) do
+    by_source
+    |> Enum.map(fn {source, count} ->
+      %{label: Emakola.Orders.Source.label(source), visits: count}
+    end)
+    |> Enum.sort_by(&(-&1.visits))
+  end
 
-  defp traffic_sources(nil, _range), do: %{}
-  defp traffic_sources(store_id, range), do: StoreVisits.by_source(store_id, @ranges[range])
+  defp count_visitors(nil, _from, _to), do: 0
+  defp count_visitors(store_id, from, to), do: StoreVisits.visitors_between(store_id, from, to)
+
+  defp traffic_sources(nil, _from, _to), do: %{}
+  defp traffic_sources(store_id, from, to), do: StoreVisits.by_source_between(store_id, from, to)
 
   # Percent to one decimal, already rendered as a string.
   #
@@ -146,11 +172,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   # not converted 0%, it has no rate to report.
   defp conversion_rate(_orders, 0), do: nil
 
-  # More orders than visitors means the denominator is short, not that the
-  # store converts above 100%. Orders are counted from the store's whole
-  # history; visits only from the day counting shipped. Every merchant starts
-  # in that state, so this is the ordinary early case, not a freak one — and
-  # "1500% of them bought" answers no question a merchant has.
+  # Both sides now share the calendar-day window from window/1.
   defp conversion_rate(orders, visitors) when orders > visitors, do: nil
 
   defp conversion_rate(orders, visitors),
@@ -309,7 +331,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         >
           <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
           <:delta>
-            <p class="text-sm text-slate-500">Cancelled orders not counted</p>
+            <p class="text-sm text-slate-500">Paid orders only</p>
           </:delta>
         </.stat_card>
 
@@ -455,6 +477,63 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
             </tbody>
           </table>
         </div>
+      </.admin_card>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <.admin_card :if={@order_sources != []} id="reports-order-sources" padding={:none} class="p-5">
+          <h2 class="text-base font-bold text-slate-800">Where orders came from</h2>
+          <p class="text-sm text-slate-500 mt-1">Paid orders in this period</p>
+          <table class="w-full text-sm mt-4">
+            <thead>
+              <tr class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-2">Source</th>
+                <th class="py-2 text-right">Orders</th>
+                <th class="py-2 text-right">Money</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={row <- @order_sources} class="border-t border-slate-100">
+                <td class="py-2.5 font-medium text-slate-800">{row.label}</td>
+                <td class="py-2.5 text-right font-mono">{row.orders}</td>
+                <td class="py-2.5 text-right font-mono font-semibold">{format_cedis(row.money)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </.admin_card>
+
+        <.admin_card :if={@visit_sources != []} id="reports-visit-sources" padding={:none} class="p-5">
+          <h2 class="text-base font-bold text-slate-800">Where buyers looked</h2>
+          <p class="text-sm text-slate-500 mt-1">Shop visits in this period</p>
+          <table class="w-full text-sm mt-4">
+            <thead>
+              <tr class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-2">Source</th>
+                <th class="py-2 text-right">Visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={row <- @visit_sources} class="border-t border-slate-100">
+                <td class="py-2.5 font-medium text-slate-800">{row.label}</td>
+                <td class="py-2.5 text-right font-mono">{row.visits}</td>
+              </tr>
+            </tbody>
+          </table>
+        </.admin_card>
+      </div>
+
+      <.admin_card :if={@looked_bought != []} id="reports-looked-bought" padding={:none} class="p-5">
+        <h2 class="text-base font-bold text-slate-800">Looked, then bought</h2>
+        <p class="text-sm text-slate-500 mt-1">
+          People who opened a product page, and orders with it
+        </p>
+        <ul class="mt-4 divide-y divide-slate-100">
+          <li :for={row <- @looked_bought} class="flex items-center justify-between py-2.5 text-sm">
+            <span class="font-medium text-slate-800 truncate">{row.title}</span>
+            <span class="font-mono text-slate-500 shrink-0">
+              {row.looked} looked, {row.bought} bought
+            </span>
+          </li>
+        </ul>
       </.admin_card>
     </div>
     """

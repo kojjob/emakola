@@ -250,4 +250,21 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
       assert commitment.payment_id
     end
   end
+
+  describe "visit tracking" do
+    test "a connected mount records a product-page visit", %{conn: conn} do
+      store = create_store!(%{slug: "visit-tracking-shop"})
+      product = create_product!(store, %{title: "Tracked Bowl"})
+      create_variant!(product, store, %{price: 4500, track_inventory: false, stock_quantity: 0})
+      activate!(product)
+      {conn, _session_id} = with_cart_session(conn)
+
+      {:ok, _view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+      assert [visit] = Ash.read!(Emakola.Analytics.StoreVisit, authorize?: false)
+      assert visit.store_id == store.id
+      assert visit.page == :product
+      assert visit.product_id == product.id
+    end
+  end
 end

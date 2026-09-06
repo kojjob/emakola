@@ -68,6 +68,15 @@ defmodule Emakola.Analytics.StoreVisit do
 
     attribute(:occurred_at, :utc_datetime_usec, allow_nil?: false, public?: true)
 
+    attribute :page, :atom do
+      allow_nil?(false)
+      default(:home)
+      public?(true)
+      constraints(one_of: [:home, :product, :pay_link])
+    end
+
+    attribute(:product_id, :uuid, allow_nil?: true, public?: true)
+
     create_timestamp(:inserted_at)
   end
 
@@ -75,7 +84,7 @@ defmodule Emakola.Analytics.StoreVisit do
     defaults([:read])
 
     create :record do
-      accept([:store_id, :visitor_hash, :source, :occurred_at])
+      accept([:store_id, :visitor_hash, :source, :occurred_at, :page, :product_id])
     end
   end
 end

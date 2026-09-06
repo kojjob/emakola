@@ -642,6 +642,7 @@ defmodule EmakolaWeb.Router do
 
     # PDF export (outside live_session, uses session-based auth)
     get "/admin/export/analytics.pdf", ExportController, :analytics_pdf
+    get "/admin/export/customers.csv", CustomerExportController, :customers_csv
 
     live "/onboarding", OnboardingLive
   end

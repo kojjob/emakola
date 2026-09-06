@@ -40,8 +40,8 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "revenue and order count come from this store's orders", %{conn: conn, store: store} do
-      Factory.create_order!(store, total: 40_000)
-      Factory.create_order!(store, total: 25_000)
+      Factory.create_order!(store, total: 40_000, status: :confirmed)
+      Factory.create_order!(store, total: 25_000, status: :confirmed)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reports")
 
@@ -50,8 +50,8 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "average order value is derived, not stored", %{conn: conn, store: store} do
-      Factory.create_order!(store, total: 30_000)
-      Factory.create_order!(store, total: 10_000)
+      Factory.create_order!(store, total: 30_000, status: :confirmed)
+      Factory.create_order!(store, total: 10_000, status: :confirmed)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reports")
 
@@ -59,10 +59,10 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "another store's orders never appear", %{conn: conn, store: store} do
-      Factory.create_order!(store, total: 40_000)
+      Factory.create_order!(store, total: 40_000, status: :confirmed)
 
       other = Factory.create_store!()
-      Factory.create_order!(other, total: 900_000)
+      Factory.create_order!(other, total: 900_000, status: :confirmed)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reports")
 
@@ -71,8 +71,8 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
     end
 
     test "the range filter narrows what is counted", %{conn: conn, store: store} do
-      Factory.create_order!(store, total: 40_000)
-      old = Factory.create_order!(store, total: 90_000)
+      Factory.create_order!(store, total: 40_000, status: :confirmed)
+      old = Factory.create_order!(store, total: 90_000, status: :confirmed)
       backdate!(old, -120)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reports")

@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
-  def mount(%{"code" => code}, session, socket) do
+  def mount(%{"code" => code} = params, session, socket) do
     case Emakola.Orders.get_pay_link_by_code(code, authorize?: false) do
       {:ok, link} ->
         store = Ash.get!(Emakola.Stores.Store, link.store_id, authorize?: false)
@@ -30,6 +30,16 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
           link
           |> Ash.Changeset.for_update(:increment_opened, %{})
           |> Ash.update(authorize?: false)
+        end
+
+        cart_session_id = session["cart_session_id"]
+
+        if connected?(socket) && cart_session_id do
+          Emakola.Analytics.StoreVisits.record(
+            store.id,
+            cart_session_id,
+            Map.merge(params, %{"page" => :pay_link, "product_id" => nil})
+          )
         end
 
         {:ok,

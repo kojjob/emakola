@@ -204,4 +204,19 @@ defmodule Emakola.Orders.OrderTest do
   end
 
   defp reload_order(order), do: Ash.get!(Emakola.Orders.Order, order.id, authorize?: false)
+
+  # Ash's `expr` cannot call functions, so the Customer aggregates in
+  # lib/emakola/customers/resources/customer.ex (`paid_total`,
+  # `paid_order_count`) inline this exact list rather than calling
+  # `paid_statuses/0`. This guard fails loudly if the two ever drift apart.
+  describe "paid_statuses/0" do
+    test "matches the list inlined in Customer's aggregate filters" do
+      assert Emakola.Orders.Order.paid_statuses() == [
+               :confirmed,
+               :processing,
+               :shipped,
+               :delivered
+             ]
+    end
+  end
 end

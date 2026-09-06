@@ -87,7 +87,7 @@ defmodule Emakola.Accounts.StoreMembership do
     read :by_merchant do
       argument(:merchant_id, :uuid, allow_nil?: false)
       filter(expr(merchant_id == ^arg(:merchant_id)))
-      prepare(build(limit: 1))
+      prepare(build(sort: [inserted_at: :asc], limit: 1))
       get?(true)
     end
   end

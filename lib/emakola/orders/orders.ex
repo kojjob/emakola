@@ -86,6 +86,11 @@ defmodule Emakola.Orders do
       define(:list_returns_by_store, action: :list_by_store, args: [:store_id])
       define(:get_return_by_order, action: :get_by_order, args: [:order_id])
       define(:list_returns_by_customer, action: :list_by_customer, args: [:customer_id])
+
+      define(:list_returns_by_customer_and_store,
+        action: :list_by_customer_and_store,
+        args: [:customer_id, :store_id]
+      )
     end
   end
 end

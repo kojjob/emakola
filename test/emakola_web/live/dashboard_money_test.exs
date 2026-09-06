@@ -80,4 +80,21 @@ defmodule EmakolaWeb.DashboardMoneyTest do
     refute html =~ "5,000.00"
     refute html =~ "5,100.00"
   end
+
+  test "see more numbers names the top sources", ctx do
+    Factory.create_order!(ctx.store, %{
+      subtotal: 100,
+      total: 100,
+      status: :confirmed,
+      attribution: %{"utm_source" => "instagram"}
+    })
+
+    # Not `~p"/dashboard?period=today"` as in the brief: mount discards
+    # params (see `visit_today/1` above), so that query string is a no-op
+    # and would pass on the default "week" period alone.
+    view = visit_today(ctx.conn)
+    render_async(view)
+
+    assert has_element?(view, "#top-sources", "Instagram")
+  end
 end

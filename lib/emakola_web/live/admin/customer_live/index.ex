@@ -10,7 +10,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   require Logger
 
+  alias Emakola.Customers.Segments
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
+
+  import EmakolaWeb.Admin.CustomerLive.Components,
+    only: [customer_initials: 1, add_customer_form: 1, segment_chips: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -28,9 +33,15 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         customers_limit: @customers_limit,
         more_customers?: false,
         total_customers: 0,
-        new_this_month: 0
+        new_this_month: 0,
+        bought_again: 0,
+        segment: :everyone,
+        segment_counts: %{},
+        adding?: false,
+        add_form: to_form(%{"name" => "", "phone" => "", "email" => ""}, as: :customer)
       )
       |> load_customers()
+      |> assign_segment_counts()
 
     {:ok, socket}
   end
@@ -45,11 +56,15 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
+    # A search overrides any chosen segment (see load_customers/1) — clear it
+    # here so the chip row doesn't keep highlighting a segment the search has
+    # silently stopped applying.
     socket =
       socket
       |> assign(
         search_query: query,
         search_form: to_form(%{"search" => query}),
+        segment: :everyone,
         customers_limit: @customers_limit
       )
       |> load_customers()
@@ -57,18 +72,129 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
     {:noreply, socket}
   end
 
+  # A search in progress ignores the segment (see load_customers/1) — clearing
+  # it here keeps the chip honest about what the list is actually showing,
+  # rather than highlighting a segment the search has silently overridden.
+  def handle_event("segment", %{"segment" => segment_param}, socket) do
+    segment = Emakola.SafeAtom.to_atom_in(segment_param, Segments.all(), :everyone)
+
+    {:noreply,
+     socket
+     |> assign(
+       segment: segment,
+       search_query: "",
+       search_form: to_form(%{"search" => ""}),
+       customers_limit: @customers_limit
+     )
+     |> load_customers()
+     |> assign_segment_counts()}
+  end
+
+  def handle_event("toggle_add", _params, socket) do
+    {:noreply, assign(socket, adding?: not socket.assigns.adding?)}
+  end
+
+  def handle_event("add_customer", %{"customer" => params}, socket) do
+    with {:ok, name} <- as_binary(params["name"]),
+         {:ok, phone} <- as_binary(params["phone"]),
+         {:ok, email} <- as_binary(params["email"]) do
+      if phone not in [nil, ""] and not Emakola.Accounts.PhoneAuth.valid?(phone) do
+        {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
+      else
+        attrs = %{
+          store_id: socket.assigns.store_id,
+          name: name,
+          phone: normalize_phone(phone),
+          email: blank_to_nil(email)
+        }
+
+        case Emakola.Customers.create_customer(attrs, authorize?: false) do
+          {:ok, _customer} ->
+            {:noreply,
+             socket
+             |> assign(adding?: false)
+             |> load_customers()
+             |> assign_segment_counts()
+             |> put_flash(:info, "Customer saved")}
+
+          {:error, error} ->
+            {:noreply, put_flash(socket, :error, add_customer_error_message(error))}
+        end
+      end
+    else
+      # A crafted param (e.g. customer[phone][]=1) arrives as a list/map, not
+      # a string — reject it the same way as a plain bad phone, rather than
+      # crashing inside PhoneAuth.valid?/1 further down.
+      :error -> {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
+    end
+  end
+
+  defp as_binary(nil), do: {:ok, nil}
+  defp as_binary(value) when is_binary(value), do: {:ok, value}
+  defp as_binary(_value), do: :error
+
+  defp normalize_phone(phone) when is_binary(phone) and phone != "",
+    do: Emakola.Accounts.PhoneAuth.normalize(phone)
+
+  defp normalize_phone(_phone), do: nil
+
+  defp blank_to_nil(value) when is_binary(value),
+    do: if(String.trim(value) == "", do: nil, else: value)
+
+  defp blank_to_nil(_value), do: nil
+
+  defp add_customer_error_message(%Ash.Error.Invalid{errors: errors}) do
+    cond do
+      Enum.any?(errors, &duplicate_on_constraint?(&1, "email")) ->
+        "That email is already a customer"
+
+      Enum.any?(errors, &duplicate_on_constraint?(&1, "phone")) ->
+        "That phone is already a customer"
+
+      true ->
+        "Give a name and a phone or email"
+    end
+  end
+
+  defp add_customer_error_message(_error), do: "Give a name and a phone or email"
+
+  # AshPostgres attributes a composite unique-index violation (customer
+  # identities are `[:store_id, :phone]` / `[:store_id, :email]`) to
+  # whichever column comes first in the index — always `field: :store_id`
+  # here, never the field the merchant actually typed. The Postgres
+  # constraint name (from the migration: customers_unique_store_<field>_index)
+  # is the reliable signal instead.
+  defp duplicate_on_constraint?(error, substring) do
+    with %{private_vars: vars} when is_list(vars) <- error,
+         name when is_binary(name) <- Keyword.get(vars, :constraint) do
+      name =~ substring
+    else
+      _ -> false
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header icon="hero-users" title="Customers" subtitle="Manage your customer base">
-        <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+        <.link
+          href="/admin/export/customers.csv"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
-        </button>
-        <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
-          <.icon name="hero-plus" class="size-4" /> Add Customer
+        </.link>
+        <button
+          id="add-customer-toggle"
+          type="button"
+          phx-click="toggle_add"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+        >
+          <.icon name="hero-plus" class="size-4" /> Add customer
         </button>
       </.admin_page_header>
+
+      <.add_customer_form adding?={@adding?} form={@add_form} />
 
       <%!-- KPI Cards --%>
       <%!-- Three tiles, not four: "Active" rendered @total_customers, the same
@@ -90,13 +216,19 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           <:icon><.icon name="hero-user-plus" class="size-7" /></:icon>
         </.stat_card>
         <.stat_card
-          label="Avg. Order Value"
-          value={calculate_avg_order_value(@customers)}
+          id="customers-bought-again"
+          label="Bought again"
+          value={Integer.to_string(@bought_again)}
           tone={:info}
         >
-          <:icon><.icon name="hero-currency-dollar" class="size-7" /></:icon>
+          <:icon><.icon name="hero-arrow-path" class="size-7" /></:icon>
+          <:delta>
+            <p class="text-sm text-slate-500">Two or more paid orders</p>
+          </:delta>
         </.stat_card>
       </div>
+
+      <.segment_chips segment={@segment} segment_counts={@segment_counts} />
 
       <%!-- Filter Bar --%>
       <.table_toolbar
@@ -130,7 +262,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         <%!-- Desktop Table --%>
         <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table id="customers-table" class="w-full text-sm">
               <thead>
                 <tr class="border-b border-slate-100">
                   <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-6 py-3">
@@ -146,6 +278,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
                     Total Spent
                   </th>
                   <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-6 py-3">
+                    Last bought
+                  </th>
+                  <th class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-6 py-3">
                     Joined
                   </th>
                   <th class="text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-6 py-3">
@@ -156,6 +291,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
               <tbody>
                 <tr
                   :for={customer <- @customers}
+                  id={"customer-#{customer.id}"}
                   class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 >
                   <td class="px-6 py-4">
@@ -177,7 +313,10 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
                   <td class="px-6 py-4 text-slate-600">{customer.phone || "-"}</td>
                   <td class="px-6 py-4 text-slate-600">{customer.order_count || 0}</td>
                   <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">
-                    {format_total_spent(customer)}
+                    {format_price(customer.paid_total || 0)}
+                  </td>
+                  <td class="px-6 py-4 text-slate-500">
+                    {last_bought(customer.last_order_at)}
                   </td>
                   <td class="px-6 py-4 text-slate-500">
                     {Calendar.strftime(customer.inserted_at, "%d/%m/%Y")}
@@ -200,6 +339,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         <div class="md:hidden space-y-3">
           <.link
             :for={customer <- @customers}
+            id={"customer-#{customer.id}-card"}
             navigate={~p"/admin/customers/#{customer.id}"}
             class="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-md transition-all"
           >
@@ -217,8 +357,11 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
             <div class="flex items-center justify-between text-xs text-slate-500">
               <span>{Emakola.Plural.count(customer.order_count, "order")}</span>
               <span class="font-mono font-semibold text-slate-800">
-                {format_total_spent(customer)}
+                {format_price(customer.paid_total || 0)}
               </span>
+            </div>
+            <div class="text-xs text-slate-500 mt-1">
+              Last bought {last_bought(customer.last_order_at)}
             </div>
           </.link>
         </div>
@@ -250,23 +393,33 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   defp load_customers(socket) do
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
+    segment = socket.assigns[:segment] || :everyone
     limit = socket.assigns[:customers_limit] || @customers_limit
 
     customers =
-      if store_id do
-        if search_query != "" do
+      cond do
+        is_nil(store_id) ->
+          []
+
+        search_query != "" ->
           Emakola.Customers.search_customers!(store_id, search_query,
             query: [limit: limit + 1],
             authorize?: false
           )
-        else
+
+        segment != :everyone ->
+          store_id
+          |> Segments.query(segment)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:order_count, :paid_total, :paid_order_count])
+          |> Ash.Query.limit(limit + 1)
+          |> Ash.read!(authorize?: false)
+
+        true ->
           Emakola.Customers.list_customers_by_store!(store_id,
             query: [limit: limit + 1],
             authorize?: false
           )
-        end
-      else
-        []
       end
 
     # One row past the window answers "is there more?" without a second COUNT.
@@ -284,7 +437,14 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         "[customer_live.index] load_customers loading customers raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, customers: [], more_customers?: false, total_customers: 0, new_this_month: 0)
+      assign(socket,
+        customers: [],
+        more_customers?: false,
+        total_customers: 0,
+        new_this_month: 0,
+        bought_again: 0,
+        segment_counts: %{}
+      )
   end
 
   # The KPI tiles used to count `length(@customers)` — i.e. the loaded WINDOW,
@@ -292,7 +452,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   # number changed as they pressed "Load more". These are real counts over the
   # same scope as the list (store, plus the active search).
   defp assign_customer_totals(socket, nil, _search),
-    do: assign(socket, total_customers: 0, new_this_month: 0)
+    do:
+      assign(socket,
+        total_customers: 0,
+        new_this_month: 0,
+        bought_again: 0,
+        segment_counts: %{}
+      )
 
   defp assign_customer_totals(socket, store_id, search_query) do
     require Ash.Query
@@ -309,12 +475,18 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
     start_of_month = Date.utc_today() |> Date.beginning_of_month() |> DateTime.new!(~T[00:00:00])
 
+    bought_again_query =
+      Ash.Query.for_read(Emakola.Customers.Customer, :bought_again_by_store, %{
+        store_id: store_id
+      })
+
     assign(socket,
       total_customers: Ash.count!(base, authorize?: false),
       new_this_month:
         base
         |> Ash.Query.filter(inserted_at >= ^start_of_month)
-        |> Ash.count!(authorize?: false)
+        |> Ash.count!(authorize?: false),
+      bought_again: Ash.count!(bought_again_query, authorize?: false)
     )
   rescue
     exception ->
@@ -322,7 +494,29 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         "[customer_live.index] customer totals failed: #{Exception.message(exception)}"
       )
 
-      assign(socket, total_customers: length(socket.assigns.customers), new_this_month: 0)
+      assign(socket,
+        total_customers: length(socket.assigns.customers),
+        new_this_month: 0,
+        bought_again: 0,
+        segment_counts: %{}
+      )
+  end
+
+  # Segments.counts/1 runs 5 counts plus a full scan of paying customers for
+  # the big-spenders floor — real work, not a free read. Called explicitly
+  # from mount, a segment click, and after adding a customer; NOT from
+  # load_customers/1, so a search keystroke or "Load more" click leaves the
+  # chip counts as they were rather than recomputing them on every one.
+  defp assign_segment_counts(socket) do
+    case socket.assigns.store_id do
+      nil -> assign(socket, segment_counts: %{})
+      store_id -> assign(socket, segment_counts: Segments.counts(store_id))
+    end
+  rescue
+    exception ->
+      Logger.error("[customer_live.index] segment counts failed: #{Exception.message(exception)}")
+
+      assign(socket, segment_counts: %{})
   end
 
   # ── Helpers ──
@@ -334,32 +528,16 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
     end
   end
 
-  defp customer_initials(nil), do: "?"
+  defp last_bought(nil), do: "Not yet"
 
-  defp customer_initials(name) do
-    name
-    |> String.split(" ", trim: true)
-    |> Enum.take(2)
-    |> Enum.map(&String.first/1)
-    |> Enum.join()
-    |> String.upcase()
-  end
+  defp last_bought(at) do
+    days = Date.diff(Date.utc_today(), DateTime.to_date(at))
 
-  defp format_total_spent(customer) do
-    orders = Map.get(customer, :orders, nil)
-
-    total =
-      if is_list(orders) do
-        Enum.reduce(orders, 0, fn order, acc -> acc + (order.total || 0) end)
-      else
-        0
-      end
-
-    format_price(total)
-  end
-
-  defp calculate_avg_order_value(_customers) do
-    # Placeholder - would require loading all orders
-    "N/A"
+    cond do
+      days <= 0 -> "Today"
+      days == 1 -> "Yesterday"
+      days < 30 -> "#{days} days ago"
+      true -> Calendar.strftime(at, "%d %b %Y")
+    end
   end
 end
