@@ -32,6 +32,20 @@ defmodule EmakolaWeb.IdleConnectionSweeperTest do
     words
   end
 
+  # Polls rather than sleeping a fixed time: on a loaded host a 20ms interval can
+  # slip well past 100ms, and a fixed sleep turns the test into a coin toss.
+  defp eventually(check, deadline_ms \\ 3_000) do
+    wait_until(check, System.monotonic_time(:millisecond) + deadline_ms)
+  end
+
+  defp wait_until(check, deadline) do
+    cond do
+      check.() -> true
+      System.monotonic_time(:millisecond) > deadline -> false
+      true -> Process.sleep(10) && wait_until(check, deadline)
+    end
+  end
+
   describe "sweep/0" do
     test "collects an idle Bandit connection process whose heap is mostly garbage" do
       pid = spawn_idle_process(@bandit_handler)
@@ -87,8 +101,7 @@ defmodule EmakolaWeb.IdleConnectionSweeperTest do
          interval: 20, name: :"sweeper_#{System.unique_integer([:positive])}"}
       )
 
-      Process.sleep(120)
-      assert heap_words(pid) < IdleConnectionSweeper.min_heap_words()
+      assert eventually(fn -> heap_words(pid) < IdleConnectionSweeper.min_heap_words() end)
       send(pid, :stop)
     end
 
