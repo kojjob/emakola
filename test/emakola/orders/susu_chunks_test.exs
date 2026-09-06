@@ -310,7 +310,7 @@ defmodule Emakola.Orders.SusuChunksTest do
 
       customer = Ash.get!(Emakola.Customers.Customer, updated.customer_id, authorize?: false)
       assert customer.name == "Ama Mensah"
-      assert customer.phone == "0201234567"
+      assert customer.phone == "+233201234567"
     end
 
     test "catalog plan: reserves stock via SusuStock.reserve/1", %{store: store} do

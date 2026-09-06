@@ -217,6 +217,13 @@ defmodule Emakola.Customers.Customer do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
+    # Backfill only — no live actor may call this, not even the customer's
+    # own record. The backfill itself runs with authorize?: false and never
+    # has an actor.
+    policy action(:backdate_last_order) do
+      forbid_if(always())
+    end
+
     # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -255,6 +262,7 @@ defmodule Emakola.Customers.Customer do
     create :register_with_phone do
       accept([:email, :name, :phone])
       validate(Emakola.Customers.Validations.ContactDetailPresent)
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
     end
 
     create :register_with_password do
@@ -272,6 +280,7 @@ defmodule Emakola.Customers.Customer do
       )
 
       validate(AshAuthentication.Strategy.Password.PasswordConfirmationValidation)
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
       change(AshAuthentication.Strategy.Password.HashPasswordChange)
       change(AshAuthentication.GenerateTokenChange)
     end
@@ -305,6 +314,8 @@ defmodule Emakola.Customers.Customer do
         |> Ash.Changeset.change_attribute(:email, user_info["email"])
         |> Ash.Changeset.change_attribute(:name, user_info["name"])
       end)
+
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
     end
 
     read :sign_in_with_oauth2 do
@@ -326,6 +337,11 @@ defmodule Emakola.Customers.Customer do
       change(set_attribute(:last_order_at, &DateTime.utc_now/0))
     end
 
+    # Backfill only: a historical order must not stamp "now".
+    update :backdate_last_order do
+      accept([:last_order_at])
+    end
+
     action :find_or_create, :struct do
       constraints(instance_of: __MODULE__)
 
@@ -339,6 +355,13 @@ defmodule Emakola.Customers.Customer do
 
       argument(:name, :string)
       argument(:phone, :string)
+
+      # An unverified caller (default) must never bind a stranger's guest
+      # checkout to an existing account that holds credentials — see
+      # FindOrCreateCustomer. Only the signed-in path (which uses
+      # customer_id directly, never this action) knows the phone/email is
+      # really that customer's, so callers pass true only there.
+      argument(:verified?, :boolean, default: false)
 
       run(Emakola.Customers.Actions.FindOrCreateCustomer)
     end

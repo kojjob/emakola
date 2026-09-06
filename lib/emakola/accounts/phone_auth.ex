@@ -69,6 +69,19 @@ defmodule Emakola.Accounts.PhoneAuth do
   end
 
   @doc """
+  True when the phone normalises to a plausible E.164 number: "+" followed by
+  10 to 15 digits. `normalize/1` always succeeds — even on garbage input like
+  "abc" or a blank string, which collapse to the bare country code — so this
+  is the check that actually rejects those instead of silently accepting them.
+  """
+  def valid?(phone) do
+    case normalize(phone) do
+      "+" <> digits -> String.match?(digits, ~r/^\d{10,15}$/)
+      _ -> false
+    end
+  end
+
+  @doc """
   Combine a country code with a national number into E.164.
 
   Strips non-digit separators from `number` and drops a single leading trunk-0

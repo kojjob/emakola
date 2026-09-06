@@ -510,16 +510,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         opts
       end
 
-    # Every storefront order was created with customer_id: nil, so every
-    # DownloadGrant was a guest grant and Storefront.DownloadController 404s
-    # those forever. CheckoutService.resolve_customer/2 has always handled
-    # :customer_id — the branch was simply dead on this path. Signed-in buyers
-    # of physical goods gain a correct account Orders tab as a side effect.
-    opts =
-      case socket.assigns[:current_customer] do
-        %{id: customer_id} -> Keyword.put(opts, :customer_id, customer_id)
-        _ -> opts
-      end
+    opts = Keyword.merge(opts, EmakolaWeb.Storefront.CheckoutIdentity.opts(socket.assigns))
 
     CheckoutService.checkout!(store.id, items, opts)
   end
@@ -905,14 +896,28 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     errors = %{}
 
     errors =
-      if assigns.phone == "",
-        do: Map.put(errors, :phone, "Phone number is required"),
-        else: errors
+      cond do
+        assigns.phone == "" ->
+          Map.put(errors, :phone, "Phone number is required")
+
+        not Emakola.Accounts.PhoneAuth.valid?(assigns.phone) ->
+          Map.put(errors, :phone, "Enter a valid phone number")
+
+        true ->
+          errors
+      end
 
     errors =
-      if assigns.fullname == "",
-        do: Map.put(errors, :fullname, "Full name is required"),
-        else: errors
+      cond do
+        assigns.fullname == "" ->
+          Map.put(errors, :fullname, "Full name is required")
+
+        String.length(assigns.fullname) > 255 ->
+          Map.put(errors, :fullname, "Name is too long")
+
+        true ->
+          errors
+      end
 
     email = assigns[:email] || ""
 
@@ -1009,6 +1014,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:variant_not_found), do: "Some items are no longer available"
   defp checkout_error_message(:variant_not_in_store), do: "Some items are not from this store"
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
+  defp checkout_error_message(:invalid_customer), do: "Check your name and phone number"
 
   defp checkout_error_message(:network_coupon_not_allowed),
     do: "Coupons cannot be used with partner-fulfilled products yet."

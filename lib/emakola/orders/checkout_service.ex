@@ -95,6 +95,8 @@ defmodule Emakola.Orders.CheckoutService do
     end
   end
 
+  @placeholder_domain "phone.customers.makola.io"
+
   @doc """
   Deterministic placeholder email for phone-first buyers: the phone is
   normalized (`PhoneAuth.normalize/1`) before deriving digits, so local and
@@ -110,8 +112,20 @@ defmodule Emakola.Orders.CheckoutService do
       |> Emakola.Accounts.PhoneAuth.normalize()
       |> String.replace(~r/\D/, "")
 
-    "p#{digits}@phone.customers.makola.io"
+    "p#{digits}@#{@placeholder_domain}"
   end
+
+  @doc """
+  True when `email` is on the phone-placeholder domain `phone_placeholder_email/1`
+  generates. No real human owns one of these addresses, so no registration
+  should ever be allowed to claim one — see
+  Emakola.Customers.Validations.NotPlaceholderEmail, the guard this backs.
+  """
+  def placeholder_email?(email) when is_binary(email) do
+    String.ends_with?(String.downcase(email), "@" <> @placeholder_domain)
+  end
+
+  def placeholder_email?(_), do: false
 
   defp run_checkout_custom(store_id, title, unit_price, opts) do
     result =
@@ -715,15 +729,26 @@ defmodule Emakola.Orders.CheckoutService do
     end
   end
 
+  # A garbage-but-oversized name or phone still fails the Customer resource's
+  # own length constraints. Ash.run_action! would raise that out of this
+  # transaction with nothing to catch it downstream; run/2 plus a rollback
+  # turns it into a checkout error instead, the same way the coupon step
+  # rolls back on an invalid coupon.
   defp find_or_create_customer!(store_id, opts) do
-    Emakola.Customers.Customer
-    |> Ash.ActionInput.for_action(:find_or_create, %{
-      email: Keyword.get(opts, :customer_email),
-      store_id: store_id,
-      name: Keyword.get(opts, :customer_name),
-      phone: Keyword.get(opts, :customer_phone)
-    })
-    |> Ash.run_action!()
+    result =
+      Emakola.Customers.Customer
+      |> Ash.ActionInput.for_action(:find_or_create, %{
+        email: Keyword.get(opts, :customer_email),
+        store_id: store_id,
+        name: Keyword.get(opts, :customer_name),
+        phone: Keyword.get(opts, :customer_phone)
+      })
+      |> Ash.run_action()
+
+    case result do
+      {:ok, customer} -> customer
+      {:error, _reason} -> Emakola.Repo.rollback(:invalid_customer)
+    end
   end
 
   defp resolve_default_address(customer) do

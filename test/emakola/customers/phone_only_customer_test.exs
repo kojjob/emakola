@@ -49,6 +49,23 @@ defmodule Emakola.Customers.PhoneOnlyCustomerTest do
     assert Exception.message(error) =~ "phone"
   end
 
+  test "refuses a phone-placeholder email", %{store: store} do
+    assert {:error, error} =
+             Customer
+             |> Ash.Changeset.for_create(
+               :register_with_phone,
+               %{
+                 name: "Attacker",
+                 phone: "+233241234567",
+                 email: "p233241234567@phone.customers.makola.io"
+               },
+               tenant: store.id
+             )
+             |> Ash.create(authorize?: false)
+
+    assert Exception.message(error) =~ "Use your own email address"
+  end
+
   test "still registers with an email and no phone", %{store: store} do
     assert {:ok, customer} =
              Customer

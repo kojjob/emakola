@@ -36,11 +36,13 @@ defmodule EmakolaWeb.DashboardHelpers do
       [
         revenue_count:
           AsyncSandbox.run_async(fn -> revenue_and_count(store_id, day_start, day_end) end),
+        waiting_for_payment:
+          AsyncSandbox.run_async(fn -> waiting_for_payment(store_id, day_start, day_end) end),
         customers:
-          AsyncSandbox.run_async(fn -> count_customers(store_id, day_start, day_end) end),
+          AsyncSandbox.run_async(fn -> Stats.count_buyers(store_id, day_start, day_end) end),
         orders_in_range:
           AsyncSandbox.run_async(fn ->
-            load_non_cancelled_orders(store_id, chart_start, chart_end)
+            load_paid_orders(store_id, chart_start, chart_end)
           end),
         customers_in_range:
           AsyncSandbox.run_async(fn ->
@@ -66,6 +68,7 @@ defmodule EmakolaWeb.DashboardHelpers do
     {total_revenue, order_count} = results.revenue_count
     avg_order_value = if order_count > 0, do: div(total_revenue, order_count), else: 0
     customer_count = results.customers
+    waiting_for_payment = results.waiting_for_payment
 
     {revenue_change, orders_change, customers_change, aov_change} =
       compute_changes(
@@ -81,6 +84,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       total_revenue: total_revenue,
       order_count: order_count,
       customer_count: customer_count,
+      waiting_for_payment: waiting_for_payment,
       avg_order_value: avg_order_value,
       revenue_change: revenue_change,
       orders_change: orders_change,
@@ -118,7 +122,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       prev_revenue_count:
         AsyncSandbox.run_async(fn -> revenue_and_count(store_id, prev_start, prev_end) end),
       prev_customers:
-        AsyncSandbox.run_async(fn -> count_customers(store_id, prev_start, prev_end) end)
+        AsyncSandbox.run_async(fn -> Stats.count_buyers(store_id, prev_start, prev_end) end)
     ]
   end
 
@@ -150,6 +154,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       total_revenue: 0,
       order_count: 0,
       customer_count: 0,
+      waiting_for_payment: 0,
       avg_order_value: 0,
       revenue_change: nil,
       orders_change: nil,
@@ -202,26 +207,35 @@ defmodule EmakolaWeb.DashboardHelpers do
   # ── Data Loaders ──
 
   defp revenue_and_count(store_id, from, to) do
-    base =
-      Emakola.Orders.Order
-      |> Ash.Query.for_read(:by_store_non_cancelled_in_period, %{
-        store_id: store_id,
-        from: from,
-        to: to
-      })
+    base = period_read(store_id, from, to, Emakola.Orders.Order.paid_statuses())
 
     {:ok, revenue} = Ash.sum(base, :total, authorize?: false)
     {:ok, count} = Ash.count(base, authorize?: false)
     {revenue || 0, count}
   end
 
-  defp load_non_cancelled_orders(store_id, from, to) do
-    Emakola.Orders.Order
-    |> Ash.Query.for_read(:by_store_non_cancelled_in_period, %{
+  # Orders placed but not yet paid (MoMo) or confirmed (cash on delivery).
+  defp waiting_for_payment(store_id, from, to) do
+    {:ok, sum} =
+      store_id
+      |> period_read(from, to, [:pending])
+      |> Ash.sum(:total, authorize?: false)
+
+    sum || 0
+  end
+
+  defp period_read(store_id, from, to, statuses) do
+    Ash.Query.for_read(Emakola.Orders.Order, :by_store_in_period_with_status, %{
       store_id: store_id,
       from: from,
-      to: to
+      to: to,
+      statuses: statuses
     })
+  end
+
+  defp load_paid_orders(store_id, from, to) do
+    store_id
+    |> period_read(from, to, Emakola.Orders.Order.paid_statuses())
     |> Ash.Query.select([:id, :total, :inserted_at])
     |> Ash.read!(authorize?: false)
   end
@@ -231,15 +245,6 @@ defmodule EmakolaWeb.DashboardHelpers do
     |> Ash.Query.for_read(:by_store_in_period, %{store_id: store_id, from: from, to: to})
     |> Ash.Query.select([:id, :inserted_at])
     |> Ash.read!(authorize?: false)
-  end
-
-  defp count_customers(store_id, from, to) do
-    {:ok, count} =
-      Emakola.Customers.Customer
-      |> Ash.Query.for_read(:by_store_in_period, %{store_id: store_id, from: from, to: to})
-      |> Ash.count(authorize?: false)
-
-    count
   end
 
   defp count_pending_orders(store_id) do

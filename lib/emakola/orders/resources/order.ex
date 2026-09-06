@@ -16,6 +16,12 @@ defmodule Emakola.Orders.Order do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
+  # An order is money once a payment confirmed it (or the merchant did, for
+  # cash on delivery). Pending is not yet money. Shared by every merchant
+  # money figure so no two pages can disagree.
+  @paid_statuses [:confirmed, :processing, :shipped, :delivered]
+  def paid_statuses, do: @paid_statuses
+
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -237,6 +243,12 @@ defmodule Emakola.Orders.Order do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
+    # Backfill only — no live actor may call this, merchant included. The
+    # backfill itself runs with authorize?: false and never has an actor.
+    policy action(:attach_customer) do
+      forbid_if(always())
+    end
+
     # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -396,6 +408,12 @@ defmodule Emakola.Orders.Order do
       accept([:notes])
     end
 
+    # Backfill only: links a guest order to the customer its phone belongs to.
+    # customer_id is otherwise fixed at creation.
+    update :attach_customer do
+      accept([:customer_id])
+    end
+
     read :get_by_id do
       argument(:id, :uuid, allow_nil?: false)
 
@@ -485,15 +503,16 @@ defmodule Emakola.Orders.Order do
       filter(expr(order_number == ^arg(:order_number) and store_id == ^arg(:store_id)))
     end
 
-    read :by_store_non_cancelled_in_period do
+    read :by_store_in_period_with_status do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:from, :utc_datetime, allow_nil?: false)
       argument(:to, :utc_datetime, allow_nil?: false)
+      argument(:statuses, {:array, :atom}, allow_nil?: false)
 
       filter(
         expr(
           store_id == ^arg(:store_id) and
-            status != :cancelled and
+            status in ^arg(:statuses) and
             inserted_at >= ^arg(:from) and
             inserted_at < ^arg(:to)
         )

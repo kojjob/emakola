@@ -134,6 +134,23 @@ defmodule Emakola.Customers.CustomerTest do
     end
   end
 
+  describe "backdate_last_order policy" do
+    test "a customer, even acting on their own row, cannot call it", %{store: store} do
+      customer = create_customer!(store, email: "backdate@example.com")
+
+      assert {:error, %Ash.Error.Forbidden{}} =
+               customer
+               |> Ash.Changeset.for_update(
+                 :backdate_last_order,
+                 %{last_order_at: DateTime.utc_now()},
+                 actor: customer
+               )
+               |> Ash.update()
+
+      refute Ash.reload!(customer, authorize?: false).last_order_at
+    end
+  end
+
   # -- list_by_store --------------------------------------------------
 
   describe "list_by_store" do

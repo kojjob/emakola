@@ -43,7 +43,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
         change={@orders_change}
       />
       <.kpi_card
-        label="Customers"
+        label="Buyers"
         icon="hero-users"
         tone={:info}
         value={Integer.to_string(@customer_count)}
@@ -157,6 +157,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   attr :period, :string, required: true
   attr :total_revenue, :integer, required: true
   attr :revenue_change, :float, default: nil
+  attr :waiting_for_payment, :integer, default: 0
   attr :order_count, :integer, required: true
   attr :orders_change, :float, default: nil
   attr :customer_count, :integer, required: true
@@ -179,6 +180,13 @@ defmodule EmakolaWeb.DashboardMetricComponents do
             </p>
           </:delta>
         </.stat_card>
+        <p
+          :if={not @loading and @waiting_for_payment > 0}
+          id="money-waiting"
+          class="mt-2 text-sm font-semibold text-amber-700"
+        >
+          Waiting for payment: {format_money(@waiting_for_payment)}
+        </p>
       </div>
       <div id="money-orders">
         <.stat_card
