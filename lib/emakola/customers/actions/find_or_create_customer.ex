@@ -82,7 +82,16 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
         |> Ash.create(authorize?: false)
 
       customer ->
-        {:ok, customer}
+        # Defence in depth: NotPlaceholderEmail should mean no registration
+        # ever claims this exact address, but if a row holding it is
+        # somehow credentialed anyway, it is not the "credential-less
+        # fallback" this function exists to return — handing it back would
+        # bind this checkout to whoever holds those credentials.
+        if credentialed?(customer) do
+          {:error, :customer_identity_conflict}
+        else
+          {:ok, customer}
+        end
     end
   end
 

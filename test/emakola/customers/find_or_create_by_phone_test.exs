@@ -146,5 +146,44 @@ defmodule Emakola.Customers.FindOrCreateByPhoneTest do
 
       assert found.id == owner.id
     end
+
+    test "a credentialed row squatting on the placeholder email is a conflict, not a match",
+         %{store: store} do
+      placeholder = CheckoutService.phone_placeholder_email("+233241234567")
+
+      # NotPlaceholderEmail now forbids any registration from claiming this
+      # email — this builds the state directly, the way an attacker's row
+      # would have looked before that validation existed, via the one
+      # action (:create) that validation is not attached to.
+      Customer
+      |> Ash.Changeset.for_create(:create, %{
+        email: placeholder,
+        store_id: store.id,
+        name: "Attacker",
+        phone: "+233241234567"
+      })
+      |> Ash.Changeset.force_change_attribute(:hashed_password, "hashed")
+      |> Ash.create!(authorize?: false)
+
+      result =
+        Customer
+        |> Ash.ActionInput.for_action(:find_or_create, %{
+          email: placeholder,
+          name: "Victim",
+          phone: "+233241234567",
+          store_id: store.id
+        })
+        |> Ash.run_action()
+
+      # Ash.run_action/2 wraps a plain atom error from a generic action's
+      # run/3 in Ash.Error.Unknown — Exception.message/1 is how the rest of
+      # this test suite already asserts on such errors (customer_auth_test,
+      # phone_only_customer_test). CheckoutService.find_or_create_customer!/2
+      # rolls back on ANY {:error, _} regardless of shape, so this doesn't
+      # affect the actual checkout-facing behaviour.
+      assert {:error, error} = result
+      assert Exception.message(error) =~ "customer_identity_conflict"
+      assert Customer |> Ash.count!(authorize?: false) == 1
+    end
   end
 end

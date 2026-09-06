@@ -95,6 +95,8 @@ defmodule Emakola.Orders.CheckoutService do
     end
   end
 
+  @placeholder_domain "phone.customers.makola.io"
+
   @doc """
   Deterministic placeholder email for phone-first buyers: the phone is
   normalized (`PhoneAuth.normalize/1`) before deriving digits, so local and
@@ -110,8 +112,20 @@ defmodule Emakola.Orders.CheckoutService do
       |> Emakola.Accounts.PhoneAuth.normalize()
       |> String.replace(~r/\D/, "")
 
-    "p#{digits}@phone.customers.makola.io"
+    "p#{digits}@#{@placeholder_domain}"
   end
+
+  @doc """
+  True when `email` is on the phone-placeholder domain `phone_placeholder_email/1`
+  generates. No real human owns one of these addresses, so no registration
+  should ever be allowed to claim one — see
+  Emakola.Customers.Validations.NotPlaceholderEmail, the guard this backs.
+  """
+  def placeholder_email?(email) when is_binary(email) do
+    String.ends_with?(String.downcase(email), "@" <> @placeholder_domain)
+  end
+
+  def placeholder_email?(_), do: false
 
   defp run_checkout_custom(store_id, title, unit_price, opts) do
     result =

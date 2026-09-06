@@ -1,5 +1,6 @@
 defmodule Emakola.Customers.CustomerAuthTest do
   use Emakola.DataCase, async: false
+  require Ash.Query
   alias Emakola.Factory
 
   setup do
@@ -48,6 +49,30 @@ defmodule Emakola.Customers.CustomerAuthTest do
         })
         |> Ash.create!(authorize?: false)
       end
+    end
+
+    test "rejects a phone-placeholder email", %{store: store} do
+      # p233241234567@phone.customers.makola.io is what
+      # CheckoutService.phone_placeholder_email("+233241234567") generates.
+      # A public registration that claims it could later be handed back as
+      # the "credential-less" fallback customer for a guest checking out
+      # with that phone — see NotPlaceholderEmail and
+      # FindOrCreateCustomer.fallback_to_credential_less/4.
+      assert {:error, error} =
+               Emakola.Customers.Customer
+               |> Ash.Changeset.for_create(:register_with_password, %{
+                 email: "p233241234567@phone.customers.makola.io",
+                 password: "Password123!",
+                 password_confirmation: "Password123!",
+                 store_id: store.id
+               })
+               |> Ash.create(authorize?: false)
+
+      assert Exception.message(error) =~ "Use your own email address"
+
+      refute Emakola.Customers.Customer
+             |> Ash.Query.filter(store_id == ^store.id)
+             |> Ash.exists?(authorize?: false)
     end
 
     test "same email in different stores succeeds", %{store: store} do

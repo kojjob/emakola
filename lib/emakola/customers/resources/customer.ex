@@ -262,6 +262,7 @@ defmodule Emakola.Customers.Customer do
     create :register_with_phone do
       accept([:email, :name, :phone])
       validate(Emakola.Customers.Validations.ContactDetailPresent)
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
     end
 
     create :register_with_password do
@@ -279,6 +280,7 @@ defmodule Emakola.Customers.Customer do
       )
 
       validate(AshAuthentication.Strategy.Password.PasswordConfirmationValidation)
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
       change(AshAuthentication.Strategy.Password.HashPasswordChange)
       change(AshAuthentication.GenerateTokenChange)
     end
@@ -312,6 +314,8 @@ defmodule Emakola.Customers.Customer do
         |> Ash.Changeset.change_attribute(:email, user_info["email"])
         |> Ash.Changeset.change_attribute(:name, user_info["name"])
       end)
+
+      validate(Emakola.Customers.Validations.NotPlaceholderEmail)
     end
 
     read :sign_in_with_oauth2 do

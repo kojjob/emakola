@@ -63,4 +63,17 @@ defmodule Emakola.Customers.CustomerIdentityTest do
     # the row exists and is scoped to this store.
     assert identity.strategy in ~w(google facebook apple)
   end
+
+  test "refuses a phone-placeholder email" do
+    {_m, store} = Emakola.Factory.create_merchant_with_store!()
+
+    assert {:error, error} =
+             register_oauth(
+               "p233241234567@phone.customers.makola.io",
+               store.id,
+               "google-attacker"
+             )
+
+    assert Exception.message(error) =~ "Use your own email address"
+  end
 end
