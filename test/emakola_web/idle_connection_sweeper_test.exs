@@ -96,10 +96,7 @@ defmodule EmakolaWeb.IdleConnectionSweeperTest do
       pid = spawn_idle_process(@bandit_handler)
       assert heap_words(pid) > IdleConnectionSweeper.min_heap_words()
 
-      start_supervised!(
-        {IdleConnectionSweeper,
-         interval: 20, name: :"sweeper_#{System.unique_integer([:positive])}"}
-      )
+      start_supervised!({IdleConnectionSweeper, interval: 20, name: __MODULE__.Sweeper})
 
       assert eventually(fn -> heap_words(pid) < IdleConnectionSweeper.min_heap_words() end)
       send(pid, :stop)
