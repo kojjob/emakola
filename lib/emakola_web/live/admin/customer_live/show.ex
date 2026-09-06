@@ -1,7 +1,7 @@
 defmodule EmakolaWeb.Admin.CustomerLive.Show do
   @moduledoc """
   Customer detail page: header info, order history, total spent,
-  edit customer info, and notes placeholder.
+  edit customer info, and notes.
   """
   use EmakolaWeb, :live_view
 
