@@ -13,6 +13,7 @@ defmodule Emakola.Orders.AbandonedCheckouts do
   @keep_days 7
   @list_limit 200
   @recover_limit 20
+  @items_limit 50
 
   @doc "The most carts the merchant page (and count) will ever show at once."
   def list_limit, do: @list_limit
@@ -21,6 +22,13 @@ defmodule Emakola.Orders.AbandonedCheckouts do
   Refuses a phone that fails `PhoneAuth.valid?/1` and writes nothing —
   independent of whatever the caller already checked, because this is the
   last line of defense on an unauthenticated write.
+
+  The contents of `items` are server-built from the store's own catalog, so
+  the shape is never the buyer's to choose — but the *count* is their cart
+  size, and this row is written unauthenticated. Capped at
+  #{@items_limit} lines so one buyer cannot grow a row without bound, and
+  so `/admin/carts`, which renders every line of every row, stays bounded
+  with it. The merchant sees what to reach out about, not an inventory.
   """
   def touch(store_id, cart_session_id, %{phone: phone} = cart)
       when is_binary(store_id) and is_binary(cart_session_id) and is_binary(phone) do
@@ -31,7 +39,7 @@ defmodule Emakola.Orders.AbandonedCheckouts do
         cart_session_id: cart_session_id,
         phone: PhoneAuth.normalize(phone),
         name: cart |> Map.get(:name) |> cap_name(),
-        items: Map.get(cart, :items, []),
+        items: cart |> Map.get(:items, []) |> Enum.take(@items_limit),
         cart_total: Map.get(cart, :cart_total, 0)
       })
       |> Ash.create(authorize?: false)

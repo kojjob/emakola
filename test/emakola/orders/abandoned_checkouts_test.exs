@@ -122,6 +122,19 @@ defmodule Emakola.Orders.AbandonedCheckoutsTest do
     assert checkout.name == "KojoDankwa"
   end
 
+  test "a cart with more lines than the cap stores only the first fifty", %{store: store} do
+    lines =
+      Enum.map(1..120, fn n ->
+        %{"title" => "Item #{n}", "quantity" => 1, "unit_price" => 100}
+      end)
+
+    {:ok, checkout} =
+      AbandonedCheckouts.touch(store.id, "cart-huge", %{@cart | items: lines})
+
+    assert length(checkout.items) == 50
+    assert List.first(checkout.items)["title"] == "Item 1"
+  end
+
   test "recovering a row deleted between the read and the write does not raise", %{
     store: store
   } do
