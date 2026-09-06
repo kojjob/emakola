@@ -44,6 +44,14 @@ defmodule EmakolaWeb.DashboardHelpers do
           AsyncSandbox.run_async(fn ->
             load_paid_orders(store_id, chart_start, chart_end)
           end),
+        # Its own read over day_start..day_end, NOT a reuse of the chart's
+        # orders_in_range. chart_dates/2 truncates the chart to the last 30
+        # days whenever the range is longer, so on "all" the source card —
+        # captioned "Paid orders in this period" — was showing 30 days next
+        # to an all-time "Money made". Every other figure on the page uses
+        # this window; the card now does too.
+        source_orders:
+          AsyncSandbox.run_async(fn -> load_paid_orders(store_id, day_start, day_end) end),
         customers_in_range:
           AsyncSandbox.run_async(fn ->
             load_customers_in_range(store_id, chart_start, chart_end)
@@ -98,7 +106,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       orders_chart: build_orders_chart(results.orders_in_range, dates),
       customers_chart: build_customers_chart(results.customers_in_range, dates),
       top_products_chart: results.top_products,
-      top_sources: results.orders_in_range |> Emakola.Orders.Source.tally() |> Enum.take(3),
+      top_sources: results.source_orders |> Emakola.Orders.Source.tally() |> Enum.take(3),
       pending_orders: results.pending_orders,
       low_stock_count: results.low_stock,
       sold_out_count: results.sold_out,

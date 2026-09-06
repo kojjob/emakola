@@ -294,4 +294,80 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       assert is_nil(data.aov_change)
     end
   end
+
+  describe "top_sources counts the period it is captioned with" do
+    # "Where orders came from" is captioned "Paid orders in this period", but
+    # it read the chart's slice — and chart_dates/2 truncates that to the last
+    # 30 days whenever the range is longer. On "all" the card beside "Money
+    # made" therefore showed 30 days next to an all-time figure. "week" and
+    # "month" are both <= 30 days, which is why nothing caught it.
+    test "an order older than thirty days counts on the All period", %{
+      store: store,
+      customer: customer
+    } do
+      store
+      |> Factory.create_order!(
+        customer_id: customer.id,
+        total: 20_000,
+        subtotal: 20_000,
+        status: :confirmed,
+        attribution: %{"utm_source" => "instagram"}
+      )
+      |> backdate_order!(60)
+
+      data = DashboardHelpers.load_merchant_dashboard(store.id, "all")
+
+      # The neighbouring figure counts it, so the source card must too.
+      assert data.total_revenue == 20_000
+      assert [%{source: :instagram, orders: 1, money: 20_000}] = data.top_sources
+    end
+
+    test "the same order is outside the Month period", %{store: store, customer: customer} do
+      store
+      |> Factory.create_order!(
+        customer_id: customer.id,
+        total: 20_000,
+        subtotal: 20_000,
+        status: :confirmed,
+        attribution: %{"utm_source" => "instagram"}
+      )
+      |> backdate_order!(60)
+
+      data = DashboardHelpers.load_merchant_dashboard(store.id, "month")
+
+      assert data.total_revenue == 0
+      assert data.top_sources == []
+    end
+
+    test "another store's order never appears in this store's sources", %{
+      store: store,
+      other_store: other_store
+    } do
+      other_customer = Factory.create_customer!(other_store)
+
+      Factory.create_order!(other_store,
+        customer_id: other_customer.id,
+        total: 90_000,
+        subtotal: 90_000,
+        status: :confirmed,
+        attribution: %{"utm_source" => "tiktok"}
+      )
+
+      data = DashboardHelpers.load_merchant_dashboard(store.id, "all")
+
+      assert data.top_sources == []
+    end
+  end
+
+  # inserted_at is not writable through Ash; set it directly for history.
+  defp backdate_order!(order, days_ago) do
+    at = DateTime.add(DateTime.utc_now(), -days_ago * 86_400, :second)
+
+    Emakola.Repo.query!("update orders set inserted_at = $1 where id = $2", [
+      at,
+      Ecto.UUID.dump!(order.id)
+    ])
+
+    order
+  end
 end
