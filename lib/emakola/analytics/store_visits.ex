@@ -61,6 +61,15 @@ defmodule Emakola.Analytics.StoreVisits do
 
   `params` may carry `"utm_source"` and `"referrer"`. Both are attacker-supplied
   and are only ever used to pick a bucket.
+
+  `params["page"]` is set by this app's own LiveViews, never by the buyer
+  directly — but a top-level `mount/3`'s params include the query string, so a
+  crafted URL could still put an arbitrary value there. It is checked against
+  the closed set of page atoms rather than converted, so a stray string can
+  never reach `String.to_atom/1` (or a valid-looking one forge a page it never
+  visited); anything else is `:home`. `params["product_id"]` is cast with
+  `Ecto.UUID.cast/1` for the same reason — anything that is not a real UUID
+  becomes `nil`.
   """
   @spec record(binary(), binary(), map()) :: {:ok, StoreVisit.t()} | {:error, term()}
   def record(store_id, session_id, params)
@@ -71,13 +80,31 @@ defmodule Emakola.Analytics.StoreVisits do
         store_id: store_id,
         visitor_hash: hash(session_id),
         source: source_from(params),
-        occurred_at: DateTime.utc_now()
+        occurred_at: DateTime.utc_now(),
+        page: page_from(params),
+        product_id: product_id_from(params)
       })
       |> Ash.create(authorize?: false)
 
     with {:ok, _visit} <- result, do: bump_view_count(store_id)
 
     result
+  end
+
+  @pages [:home, :product, :pay_link]
+
+  defp page_from(params) do
+    case Map.get(params, "page", :home) do
+      page when page in @pages -> page
+      _other -> :home
+    end
+  end
+
+  defp product_id_from(params) do
+    case Ecto.UUID.cast(Map.get(params, "product_id")) do
+      {:ok, product_id} -> product_id
+      :error -> nil
+    end
   end
 
   # Store.view_count is what the directory's "Most popular" sort reads, and
@@ -122,6 +149,33 @@ defmodule Emakola.Analytics.StoreVisits do
         select: count(fragment("distinct ?", v.visitor_hash))
       )
     ) || 0
+  end
+
+  @doc "Distinct people between two instants, any page. The window a report uses."
+  @spec visitors_between(binary(), DateTime.t(), DateTime.t()) :: non_neg_integer()
+  def visitors_between(store_id, from, to) do
+    Emakola.Repo.one(
+      from(v in "store_visits",
+        where:
+          v.store_id == type(^store_id, :binary_id) and v.occurred_at >= ^from and
+            v.occurred_at < ^to,
+        select: count(fragment("distinct ?", v.visitor_hash))
+      )
+    ) || 0
+  end
+
+  @doc "Distinct people per product page between two instants."
+  @spec product_visitors(binary(), DateTime.t(), DateTime.t()) :: %{binary() => non_neg_integer()}
+  def product_visitors(store_id, from, to) do
+    from(v in "store_visits",
+      where:
+        v.store_id == type(^store_id, :binary_id) and v.page == "product" and
+          not is_nil(v.product_id) and v.occurred_at >= ^from and v.occurred_at < ^to,
+      group_by: v.product_id,
+      select: {type(v.product_id, :binary_id), count(fragment("distinct ?", v.visitor_hash))}
+    )
+    |> Emakola.Repo.all()
+    |> Map.new()
   end
 
   @doc "Page views grouped by channel, as a map of source atom to count."

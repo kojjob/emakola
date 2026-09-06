@@ -62,6 +62,30 @@
     },
     {
       "allow_nil?": false,
+      "default": "\"home\"",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "page",
+      "type": "text"
+    },
+    {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "product_id",
+      "type": "uuid"
+    },
+    {
+      "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
       "precision": null,
