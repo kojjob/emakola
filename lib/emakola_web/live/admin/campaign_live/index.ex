@@ -76,47 +76,51 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
 
   @impl true
   def handle_event("create", %{"campaign" => params}, socket) do
-    store = socket.assigns[:current_store]
+    case socket.assigns[:current_store] do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Create your store first.")}
 
-    with {:ok, name} <- as_binary(params["name"]),
-         {:ok, body} <- as_binary(params["body"]),
-         {:ok, audience_param} <- as_binary(params["audience"]) do
-      audience = Emakola.SafeAtom.to_atom_in(audience_param, Segments.all(), :everyone)
+      %{id: store_id} ->
+        with {:ok, name} <- as_binary(params["name"]),
+             {:ok, body} <- as_binary(params["body"]),
+             {:ok, audience_param} <- as_binary(params["audience"]) do
+          audience = Emakola.SafeAtom.to_atom_in(audience_param, Segments.all(), :everyone)
 
-      attrs = %{
-        name: String.trim(name || ""),
-        channel: :sms,
-        body: String.trim(body || ""),
-        audience: audience
-      }
+          attrs = %{
+            name: String.trim(name || ""),
+            channel: :sms,
+            body: String.trim(body || ""),
+            audience: audience
+          }
 
-      case Campaigns.create(socket.assigns.current_merchant, store.id, attrs) do
-        {:ok, _campaign} ->
-          {:noreply,
-           socket
-           |> assign(form: blank_form(), audience: :everyone)
-           |> load()
-           |> put_flash(:info, "Campaign saved. Send it when you are ready.")}
+          case Campaigns.create(socket.assigns.current_merchant, store_id, attrs) do
+            {:ok, _campaign} ->
+              {:noreply,
+               socket
+               |> assign(form: blank_form(), audience: :everyone)
+               |> load()
+               |> put_flash(:info, "Campaign saved. Send it when you are ready.")}
 
-        {:error, _error} ->
-          {:noreply,
-           put_flash(
-             socket,
-             :error,
-             "Give the campaign a name, and a message that is not empty or too long."
-           )}
-      end
-    else
-      # A crafted param (e.g. campaign[name][x]=y) arrives as a map, not a
-      # string — reject it the same way as a blank field, rather than
-      # crashing inside String.trim/1.
-      :error ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "Give the campaign a name, and a message that is not empty or too long."
-         )}
+            {:error, _error} ->
+              {:noreply,
+               put_flash(
+                 socket,
+                 :error,
+                 "Give the campaign a name, and a message that is not empty or too long."
+               )}
+          end
+        else
+          # A crafted param (e.g. campaign[name][x]=y) arrives as a map, not a
+          # string — reject it the same way as a blank field, rather than
+          # crashing inside String.trim/1.
+          :error ->
+            {:noreply,
+             put_flash(
+               socket,
+               :error,
+               "Give the campaign a name, and a message that is not empty or too long."
+             )}
+        end
     end
   end
 

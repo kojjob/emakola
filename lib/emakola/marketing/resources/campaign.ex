@@ -139,11 +139,14 @@ defmodule Emakola.Marketing.Campaign do
       )
 
       # Atomic counterpart to the validation above (same pattern as
-      # Coupon.increment_usage): pushes the guard into the UPDATE's WHERE
-      # clause, so two truly concurrent sends (two tabs, both reading
-      # :draft) can't both flip the status — the loser's write matches zero
-      # rows and Ash raises Ash.Error.Changes.StaleRecord instead of a
-      # second paid send being queued from a stale read.
+      # Coupon.increment_usage, and deliberately mirroring
+      # Emakola.Orders.Changes.RequireStatusIn's WHERE-clause trick rather
+      # than importing that Orders-namespaced module into Marketing):
+      # pushes the guard into the UPDATE's WHERE clause, so two truly
+      # concurrent sends (two tabs, both reading :draft) can't both flip
+      # the status — the loser's write matches zero rows and Ash raises
+      # Ash.Error.Changes.StaleRecord instead of a second paid send being
+      # queued from a stale read.
       change(fn changeset, _context ->
         Ash.Changeset.filter(changeset, expr(status in [:draft, :sending]))
       end)

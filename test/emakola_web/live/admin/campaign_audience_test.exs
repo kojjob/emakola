@@ -149,5 +149,16 @@ defmodule EmakolaWeb.Admin.CampaignAudienceTest do
 
       assert has_element?(view, "#campaign-audience-count", "0")
     end
+
+    test "creating a campaign survives a nil store instead of crashing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/campaigns")
+
+      html =
+        view
+        |> form("#campaign-form", campaign: %{name: "Test", body: "hi"})
+        |> render_submit()
+
+      assert html =~ "Create your store first."
+    end
   end
 end
