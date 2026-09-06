@@ -94,6 +94,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       orders_chart: build_orders_chart(results.orders_in_range, dates),
       customers_chart: build_customers_chart(results.customers_in_range, dates),
       top_products_chart: results.top_products,
+      top_sources: results.orders_in_range |> Emakola.Orders.Source.tally() |> Enum.take(3),
       pending_orders: results.pending_orders,
       low_stock_count: results.low_stock,
       sold_out_count: results.sold_out,
@@ -164,6 +165,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       orders_chart: %{labels: [], values: []},
       customers_chart: %{labels: [], values: []},
       top_products_chart: %{labels: [], values: []},
+      top_sources: [],
       pending_orders: 0,
       low_stock_count: 0,
       sold_out_count: 0,
@@ -236,7 +238,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp load_paid_orders(store_id, from, to) do
     store_id
     |> period_read(from, to, Emakola.Orders.Order.paid_statuses())
-    |> Ash.Query.select([:id, :total, :inserted_at])
+    |> Ash.Query.select([:id, :total, :inserted_at, :attribution, :pay_link_id, :susu_plan_id])
     |> Ash.read!(authorize?: false)
   end
 

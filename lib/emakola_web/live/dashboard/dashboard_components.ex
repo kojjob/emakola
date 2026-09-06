@@ -220,6 +220,22 @@ defmodule EmakolaWeb.DashboardComponents do
     """
   end
 
+  attr :top_sources, :list, required: true
+
+  def top_sources_panel(assigns) do
+    ~H"""
+    <.admin_card :if={@top_sources != []} id="top-sources" padding={:none} class="p-5">
+      <h3 class="text-sm font-bold text-slate-800">Where orders came from</h3>
+      <ul class="mt-3 space-y-2">
+        <li :for={row <- @top_sources} class="flex items-center justify-between text-sm">
+          <span class="text-slate-700">{row.label}</span>
+          <span class="font-mono text-slate-500">{Emakola.Plural.count(row.orders, "order")}</span>
+        </li>
+      </ul>
+    </.admin_card>
+    """
+  end
+
   attr :pending_orders, :integer, required: true
   attr :low_stock_count, :integer, required: true
   attr :failed_payments, :integer, required: true

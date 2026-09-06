@@ -80,4 +80,18 @@ defmodule EmakolaWeb.DashboardMoneyTest do
     refute html =~ "5,000.00"
     refute html =~ "5,100.00"
   end
+
+  test "see more numbers names the top sources", ctx do
+    Factory.create_order!(ctx.store, %{
+      subtotal: 100,
+      total: 100,
+      status: :confirmed,
+      attribution: %{"utm_source" => "instagram"}
+    })
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/dashboard?period=today")
+    render_async(view)
+
+    assert has_element?(view, "#top-sources", "Instagram")
+  end
 end

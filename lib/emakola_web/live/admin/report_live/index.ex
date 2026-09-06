@@ -110,7 +110,10 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
 
     orders = fetch_orders(store_id, from, to)
     visitors = count_visitors(store_id, range)
-    counted = Enum.reject(orders, &(&1.status == :cancelled))
+    # "Paid" is defined once, on the dashboard (Order.paid_statuses/0), and
+    # reused here so "Money from orders" never disagrees with the dashboard's
+    # own money figure for the same orders.
+    counted = Enum.filter(orders, &(&1.status in Order.paid_statuses()))
     revenue = counted |> Enum.map(&(&1.total || 0)) |> Enum.sum()
     count = length(counted)
 
@@ -126,8 +129,19 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       regions: build_regions(counted),
       visitors: visitors,
       conversion_rate: conversion_rate(count, visitors),
-      traffic_sources: traffic_sources(store_id, range)
+      order_sources: Emakola.Orders.Source.tally(counted),
+      visit_sources: visit_source_rows(traffic_sources(store_id, range))
     )
+  end
+
+  # The visit buckets share names with order sources. `String.to_existing_atom`
+  # in StoreVisits.by_source keeps this a closed set.
+  defp visit_source_rows(by_source) when is_map(by_source) do
+    by_source
+    |> Enum.map(fn {source, count} ->
+      %{label: Emakola.Orders.Source.label(source), visits: count}
+    end)
+    |> Enum.sort_by(&(-&1.visits))
   end
 
   defp count_visitors(nil, _range), do: 0
@@ -309,7 +323,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         >
           <:icon><.icon name="hero-banknotes" class="size-7" /></:icon>
           <:delta>
-            <p class="text-sm text-slate-500">Cancelled orders not counted</p>
+            <p class="text-sm text-slate-500">Paid orders only</p>
           </:delta>
         </.stat_card>
 
@@ -456,6 +470,48 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           </table>
         </div>
       </.admin_card>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <.admin_card :if={@order_sources != []} id="reports-order-sources" padding={:none} class="p-5">
+          <h2 class="text-base font-bold text-slate-800">Where orders came from</h2>
+          <p class="text-sm text-slate-500 mt-1">Paid orders in this period</p>
+          <table class="w-full text-sm mt-4">
+            <thead>
+              <tr class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-2">Source</th>
+                <th class="py-2 text-right">Orders</th>
+                <th class="py-2 text-right">Money</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={row <- @order_sources} class="border-t border-slate-100">
+                <td class="py-2.5 font-medium text-slate-800">{row.label}</td>
+                <td class="py-2.5 text-right font-mono">{row.orders}</td>
+                <td class="py-2.5 text-right font-mono font-semibold">{format_cedis(row.money)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </.admin_card>
+
+        <.admin_card :if={@visit_sources != []} id="reports-visit-sources" padding={:none} class="p-5">
+          <h2 class="text-base font-bold text-slate-800">Where buyers looked</h2>
+          <p class="text-sm text-slate-500 mt-1">Shop visits in this period</p>
+          <table class="w-full text-sm mt-4">
+            <thead>
+              <tr class="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th class="py-2">Source</th>
+                <th class="py-2 text-right">Visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={row <- @visit_sources} class="border-t border-slate-100">
+                <td class="py-2.5 font-medium text-slate-800">{row.label}</td>
+                <td class="py-2.5 text-right font-mono">{row.visits}</td>
+              </tr>
+            </tbody>
+          </table>
+        </.admin_card>
+      </div>
     </div>
     """
   end

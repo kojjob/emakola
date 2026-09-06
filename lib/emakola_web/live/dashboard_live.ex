@@ -397,6 +397,7 @@ defmodule EmakolaWeb.DashboardLive do
             />
           </div>
           <div class="lg:col-span-4 space-y-6">
+            <.top_sources_panel top_sources={@top_sources} />
             <.alerts_panel
               pending_orders={@pending_orders}
               low_stock_count={@low_stock_count}
