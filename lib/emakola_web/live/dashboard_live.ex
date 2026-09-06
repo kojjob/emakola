@@ -259,6 +259,9 @@ defmodule EmakolaWeb.DashboardLive do
       0
   end
 
+  defp days_label(nil), do: "No deliveries yet"
+  defp days_label(days), do: :erlang.float_to_binary(days * 1.0, decimals: 1)
+
   def render(assigns) do
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6 pb-8">
@@ -386,6 +389,28 @@ defmodule EmakolaWeb.DashboardLive do
           avg_order_value={@avg_order_value}
           aov_change={@aov_change}
         />
+
+        <div class="grid grid-cols-2 gap-4">
+          <.stat_card
+            id="saved-shop"
+            label="People saved your shop"
+            value={to_string(@saved_shop_count)}
+            tone={:info}
+          >
+            <:icon><.icon name="hero-heart" class="size-7" /></:icon>
+          </.stat_card>
+          <.stat_card
+            id="days-to-deliver"
+            label="Days to deliver"
+            value={days_label(@average_delivery_days)}
+            tone={:neutral}
+          >
+            <:icon><.icon name="hero-truck" class="size-7" /></:icon>
+            <:delta>
+              <p class="text-sm text-slate-500">Last 30 days</p>
+            </:delta>
+          </.stat_card>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8">

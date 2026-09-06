@@ -8,6 +8,7 @@ defmodule EmakolaWeb.CustomerExportController do
   NimbleCSV.define(EmakolaWeb.CustomerCsv, separator: ",", escape: "\"")
 
   @header ~w(name phone email orders paid_total_ghs last_bought joined)
+  @newsletter_header ~w(email subscribed_at)
 
   def customers_csv(conn, _params) do
     with {:ok, merchant} <- resolve_merchant(conn),
@@ -24,7 +25,40 @@ defmodule EmakolaWeb.CustomerExportController do
       |> put_resp_content_type("text/csv")
       |> put_resp_header(
         "content-disposition",
-        ~s(attachment; filename="#{export_filename(store.slug)}")
+        ~s(attachment; filename="#{export_filename(store.slug, "customers")}")
+      )
+      |> send_resp(200, body)
+    else
+      {:error, :unauthenticated} ->
+        conn |> put_status(401) |> text("Unauthorized")
+
+      {:error, :no_store} ->
+        conn
+        |> put_flash(:error, "No store found. Complete onboarding first.")
+        |> redirect(to: "/dashboard")
+
+      {:error, :store_locked} ->
+        conn |> put_status(403) |> text("Store locked")
+    end
+  end
+
+  def newsletter_csv(conn, _params) do
+    with {:ok, merchant} <- resolve_merchant(conn),
+         {:ok, store} <- resolve_store(merchant),
+         :ok <- check_store_active(store) do
+      subscribers =
+        Emakola.Customers.list_newsletter_subscribers_by_store!(store.id, authorize?: false)
+
+      body =
+        [@newsletter_header | Enum.map(subscribers, &newsletter_row/1)]
+        |> EmakolaWeb.CustomerCsv.dump_to_iodata()
+        |> IO.iodata_to_binary()
+
+      conn
+      |> put_resp_content_type("text/csv")
+      |> put_resp_header(
+        "content-disposition",
+        ~s(attachment; filename="#{export_filename(store.slug, "newsletter")}")
       )
       |> send_resp(200, body)
     else
@@ -48,10 +82,10 @@ defmodule EmakolaWeb.CustomerExportController do
 
   defp check_store_active(_store), do: :ok
 
-  defp export_filename(slug) do
+  defp export_filename(slug, suffix) do
     sanitized = (slug || "") |> String.replace(~r/[^a-zA-Z0-9_-]/, "")
     name = if sanitized == "", do: "store", else: sanitized
-    "#{name}-customers.csv"
+    "#{name}-#{suffix}.csv"
   end
 
   defp row(customer) do
@@ -63,6 +97,13 @@ defmodule EmakolaWeb.CustomerExportController do
       cedis(customer.paid_total || 0),
       date(customer.last_order_at),
       date(customer.inserted_at)
+    ]
+  end
+
+  defp newsletter_row(subscriber) do
+    [
+      csv_safe(to_string(subscriber.email)),
+      date(subscriber.subscribed_at)
     ]
   end
 

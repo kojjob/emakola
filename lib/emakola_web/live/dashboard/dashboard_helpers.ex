@@ -90,6 +90,8 @@ defmodule EmakolaWeb.DashboardHelpers do
       orders_change: orders_change,
       customers_change: customers_change,
       aov_change: aov_change,
+      saved_shop_count: count_saved_shop(store_id),
+      average_delivery_days: average_delivery_days(store_id),
       revenue_chart: build_revenue_chart(results.orders_in_range, dates),
       orders_chart: build_orders_chart(results.orders_in_range, dates),
       customers_chart: build_customers_chart(results.customers_in_range, dates),
@@ -173,7 +175,9 @@ defmodule EmakolaWeb.DashboardHelpers do
       suppliers_to_chase: 0,
       best_sellers: [],
       failed_payments: 0,
-      recent_orders: []
+      recent_orders: [],
+      saved_shop_count: 0,
+      average_delivery_days: nil
     }
   end
 
@@ -321,6 +325,22 @@ defmodule EmakolaWeb.DashboardHelpers do
     |> Ash.Query.limit(5)
     |> Ash.Query.load([:customer])
     |> Ash.read!(authorize?: false)
+  end
+
+  defp count_saved_shop(store_id) do
+    require Ash.Query
+
+    Emakola.Customers.FavoriteStore
+    |> Ash.Query.filter(store_id == ^store_id)
+    |> Ash.count!(authorize?: false)
+  end
+
+  # From the delivered stamps that already feed the delivery settings page.
+  defp average_delivery_days(store_id) do
+    zones = Emakola.Shipping.list_delivery_zones!(store_id, authorize?: false)
+    Emakola.Shipping.DeliveryMetrics.for_store(store_id, zones, days: 30).average_days
+  rescue
+    _ -> nil
   end
 
   # ── Chart Builders ──

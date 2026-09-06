@@ -82,6 +82,35 @@ defmodule EmakolaWeb.CustomerExportControllerTest do
     assert body =~ "Ama Serwaa,+233241111111,"
   end
 
+  test "a merchant downloads only their own newsletter subscribers", %{conn: conn} do
+    {merchant, store} = create_merchant_with_store!()
+
+    Emakola.Customers.subscribe_to_newsletter(
+      %{store_id: store.id, email: "fan@example.com"},
+      authorize?: false
+    )
+
+    {_other_merchant, other_store} = create_merchant_with_store!()
+
+    Emakola.Customers.subscribe_to_newsletter(
+      %{store_id: other_store.id, email: "other@example.com"},
+      authorize?: false
+    )
+
+    signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+    body =
+      conn
+      |> init_test_session(%{})
+      |> put_session(:user_token, signed)
+      |> get("/admin/export/newsletter.csv")
+      |> response(200)
+
+    assert body =~ "email,subscribed_at"
+    assert body =~ "fan@example.com"
+    refute body =~ "other@example.com"
+  end
+
   test "a store locked by the platform returns 403", %{conn: conn} do
     {merchant, store} = create_merchant_with_store!()
 

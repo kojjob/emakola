@@ -31,6 +31,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         statuses: @statuses
       )
       |> load_reviews()
+      |> assign_rating()
 
     {:ok, socket}
   end
@@ -102,6 +103,18 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         title="Reviews"
         subtitle="Manage customer reviews for your products"
       />
+
+      <.stat_card
+        id="reviews-rating"
+        label="Rating"
+        value={if @rating, do: :erlang.float_to_binary(@rating, decimals: 1), else: "No reviews yet"}
+        tone={:info}
+      >
+        <:icon><.icon name="hero-star" class="size-7" /></:icon>
+        <:delta>
+          <p class="text-sm text-slate-500">{Emakola.Plural.count(@review_count, "review")}</p>
+        </:delta>
+      </.stat_card>
 
       <%!-- Status Filter --%>
       <div class="flex gap-2">
@@ -231,6 +244,22 @@ defmodule EmakolaWeb.Admin.ReviewLive do
       |> Ash.read!(authorize?: false)
 
     assign(socket, :reviews, reviews)
+  end
+
+  defp assign_rating(socket) do
+    require Ash.Query
+    store_id = socket.assigns.store_id
+
+    published =
+      Emakola.Catalog.Review
+      |> Ash.Query.filter(store_id == ^store_id and status == :published)
+      |> Ash.Query.select([:rating])
+      |> Ash.read!(authorize?: false)
+
+    count = length(published)
+    average = if count == 0, do: nil, else: Enum.sum(Enum.map(published, & &1.rating)) / count
+
+    assign(socket, review_count: count, rating: average)
   end
 
   defp find_review(id, store_id) do

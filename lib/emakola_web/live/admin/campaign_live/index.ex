@@ -55,7 +55,8 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     assign(socket,
       campaigns: campaigns,
       audience_count: audience_count,
-      draft_audience_counts: draft_audience_counts
+      draft_audience_counts: draft_audience_counts,
+      failed_recipients: failed_recipients(campaigns)
     )
   end
 
@@ -73,6 +74,21 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
 
   defp count_for(socket, campaign),
     do: Map.get(socket.assigns.draft_audience_counts, campaign.id, 0)
+
+  # The numbers a campaign was attempted on and failed — one lookup per sent
+  # campaign, not per row, since the page renders at most a handful.
+  defp failed_recipients(campaigns) do
+    campaigns
+    |> Enum.filter(&(&1.failed_count > 0))
+    |> Map.new(fn campaign ->
+      {:ok, recipients} =
+        Emakola.Marketing.CampaignRecipient
+        |> Ash.Query.for_read(:for_campaign, %{campaign_id: campaign.id})
+        |> Ash.read(authorize?: false)
+
+      {campaign.id, Enum.filter(recipients, &(&1.status == :failed))}
+    end)
+  end
 
   @impl true
   def handle_event("create", %{"campaign" => params}, socket) do
@@ -306,6 +322,17 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
             {campaign.sent_count} sent{if campaign.failed_count > 0,
               do: " · #{campaign.failed_count} failed"}
           </p>
+
+          <ul
+            :if={campaign.failed_count > 0}
+            id={"campaign-#{campaign.id}-failed"}
+            class="mt-2 space-y-1 text-xs text-slate-500"
+          >
+            <li class="font-semibold text-slate-700">Numbers that did not get it</li>
+            <li :for={r <- Map.get(@failed_recipients, campaign.id, [])}>
+              {r.phone}: {r.error || "Not delivered"}
+            </li>
+          </ul>
         </.admin_card>
       </div>
     </div>
