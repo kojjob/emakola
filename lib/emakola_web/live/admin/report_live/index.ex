@@ -80,6 +80,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   alias Emakola.Analytics.StoreVisits
   alias Emakola.Dashboard.Stats
   alias Emakola.Orders.Order
+  alias EmakolaWeb.Admin.ReportLive.LookedBought
 
   # Windows the pills offer. "custom" silently meant 30 days and there was no
   # date picker anywhere in the file, so it is not offered.
@@ -119,7 +120,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     {from, to} = window(range)
 
     orders = fetch_orders(store_id, from, to)
-    visitors = count_visitors(store_id, range)
+    visitors = count_visitors(store_id, from, to)
     # "Paid" is defined once, on the dashboard (Order.paid_statuses/0), and
     # reused here so "Money from orders" never disagrees with the dashboard's
     # own money figure for the same orders.
@@ -140,7 +141,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       visitors: visitors,
       conversion_rate: conversion_rate(count, visitors),
       order_sources: Emakola.Orders.Source.tally(counted),
-      visit_sources: visit_source_rows(traffic_sources(store_id, range))
+      visit_sources: visit_source_rows(traffic_sources(store_id, range)),
+      looked_bought: LookedBought.rows(store_id, from, to, counted)
     )
   end
 
@@ -154,8 +156,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     |> Enum.sort_by(&(-&1.visits))
   end
 
-  defp count_visitors(nil, _range), do: 0
-  defp count_visitors(store_id, range), do: StoreVisits.visitors(store_id, @ranges[range])
+  defp count_visitors(nil, _from, _to), do: 0
+  defp count_visitors(store_id, from, to), do: StoreVisits.visitors_between(store_id, from, to)
 
   defp traffic_sources(nil, _range), do: %{}
   defp traffic_sources(store_id, range), do: StoreVisits.by_source(store_id, @ranges[range])
@@ -170,11 +172,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   # not converted 0%, it has no rate to report.
   defp conversion_rate(_orders, 0), do: nil
 
-  # More orders than visitors means the denominator is short, not that the
-  # store converts above 100%. Orders are counted from the store's whole
-  # history; visits only from the day counting shipped. Every merchant starts
-  # in that state, so this is the ordinary early case, not a freak one — and
-  # "1500% of them bought" answers no question a merchant has.
+  # Both sides now share the calendar-day window from window/1.
   defp conversion_rate(orders, visitors) when orders > visitors, do: nil
 
   defp conversion_rate(orders, visitors),
@@ -522,6 +520,21 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           </table>
         </.admin_card>
       </div>
+
+      <.admin_card :if={@looked_bought != []} id="reports-looked-bought" padding={:none} class="p-5">
+        <h2 class="text-base font-bold text-slate-800">Looked, then bought</h2>
+        <p class="text-sm text-slate-500 mt-1">
+          People who opened a product page, and orders with it
+        </p>
+        <ul class="mt-4 divide-y divide-slate-100">
+          <li :for={row <- @looked_bought} class="flex items-center justify-between py-2.5 text-sm">
+            <span class="font-medium text-slate-800 truncate">{row.title}</span>
+            <span class="font-mono text-slate-500 shrink-0">
+              {row.looked} looked, {row.bought} bought
+            </span>
+          </li>
+        </ul>
+      </.admin_card>
     </div>
     """
   end

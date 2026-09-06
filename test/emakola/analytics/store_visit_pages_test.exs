@@ -52,4 +52,25 @@ defmodule Emakola.Analytics.StoreVisitPagesTest do
 
     assert StoreVisits.product_visitors(store.id, from, to) == %{product.id => 2, other.id => 1}
   end
+
+  test "another store's product visitors never appear in this store's counts", %{
+    store: store,
+    product: product
+  } do
+    elsewhere = create_store!()
+    elsewhere_product = create_product!(elsewhere)
+
+    StoreVisits.record(store.id, "s1", %{"page" => :product, "product_id" => product.id})
+
+    StoreVisits.record(elsewhere.id, "s2", %{
+      "page" => :product,
+      "product_id" => elsewhere_product.id
+    })
+
+    from = DateTime.add(DateTime.utc_now(), -60, :second)
+    to = DateTime.add(DateTime.utc_now(), 60, :second)
+
+    assert StoreVisits.product_visitors(store.id, from, to) == %{product.id => 1}
+    assert StoreVisits.visitors_between(store.id, from, to) == 1
+  end
 end

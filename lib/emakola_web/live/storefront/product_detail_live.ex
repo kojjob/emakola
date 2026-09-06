@@ -23,7 +23,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
   @impl true
-  def mount(%{"product_slug" => product_slug}, session, socket) do
+  def mount(%{"product_slug" => product_slug} = params, session, socket) do
     slug = socket.assigns.store.slug
     store = socket.assigns.store
 
@@ -47,6 +47,14 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         group_buys = Emakola.Suppliers.GroupBuys.public_campaigns(store.id, product.id)
         categories = load_root_categories(store)
         cart_session_id = session["cart_session_id"]
+
+        if connected?(socket) && cart_session_id do
+          Emakola.Analytics.StoreVisits.record(
+            store.id,
+            cart_session_id,
+            Map.merge(params, %{"page" => :product, "product_id" => product.id})
+          )
+        end
 
         cart_count =
           if connected?(socket) && cart_session_id,
