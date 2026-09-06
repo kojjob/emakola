@@ -38,7 +38,8 @@ defmodule EmakolaWeb.DashboardHelpers do
           AsyncSandbox.run_async(fn -> revenue_and_count(store_id, day_start, day_end) end),
         waiting_for_payment:
           AsyncSandbox.run_async(fn -> waiting_for_payment(store_id, day_start, day_end) end),
-        customers: AsyncSandbox.run_async(fn -> count_buyers(store_id, day_start, day_end) end),
+        customers:
+          AsyncSandbox.run_async(fn -> Stats.count_buyers(store_id, day_start, day_end) end),
         orders_in_range:
           AsyncSandbox.run_async(fn ->
             load_paid_orders(store_id, chart_start, chart_end)
@@ -121,7 +122,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       prev_revenue_count:
         AsyncSandbox.run_async(fn -> revenue_and_count(store_id, prev_start, prev_end) end),
       prev_customers:
-        AsyncSandbox.run_async(fn -> count_buyers(store_id, prev_start, prev_end) end)
+        AsyncSandbox.run_async(fn -> Stats.count_buyers(store_id, prev_start, prev_end) end)
     ]
   end
 
@@ -221,23 +222,6 @@ defmodule EmakolaWeb.DashboardHelpers do
       |> Ash.sum(:total, authorize?: false)
 
     sum || 0
-  end
-
-  # People who bought: distinct customers on paid orders. Guest orders that
-  # never got a customer (before the phone backfill) are not counted here.
-  defp count_buyers(store_id, from, to) do
-    import Ecto.Query
-
-    Emakola.Repo.one(
-      from(o in "orders",
-        where:
-          o.store_id == type(^store_id, :binary_id) and
-            o.status in ^Enum.map(Emakola.Orders.Order.paid_statuses(), &Atom.to_string/1) and
-            o.inserted_at >= ^from and o.inserted_at < ^to and
-            not is_nil(o.customer_id),
-        select: count(fragment("distinct ?", o.customer_id))
-      )
-    ) || 0
   end
 
   defp period_read(store_id, from, to, statuses) do

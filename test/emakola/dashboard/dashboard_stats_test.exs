@@ -250,4 +250,49 @@ defmodule Emakola.Dashboard.StatsTest do
       assert stats.top_products == []
     end
   end
+
+  describe "count_buyers/3" do
+    test "counts distinct customers on paid orders, not signups or other stores", %{
+      store: store,
+      other_store: other_store
+    } do
+      buyer = Factory.create_customer!(store)
+      non_buyer = Factory.create_customer!(store)
+
+      Factory.create_order!(store,
+        customer_id: buyer.id,
+        total: 10_000,
+        subtotal: 10_000,
+        status: :confirmed
+      )
+
+      Factory.create_order!(store,
+        customer_id: buyer.id,
+        total: 5_000,
+        subtotal: 5_000,
+        status: :confirmed
+      )
+
+      Factory.create_order!(store,
+        customer_id: non_buyer.id,
+        total: 7_000,
+        subtotal: 7_000,
+        status: :pending
+      )
+
+      other_customer = Factory.create_customer!(other_store)
+
+      Factory.create_order!(other_store,
+        customer_id: other_customer.id,
+        total: 20_000,
+        subtotal: 20_000,
+        status: :confirmed
+      )
+
+      from = DateTime.add(DateTime.utc_now(), -1, :day)
+      to = DateTime.add(DateTime.utc_now(), 1, :day)
+
+      assert Stats.count_buyers(store.id, from, to) == 1
+    end
+  end
 end
