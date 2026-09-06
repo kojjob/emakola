@@ -32,7 +32,14 @@ defmodule Emakola.Application do
         Emakola.Cache.StoreCache,
         # Per-store daily AI-generation cap (SEO Phase 3 cost guard)
         Emakola.Content.RateLimiter
-      ] ++ metrics_children() ++ [EmakolaWeb.Endpoint] ++ fcm_children() ++ gsc_children()
+      ] ++
+        metrics_children() ++
+        [
+          EmakolaWeb.Endpoint,
+          # Collects idle Bandit connection processes, which otherwise keep the
+          # heap their first render grew (~0.9MB per visitor, see the module).
+          EmakolaWeb.IdleConnectionSweeper
+        ] ++ fcm_children() ++ gsc_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

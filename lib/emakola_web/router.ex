@@ -275,6 +275,8 @@ defmodule EmakolaWeb.Router do
     delete "/session", PlatformSessionController, :delete
     # Exit impersonation (GET so the banner link + AssignDefaults expiry-redirect reach it).
     get "/impersonate/exit", ImpersonateSessionController, :exit
+    # CSV of the audit ledger; staff + :view_audit_log verified in the controller.
+    get "/audit-log/export", PlatformAuditExportController, :export
   end
 
   # Platform staff login (two-step: password + TOTP). Root layout only —

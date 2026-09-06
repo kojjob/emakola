@@ -1,0 +1,18 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Ledger (chosen)" },
+    { "id": "page-2", "name": "Explorations" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",    "x": 0,    "y": 0, "w": 1440, "h": 900, "title": "Option A: Ledger", "page": "page-1" },
+    { "file": "OptionB.dc.html", "x": 0,    "y": 0, "w": 1440, "h": 900, "title": "Option B: Journal", "page": "page-2" },
+    { "file": "OptionC.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Option C: Inspector", "page": "page-2" }
+  ],
+  "annotations": [
+    { "id": "brief", "x": -420, "y": 0, "w": 360, "page": "page-1", "text": "Audit log redesign. Kojo chose A (Ledger) on 2026-09-05.\n\nKept from live: platform shell (blue accent, 260px sidebar), 24px page title, severity families (red / amber / green / neutral), ring pills, rail dots, gray-200 cards at 16px radius.\n\nStaff names, stores, IPs and counts are sample data. Real action names from PlatformAuditLog." },
+    { "id": "note-a", "x": 0, "y": -190, "w": 420, "page": "page-1", "text": "A. Ledger (chosen)\n\nA register you can search. Family chips with counts, severity + date filters, sticky day bands, one row per event with actor, target and the first detail; the rest folds into a +N count and opens on click.\n\nLive pill shows a count of new events and reloads on click." },
+    { "id": "note-b", "x": 0, "y": -190, "w": 420, "page": "page-2", "text": "B. Journal (not chosen)\n\nReads like a diary: 24h stat tiles, then sentences with the actor's avatar and the reason quoted. Side rail shows who was most active and which area moved.\n\nTradeoff: tall. Slower to scan when you are hunting one specific event." },
+    { "id": "note-c", "x": 1560, "y": -190, "w": 420, "page": "page-2", "text": "C. Inspector (not chosen)\n\nSplit view, like Directory Studio on /platform/stores. Compact list left, full record right.\n\nTradeoff: one event at a time. Weakest overview of the three." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}
