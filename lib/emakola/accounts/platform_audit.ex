@@ -13,6 +13,11 @@ defmodule Emakola.Accounts.PlatformAudit do
   alias Emakola.Accounts.PlatformAuditLog
   alias Emakola.Accounts.User
 
+  @topic "platform:audit_log"
+
+  @doc "PubSub topic every successful log is broadcast on, as `{:platform_audit_logged, entry}`."
+  def topic, do: @topic
+
   @doc """
   Log a platform audit event.
 
@@ -31,7 +36,8 @@ defmodule Emakola.Accounts.PlatformAudit do
       |> Ash.create(authorize?: false)
 
     case result do
-      {:ok, _log} ->
+      {:ok, log} ->
+        Phoenix.PubSub.broadcast(Emakola.PubSub, @topic, {:platform_audit_logged, log})
         result
 
       {:error, reason} ->

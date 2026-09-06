@@ -59,6 +59,8 @@ defmodule EmakolaWeb do
 
       # Capture errors raised in mount/handle_event/handle_info and report to Sentry.
       on_mount(Sentry.LiveViewHook)
+      # Collect the WebSocket transport's join garbage right after each mount.
+      on_mount(EmakolaWeb.Hooks.CollectTransport)
 
       unquote(html_helpers())
     end
