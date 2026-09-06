@@ -175,12 +175,28 @@ defmodule Emakola.Customers.Customer do
     has_many :addresses, Emakola.Customers.Address
     has_many :notes, Emakola.Customers.CustomerNote
     has_many :orders, Emakola.Orders.Order
+    has_many :returns, Emakola.Orders.Return
   end
 
   aggregates do
     count(:order_count, :orders)
     count(:total_orders, :orders)
     sum(:total_spent, :orders, :total)
+
+    # Money that arrived. Pending is not yet money; cancelled never was.
+    sum :paid_total, :orders, :total do
+      filter(expr(status in [:confirmed, :processing, :shipped, :delivered]))
+    end
+
+    count :paid_order_count, :orders do
+      filter(expr(status in [:confirmed, :processing, :shipped, :delivered]))
+    end
+
+    count :cancelled_order_count, :orders do
+      filter(expr(status == :cancelled))
+    end
+
+    count(:returns_count, :returns)
   end
 
   identities do
@@ -374,7 +390,7 @@ defmodule Emakola.Customers.Customer do
       prepare(fn query, _context ->
         query
         |> Ash.Query.sort(inserted_at: :desc)
-        |> Ash.Query.load([:order_count])
+        |> Ash.Query.load([:order_count, :paid_total, :paid_order_count])
       end)
     end
 
@@ -383,7 +399,13 @@ defmodule Emakola.Customers.Customer do
       argument(:query, :string, allow_nil?: false)
 
       prepare(Emakola.Customers.Preparations.SearchCustomers)
-      prepare(build(load: [:order_count]))
+      prepare(build(load: [:order_count, :paid_total, :paid_order_count]))
+    end
+
+    # How many customers bought more than once. Aggregates are filterable.
+    read :bought_again_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id) and paid_order_count >= 2))
     end
 
     read :get_by_id do

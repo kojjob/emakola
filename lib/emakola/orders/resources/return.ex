@@ -257,5 +257,12 @@ defmodule Emakola.Orders.Return do
       filter(expr(customer_id == ^arg(:customer_id)))
       prepare(build(sort: [inserted_at: :desc]))
     end
+
+    read :list_by_customer_and_store do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(customer_id == ^arg(:customer_id) and store_id == ^arg(:store_id)))
+      prepare(build(sort: [inserted_at: :desc]))
+    end
   end
 end
