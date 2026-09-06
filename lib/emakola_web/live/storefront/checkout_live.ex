@@ -167,7 +167,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     next = if socket.assigns.requires_shipping, do: 2, else: 3
 
-    advance_when_valid(socket, validate_contact_step(socket.assigns), next)
+    {:noreply, socket} = advance_when_valid(socket, validate_contact_step(socket.assigns), next)
+
+    if socket.assigns.step != 1, do: touch_abandoned_checkout(socket)
+
+    {:noreply, socket}
   end
 
   # Step 2 -> 3.
@@ -296,6 +300,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
         case create_order(socket) do
           {:ok, order} ->
+            if cart_session_id = socket.assigns[:cart_session_id] do
+              Emakola.Orders.AbandonedCheckouts.recover(
+                socket.assigns.store.id,
+                cart_session_id,
+                order.id
+              )
+            end
+
             socket = assign(socket, :order, order)
             handle_payment(socket, order)
 
@@ -513,6 +525,35 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     opts = Keyword.merge(opts, EmakolaWeb.Storefront.CheckoutIdentity.opts(socket.assigns))
 
     CheckoutService.checkout!(store.id, items, opts)
+  end
+
+  # Best-effort bookkeeping for the merchant's "carts left behind" list — a
+  # buyer who validated a phone but has not paid yet. Must never break
+  # checkout, so a write failure is logged and swallowed rather than raised.
+  defp touch_abandoned_checkout(socket) do
+    cart_session_id = socket.assigns[:cart_session_id]
+    store = socket.assigns.store
+
+    if cart_session_id do
+      Emakola.Orders.AbandonedCheckouts.touch(store.id, cart_session_id, %{
+        phone: socket.assigns.phone,
+        name: socket.assigns.fullname,
+        items:
+          Enum.map(socket.assigns.cart, fn item ->
+            %{
+              "title" => item.product_title,
+              "quantity" => item.quantity,
+              "unit_price" => item.unit_price
+            }
+          end),
+        cart_total: Enum.reduce(socket.assigns.cart, 0, &(&1.unit_price * &1.quantity + &2))
+      })
+    end
+  rescue
+    exception ->
+      Logger.warning(
+        "[checkout_live] touch abandoned checkout raised: #{Exception.message(exception)}"
+      )
   end
 
   defp put_digital_address(map, raw) do

@@ -77,4 +77,15 @@ defmodule Emakola.Orders.AbandonedCheckoutsTest do
     assert URI.decode_www_form(url) =~ "Kente stole"
     assert URI.decode_www_form(url) =~ "Ama's Shop"
   end
+
+  test "the prune worker forgets carts older than thirty days", %{store: store} do
+    {:ok, old} = AbandonedCheckouts.touch(store.id, "cart-old", @cart)
+    {:ok, recent} = AbandonedCheckouts.touch(store.id, "cart-recent", @cart)
+    seen_hours_ago!(old, 24 * 31)
+
+    assert :ok = Emakola.Orders.Workers.AbandonedCheckoutPruneWorker.perform(%Oban.Job{})
+
+    ids = Emakola.Orders.AbandonedCheckout |> Ash.read!(authorize?: false) |> Enum.map(& &1.id)
+    assert ids == [recent.id]
+  end
 end

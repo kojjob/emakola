@@ -55,6 +55,10 @@ defmodule EmakolaWeb.DashboardHelpers do
         sold_out: AsyncSandbox.run_async(fn -> count_sold_out(store_id) end),
         open_returns: AsyncSandbox.run_async(fn -> count_open_returns(store_id) end),
         suppliers_to_chase: AsyncSandbox.run_async(fn -> count_suppliers_to_chase(store_id) end),
+        carts_left_behind:
+          AsyncSandbox.run_async(fn ->
+            Emakola.Orders.AbandonedCheckouts.count_left_behind(store_id)
+          end),
         best_sellers:
           AsyncSandbox.run_async(fn -> Stats.best_sellers(store_id, day_start, day_end) end),
         failed_payments:
@@ -104,6 +108,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       sold_out_count: results.sold_out,
       open_returns: results.open_returns,
       suppliers_to_chase: results.suppliers_to_chase,
+      carts_left_behind: results.carts_left_behind,
       best_sellers: results.best_sellers,
       failed_payments: results.failed_payments,
       recent_orders: results.recent_orders
@@ -175,6 +180,7 @@ defmodule EmakolaWeb.DashboardHelpers do
       sold_out_count: 0,
       open_returns: 0,
       suppliers_to_chase: 0,
+      carts_left_behind: 0,
       best_sellers: [],
       failed_payments: 0,
       recent_orders: [],

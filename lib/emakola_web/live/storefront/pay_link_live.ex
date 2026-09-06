@@ -217,6 +217,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
                        socket.assigns.attribution
                      ) do
                   {:ok, order} ->
+                    Emakola.Orders.AbandonedCheckouts.recover_by_phone(
+                      store.id,
+                      buyer["phone"],
+                      order.id
+                    )
+
                     initiate_payment(socket, store, order)
 
                   {:error, reason} ->
