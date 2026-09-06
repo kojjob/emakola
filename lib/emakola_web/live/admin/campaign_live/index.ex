@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Customers.Segments
   alias Emakola.Marketing.{Campaigns, CampaignSendWorker}
 
   @body_limit 480
@@ -28,43 +29,68 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
       page_title: "Campaigns",
       active_nav: :campaigns,
       body_limit: @body_limit,
+      audience: :everyone,
       form: blank_form()
     )
   end
 
-  defp blank_form, do: to_form(%{"name" => "", "body" => ""}, as: :campaign)
+  defp blank_form(audience \\ :everyone) do
+    to_form(%{"name" => "", "body" => "", "audience" => to_string(audience)}, as: :campaign)
+  end
 
   defp load(socket) do
     store = socket.assigns[:current_store]
     actor = socket.assigns[:current_merchant]
+    audience = socket.assigns[:audience] || :everyone
 
-    {campaigns, audience} =
+    {campaigns, audience_count, draft_audience_counts} =
       if store do
         {:ok, campaigns} = Campaigns.list(actor, store.id)
-        {:ok, %{count: count}} = Campaigns.audience(actor, store.id)
-        {campaigns, count}
+        {:ok, %{count: count}} = Campaigns.audience(actor, store.id, audience)
+        {campaigns, count, draft_audience_counts(store.id, campaigns)}
       else
-        {[], 0}
+        {[], 0, %{}}
       end
 
-    assign(socket, campaigns: campaigns, audience_count: audience)
+    assign(socket,
+      campaigns: campaigns,
+      audience_count: audience_count,
+      draft_audience_counts: draft_audience_counts
+    )
   end
+
+  # The confirm dialog and the per-row "sending to N" flash need the count for
+  # THAT campaign's own audience, not whatever segment is currently selected
+  # in the draft form above.
+  defp draft_audience_counts(store_id, campaigns) do
+    campaigns
+    |> Enum.filter(&(&1.status == :draft))
+    |> Map.new(fn campaign ->
+      {:ok, %{count: count}} = Campaigns.audience(nil, store_id, campaign.audience)
+      {campaign.id, count}
+    end)
+  end
+
+  defp count_for(socket, campaign),
+    do: Map.get(socket.assigns.draft_audience_counts, campaign.id, 0)
 
   @impl true
   def handle_event("create", %{"campaign" => params}, socket) do
     store = socket.assigns[:current_store]
+    audience = Emakola.SafeAtom.to_atom_in(params["audience"], Segments.all(), :everyone)
 
     attrs = %{
       name: String.trim(params["name"] || ""),
       channel: :sms,
-      body: String.trim(params["body"] || "")
+      body: String.trim(params["body"] || ""),
+      audience: audience
     }
 
     case Campaigns.create(socket.assigns.current_merchant, store.id, attrs) do
       {:ok, _campaign} ->
         {:noreply,
          socket
-         |> assign(form: blank_form())
+         |> assign(form: blank_form(), audience: :everyone)
          |> load()
          |> put_flash(:info, "Campaign saved. Send it when you are ready.")}
 
@@ -78,19 +104,41 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
     end
   end
 
-  def handle_event("send", %{"id" => id}, socket) do
-    # Fan-out is a paid, retryable job — never inline in the LiveView process.
-    %{"campaign_id" => id}
-    |> CampaignSendWorker.new()
-    |> Oban.insert()
+  def handle_event("audience", %{"campaign" => params}, socket) do
+    store = socket.assigns[:current_store]
+    audience = Emakola.SafeAtom.to_atom_in(params["audience"], Segments.all(), :everyone)
+    {:ok, %{count: count}} = Campaigns.audience(nil, store.id, audience)
 
     {:noreply,
-     socket
-     |> load()
-     |> put_flash(
-       :info,
-       "Sending to #{Emakola.Plural.count(socket.assigns.audience_count, "customer")}."
+     assign(socket,
+       audience: audience,
+       audience_count: count,
+       form: to_form(params, as: :campaign)
      )}
+  end
+
+  def handle_event("send", %{"id" => id}, socket) do
+    store = socket.assigns[:current_store]
+
+    case Campaigns.get_for_store(store.id, id) do
+      {:ok, %{status: :draft} = campaign} ->
+        # Fan-out is a paid, retryable job — never inline in the LiveView
+        # process. unique guards a double tap from queuing the same send twice.
+        %{"campaign_id" => campaign.id}
+        |> CampaignSendWorker.new(unique: [period: 300, keys: [:campaign_id]])
+        |> Oban.insert()
+
+        {:noreply,
+         socket
+         |> load()
+         |> put_flash(
+           :info,
+           "Sending to #{Emakola.Plural.count(count_for(socket, campaign), "customer")}."
+         )}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "That campaign is not yours to send.")}
+    end
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
@@ -107,8 +155,21 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
 
       <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <.admin_card class="p-6">
-          <.form for={@form} id="campaign-form" phx-submit="create" class="space-y-4">
+          <.form
+            for={@form}
+            id="campaign-form"
+            phx-submit="create"
+            phx-change="audience"
+            class="space-y-4"
+          >
             <.input field={@form[:name]} label="Name this campaign" placeholder="Weekend sale" />
+
+            <.input
+              field={@form[:audience]}
+              type="select"
+              label="Who is this for"
+              options={Enum.map(Segments.all(), &{Segments.label(&1), &1})}
+            />
 
             <div>
               <.input
@@ -139,7 +200,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
           <:icon><.icon name="hero-users" class="size-7" /></:icon>
           <:delta>
             <span id="campaign-audience-count" class="text-xs font-semibold text-slate-500">
-              {@audience_count} with a phone number
+              {@audience_count} {Segments.label(@audience) |> String.downcase()} with a phone
             </span>
           </:delta>
         </.stat_card>
@@ -162,6 +223,9 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
             </div>
 
             <div class="flex items-center gap-3 shrink-0">
+              <span class="text-xs font-medium text-slate-500">
+                {Segments.label(campaign.audience)}
+              </span>
               <.status_badge variant={:campaign} status={campaign.status} />
 
               <.admin_button
@@ -169,7 +233,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
                 id={"send-campaign-#{campaign.id}"}
                 phx-click="send"
                 phx-value-id={campaign.id}
-                data-confirm={"Send this to #{Emakola.Plural.count(@audience_count, "customer")}? Each message costs money."}
+                data-confirm={"Send this to #{Emakola.Plural.count(Map.get(@draft_audience_counts, campaign.id, 0), "customer")}? Each message costs money."}
               >
                 <.icon name="hero-paper-airplane" class="size-5" /> Send
               </.admin_button>

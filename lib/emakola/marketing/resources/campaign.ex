@@ -59,6 +59,13 @@ defmodule Emakola.Marketing.Campaign do
       constraints(min_length: 1, max_length: 480)
     end
 
+    attribute :audience, :atom do
+      allow_nil?(false)
+      public?(true)
+      default(:everyone)
+      constraints(one_of: [:everyone, :new, :bought_again, :big_spenders, :gone_quiet])
+    end
+
     attribute :status, :atom do
       allow_nil?(false)
       public?(true)
@@ -115,7 +122,7 @@ defmodule Emakola.Marketing.Campaign do
     defaults([:read])
 
     create :create do
-      accept([:store_id, :name, :channel, :body])
+      accept([:store_id, :name, :channel, :body, :audience])
     end
 
     update :mark_sending do

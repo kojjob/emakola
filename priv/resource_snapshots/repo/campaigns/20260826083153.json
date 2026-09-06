@@ -62,6 +62,18 @@
     },
     {
       "allow_nil?": false,
+      "default": "\"everyone\"",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "audience",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
       "default": "\"draft\"",
       "generated?": false,
       "precision": null,

@@ -10,10 +10,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   require Logger
 
+  alias Emakola.Customers.Segments
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   import EmakolaWeb.Admin.CustomerLive.Components,
-    only: [customer_initials: 1, add_customer_form: 1]
+    only: [customer_initials: 1, add_customer_form: 1, segment_chips: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,6 +35,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         total_customers: 0,
         new_this_month: 0,
         bought_again: 0,
+        segment: :everyone,
+        segment_counts: %{},
         adding?: false,
         add_form: to_form(%{"name" => "", "phone" => "", "email" => ""}, as: :customer)
       )
@@ -61,6 +65,15 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       |> load_customers()
 
     {:noreply, socket}
+  end
+
+  def handle_event("segment", %{"segment" => segment_param}, socket) do
+    segment = Emakola.SafeAtom.to_atom_in(segment_param, Segments.all(), :everyone)
+
+    {:noreply,
+     socket
+     |> assign(segment: segment, customers_limit: @customers_limit)
+     |> load_customers()}
   end
 
   def handle_event("toggle_add", _params, socket) do
@@ -199,6 +212,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           </:delta>
         </.stat_card>
       </div>
+
+      <.segment_chips segment={@segment} segment_counts={@segment_counts} />
 
       <%!-- Filter Bar --%>
       <.table_toolbar
@@ -363,23 +378,33 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   defp load_customers(socket) do
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
+    segment = socket.assigns[:segment] || :everyone
     limit = socket.assigns[:customers_limit] || @customers_limit
 
     customers =
-      if store_id do
-        if search_query != "" do
+      cond do
+        is_nil(store_id) ->
+          []
+
+        search_query != "" ->
           Emakola.Customers.search_customers!(store_id, search_query,
             query: [limit: limit + 1],
             authorize?: false
           )
-        else
+
+        segment != :everyone ->
+          store_id
+          |> Segments.query(segment)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:order_count, :paid_total, :paid_order_count])
+          |> Ash.Query.limit(limit + 1)
+          |> Ash.read!(authorize?: false)
+
+        true ->
           Emakola.Customers.list_customers_by_store!(store_id,
             query: [limit: limit + 1],
             authorize?: false
           )
-        end
-      else
-        []
       end
 
     # One row past the window answers "is there more?" without a second COUNT.
@@ -402,7 +427,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         more_customers?: false,
         total_customers: 0,
         new_this_month: 0,
-        bought_again: 0
+        bought_again: 0,
+        segment_counts: %{}
       )
   end
 
@@ -411,7 +437,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   # number changed as they pressed "Load more". These are real counts over the
   # same scope as the list (store, plus the active search).
   defp assign_customer_totals(socket, nil, _search),
-    do: assign(socket, total_customers: 0, new_this_month: 0, bought_again: 0)
+    do:
+      assign(socket,
+        total_customers: 0,
+        new_this_month: 0,
+        bought_again: 0,
+        segment_counts: %{}
+      )
 
   defp assign_customer_totals(socket, store_id, search_query) do
     require Ash.Query
@@ -439,7 +471,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         base
         |> Ash.Query.filter(inserted_at >= ^start_of_month)
         |> Ash.count!(authorize?: false),
-      bought_again: Ash.count!(bought_again_query, authorize?: false)
+      bought_again: Ash.count!(bought_again_query, authorize?: false),
+      segment_counts: Segments.counts(store_id)
     )
   rescue
     exception ->
@@ -450,7 +483,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       assign(socket,
         total_customers: length(socket.assigns.customers),
         new_this_month: 0,
-        bought_again: 0
+        bought_again: 0,
+        segment_counts: %{}
       )
   end
 

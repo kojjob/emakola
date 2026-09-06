@@ -38,6 +38,30 @@ defmodule EmakolaWeb.Admin.CustomerLive.Components do
   defp status_class(:cancelled), do: "text-red-700 bg-red-50"
   defp status_class(_), do: "text-slate-700 bg-slate-50"
 
+  attr :segment, :atom, required: true
+  attr :segment_counts, :map, required: true
+
+  def segment_chips(assigns) do
+    ~H"""
+    <div id="customer-segments" class="flex flex-wrap gap-2">
+      <button
+        :for={segment <- Emakola.Customers.Segments.all()}
+        type="button"
+        phx-click="segment"
+        phx-value-segment={segment}
+        data-on={@segment == segment || nil}
+        class={[
+          "px-3 py-1.5 rounded-full text-sm font-semibold border cursor-pointer",
+          @segment == segment && "bg-emerald-600 text-white border-emerald-600",
+          @segment != segment && "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+        ]}
+      >
+        {Emakola.Customers.Segments.label(segment)} {Map.get(@segment_counts, segment, 0)}
+      </button>
+    </div>
+    """
+  end
+
   attr :adding?, :boolean, required: true
   attr :form, Phoenix.HTML.Form, required: true
 

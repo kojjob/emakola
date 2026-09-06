@@ -169,6 +169,22 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
       refute render(view) =~ "Not Yours"
       assert has_element?(view, "#customers-bought-again", "0")
     end
+
+    test "a segment chip narrows the list", ctx do
+      twice = Factory.create_customer!(ctx.store, %{name: "Twice Buyer"})
+      once = Factory.create_customer!(ctx.store, %{name: "Once Buyer"})
+      for _ <- 1..2, do: order!(ctx.store, twice, 100, :confirmed)
+      order!(ctx.store, once, 100, :confirmed)
+
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      view
+      |> element(~s{#customer-segments button[phx-value-segment="bought_again"]})
+      |> render_click()
+
+      assert has_element?(view, "#customer-#{twice.id}")
+      refute has_element?(view, "#customer-#{once.id}")
+    end
   end
 
   describe "the detail page" do

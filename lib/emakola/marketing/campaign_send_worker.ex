@@ -35,7 +35,7 @@ defmodule Emakola.Marketing.CampaignSendWorker do
   defp send_campaign(%Campaign{status: :sent}), do: :ok
 
   defp send_campaign(%Campaign{} = campaign) do
-    {:ok, customers} = Campaigns.reachable_customers(campaign.store_id)
+    {:ok, customers} = Campaigns.reachable_customers(campaign.store_id, campaign.audience)
 
     {:ok, campaign} =
       campaign
