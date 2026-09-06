@@ -81,6 +81,24 @@ defmodule Emakola.Customers.GuestBackfillTest do
     refute reload_order(order).customer_id
   end
 
+  test "orders whose stored phone is already the bare country code are left alone, not merged",
+       %{store: store} do
+    # checkout_live.ex has normalised the shipping-address phone since before
+    # this task existed, so a blank/whitespace phone typed at checkout was
+    # already stored as the literal sentinel "+233" on historical orders —
+    # phone_of/1 must recognise that stored value too, not just a raw blank
+    # string, or every such order in a store would find-or-create the SAME
+    # "+233" customer.
+    a = guest_order!(store, "+233", "Ama")
+    b = guest_order!(store, "+233", "Kofi")
+
+    assert %{linked: 0, skipped: 2} = GuestBackfill.run()
+
+    refute reload_order(a).customer_id
+    refute reload_order(b).customer_id
+    assert Customer |> Ash.count!(authorize?: false) == 0
+  end
+
   test "a second run changes nothing", %{store: store} do
     guest_order!(store, "+233241234567", "Ama")
 

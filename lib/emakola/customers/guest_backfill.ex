@@ -38,11 +38,18 @@ defmodule Emakola.Customers.GuestBackfill do
     end)
   end
 
+  # PhoneAuth.normalize/1 collapses any blank or digit-free phone to the bare
+  # country code, with no national digits after it — this is that sentinel.
+  @blank_phone Emakola.Accounts.PhoneAuth.normalize("")
+
   defp phone_of(%Order{shipping_address: %{"phone" => phone}}) when is_binary(phone) do
-    # A whitespace-only phone normalises to the bare country code ("+233")
-    # in PhoneAuth — treating that as real would find-or-create the SAME
-    # customer for every such order, merging unrelated buyers.
-    if String.trim(phone) == "", do: nil, else: phone
+    # checkout_live.ex has normalised the shipping-address phone since before
+    # this task existed, so a blank/whitespace phone typed at checkout may
+    # already be stored as literally `@blank_phone` on historical orders, not
+    # just as a raw blank string. Either way, treating it as real would
+    # find-or-create the SAME customer for every such order, merging
+    # unrelated buyers.
+    if Emakola.Accounts.PhoneAuth.normalize(phone) == @blank_phone, do: nil, else: phone
   end
 
   defp phone_of(_order), do: nil

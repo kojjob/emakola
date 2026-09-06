@@ -29,11 +29,18 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
     end
   end
 
-  defp normalize_phone(nil), do: nil
-  defp normalize_phone(""), do: nil
+  # PhoneAuth.normalize/1 collapses any blank or digit-free phone to the bare
+  # country code, with no national digits after it — this is that sentinel.
+  @blank_phone Emakola.Accounts.PhoneAuth.normalize("")
 
-  defp normalize_phone(phone) when is_binary(phone),
-    do: Emakola.Accounts.PhoneAuth.normalize(phone)
+  defp normalize_phone(nil), do: nil
+
+  defp normalize_phone(phone) when is_binary(phone) do
+    case Emakola.Accounts.PhoneAuth.normalize(phone) do
+      @blank_phone -> nil
+      normalized -> normalized
+    end
+  end
 
   defp find_existing(resource, email, phone, store_id) do
     by_phone(resource, phone, store_id) || by_email(resource, email, store_id)

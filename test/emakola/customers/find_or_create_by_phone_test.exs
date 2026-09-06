@@ -65,4 +65,16 @@ defmodule Emakola.Customers.FindOrCreateByPhoneTest do
 
     refute here.id == there.id
   end
+
+  test "a blank or bare-country-code phone is stored as nil, not as \"+233\"", %{store: store} do
+    # Both normalise to the bare country code, with no national digits after
+    # it — storing that as a real phone would find-or-create the SAME
+    # customer for every buyer who typed no phone, merging unrelated people.
+    whitespace = find_or_create!(store, %{email: "whitespace@example.com", phone: "   "})
+    bare_code = find_or_create!(store, %{email: "barecode@example.com", phone: "+233"})
+
+    assert whitespace.phone == nil
+    assert bare_code.phone == nil
+    refute whitespace.id == bare_code.id
+  end
 end
