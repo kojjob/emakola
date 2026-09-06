@@ -345,6 +345,7 @@ defmodule EmakolaWeb.DashboardLive do
         period={@period}
         total_revenue={@total_revenue}
         revenue_change={@revenue_change}
+        waiting_for_payment={@waiting_for_payment}
         order_count={@order_count}
         orders_change={@orders_change}
         customer_count={@customer_count}
@@ -410,7 +411,7 @@ defmodule EmakolaWeb.DashboardLive do
             />
             <.chart_card
               id="customers-chart"
-              title="New Customers"
+              title="New customers"
               chart_type="customers-line"
               chart_data={@customers_chart}
               height="h-48"

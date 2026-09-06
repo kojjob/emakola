@@ -16,6 +16,12 @@ defmodule Emakola.Orders.Order do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
+  # An order is money once a payment confirmed it (or the merchant did, for
+  # cash on delivery). Pending is not yet money. Shared by every merchant
+  # money figure so no two pages can disagree.
+  @paid_statuses [:confirmed, :processing, :shipped, :delivered]
+  def paid_statuses, do: @paid_statuses
+
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -506,6 +512,22 @@ defmodule Emakola.Orders.Order do
         expr(
           store_id == ^arg(:store_id) and
             status != :cancelled and
+            inserted_at >= ^arg(:from) and
+            inserted_at < ^arg(:to)
+        )
+      )
+    end
+
+    read :by_store_in_period_with_status do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:from, :utc_datetime, allow_nil?: false)
+      argument(:to, :utc_datetime, allow_nil?: false)
+      argument(:statuses, {:array, :atom}, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            status in ^arg(:statuses) and
             inserted_at >= ^arg(:from) and
             inserted_at < ^arg(:to)
         )
