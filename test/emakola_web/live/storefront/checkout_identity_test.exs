@@ -38,4 +38,19 @@ defmodule EmakolaWeb.Storefront.CheckoutIdentityTest do
 
     assert opts[:customer_email] == "ama@example.com"
   end
+
+  test "a guest with a blank phone gets no customer at all" do
+    # PhoneAuth.normalize("") and normalize("   ") both collapse to the
+    # bare country code "+233" — without this guard every blank-phone guest
+    # in a store would be found-or-created into the SAME customer row.
+    assert CheckoutIdentity.opts(%{current_customer: nil, phone: "", fullname: "Ama", email: ""}) ==
+             []
+
+    assert CheckoutIdentity.opts(%{
+             current_customer: nil,
+             phone: "   ",
+             fullname: "Ama",
+             email: ""
+           }) == []
+  end
 end

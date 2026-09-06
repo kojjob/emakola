@@ -15,10 +15,21 @@ defmodule EmakolaWeb.Storefront.CheckoutIdentity do
     do: [customer_id: customer_id]
 
   def opts(%{phone: phone, fullname: fullname} = assigns) do
-    phone = Emakola.Accounts.PhoneAuth.normalize(phone)
-    email = presence(Map.get(assigns, :email)) || CheckoutService.phone_placeholder_email(phone)
+    case presence(phone) do
+      # A blank phone normalises to the bare country code ("+233"), which
+      # would find-or-create the SAME customer for every guest who typed
+      # none — merging unrelated buyers. No phone, no customer lookup.
+      nil ->
+        []
 
-    [customer_email: email, customer_name: fullname, customer_phone: phone]
+      phone ->
+        phone = Emakola.Accounts.PhoneAuth.normalize(phone)
+
+        email =
+          presence(Map.get(assigns, :email)) || CheckoutService.phone_placeholder_email(phone)
+
+        [customer_email: email, customer_name: fullname, customer_phone: phone]
+    end
   end
 
   defp presence(nil), do: nil

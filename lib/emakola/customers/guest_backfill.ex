@@ -38,9 +38,12 @@ defmodule Emakola.Customers.GuestBackfill do
     end)
   end
 
-  defp phone_of(%Order{shipping_address: %{"phone" => phone}})
-       when is_binary(phone) and phone != "",
-       do: phone
+  defp phone_of(%Order{shipping_address: %{"phone" => phone}}) when is_binary(phone) do
+    # A whitespace-only phone normalises to the bare country code ("+233")
+    # in PhoneAuth — treating that as real would find-or-create the SAME
+    # customer for every such order, merging unrelated buyers.
+    if String.trim(phone) == "", do: nil, else: phone
+  end
 
   defp phone_of(_order), do: nil
 

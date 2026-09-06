@@ -70,6 +70,17 @@ defmodule Emakola.Customers.GuestBackfillTest do
     refute reload_order(order).customer_id
   end
 
+  test "an order with a blank phone is left alone, not merged into a bare-country-code customer",
+       %{store: store} do
+    # PhoneAuth.normalize("   ") collapses to the bare country code "+233" —
+    # treating that as a real phone would find-or-create the SAME customer
+    # for every order with a blank phone, merging unrelated buyers.
+    order = guest_order!(store, "   ", "Ama")
+
+    assert %{linked: 0, skipped: 1} = GuestBackfill.run()
+    refute reload_order(order).customer_id
+  end
+
   test "a second run changes nothing", %{store: store} do
     guest_order!(store, "+233241234567", "Ama")
 
