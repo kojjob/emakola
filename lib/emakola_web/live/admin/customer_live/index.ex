@@ -100,34 +100,51 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
     with {:ok, name} <- as_binary(params["name"]),
          {:ok, phone} <- as_binary(params["phone"]),
          {:ok, email} <- as_binary(params["email"]) do
-      if phone not in [nil, ""] and not Emakola.Accounts.PhoneAuth.valid?(phone) do
-        {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
-      else
-        attrs = %{
-          store_id: socket.assigns.store_id,
-          name: name,
-          phone: normalize_phone(phone),
-          email: blank_to_nil(email)
-        }
+      cond do
+        phone not in [nil, ""] and not Emakola.Accounts.PhoneAuth.valid?(phone) ->
+          {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
 
-        case Emakola.Customers.create_customer(attrs, authorize?: false) do
-          {:ok, _customer} ->
-            {:noreply,
-             socket
-             |> assign(adding?: false)
-             |> load_customers()
-             |> assign_segment_counts()
-             |> put_flash(:info, "Customer saved")}
+        # The phone-placeholder address belongs to a specific guest lookup,
+        # not to a person: FindOrCreateCustomer's credential-less fallback
+        # finds a row by that email and binds a stranger's guest checkout to
+        # it. Validations.NotPlaceholderEmail already refuses it on the three
+        # public registration paths, but it CANNOT go on the generic :create
+        # action — that is the same action the fallback uses to write the
+        # placeholder row itself, so guarding there breaks guest checkout.
+        # This handler is the surface where a merchant types one by hand.
+        email not in [nil, ""] and Emakola.Orders.CheckoutService.placeholder_email?(email) ->
+          {:noreply, put_flash(socket, :error, "Use your own email address")}
 
-          {:error, error} ->
-            {:noreply, put_flash(socket, :error, add_customer_error_message(error))}
-        end
+        true ->
+          create_customer_row(socket, name, phone, email)
       end
     else
       # A crafted param (e.g. customer[phone][]=1) arrives as a list/map, not
       # a string — reject it the same way as a plain bad phone, rather than
       # crashing inside PhoneAuth.valid?/1 further down.
       :error -> {:noreply, put_flash(socket, :error, "Enter a valid phone number")}
+    end
+  end
+
+  defp create_customer_row(socket, name, phone, email) do
+    attrs = %{
+      store_id: socket.assigns.store_id,
+      name: name,
+      phone: normalize_phone(phone),
+      email: blank_to_nil(email)
+    }
+
+    case Emakola.Customers.create_customer(attrs, authorize?: false) do
+      {:ok, _customer} ->
+        {:noreply,
+         socket
+         |> assign(adding?: false)
+         |> load_customers()
+         |> assign_segment_counts()
+         |> put_flash(:info, "Customer saved")}
+
+      {:error, error} ->
+        {:noreply, put_flash(socket, :error, add_customer_error_message(error))}
     end
   end
 

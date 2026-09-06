@@ -148,6 +148,31 @@ defmodule EmakolaWeb.Admin.CustomerTruthTest do
       assert Emakola.Customers.list_customers_by_store!(ctx.store.id, authorize?: false) == []
     end
 
+    # The placeholder address belongs to a specific phone-first guest lookup,
+    # not to a person. A row holding it here would be found by
+    # FindOrCreateCustomer's credential-less fallback and bound to a stranger's
+    # guest checkout. The public registration paths already refuse it; this is
+    # the surface where a merchant can type one by hand.
+    test "add customer refuses a phone-placeholder email address", ctx do
+      {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
+
+      view |> element("#add-customer-toggle") |> render_click()
+
+      html =
+        view
+        |> form("#add-customer-form",
+          customer: %{
+            name: "Squatter",
+            phone: "0249999999",
+            email: "p233241111111@phone.customers.makola.io"
+          }
+        )
+        |> render_submit()
+
+      assert html =~ "Use your own email address"
+      assert Emakola.Customers.list_customers_by_store!(ctx.store.id, authorize?: false) == []
+    end
+
     test "export is a real link", ctx do
       {:ok, view, _html} = live(ctx.conn, ~p"/admin/customers")
 
