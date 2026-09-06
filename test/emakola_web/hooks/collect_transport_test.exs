@@ -19,7 +19,8 @@ defmodule EmakolaWeb.Hooks.CollectTransportTest do
         end
       end)
 
-    assert_receive {:bloated, 200_000}
+    # Building the garbage can take well over the 100ms default on a loaded CI runner.
+    assert_receive {:bloated, 200_000}, 10_000
     pid
   end
 
