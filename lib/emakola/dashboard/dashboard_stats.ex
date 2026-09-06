@@ -94,6 +94,35 @@ defmodule Emakola.Dashboard.Stats do
     end
   end
 
+  @doc """
+  Counts distinct customers who placed a paid order for the store in the
+  given period — buyers, not signups. Paid statuses come from
+  `Emakola.Orders.Order.paid_statuses/0`, encoded to strings here (the
+  order status enum is stored as text), next to this query's only consumer.
+
+  A schemaless raw query, not an Ash read: Ash has no `count(distinct ...)`.
+  Tenancy is the explicit `store_id == type(^store_id, :binary_id)` clause,
+  a pinned parameter rather than an interpolated one. The cross-store
+  guarantee this depends on is asserted end-to-end in
+  `EmakolaWeb.DashboardMoneyTest`, "another store's paid order never changes
+  this store's money made".
+  """
+  @spec count_buyers(Ash.UUID.t(), DateTime.t(), DateTime.t()) :: non_neg_integer()
+  def count_buyers(store_id, from, to) do
+    paid_statuses = Enum.map(Emakola.Orders.Order.paid_statuses(), &Atom.to_string/1)
+
+    Emakola.Repo.one(
+      from(o in "orders",
+        where:
+          o.store_id == type(^store_id, :binary_id) and
+            o.status in ^paid_statuses and
+            o.inserted_at >= ^from and o.inserted_at < ^to and
+            not is_nil(o.customer_id),
+        select: count(fragment("distinct ?", o.customer_id))
+      )
+    ) || 0
+  end
+
   @doc "Returns the latest `limit` orders for the store, sorted newest first."
   def recent_orders(store_id, limit) do
     case Emakola.Orders.Order

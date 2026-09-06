@@ -34,6 +34,7 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       assert data.total_revenue == 0
       assert data.order_count == 0
       assert data.customer_count == 0
+      assert data.waiting_for_payment == 0
       assert data.avg_order_value == 0
       assert data.revenue_change == nil
       assert data.orders_change == nil
@@ -51,12 +52,23 @@ defmodule EmakolaWeb.DashboardHelpersTest do
   end
 
   describe "load_merchant_dashboard/2" do
-    test "returns correct revenue and order count for non-cancelled orders", %{
+    test "returns correct revenue and order count for paid orders", %{
       store: store,
       customer: customer
     } do
-      Factory.create_order!(store, customer_id: customer.id, total: 20_000, subtotal: 20_000)
-      Factory.create_order!(store, customer_id: customer.id, total: 30_000, subtotal: 30_000)
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 20_000,
+        subtotal: 20_000,
+        status: :confirmed
+      )
+
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 30_000,
+        subtotal: 30_000,
+        status: :confirmed
+      )
 
       # Cancelled order should not count
       Factory.create_order!(store,
@@ -73,13 +85,23 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       assert data.avg_order_value == 25_000
     end
 
-    test "returns correct customer count", %{store: store} do
-      # The setup already created one customer; create another
+    test "customer_count counts distinct buyers on paid orders, not signups", %{
+      store: store,
+      customer: customer
+    } do
+      # The setup already created one customer; create another who never buys.
       Factory.create_customer!(store)
+
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 5_000,
+        subtotal: 5_000,
+        status: :confirmed
+      )
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "today")
 
-      assert data.customer_count == 2
+      assert data.customer_count == 1
     end
 
     test "does NOT include data from another store (multi-tenant isolation)", %{
@@ -88,7 +110,12 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       customer: customer
     } do
       # Create order in our store
-      Factory.create_order!(store, customer_id: customer.id, total: 20_000, subtotal: 20_000)
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 20_000,
+        subtotal: 20_000,
+        status: :confirmed
+      )
 
       # Create order in other store
       other_customer = Factory.create_customer!(other_store)
@@ -96,7 +123,8 @@ defmodule EmakolaWeb.DashboardHelpersTest do
       Factory.create_order!(other_store,
         customer_id: other_customer.id,
         total: 99_000,
-        subtotal: 99_000
+        subtotal: 99_000,
+        status: :confirmed
       )
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "today")
@@ -230,7 +258,12 @@ defmodule EmakolaWeb.DashboardHelpersTest do
     end
 
     test "handles 'today' period correctly", %{store: store, customer: customer} do
-      Factory.create_order!(store, customer_id: customer.id, total: 10_000, subtotal: 10_000)
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 10_000,
+        subtotal: 10_000,
+        status: :confirmed
+      )
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "today")
 
@@ -242,7 +275,12 @@ defmodule EmakolaWeb.DashboardHelpersTest do
     end
 
     test "handles 'all' period correctly", %{store: store, customer: customer} do
-      Factory.create_order!(store, customer_id: customer.id, total: 10_000, subtotal: 10_000)
+      Factory.create_order!(store,
+        customer_id: customer.id,
+        total: 10_000,
+        subtotal: 10_000,
+        status: :confirmed
+      )
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "all")
 
