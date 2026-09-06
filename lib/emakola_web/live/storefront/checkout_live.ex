@@ -510,16 +510,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         opts
       end
 
-    # Every storefront order was created with customer_id: nil, so every
-    # DownloadGrant was a guest grant and Storefront.DownloadController 404s
-    # those forever. CheckoutService.resolve_customer/2 has always handled
-    # :customer_id — the branch was simply dead on this path. Signed-in buyers
-    # of physical goods gain a correct account Orders tab as a side effect.
-    opts =
-      case socket.assigns[:current_customer] do
-        %{id: customer_id} -> Keyword.put(opts, :customer_id, customer_id)
-        _ -> opts
-      end
+    opts = Keyword.merge(opts, EmakolaWeb.Storefront.CheckoutIdentity.opts(socket.assigns))
 
     CheckoutService.checkout!(store.id, items, opts)
   end

@@ -306,7 +306,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLiveTest do
     active = activate!(plan, %{"name" => "Ama Mensah", "phone" => "0201234567"})
 
     expect(Emakola.SMSProviderMock, :send_sms, fn to, message, _opts ->
-      assert to == "0201234567"
+      assert to == "+233201234567"
       assert message =~ "/susu/#{active.code}"
       {:ok, %{}}
     end)
