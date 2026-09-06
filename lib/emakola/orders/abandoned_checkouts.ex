@@ -19,12 +19,17 @@ defmodule Emakola.Orders.AbandonedCheckouts do
       store_id: store_id,
       cart_session_id: cart_session_id,
       phone: PhoneAuth.normalize(phone),
-      name: Map.get(cart, :name),
+      name: cart |> Map.get(:name) |> cap_name(),
       items: Map.get(cart, :items, []),
       cart_total: Map.get(cart, :cart_total, 0)
     })
     |> Ash.create(authorize?: false)
   end
+
+  # Buyer-typed free text, stored on an unauthenticated write — capped as a
+  # safety net regardless of whether the caller already validated it.
+  defp cap_name(nil), do: nil
+  defp cap_name(name), do: String.slice(name, 0, 255)
 
   def recover(store_id, cart_session_id, order_id) do
     AbandonedCheckout
