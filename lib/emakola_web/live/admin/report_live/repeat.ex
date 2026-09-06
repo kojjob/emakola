@@ -30,7 +30,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Repeat do
         Order
         |> Ash.Query.filter(
           store_id == ^store_id and customer_id in ^buyer_ids and inserted_at < ^from and
-            status in [:confirmed, :processing, :shipped, :delivered]
+            status in ^Order.paid_statuses()
         )
         |> Ash.Query.select([:customer_id])
         |> Ash.read!(authorize?: false)
