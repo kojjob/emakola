@@ -93,8 +93,6 @@ defmodule Emakola.Orders do
       )
     end
 
-    resource Emakola.Orders.AbandonedCheckout do
-      define(:list_left_behind, action: :left_behind, args: [:store_id, :before, :after])
-    end
+    resource(Emakola.Orders.AbandonedCheckout)
   end
 end

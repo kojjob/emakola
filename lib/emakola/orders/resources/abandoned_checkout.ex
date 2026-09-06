@@ -42,10 +42,6 @@ defmodule Emakola.Orders.AbandonedCheckout do
   end
 
   policies do
-    bypass action_type(:action) do
-      authorize_if(always())
-    end
-
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -69,13 +65,18 @@ defmodule Emakola.Orders.AbandonedCheckout do
 
     read :left_behind do
       argument(:store_id, :uuid, allow_nil?: false)
-      argument(:before, :utc_datetime, allow_nil?: false)
-      argument(:after, :utc_datetime, allow_nil?: false)
+      # usec, not plain :utc_datetime — the argument must not lose precision
+      # relative to the :utc_datetime_usec last_seen_at column, or a value
+      # exactly at either boundary gets rounded onto the wrong side of it.
+      argument(:before, :utc_datetime_usec, allow_nil?: false)
+      argument(:after, :utc_datetime_usec, allow_nil?: false)
 
+      # Both ends inclusive: a checkout last seen exactly at the settle-hours
+      # mark, or exactly at the keep-days mark, still counts as left behind.
       filter(
         expr(
           store_id == ^arg(:store_id) and is_nil(recovered_at) and
-            last_seen_at < ^arg(:before) and last_seen_at >= ^arg(:after)
+            last_seen_at <= ^arg(:before) and last_seen_at >= ^arg(:after)
         )
       )
 

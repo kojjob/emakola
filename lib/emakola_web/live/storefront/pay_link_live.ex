@@ -217,12 +217,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
                        socket.assigns.attribution
                      ) do
                   {:ok, order} ->
-                    Emakola.Orders.AbandonedCheckouts.recover_by_phone(
-                      store.id,
-                      buyer["phone"],
-                      order.id
-                    )
-
+                    recover_quietly(store.id, buyer["phone"], order.id)
                     initiate_payment(socket, store, order)
 
                   {:error, reason} ->
@@ -302,6 +297,18 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
       {:ok, n} -> n
       _ -> 0
     end
+  end
+
+  # Bounded and best-effort: a row pruned or already recovered between the
+  # order landing and this call must not raise into a checkout whose order,
+  # and the buyer's money, already exist.
+  defp recover_quietly(store_id, phone, order_id) do
+    Emakola.Orders.AbandonedCheckouts.recover_by_phone(store_id, phone, order_id)
+  rescue
+    exception ->
+      Logger.warning(
+        "[pay_link_live] recover abandoned checkout raised for order #{order_id} store #{store_id}: #{Exception.message(exception)}"
+      )
   end
 
   defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty, attribution) do
