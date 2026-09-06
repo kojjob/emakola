@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makola.io Cost Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#f7f6f2;--surface:#ffffff;--ink:#0c1526;--ink-2:#3b4656;--muted:#6b7482;--rule:#dcd8cc;--rule-2:#ebe8df;--gold:#d4a843;--gold-text:#8f6a14;--gold-soft:#f5ecd3;--critical:#b42f2f;--good:#1a7f37;--chip-est:#8a8f99;
+--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--bar-neg:#d03b3b;--bar-pos:#0ca30c;--grid:#e6e2d6;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#0c1526;--surface:#131f33;--ink:#efe9dc;--ink-2:#cfc8b8;--muted:#8896ab;--rule:#26334d;--rule-2:#1c2840;--gold:#d4a843;--gold-text:#e2bd5c;--gold-soft:#2a2a1e;--critical:#f08a8a;--good:#6cd08a;--chip-est:#8896ab;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--bar-neg:#e66767;--bar-pos:#3fbf3f;--grid:#22304a;}}
+:root[data-theme="dark"]{--paper:#0c1526;--surface:#131f33;--ink:#efe9dc;--ink-2:#cfc8b8;--muted:#8896ab;--rule:#26334d;--rule-2:#1c2840;--gold:#d4a843;--gold-text:#e2bd5c;--gold-soft:#2a2a1e;--critical:#f08a8a;--good:#6cd08a;--chip-est:#8896ab;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--bar-neg:#e66767;--bar-pos:#3fbf3f;--grid:#22304a;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;font-variation-settings:"wdth" 100;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-text);font-weight:600}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.02;margin:10px 0 14px;font-weight:800;font-variation-settings:"wdth" 112;letter-spacing:-.01em;text-wrap:balance}
+.dek{font-size:19px;color:var(--ink-2);max-width:68ch;margin:0 0 28px}
+h2{font-size:26px;line-height:1.15;margin:0 0 6px;font-weight:700;font-variation-settings:"wdth" 108;text-wrap:balance}
+h3{font-size:17px;margin:26px 0 8px;font-weight:700}
+section{padding:36px 0 8px;border-top:2px solid var(--rule);margin-top:24px}
+section>.eyebrow{display:block;margin-bottom:6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+ul{padding-left:20px}
+li{margin:6px 0}
+strong{font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:8px 0 6px}
+.kpi{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:6px}
+.kpi .v{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:30px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+.kpi .v.neg{color:var(--critical)}
+.kpi .l{font-size:13px;color:var(--ink-2);line-height:1.35}
+.kpi .l b{color:var(--ink)}
+.tablewrap{overflow-x:auto;margin:14px 0 6px}
+table.ledger{border-collapse:collapse;width:100%;font-size:14.5px}
+table.ledger th{text-align:left;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--rule)}
+table.ledger td{padding:9px 10px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+table.ledger td.num,table.ledger th.num{text-align:right;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.ledger td.note{color:var(--ink-2);font-size:13.5px;max-width:52ch}
+table.ledger tr.total td{border-top:2px solid var(--ink);border-bottom:0;font-weight:700}
+table.ledger .neg{color:var(--critical)} table.ledger .pos{color:var(--good)}
+table.ledger td.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:13.5px}
+table.compact td,table.compact th{padding:7px 10px}
+.chip{display:inline-block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid transparent}
+.chip-measured{background:var(--gold-soft);color:var(--gold-text);border-color:var(--gold)}
+.chip-list{border-color:var(--ink-2);color:var(--ink-2)}
+.chip-estimate{border-style:dashed;border-color:var(--chip-est);color:var(--chip-est)}
+.chip-unknown{color:var(--muted);border-color:var(--rule)}
+.callout{border-left:4px solid var(--gold);background:var(--surface);padding:14px 18px;margin:18px 0;border-radius:0 6px 6px 0}
+.callout.crit{border-left-color:var(--critical)}
+.callout p{margin:6px 0}
+.chart{width:100%;height:auto;display:block;margin:14px 0 4px;font-family:"Archivo",system-ui,sans-serif}
+.chart .grid{stroke:var(--grid);stroke-width:1}
+.chart .baseline{stroke:var(--ink);stroke-width:1.5}
+.chart .tick{fill:var(--muted);font-size:12px}
+.chart .lab{fill:var(--ink);font-size:13px;font-weight:600}
+.chart .val{fill:var(--ink);font-size:12.5px;font-family:"IBM Plex Mono",ui-monospace,monospace}
+.chart .seglab{fill:#fff;font-size:11.5px;font-weight:600}
+.chart .bar.neg{fill:var(--bar-neg)} .chart .bar.pos{fill:var(--bar-pos)}
+.chart .seg.s1{fill:var(--s1)} .chart .seg.s2{fill:var(--s2)} .chart .seg.s3{fill:var(--s3)} .chart .seg.s4{fill:var(--s4)}
+.chart .seg,.chart .bar{cursor:default}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);font-size:12.5px;padding:7px 10px;border-radius:4px;max-width:340px;line-height:1.4;z-index:10;transform:translate(-50%,calc(-100% - 12px));font-family:"IBM Plex Mono",ui-monospace,monospace}
+#tip[hidden]{display:none}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;margin:12px 0 4px}
+.fact .v{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:24px;font-weight:600;line-height:1.1}
+.fact .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+table.po td:first-child,table.po th:first-child{white-space:nowrap}
+table.po td.num,table.po th.num{padding-left:6px;padding-right:6px}
+.decisions li{margin:10px 0}
+.small{font-size:13.5px;color:var(--ink-2)}
+.sources li{font-size:13.5px;color:var(--ink-2);max-width:none}
+.sources code,.small code,p code,li code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.92em;background:var(--rule-2);padding:1px 5px;border-radius:3px}
+a{color:var(--gold-text);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media (max-width:520px){.kpis{grid-template-columns:1fr}.wrap{padding:28px 16px 60px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<span class="eyebrow">Makola.io · cost ledger · 6 September 2026</span>
+<h1>Makola.io Cost Ledger</h1>
+<p class="dek">What the platform costs to run today, what every order and every shop costs, what it costs as it grows, what building it has cost, and the one number that has to change before the live Paystack keys go in.</p>
+
+<div class="kpis">
+ <div class="kpi"><div class="v">$27<span style="font-size:15px;font-weight:400"> /mo</span></div><div class="l"><b>To run today.</b> 45 shops, 2 Fly machines, 1 Postgres, domains, AI and messages. Fly's invoice is bigger: it carries three other apps.</div></div>
+ <div class="kpi"><div class="v neg">−GH₵ 0.30</div><div class="l"><b>Kept per GH₵ 200 order at 2%.</b> Paystack's 1.95% is charged to Makola, not the merchant, so the fee rail loses money on every order.</div></div>
+ <div class="kpi"><div class="v">GH₵ 9.46</div><div class="l"><b>Platform fees settled, ever.</b> 4 settled splits on test-key orders. GH₵ 151 more sits pending on 19 orders.</div></div>
+ <div class="kpi"><div class="v">$13,657</div><div class="l"><b>Claude tokens, 11 Jul – 6 Sep, at API list price.</b> Paid as a subscription, so the real cost is the plan fee. It is the largest cost line of the project.</div></div>
+</div>
+
+<section id="today">
+<span class="eyebrow">Running cost · measured 6 September</span>
+<h2>Twenty-seven dollars a month runs the whole platform</h2>
+<p>Every line below was read from the live Fly account, the production database, or the vendor's current price list. Chips say which. Prices in London (lhr) run about 9% above Fly's Amsterdam table.</p>
+<div class="tablewrap"><table class="ledger"><thead><tr><th>Line</th><th class="num">USD / month</th><th>Evidence</th><th>Note</th></tr></thead><tbody><tr><td>Fly app machine, 1 GB, running 24/7 (London)</td><td class="num">$6.46</td><td><span class="chip chip-list">list price</span></td><td class="note">shared-cpu-1x. Holds ~750 live storefront visitors before the September sweeper fix; more now.</td></tr><tr><td>Fly app machine, 1 GB, suspended</td><td class="num">$0.45</td><td><span class="chip chip-estimate">estimate</span></td><td class="note">Second machine wakes only past 100 connections. Billed for its rootfs (~$0.15) plus a few running hours.</td></tr><tr><td>Fly Postgres machine, 1 GB</td><td class="num">$6.46</td><td><span class="chip chip-list">list price</span></td><td class="note">Unmanaged postgres-flex 17, single node. Database is 23 MB for 45 shops.</td></tr><tr><td>Fly Postgres volume, 10 GB</td><td class="num">$1.50</td><td><span class="chip chip-list">list price</span></td><td class="note">Daily snapshots (~0.7 GB stored) fall inside the free 10 GB.</td></tr><tr><td>Wildcard certificate *.makola.io</td><td class="num">$1.00</td><td><span class="chip chip-list">list price</span></td><td class="note">makola.io and www are two of the ten free single-host certificates.</td></tr><tr><td>Egress and Tigris storage</td><td class="num">$0.10</td><td><span class="chip chip-estimate">estimate</span></td><td class="note">40 MB of images in a 5 GB free tier; 719 visits in 12 days. Effectively zero.</td></tr><tr><td>Anthropic API (267 Snap-to-Shop calls)</td><td class="num">$1.52</td><td><span class="chip chip-measured">measured</span></td><td class="note">1,682 input + 237 output tokens per snap at Sonnet 5 $2/$10. The app's own ledger records $2.30 because config still uses the $3/$15 sticker.</td></tr><tr><td>WhatsApp (Meta) and Arkesel SMS</td><td class="num">$0.15</td><td><span class="chip chip-estimate">estimate</span></td><td class="note">7 order notifications a week at $0.004 a message. Real token since 26 August.</td></tr><tr><td>Twilio number for the WhatsApp Business Account</td><td class="num">$1.15</td><td><span class="chip chip-list">list price</span></td><td class="note">~£0.87 a month, bought 27 August.</td></tr><tr><td>Namecheap makola.io</td><td class="num">$6.33</td><td><span class="chip chip-list">list price</span></td><td class="note">$75.98 a year at renewal (June 2027). First year was $34.98.</td></tr><tr><td>Namecheap emakola.com</td><td class="num">$1.42</td><td><span class="chip chip-estimate">estimate</span></td><td class="note">Registered, not pointed at the app. Renewal invoice not seen.</td></tr><tr><td>Resend email</td><td class="num">$0.00</td><td><span class="chip chip-measured">measured</span></td><td class="note">Under 200 emails a month; free tier is 3,000.</td></tr><tr class="total"><td>Total</td><td class="num">$26.54</td><td></td><td class="note">≈ GH₵ 302 a month at 11.37 GH₵/$.</td></tr></tbody></table></div>
+<h3>Off this ledger, on purpose</h3>
+<ul>
+<li><strong>Paystack.</strong> Still the <code>sk_test</code> key. The 7 successful payments (GH₵ 4,519) were test-mode money. Once live keys go in, gateway fees become the biggest line by far, see the next section.</li>
+<li><strong>Sentry, Cloudflare, GitHub Actions.</strong> $0. No <code>SENTRY_DSN</code> is set in production, DNS goes straight from Namecheap to Fly, and the repository is public so CI minutes are free (100 runs in the last 30 days, about 6 minutes each).</li>
+<li><strong>Firebase push, Google Search Console, WhatsApp catalog sync.</strong> Free APIs.</li>
+<li><strong>Your Claude subscription, Monid and Higgsfield credits for the ad videos, your own hours.</strong> Development and marketing, not running cost. The Claude part is sized below.</li>
+<li><strong>Fly's other apps.</strong> pricelysis, transfilio and wellness-connect (each with a database) share the personal org. Read Makola's cost from this table, not from the Fly invoice.</li>
+</ul>
+</section>
+
+<section id="order">
+<span class="eyebrow">Per order · the number to fix</span>
+<h2>At a 2% fee, every paid order loses about thirty pesewas</h2>
+<p>The business plan says gateway fees are "passed through to the merchant". The code does the opposite: the Paystack split is sent with <code>bearer_type: "account"</code>, which makes Makola's main account pay the 1.95% on every charge. On orders from shops without a verified payout, the whole charge lands in Makola's account and is paid out later by transfer, so Makola bears the fee there too. Two percent in, 1.95% out, then messages and the GH₵ 1 MoMo transfer.</p>
+<div class="two">
+<div><table class="ledger compact po"><thead><tr><th>GH₵ 200 order</th><th class='num'>2% take</th><th class='num'>3% take</th><th class='num'>4% take</th><th class='num'>5% take</th></tr></thead><tbody>
+<tr><td>Fee revenue</td><td class='num'>GH₵ 4.00</td><td class='num'>GH₵ 6.00</td><td class='num'>GH₵ 8.00</td><td class='num'>GH₵ 10.00</td></tr><tr><td>Paystack 1.95%</td><td class='num'>−GH₵ 3.90</td><td class='num'>−GH₵ 3.90</td><td class='num'>−GH₵ 3.90</td><td class='num'>−GH₵ 3.90</td></tr><tr><td>Messages</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td></tr><tr><td>Payout share</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td></tr><tr class='total'><td>Makola keeps</td><td class='num neg'>−GH₵ 0.30</td><td class='num pos'>+GH₵ 1.70</td><td class='num pos'>+GH₵ 3.70</td><td class='num pos'>+GH₵ 5.70</td></tr></tbody></table></div>
+<div><table class="ledger compact po"><thead><tr><th>GH₵ 100 order</th><th class='num'>2% take</th><th class='num'>3% take</th><th class='num'>4% take</th><th class='num'>5% take</th></tr></thead><tbody>
+<tr><td>Fee revenue</td><td class='num'>GH₵ 2.00</td><td class='num'>GH₵ 3.00</td><td class='num'>GH₵ 4.00</td><td class='num'>GH₵ 5.00</td></tr><tr><td>Paystack 1.95%</td><td class='num'>−GH₵ 1.95</td><td class='num'>−GH₵ 1.95</td><td class='num'>−GH₵ 1.95</td><td class='num'>−GH₵ 1.95</td></tr><tr><td>Messages</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td></tr><tr><td>Payout share</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td><td class='num'>−GH₵ 0.20</td></tr><tr class='total'><td>Makola keeps</td><td class='num neg'>−GH₵ 0.35</td><td class='num pos'>+GH₵ 0.65</td><td class='num pos'>+GH₵ 1.65</td><td class='num pos'>+GH₵ 2.65</td></tr></tbody></table></div>
+</div>
+<svg class="chart" viewBox="0 0 760 196" role="img" aria-labelledby="dv-title"><title id="dv-title">Makola net per GH₵ 200 order at four take rates</title><line x1="166.7" y1="34" x2="166.7" y2="186" class="grid"/><text x="166.7" y="28" class="tick" text-anchor="middle">-2</text><line x1="300.0" y1="34" x2="300.0" y2="186" class="grid"/><text x="300.0" y="28" class="tick" text-anchor="middle">0</text><line x1="433.3" y1="34" x2="433.3" y2="186" class="grid"/><text x="433.3" y="28" class="tick" text-anchor="middle">+2</text><line x1="566.7" y1="34" x2="566.7" y2="186" class="grid"/><text x="566.7" y="28" class="tick" text-anchor="middle">+4</text><line x1="700.0" y1="34" x2="700.0" y2="186" class="grid"/><text x="700.0" y="28" class="tick" text-anchor="middle">+6</text><line x1="300" y1="34" x2="300" y2="186" class="baseline"/><path d="M300,49 H284.17493333333334 a4,4 0 0 0 -4,4 v12 a4,4 0 0 0 4,4 H300 Z" class="bar neg" data-tip="2% take: revenue GH₵ 4.00 − gateway GH₵ 3.90 − messages GH₵ 0.20 − payout GH₵ 0.20 = −GH₵ 0.30"/><text x="274.2" y="63" class="val" text-anchor="end">−GH₵ 0.30</text><text x="316" y="63" class="lab" text-anchor="start">2% take rate</text><path d="M300,85 H409.50826666666666 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 H300 Z" class="bar pos" data-tip="3% take: revenue GH₵ 6.00 − gateway GH₵ 3.90 − messages GH₵ 0.20 − payout GH₵ 0.20 = +GH₵ 1.70"/><text x="419.5" y="99" class="val" text-anchor="start">+GH₵ 1.70</text><text x="284" y="99" class="lab" text-anchor="end">3% take rate</text><path d="M300,121 H542.8416 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 H300 Z" class="bar pos" data-tip="4% take: revenue GH₵ 8.00 − gateway GH₵ 3.90 − messages GH₵ 0.20 − payout GH₵ 0.20 = +GH₵ 3.70"/><text x="552.8" y="135" class="val" text-anchor="start">+GH₵ 3.70</text><text x="284" y="135" class="lab" text-anchor="end">4% take rate</text><path d="M300,157 H676.1749333333332 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 H300 Z" class="bar pos" data-tip="5% take: revenue GH₵ 10.00 − gateway GH₵ 3.90 − messages GH₵ 0.20 − payout GH₵ 0.20 = +GH₵ 5.70"/><text x="686.2" y="171" class="val" text-anchor="start">+GH₵ 5.70</text><text x="284" y="171" class="lab" text-anchor="end">5% take rate</text><text x="300" y="190" class="tick" text-anchor="middle">GH₵ kept per GH₵ 200 order, after Paystack, messages and payout</text></svg>
+<p class="small">"Messages" is four buyer notifications (placed, confirmed, shipped, delivered) plus one merchant SMS. "Payout share" is one GH₵ 1 MoMo transfer spread over five orders. Message cost assumes 80% of buyers reachable on WhatsApp (utility template $0.004, Meta "Rest of Africa" rate from 1 July 2026) and 20% on Arkesel SMS at GH₵ 0.0288. Hover a bar for the arithmetic.</p>
+<div class="callout crit">
+<p><strong>Three ways out, in order of how easy they are to explain to a merchant who reads slowly.</strong></p>
+<p>1. <strong>Charge 4% all-in and keep paying Paystack.</strong> "We keep 4 pesewas of every cedi." Makola keeps GH₵ 3.70 of a GH₵ 200 order (46% of fee revenue). Paystack direct costs a merchant 1.95% plus their own payouts, so 4% for checkout, messages, a shop and payouts is still a fair pitch.</p>
+<p>2. <strong>Let the merchant bear the gateway fee.</strong> One line in <code>lib/emakola/payments/gateways/paystack.ex</code>: <code>bearer_type: "subaccount"</code> with the merchant's subaccount as bearer. The 2% then nets GH₵ 3.60. But shops with no verified payout still route through Makola's account, so the non-split path needs its own fee deduction.</p>
+<p>3. <strong>Add the fee to the buyer at checkout.</strong> Common in Ghana, unpopular with buyers, and it changes every theme's checkout copy.</p>
+<p>Whichever you pick, it has to land before the live key. Today the rate is a config default (<code>:platform_fee_rate_bps</code>, 200) so option 1 is a one-value change.</p>
+</div>
+<h3>Break-even at 4%</h3>
+<p>Take messaging out of operating cost (it is already inside the per-order figure) and divide what is left by the GH₵ 3.70 kept per order.</p>
+<div class="tablewrap"><table class="ledger compact"><thead><tr><th>Tier</th><th class="num">Fixed cost / mo</th><th class="num">Orders / mo to break even</th><th class="num">Orders per shop</th></tr></thead><tbody><tr><td>Today · 45 shops</td><td class='num'>$26.34</td><td class='num'>81</td><td class='num'>1.80</td></tr><tr><td>500 shops</td><td class='num'>$40.95</td><td class='num'>126</td><td class='num'>0.25</td></tr><tr><td>2,000 shops</td><td class='num'>$95.85</td><td class='num'>294</td><td class='num'>0.15</td></tr><tr><td>10,000 shops</td><td class='num'>$294.66</td><td class='num'>905</td><td class='num'>0.09</td></tr></tbody></table></div>
+<p>At 4%, one order a month per shop covers the platform. At 2% no volume ever does.</p>
+</section>
+
+<section id="shop">
+<span class="eyebrow">Per shop · measured</span>
+<h2>A shop costs about fifty cents a month to host and six cents to onboard</h2>
+<div class="facts">
+<div class="fact"><div class="v">$0.60</div><div class="l">operating cost per shop per month today (45 shops)</div></div>
+<div class="fact"><div class="v">$0.20</div><div class="l">at 10,000 shops</div></div>
+<div class="fact"><div class="v">7</div><div class="l">Snap-to-Shop calls per new shop (267 calls, 37 new shops in August)</div></div>
+<div class="fact"><div class="v">$0.040</div><div class="l">Anthropic cost to onboard one shop</div></div>
+<div class="fact"><div class="v">0.5 MB</div><div class="l">database per shop (23 MB for 45)</div></div>
+<div class="fact"><div class="v">95 KB</div><div class="l">average stored image (419 images, 40 MB)</div></div>
+</div>
+<p>The business plan budgeted GH₵ 15 of infrastructure and GH₵ 20 of SMS and WhatsApp per merchant per month, GH₵ 65 with support. The ledger says GH₵ 7 all-in today and GH₵ 2.3 at scale, with messages costing GH₵ 0.20 per order rather than a flat GH₵ 20. Support is your time and is not priced here.</p>
+<p>Snap-to-Shop is the only AI feature with real usage: 267 of 269 calls in the month. Product descriptions and alt text were called once each. The blog generator (Sonnet, up to 3,000 tokens a post) shows no production usage since 5 August.</p>
+</section>
+
+<section id="scale">
+<span class="eyebrow">Growth · projected from measured rates</span>
+<h2>Infrastructure stays small. Messages grow with every order.</h2>
+<p>Each tier assumes 10 orders a shop a month at GH₵ 200, 7 snaps per new shop, and the machine sizes the capacity benchmark calls for. Paystack fees are excluded here because they scale with revenue, not with cost.</p>
+<svg class="chart" viewBox="0 0 760 214" role="img" aria-labelledby="cp-title"><title id="cp-title">Share of monthly operating cost by tier</title><text x="168" y="52" class="lab" text-anchor="end">Today · 45 shops</text><rect x="180.0" y="36" width="275.4" height="22" class="seg s1" data-tip="Today · 45 shops: Fly infrastructure $15.91 of $26.96 (59%)"/><text x="317.7" y="51" class="seglab" text-anchor="middle">59%</text><rect x="457.4" y="36" width="8.8" height="22" class="seg s2" data-tip="Today · 45 shops: Messages (WhatsApp + SMS) $0.62 of $26.96 (2%)"/><rect x="468.2" y="36" width="24.5" height="22" class="seg s3" data-tip="Today · 45 shops: Anthropic API $1.52 of $26.96 (6%)"/><rect x="494.7" y="36" width="153.2" height="22" class="seg s4" data-tip="Today · 45 shops: Email, domains, Twilio $8.90 of $26.96 (33%)"/><text x="571.2" y="51" class="seglab" text-anchor="middle">33%</text><text x="660" y="52" class="val" text-anchor="start">$27/mo</text><text x="168" y="92" class="lab" text-anchor="end">500 shops</text><rect x="180.0" y="76" width="101.2" height="22" class="seg s1" data-tip="500 shops: Fly infrastructure $28.06 of $127.75 (22%)"/><text x="230.6" y="91" class="seglab" text-anchor="middle">22%</text><rect x="283.2" y="76" width="317.3" height="22" class="seg s2" data-tip="500 shops: Messages (WhatsApp + SMS) $86.80 of $127.75 (68%)"/><text x="441.9" y="91" class="seglab" text-anchor="middle">68%</text><rect x="602.6" y="76" width="12.7" height="22" class="seg s3" data-tip="500 shops: Anthropic API $3.99 of $127.75 (3%)"/><rect x="617.3" y="76" width="30.7" height="22" class="seg s4" data-tip="500 shops: Email, domains, Twilio $8.90 of $127.75 (7%)"/><text x="660" y="92" class="val" text-anchor="start">$128/mo</text><text x="168" y="132" class="lab" text-anchor="end">2,000 shops</text><rect x="180.0" y="116" width="56.3" height="22" class="seg s1" data-tip="2,000 shops: Fly infrastructure $54.98 of $443.04 (12%)"/><text x="208.2" y="131" class="seglab" text-anchor="middle">12%</text><rect x="238.3" y="116" width="366.3" height="22" class="seg s2" data-tip="2,000 shops: Messages (WhatsApp + SMS) $347.19 of $443.04 (78%)"/><text x="421.5" y="131" class="seglab" text-anchor="middle">78%</text><rect x="606.6" y="116" width="10.7" height="22" class="seg s3" data-tip="2,000 shops: Anthropic API $11.97 of $443.04 (3%)"/><rect x="619.3" y="116" width="28.7" height="22" class="seg s4" data-tip="2,000 shops: Email, domains, Twilio $28.90 of $443.04 (7%)"/><text x="660" y="132" class="val" text-anchor="start">$443/mo</text><text x="168" y="172" class="lab" text-anchor="end">10,000 shops</text><rect x="180.0" y="156" width="48.2" height="22" class="seg s1" data-tip="10,000 shops: Fly infrastructure $216.86 of $2,030.60 (11%)"/><text x="204.1" y="171" class="seglab" text-anchor="middle">11%</text><rect x="230.2" y="156" width="399.8" height="22" class="seg s2" data-tip="10,000 shops: Messages (WhatsApp + SMS) $1,735.94 of $2,030.60 (85%)"/><text x="430.1" y="171" class="seglab" text-anchor="middle">85%</text><rect x="632.0" y="156" width="7.2" height="22" class="seg s3" data-tip="10,000 shops: Anthropic API $39.90 of $2,030.60 (2%)"/><rect x="641.2" y="156" width="6.8" height="22" class="seg s4" data-tip="10,000 shops: Email, domains, Twilio $37.90 of $2,030.60 (2%)"/><text x="660" y="172" class="val" text-anchor="start">$2,031/mo</text><g transform="translate(180,200)"><rect width="10" height="10" rx="2" class="seg s1"/><text x="14" y="9" class="tick" text-anchor="start">Fly infrastructure</text></g><g transform="translate(320,200)"><rect width="10" height="10" rx="2" class="seg s2"/><text x="14" y="9" class="tick" text-anchor="start">Messages (WhatsApp + SMS)</text></g><g transform="translate(520,200)"><rect width="10" height="10" rx="2" class="seg s3"/><text x="14" y="9" class="tick" text-anchor="start">Anthropic API</text></g><g transform="translate(640,200)"><rect width="10" height="10" rx="2" class="seg s4"/><text x="14" y="9" class="tick" text-anchor="start">Email, domains, Twilio</text></g></svg>
+<div class="tablewrap"><table class="ledger compact"><thead><tr><th>Tier</th><th class="num">Orders / mo</th><th class="num">Fly</th><th class="num">Messages</th><th class="num">Anthropic</th><th class="num">Email + fixed</th><th class="num">Operating cost</th><th class="num">Per shop</th><th class="num">Per order</th></tr></thead><tbody><tr><td>Today · 45 shops</td><td class='num'>36</td><td class='num'>$15.91</td><td class='num'>$0.62</td><td class='num'>$1.52</td><td class='num'>$8.90</td><td class='num total'>$26.96</td><td class='num'>$0.60</td><td class='num'>$0.749</td></tr><tr><td>500 shops</td><td class='num'>5,000</td><td class='num'>$28.06</td><td class='num'>$86.80</td><td class='num'>$3.99</td><td class='num'>$8.90</td><td class='num total'>$127.75</td><td class='num'>$0.26</td><td class='num'>$0.026</td></tr><tr><td>2,000 shops</td><td class='num'>20,000</td><td class='num'>$54.98</td><td class='num'>$347.19</td><td class='num'>$11.97</td><td class='num'>$28.90</td><td class='num total'>$443.04</td><td class='num'>$0.22</td><td class='num'>$0.022</td></tr><tr><td>10,000 shops</td><td class='num'>100,000</td><td class='num'>$216.86</td><td class='num'>$1,735.94</td><td class='num'>$39.90</td><td class='num'>$37.90</td><td class='num total'>$2,030.60</td><td class='num'>$0.20</td><td class='num'>$0.020</td></tr></tbody></table></div>
+<h3>What each tier's Fly bill is made of</h3>
+<div class="tablewrap"><table class="ledger compact"><tbody><tr><td>Today · 45 shops</td><td class='note'>App machine 1GB (running) $6.46; App machine 1GB (suspended, rootfs) $0.39; Postgres 1GB machine $6.46; Postgres volume 10GB $1.50; Wildcard certificate $1.00; Egress + Tigris $0.10</td></tr><tr><td>500 shops</td><td class='note'>App machines 2×1GB (always on) $12.92; Postgres 2GB machine $12.14; Postgres volume 10GB $1.50; Wildcard certificate $1.00; Egress + Tigris $0.50</td></tr><tr><td>2,000 shops</td><td class='note'>App machines 2×2GB $24.28; Postgres 4GB machine $24.20; Postgres volume 20GB $3.00; Wildcard certificate $1.00; Egress + Tigris $2.50</td></tr><tr><td>10,000 shops</td><td class='note'>App machines 4×2GB $48.56; Postgres performance 8GB $92.80; Postgres volume 50GB $7.50; Wildcard certificate $1.00; Egress + Tigris $12.00; Sentry Team $26.00; Fly Standard support $29.00</td></tr></tbody></table></div>
+<h3>Capacity facts behind the sizes</h3>
+<ul>
+<li>One shared-cpu-1x machine renders storefronts at 75 to 90 requests a second and the landing page at 573. A 1 GB machine held about 750 live visitors before the idle-connection sweeper shipped on 6 September; the fix cut an idle handler from ~600 KB to under 8 KB.</li>
+<li>The database is 23 MB. The 10 GB volume lasts past 10,000 shops at today's 0.5 MB a shop because images live in Tigris, not Postgres. Postgres RAM is the first thing to raise: 1 GB is the floor for two app machines at pool size 10; 2 GB when the third machine arrives.</li>
+<li>Images cost $0.02 a GB a month on Tigris with free egress. 10,000 shops at 30 images each is 28 GB, or 56 cents.</li>
+<li>Fly Managed Postgres starts at $38 a month for the same 1 GB, five times unmanaged. Worth it only when a lost night of orders costs more than the difference.</li>
+<li>Sentry Team ($26) and a Fly support plan ($29) appear only in the 10,000-shop tier. Below that they are optional.</li>
+</ul>
+</section>
+
+<section id="build">
+<span class="eyebrow">Building it · measured from git and Claude Code transcripts</span>
+<h2>The project's biggest cost is the tokens that wrote it</h2>
+<div class="facts">
+<div class="fact"><div class="v">1,828</div><div class="l">commits, 21 March to 4 September (168 days)</div></div>
+<div class="fact"><div class="v">195 k</div><div class="l">lines in lib/, Elixir and HEEx</div></div>
+<div class="fact"><div class="v">136 k</div><div class="l">lines of tests, 7,467 test cases</div></div>
+<div class="fact"><div class="v">178</div><div class="l">database migrations</div></div>
+<div class="fact"><div class="v">122</div><div class="l">Claude Code sessions on this machine since 11 July</div></div>
+<div class="fact"><div class="v">49,767</div><div class="l">model requests in those sessions</div></div>
+</div>
+<p>The transcripts on this Mac start on 11 July, so the table covers 8 of the project's 24 weeks, roughly a fifth of the commits. Cost is what the same tokens would have been on the API at list price: input, cache writes at 1.25×, cache reads at 0.1×, output. Sonnet 5 is priced at its now-permanent $2/$10.</p>
+<div class="tablewrap"><table class="ledger compact"><thead><tr><th>Model</th><th class="num">Requests</th><th class="num">Output tokens</th><th class="num">Cache-read tokens</th><th class="num">API list cost</th></tr></thead><tbody><tr><td class='mono'>claude-fable-5</td><td class='num'>12,509</td><td class='num'>10.9 M</td><td class='num'>5.24 B</td><td class='num'>$7,155</td></tr><tr><td class='mono'>claude-opus-5</td><td class='num'>16,062</td><td class='num'>11.6 M</td><td class='num'>6.21 B</td><td class='num'>$3,988</td></tr><tr><td class='mono'>claude-fable-5-1</td><td class='num'>2,028</td><td class='num'>2.2 M</td><td class='num'>0.85 B</td><td class='num'>$1,198</td></tr><tr><td class='mono'>claude-sonnet-5</td><td class='num'>14,809</td><td class='num'>9.3 M</td><td class='num'>2.23 B</td><td class='num'>$710</td></tr><tr><td class='mono'>claude-opus-4-8</td><td class='num'>3,307</td><td class='num'>2.1 M</td><td class='num'>0.78 B</td><td class='num'>$563</td></tr><tr><td class='mono'>claude-opus-4-7</td><td class='num'>199</td><td class='num'>0.1 M</td><td class='num'>0.01 B</td><td class='num'>$34</td></tr><tr><td class='mono'>claude-haiku-4-5</td><td class='num'>838</td><td class='num'>0.3 M</td><td class='num'>0.04 B</td><td class='num'>$9</td></tr><tr class="total"><td>Total, 11 Jul – 6 Sep</td><td class="num">49,767</td><td class="num">36.5 M</td><td class="num">15.4 B</td><td class="num">$13,657</td></tr></tbody></table></div>
+<div class="callout">
+<p><strong>What you actually paid is the subscription.</strong> This machine is signed in on a Stripe subscription, not API billing. At $200 a month for Max that is about $400 for the same eight weeks, thirty-four times less than list. The comparison is the point: the plan is the cheapest engineering line the company has, and the reason a one-person, part-time, diaspora founder has 195 thousand lines of tested Elixir.</p>
+<p>If the earlier sixteen weeks ran at the same pace, the whole build is in the region of $60,000 to $70,000 of API-equivalent tokens. A two-engineer, one-designer team for six months would have cost $13,000 to $24,000 at Accra senior rates or $145,000 to $215,000 at UK contract rates, and would not have shipped 22 themes.</p>
+</div>
+<p class="small">Cache reads are 99% of input tokens. That is the 1-hour prompt cache doing its job: each turn re-reads the conversation from cache at a tenth of the price. Fable 5 is 52% of the list cost on 25% of the requests.</p>
+</section>
+
+<section id="plan">
+<span class="eyebrow">Business plan · reconciled</span>
+<h2>Where the plan and the ledger disagree</h2>
+<div class="tablewrap"><table class="ledger"><thead><tr><th>Item</th><th>Business plan (docs/business-plan)</th><th>This ledger</th></tr></thead><tbody>
+<tr><td>Exchange rate</td><td>GH₵ 15.5 per dollar</td><td>GH₵ 11.37 (xe.com, 6 Sep 2026). Every dollar figure in the plan is 27% too high in cedis.</td></tr>
+<tr><td>Gateway fee</td><td>Passed through to the merchant, outside Makola's P&amp;L</td><td>Borne by Makola on every split (<code>bearer_type: "account"</code>) and on every held charge</td></tr>
+<tr><td>Infrastructure per merchant</td><td>GH₵ 15 a month</td><td>GH₵ 7 all-in today, GH₵ 2.3 at 10,000 shops</td></tr>
+<tr><td>SMS and WhatsApp per merchant</td><td>GH₵ 20 a month</td><td>GH₵ 0.20 an order, about GH₵ 2 a month at 10 orders</td></tr>
+<tr><td>Revenue per merchant</td><td>GH₵ 449 (GH₵ 49 plan + 2% of GH₵ 20,000)</td><td>Subscriptions were deferred in June. At 2% of GH₵ 2,000 of real volume: GH₵ 40 in, GH₵ 43 out.</td></tr>
+<tr><td>Break-even</td><td>Month 4 at 85 merchants, subscription-led</td><td>At 4% fee-only: 81 orders a month today. At 2%: never.</td></tr>
+<tr><td>Team cost year 1</td><td>GH₵ 180,000 for four to five hires</td><td>One founder plus a Claude subscription. Unpriced, but see the previous section.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="decide">
+<span class="eyebrow">Decisions this ledger points to</span>
+<h2>Four calls, one of them before the live key</h2>
+<ul class="decisions">
+<li><strong>Set the take rate to 4% all-in, or move the gateway fee to the merchant, before <code>PAYSTACK_SECRET_KEY</code> goes live.</strong> Today's default loses GH₵ 0.30 an order; nothing else in this document matters until that is fixed. Your call which lever; the first is one config value and one sentence for merchants.</li>
+<li><strong>Leave the infrastructure alone.</strong> Two 1 GB machines and a 1 GB Postgres carry the first 500 shops. Raise Postgres to 2 GB when a third app machine is needed, not before.</li>
+<li><strong>Fix the AI price table.</strong> <code>config/config.exs</code> still bills Sonnet 5 at $3/$15. The $2/$10 introductory rate became permanent, so the in-app cost ledger overstates by 50%.</li>
+<li><strong>Keep WhatsApp first, but stop treating SMS as the expensive fallback.</strong> In Ghana an Arkesel SMS ($0.0025) now costs less than a WhatsApp utility message ($0.004). The <code>SUPPLIER_SMS_FALLBACK</code> ship-dark flag was gated on cost; the gate can open. From 1 October Meta also bills in-window replies at $0.004.</li>
+</ul>
+<p class="small">Numbers still unknown to me: which Claude plan you are on, what Monid and Higgsfield have billed for the ad videos, and the emakola.com renewal. None of them change the running-cost picture.</p>
+</section>
+
+<section id="method">
+<span class="eyebrow">Method and sources</span>
+<h2>How each number was obtained</h2>
+<ul class="sources">
+<li><strong>Fly inventory:</strong> <code>fly status</code>, <code>fly scale show</code>, <code>fly machines list</code>, <code>fly volumes list</code>, <code>fly certs list</code>, <code>fly secrets list</code> (names only), <code>fly storage list</code> against the emakola and emakola-db-lhr apps.</li>
+<li><strong>Production data:</strong> read-only SQL through <code>/app/bin/emakola rpc</code>: table row counts, <code>pg_database_size</code>, sums over images, payments, orders, payment_splits, ai_usage and oban_jobs (Oban keeps 7 days).</li>
+<li><strong>Claude Code usage:</strong> every assistant message's <code>usage</code> block in <code>~/.claude/projects/-Users-kojo-Projects-emakola*/</code>, de-duplicated by request id, priced at list.</li>
+<li><strong>Vendor prices, all fetched 6 September 2026:</strong> <a href="https://fly.io/docs/about/pricing/">fly.io pricing</a>, <a href="https://fly.io/docs/mpg/">Fly Managed Postgres</a>, <a href="https://www.tigrisdata.com/pricing/">Tigris</a>, <a href="https://resend.com/pricing">Resend</a>, <a href="https://sentry.io/pricing/">Sentry</a>, <a href="https://www.namecheap.com/domains/registration/cctld/io/">Namecheap .io</a>, <a href="https://paystack.com/gh/pricing">Paystack Ghana</a> and support articles 2130306 and 2130370, <a href="https://explore.hubtel.com/legal/service-fees/">Hubtel service fees</a>, <a href="https://arkesel.com/pricing">Arkesel</a>, <a href="https://developers.facebook.com/docs/whatsapp/pricing/">Meta WhatsApp pricing</a> (USD rate CSV, July and October 2026 files), <a href="https://platform.claude.com/docs/en/about-claude/pricing">Anthropic pricing</a>, <a href="https://www.xe.com/">xe.com</a> for USD/GHS.</li>
+<li><strong>Code facts:</strong> <code>order_settlement.ex</code> (2% default, 10% on dropship margin), <code>gateways/paystack.ex:221</code> (bearer), <code>order_notification_worker.ex</code> (4 buyer events, merchant SMS on placed and cancelled), <code>ai/prompts.ex</code> (model and token budgets), <code>server-capacity-benchmark.md</code>.</li>
+<li><strong>Assumptions:</strong> GH₵ 200 average order (August's GH₵ 1,675 average is test data), 10 orders a shop a month, 80% WhatsApp reach, one payout per five orders, second Fly machine awake 5% of the time, London prices 9% above Amsterdam.</li>
+</ul>
+</section>
+</div>
+<div id="tip" hidden></div>
+<script>
+(function(){var tip=document.getElementById('tip');
+function show(e){var t=e.target.getAttribute('data-tip');if(!t)return;tip.textContent=t;tip.hidden=false;move(e);}
+function move(e){tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';}
+function hide(){tip.hidden=true;}
+document.querySelectorAll('[data-tip]').forEach(function(el){el.addEventListener('mouseenter',show);el.addEventListener('mousemove',move);el.addEventListener('mouseleave',hide);el.setAttribute('tabindex','0');el.addEventListener('focus',function(e){tip.textContent=el.getAttribute('data-tip');tip.hidden=false;var r=el.getBoundingClientRect();tip.style.left=(r.left+r.width/2)+'px';tip.style.top=r.top+'px';});el.addEventListener('blur',hide);});})();
+</script>
+</body>
+</html>
