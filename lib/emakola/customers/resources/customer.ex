@@ -197,6 +197,10 @@ defmodule Emakola.Customers.Customer do
     end
 
     count(:returns_count, :returns)
+
+    min :first_paid_order_at, :orders, :inserted_at do
+      filter(expr(status in [:confirmed, :processing, :shipped, :delivered]))
+    end
   end
 
   identities do
